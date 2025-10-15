@@ -22,15 +22,15 @@ pub type Currency = Option<i64>;
 
 pub type Graph = std::collections::HashMap<String, Vec<String>>;
 
-pub type JsonArray = Vec<serde_json::Value>;
+pub type JsonArray = Vec<JsonValue>;
 
-pub type JsonEntry = Option<crate::types::Union2AnyOrSimpleTag>;
+pub type JsonEntry = Option<crate::types::Union2JsonTemplateOrSimpleTag>;
 
-pub type JsonObject = std::collections::HashMap<String, serde_json::Value>;
+pub type JsonObject = std::collections::HashMap<String, JsonValue>;
 
-pub type JsonTemplate = std::collections::HashMap<String, serde_json::Value>;
+pub type JsonTemplate = std::collections::HashMap<String, JsonEntry>;
 
-pub type JsonValue = Option<crate::types::Union6AnyOrAnyOrBoolOrFloatOrIntOrString>;
+pub type JsonValue = Option<crate::types::Union6BoolOrFloatOrIntOrJsonArrayOrJsonObjectOrString>;
 
 pub type LinkedListAlias = Option<crate::types::LinkedListAliasNode>;
 
@@ -52,7 +52,7 @@ pub type RecursiveListAlias = Vec<serde_json::Value>;
 
 pub type RecursiveMapAlias = std::collections::HashMap<String, serde_json::Value>;
 
-pub type RecursiveUnion = Option<crate::types::Union2MapStringKeyAnyValueOrString>;
+pub type RecursiveUnion = Option<crate::types::Union2MapStringKeyRecursiveUnionValueOrString>;
 
 pub type TodoTool = Option<crate::types::Union2AddTodoItemOrTodoMessageToUser>;
 

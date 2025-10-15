@@ -2008,8 +2008,8 @@ impl BamlClient {
 impl BamlClient {
     /// JsonTypeAliasCycle - Generated BAML function
     pub async fn json_type_alias_cycle(
-        &self,input: serde_json::Value,
-    ) -> BamlResult<serde_json::Value> {
+        &self,input: crate::types::JsonValue,
+    ) -> BamlResult<crate::types::JsonValue> {
         let mut context = BamlContext::new();context = context.set_arg("input", input)?;
         
         // Include environment variables in the context
@@ -2020,8 +2020,8 @@ impl BamlClient {
     
     /// JsonTypeAliasCycle (streaming) - Generated BAML function  
     pub async fn json_type_alias_cycle_stream(
-        &self,input: serde_json::Value,
-    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<serde_json::Value>>> + Send + Sync> {
+        &self,input: crate::types::JsonValue,
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::stream_state::JsonValue>>> + Send + Sync> {
         let mut context = BamlContext::new();context = context.set_arg("input", input)?;
         
         // Include environment variables in the context
@@ -2808,8 +2808,8 @@ impl BamlClient {
 impl BamlClient {
     /// RecursiveUnionTest - Generated BAML function
     pub async fn recursive_union_test(
-        &self,input: serde_json::Value,
-    ) -> BamlResult<serde_json::Value> {
+        &self,input: crate::types::RecursiveUnion,
+    ) -> BamlResult<crate::types::RecursiveUnion> {
         let mut context = BamlContext::new();context = context.set_arg("input", input)?;
         
         // Include environment variables in the context
@@ -2820,8 +2820,8 @@ impl BamlClient {
     
     /// RecursiveUnionTest (streaming) - Generated BAML function  
     pub async fn recursive_union_test_stream(
-        &self,input: serde_json::Value,
-    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<serde_json::Value>>> + Send + Sync> {
+        &self,input: crate::types::RecursiveUnion,
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::stream_state::RecursiveUnion>>> + Send + Sync> {
         let mut context = BamlContext::new();context = context.set_arg("input", input)?;
         
         // Include environment variables in the context
@@ -2934,7 +2934,7 @@ impl BamlClient {
     /// ReturnJsonEntry - Generated BAML function
     pub async fn return_json_entry(
         &self,s: impl Into<String>,
-    ) -> BamlResult<serde_json::Value> {
+    ) -> BamlResult<crate::types::JsonTemplate> {
         let mut context = BamlContext::new();context = context.set_arg("s", s.into())?;
         
         // Include environment variables in the context
@@ -2946,7 +2946,7 @@ impl BamlClient {
     /// ReturnJsonEntry (streaming) - Generated BAML function  
     pub async fn return_json_entry_stream(
         &self,s: impl Into<String>,
-    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<serde_json::Value>>> + Send + Sync> {
+    ) -> BamlResult<impl futures::Stream<Item = BamlResult<baml_client_rust::StreamState<crate::stream_state::JsonTemplate>>> + Send + Sync> {
         let mut context = BamlContext::new();context = context.set_arg("s", s.into())?;
         
         // Include environment variables in the context
