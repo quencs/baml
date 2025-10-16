@@ -75,7 +75,7 @@ impl TypeBuilder {
     }
 
     #[napi]
-    pub fn get_enum(&self, name: String) -> napi::Result<EnumBuilder> {
+    pub fn add_enum(&self, name: String) -> napi::Result<EnumBuilder> {
         let result = self
             .inner
             .add_enum(&name)
@@ -84,10 +84,28 @@ impl TypeBuilder {
     }
 
     #[napi]
-    pub fn get_class(&self, name: String) -> napi::Result<ClassBuilder> {
+    pub fn get_enum(&self, name: String) -> napi::Result<EnumBuilder> {
+        let result = self
+            .inner
+            .r#enum(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(EnumBuilder { inner: result })
+    }
+
+    #[napi]
+    pub fn add_class(&self, name: String) -> napi::Result<ClassBuilder> {
         let result = self
             .inner
             .add_class(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(ClassBuilder { inner: result })
+    }
+
+    #[napi]
+    pub fn get_class(&self, name: String) -> napi::Result<ClassBuilder> {
+        let result = self
+            .inner
+            .class(&name)
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(ClassBuilder { inner: result })
     }
@@ -171,7 +189,7 @@ impl TypeBuilder {
 
     #[napi]
     pub fn to_string(&self) -> String {
-        todo!("implement this")
+        self.inner.to_string()
     }
 }
 
@@ -196,7 +214,7 @@ impl FieldType {
 #[napi]
 impl EnumBuilder {
     #[napi]
-    pub fn value(&self, name: String) -> napi::Result<EnumValueBuilder> {
+    pub fn add_value(&self, name: String) -> napi::Result<EnumValueBuilder> {
         let result = self
             .inner
             .add_value(&name)
@@ -205,31 +223,99 @@ impl EnumBuilder {
     }
 
     #[napi]
-    pub fn alias(&self, alias: Option<String>) -> napi::Result<Self> {
+    pub fn get_value(&self, name: String) -> napi::Result<EnumValueBuilder> {
+        let result = self
+            .inner
+            .value(&name)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(EnumValueBuilder { inner: result })
+    }
+
+    #[napi]
+    pub fn remove_value(&self, name: String) -> napi::Result<()> {
         self.inner
-            .set_alias(alias.as_ref().map(|s| s.as_str()))
+            .remove_value(&name)
+            .map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi]
+    pub fn set_alias(&self, alias: Option<String>) -> napi::Result<Self> {
+        self.inner
+            .set_alias(alias.as_deref())
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(self.inner.clone().into())
+    }
+
+    #[napi]
+    pub fn set_description(&self, description: Option<String>) -> napi::Result<Self> {
+        self.inner
+            .set_description(description.as_deref())
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
+    }
+
+    #[napi]
+    pub fn alias(&self) -> napi::Result<Option<String>> {
+        self.inner.alias().map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi]
+    pub fn description(&self) -> napi::Result<Option<String>> {
+        self.inner
+            .description()
+            .map_err(crate::errors::from_anyhow_error)
     }
 
     #[napi]
     pub fn field(&self) -> FieldType {
         baml_types::TypeIR::r#enum(&self.inner.enum_name).into()
     }
+
+    #[napi(ts_return_type = "Array<[string, EnumValueBuilder]>")]
+    pub fn list_values<'e>(&self, env: &'e Env) -> napi::Result<Array<'e>> {
+        let values = self
+            .inner
+            .list_values()
+            .map_err(crate::errors::from_anyhow_error)?
+            .into_iter()
+            .map(|v| (v.value_name.clone(), EnumValueBuilder { inner: v }));
+
+        let mut js_array = env.create_array(values.len() as u32)?;
+        for (i, (name, val_builder)) in values.enumerate() {
+            let mut tuple = env.create_array(2)?;
+            tuple.set(0, env.create_string(&name)?)?;
+            tuple.set(1, val_builder.into_instance(env)?)?;
+            js_array.set(i as u32, tuple)?;
+        }
+        Ok(js_array)
+    }
+
+    #[napi(ts_return_type = "'baml' | 'dynamic'")]
+    pub fn source(&self) -> napi::Result<String> {
+        let from_ast = self
+            .inner
+            .is_from_ast()
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(if from_ast {
+            "baml".to_string()
+        } else {
+            "dynamic".to_string()
+        })
+    }
 }
 
 #[napi]
 impl EnumValueBuilder {
     #[napi]
-    pub fn alias(&self, alias: Option<String>) -> napi::Result<Self> {
+    pub fn set_alias(&self, alias: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_alias(alias.as_ref().map(|s| s.as_str()))
+            .set_alias(alias.as_deref())
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(self.inner.clone().into())
     }
 
     #[napi]
-    pub fn skip(&self, skip: Option<bool>) -> napi::Result<Self> {
+    pub fn set_skip(&self, skip: Option<bool>) -> napi::Result<Self> {
         self.inner
             .set_skip(skip)
             .map_err(crate::errors::from_anyhow_error)?;
@@ -237,11 +323,41 @@ impl EnumValueBuilder {
     }
 
     #[napi]
-    pub fn description(&self, description: Option<String>) -> napi::Result<Self> {
+    pub fn set_description(&self, description: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_description(description.as_ref().map(|s| s.as_str()))
+            .set_description(description.as_deref())
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(self.inner.clone().into())
+    }
+
+    #[napi]
+    pub fn alias(&self) -> napi::Result<Option<String>> {
+        self.inner.alias().map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi]
+    pub fn description(&self) -> napi::Result<Option<String>> {
+        self.inner
+            .description()
+            .map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi]
+    pub fn skip(&self) -> napi::Result<bool> {
+        self.inner.skip().map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi(ts_return_type = "'baml' | 'dynamic'")]
+    pub fn source(&self) -> napi::Result<String> {
+        let from_ast = self
+            .inner
+            .is_from_ast()
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(if from_ast {
+            "baml".to_string()
+        } else {
+            "dynamic".to_string()
+        })
     }
 }
 
@@ -252,7 +368,7 @@ impl ClassBuilder {
         baml_types::TypeIR::class(&self.inner.class_name).into()
     }
 
-    #[napi]
+    #[napi(ts_return_type = "Array<[string, ClassPropertyBuilder]>")]
     pub fn list_properties<'e>(&self, env: &'e Env) -> napi::Result<Array<'e>> {
         let properties = self
             .inner
@@ -291,12 +407,66 @@ impl ClassBuilder {
     }
 
     #[napi]
-    pub fn property(&self, name: String) -> napi::Result<ClassPropertyBuilder> {
+    pub fn get_property(&self, name: String) -> napi::Result<ClassPropertyBuilder> {
         let result = self
             .inner
             .property(&name)
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(ClassPropertyBuilder { inner: result })
+    }
+
+    #[napi]
+    pub fn add_property(
+        &self,
+        name: String,
+        field_type: &FieldType,
+    ) -> napi::Result<ClassPropertyBuilder> {
+        let result = self
+            .inner
+            .add_property(&name, field_type.inner.lock().unwrap().clone(), true)
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(ClassPropertyBuilder { inner: result })
+    }
+
+    #[napi]
+    pub fn set_alias(&self, alias: Option<String>) -> napi::Result<Self> {
+        self.inner
+            .set_alias(alias.as_deref())
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
+    }
+
+    #[napi]
+    pub fn set_description(&self, description: Option<String>) -> napi::Result<Self> {
+        self.inner
+            .set_description(description.as_deref())
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(self.inner.clone().into())
+    }
+
+    #[napi]
+    pub fn alias(&self) -> napi::Result<Option<String>> {
+        self.inner.alias().map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi]
+    pub fn description(&self) -> napi::Result<Option<String>> {
+        self.inner
+            .description()
+            .map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi(ts_return_type = "'baml' | 'dynamic'")]
+    pub fn source(&self) -> napi::Result<String> {
+        let from_ast = self
+            .inner
+            .is_from_ast()
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(if from_ast {
+            "baml".to_string()
+        } else {
+            "dynamic".to_string()
+        })
     }
 }
 
@@ -324,9 +494,9 @@ impl ClassPropertyBuilder {
     }
 
     #[napi]
-    pub fn alias(&self, alias: Option<String>) -> napi::Result<Self> {
+    pub fn set_alias(&self, alias: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_alias(alias.as_ref().map(|s| s.as_str()))
+            .set_alias(alias.as_deref())
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(Self {
             inner: self.inner.clone(),
@@ -334,12 +504,37 @@ impl ClassPropertyBuilder {
     }
 
     #[napi]
-    pub fn description(&self, description: Option<String>) -> napi::Result<Self> {
+    pub fn set_description(&self, description: Option<String>) -> napi::Result<Self> {
         self.inner
-            .set_description(description.as_ref().map(|s| s.as_str()))
+            .set_description(description.as_deref())
             .map_err(crate::errors::from_anyhow_error)?;
         Ok(Self {
             inner: self.inner.clone(),
+        })
+    }
+
+    #[napi]
+    pub fn alias(&self) -> napi::Result<Option<String>> {
+        self.inner.alias().map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi]
+    pub fn description(&self) -> napi::Result<Option<String>> {
+        self.inner
+            .description()
+            .map_err(crate::errors::from_anyhow_error)
+    }
+
+    #[napi(ts_return_type = "'baml' | 'dynamic'")]
+    pub fn source(&self) -> napi::Result<String> {
+        let from_ast = self
+            .inner
+            .is_from_ast()
+            .map_err(crate::errors::from_anyhow_error)?;
+        Ok(if from_ast {
+            "baml".to_string()
+        } else {
+            "dynamic".to_string()
         })
     }
 }

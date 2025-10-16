@@ -126,7 +126,8 @@ impl TypeBuilder {
     ) -> Result<()> {
         // Create an IR-aware type builder and use its add_baml method
         let ir_type_builder = runtime.inner.internal().create_type_builder();
-        ir_type_builder.add_baml(&baml)
+        ir_type_builder
+            .add_baml(&baml)
             .map_err(|e| magnus::Error::new(ruby.exception_runtime_error(), e.to_string()))
     }
 

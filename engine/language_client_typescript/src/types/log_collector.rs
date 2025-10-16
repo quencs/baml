@@ -200,7 +200,7 @@ impl FunctionLog {
         guarded.raw_llm_response()
     }
 
-    #[napi(getter)]
+    #[napi(getter, ts_return_type = "LLMCall | LLMStreamCall | null")]
     pub fn selected_call<'e>(&self, env: &'e Env) -> Result<Unknown<'e>> {
         let calls = self.inner.lock().unwrap().calls();
         let found = calls.into_iter().find_map(|call| match call {

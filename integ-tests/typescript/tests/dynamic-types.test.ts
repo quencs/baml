@@ -24,19 +24,21 @@ describe("Dynamic Type Tests", () => {
     it("should work with dynamic types single", async () => {
       let tb = new TypeBuilder();
       tb.Person.addProperty("last_name", tb.string().optional());
-      tb.Person.addProperty("height", tb.float().optional()).description(
-        "Height in meters",
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
       );
       tb.Hobby.addValue("CHESS");
-      tb.Hobby.listValues().map(([name, v]) => v.alias(name.toLowerCase()));
+      let v = tb.Hobby.getValue("MUSIC");
+      v.setAlias("Music");
+      tb.Hobby.listValues().map(([name, v]) => v.setAlias(name.toLowerCase()));
       tb.Person.addProperty(
         "hobbies",
-        tb.Hobby.type().list().optional(),
-      ).description("Some suggested hobbies they might be good at");
+        tb.Hobby.type().list().optional()
+      ).setDescription("Some suggested hobbies they might be good at");
 
       const res = await b.ExtractPeople(
         "My name is Harrison. My hair is black and I'm 6 feet tall. I'm pretty good around the hoop.",
-        { tb },
+        { tb }
       );
       expect(res.length).toBeGreaterThan(0);
     });
@@ -51,7 +53,7 @@ describe("Dynamic Type Tests", () => {
       tb.Person.addProperty("animalLiked", fieldEnum.type());
       const res = await b.ExtractPeople(
         "My name is Harrison. My hair is black and I'm 6 feet tall. I'm pretty good around the hoop. I like giraffes.",
-        { tb },
+        { tb }
       );
       expect(res.length).toBeGreaterThan(0);
       expect(res[0]["animalLiked"]).toEqual("GIRAFFE");
@@ -62,11 +64,11 @@ describe("Dynamic Type Tests", () => {
       const animalClass = tb.addClass("Animal");
       animalClass
         .addProperty("animal", tb.string())
-        .description("The animal mentioned, in singular form.");
+        .setDescription("The animal mentioned, in singular form.");
       tb.Person.addProperty("animalLiked", animalClass.type());
       const res = await b.ExtractPeople(
         "My name is Harrison. My hair is black and I'm 6 feet tall. I'm pretty good around the hoop. I like giraffes.",
-        { tb },
+        { tb }
       );
       expect(res.length).toBeGreaterThan(0);
       const animalLiked = res[0]["animalLiked"];
@@ -77,13 +79,13 @@ describe("Dynamic Type Tests", () => {
       let tb = new TypeBuilder();
       const animals = tb.union(
         ["giraffe", "elephant", "lion"].map((animal) =>
-          tb.literalString(animal.toUpperCase()),
-        ),
+          tb.literalString(animal.toUpperCase())
+        )
       );
       tb.Person.addProperty("animalLiked", animals);
       const res = await b.ExtractPeople(
         "My name is Harrison. My hair is black and I'm 6 feet tall. I'm pretty good around the hoop. I like giraffes.",
-        { tb },
+        { tb }
       );
       expect(res.length).toBeGreaterThan(0);
       expect(res[0]["animalLiked"]).toEqual("GIRAFFE");
@@ -95,7 +97,7 @@ describe("Dynamic Type Tests", () => {
 
       const res = await b.DynamicInputOutput(
         { "new-key": "hi", testKey: "myTest" },
-        { tb },
+        { tb }
       );
       expect(res["new-key"]).toEqual("hi");
       expect(res["testKey"]).toEqual("myTest");
@@ -109,7 +111,7 @@ describe("Dynamic Type Tests", () => {
 
       const res = await b.DynamicListInputOutput(
         [{ "new-key": "hi", testKey: "myTest" }],
-        { tb },
+        { tb }
       );
       expect(res[0]["new-key"]).toEqual("hi");
       expect(res[0]["testKey"]).toEqual("myTest");
@@ -120,12 +122,12 @@ describe("Dynamic Type Tests", () => {
       tb.DynamicOutput.addProperty("hair_color", tb.string());
       tb.DynamicOutput.addProperty(
         "attributes",
-        tb.map(tb.string(), tb.string()),
-      ).description("Things like 'eye_color' or 'facial_hair'");
+        tb.map(tb.string(), tb.string())
+      ).setDescription("Things like 'eye_color' or 'facial_hair'");
 
       const res = await b.MyFunc(
         "My name is Harrison. My hair is black and I'm 6 feet tall. I have blue eyes and a beard.",
-        { tb },
+        { tb }
       );
 
       expect(res.hair_color).toEqual("black");
@@ -145,19 +147,19 @@ describe("Dynamic Type Tests", () => {
 
       tb.DynamicOutput.addProperty(
         "height",
-        tb.union([class1.type(), class2.type()]),
+        tb.union([class1.type(), class2.type()])
       );
 
       let res = await b.MyFunc(
         "My name is Harrison. My hair is black and I'm 6 feet tall.",
-        { tb },
+        { tb }
       );
 
       expect(res.height["feet"]).toEqual(6);
 
       res = await b.MyFunc(
         "My name is Harrison. My hair is black and I'm 1.8 meters tall.",
-        { tb },
+        { tb }
       );
 
       expect(res.height["meters"]).toEqual(1.8);
@@ -180,7 +182,7 @@ describe("Dynamic Type Tests", () => {
       `);
       let res = await b.ExtractPeople(
         "My name is John Doe. I'm 30 years old. I'm 6 feet tall and weigh 180 pounds. My hair is yellow.",
-        { tb },
+        { tb }
       );
       expect(res).toEqual([
         {
@@ -236,7 +238,7 @@ describe("Dynamic Type Tests", () => {
       `);
       let res = await b.ExtractPeople(
         "My name is John Doe. I'm 30 years old. My height is 6 feet and I weigh 180 pounds. My hair is brown. I work as a programmer and enjoy bike riding.",
-        { tb },
+        { tb }
       );
       expect(res).toEqual([
         {
@@ -264,7 +266,7 @@ describe("Dynamic Type Tests", () => {
       `);
       let res = await b.ExtractPeople(
         "My name is John Doe. I'm 30 years old. I'm 6 feet tall and weigh 180 pounds. My hair is yellow.",
-        { tb },
+        { tb }
       );
       expect(res).toEqual([
         {
@@ -279,22 +281,40 @@ describe("Dynamic Type Tests", () => {
   describe("TypeBuilder APIs", () => {
     it("should list properties", () => {
       let tb = new TypeBuilder();
+
+      let adsf = tb.addEnum("adsf");
+      adsf.addValue("asdf");
+      adsf.getValue("myValue");
+
+      let defff = tb.addClass("defff", {
+        foo: tb.string(),
+        bar: tb.int(),
+      });
+      defff.addProperty("myProperty", tb.string());
+      defff.getProperty("myProperty");
+
       tb.Person.addProperty("last_name", tb.string().list());
-      tb.Person.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
+      );
 
       const props = Object.fromEntries(tb.Person.listProperties());
 
-      expect(props["last_name"].getType().equals(tb.string().list())).toBeTruthy();
-      expect(props["height"].getType().equals(tb.float().optional())).toBeTruthy();
+      expect(props["last_name"].type().equals(tb.string().list())).toBeTruthy();
+      expect(props["height"].type().equals(tb.float().optional())).toBeTruthy();
     });
 
     it("should reset", () => {
       let tb = new TypeBuilder();
       tb.Person.addProperty("last_name", tb.string().list());
-      tb.Person.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
+      );
       tb.reset();
 
-      const personPropsAfterTbReset = tb.Person.listProperties().map(([name, _]) => name);
+      const personPropsAfterTbReset = tb.Person.listProperties().map(
+        ([name, _]) => name
+      );
 
       expect(personPropsAfterTbReset.includes("last_name")).toBeFalsy();
       expect(personPropsAfterTbReset.includes("height")).toBeFalsy();
@@ -303,27 +323,39 @@ describe("Dynamic Type Tests", () => {
     it("should reset a class", () => {
       const tb = new TypeBuilder();
       tb.Person.addProperty("last_name", tb.string().list());
-      tb.Person.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
+      );
 
       tb.DynamicOutput.addProperty("hair_color", tb.string());
-      tb.DynamicOutput.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.DynamicOutput.addProperty(
+        "height",
+        tb.float().optional()
+      ).setDescription("Height in meters");
 
       tb.Person.reset();
 
-      const personPropsAfterClassReset = tb.Person.listProperties().map(([name, _]) => name);
-      const dynamicOutputPropsAfterClassReset = tb.DynamicOutput.listProperties().map(([name, _]) => name);
+      const personPropsAfterClassReset = tb.Person.listProperties().map(
+        ([name, _]) => name
+      );
+      const dynamicOutputPropsAfterClassReset =
+        tb.DynamicOutput.listProperties().map(([name, _]) => name);
 
       expect(personPropsAfterClassReset.includes("last_name")).toBeFalsy();
       expect(personPropsAfterClassReset.includes("height")).toBeFalsy();
 
-      expect(dynamicOutputPropsAfterClassReset.includes("hair_color")).toBeTruthy();
+      expect(
+        dynamicOutputPropsAfterClassReset.includes("hair_color")
+      ).toBeTruthy();
       expect(dynamicOutputPropsAfterClassReset.includes("height")).toBeTruthy();
     });
 
     it("should remove a property from a class", () => {
       const tb = new TypeBuilder();
       tb.Person.addProperty("last_name", tb.string().list());
-      tb.Person.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
+      );
 
       tb.Person.removeProperty("last_name");
 
@@ -337,7 +369,9 @@ describe("Dynamic Type Tests", () => {
       const tb = new TypeBuilder();
       const personClass = tb.addClass("AddedPerson");
       personClass.addProperty("last_name", tb.string().list());
-      personClass.addProperty("height", tb.float().optional()).description("Height in meters");
+      personClass
+        .addProperty("height", tb.float().optional())
+        .setDescription("Height in meters");
 
       personClass.reset();
 
@@ -351,7 +385,9 @@ describe("Dynamic Type Tests", () => {
       const tb = new TypeBuilder();
       const personClass = tb.addClass("AddedPerson");
       personClass.addProperty("last_name", tb.string().list());
-      personClass.addProperty("height", tb.float().optional()).description("Height in meters");
+      personClass
+        .addProperty("height", tb.float().optional())
+        .setDescription("Height in meters");
 
       personClass.removeProperty("last_name");
       const personProps = personClass.listProperties().map(([name, _]) => name);
@@ -363,18 +399,22 @@ describe("Dynamic Type Tests", () => {
     it("should get property types from a class", () => {
       const tb = new TypeBuilder();
       tb.Person.addProperty("last_name", tb.string().list());
-      tb.Person.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
+      );
 
       const props = Object.fromEntries(tb.Person.listProperties());
 
-      expect(props["last_name"].getType().equals(tb.string().list())).toBeTruthy();
-      expect(props["height"].getType().equals(tb.float().optional())).toBeTruthy();
+      expect(props["last_name"].type().equals(tb.string().list())).toBeTruthy();
+      expect(props["height"].type().equals(tb.float().optional())).toBeTruthy();
     });
 
     it("should set property types", () => {
       const tb = new TypeBuilder();
       tb.Person.addProperty("last_name", tb.string().list());
-      tb.Person.addProperty("height", tb.float().optional()).description("Height in meters");
+      tb.Person.addProperty("height", tb.float().optional()).setDescription(
+        "Height in meters"
+      );
 
       // Modify props
       let props = Object.fromEntries(tb.Person.listProperties());
@@ -383,8 +423,8 @@ describe("Dynamic Type Tests", () => {
 
       // Verify changes
       props = Object.fromEntries(tb.Person.listProperties());
-      expect(props["last_name"].getType().equals(tb.string())).toBeTruthy();
-      expect(props["height"].getType().equals(tb.int())).toBeTruthy();
+      expect(props["last_name"].type().equals(tb.string())).toBeTruthy();
+      expect(props["height"].type().equals(tb.int())).toBeTruthy();
     });
   });
 });

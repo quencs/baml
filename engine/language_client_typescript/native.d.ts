@@ -62,17 +62,26 @@ export declare class BamlVideo {
 
 export declare class ClassBuilder {
   field(): FieldType
-  listProperties(): unknown[]
+  listProperties(): Array<[string, ClassPropertyBuilder]>
   removeProperty(name: string): void
   reset(): void
-  property(name: string): ClassPropertyBuilder
+  getProperty(name: string): ClassPropertyBuilder
+  addProperty(name: string, fieldType: FieldType): ClassPropertyBuilder
+  setAlias(alias?: string | undefined | null): ClassBuilder
+  setDescription(description?: string | undefined | null): ClassBuilder
+  alias(): string | null
+  description(): string | null
+  source(): 'baml' | 'dynamic'
 }
 
 export declare class ClassPropertyBuilder {
   setType(fieldType: FieldType): ClassPropertyBuilder
   getType(): FieldType
-  alias(alias?: string | undefined | null): ClassPropertyBuilder
-  description(description?: string | undefined | null): ClassPropertyBuilder
+  setAlias(alias?: string | undefined | null): ClassPropertyBuilder
+  setDescription(description?: string | undefined | null): ClassPropertyBuilder
+  alias(): string | null
+  description(): string | null
+  source(): 'baml' | 'dynamic'
 }
 
 export declare class ClientRegistry {
@@ -93,15 +102,26 @@ export declare class Collector {
 }
 
 export declare class EnumBuilder {
-  value(name: string): EnumValueBuilder
-  alias(alias?: string | undefined | null): EnumBuilder
+  addValue(name: string): EnumValueBuilder
+  getValue(name: string): EnumValueBuilder
+  removeValue(name: string): void
+  setAlias(alias?: string | undefined | null): EnumBuilder
+  setDescription(description?: string | undefined | null): EnumBuilder
+  alias(): string | null
+  description(): string | null
   field(): FieldType
+  listValues(): Array<[string, EnumValueBuilder]>
+  source(): 'baml' | 'dynamic'
 }
 
 export declare class EnumValueBuilder {
-  alias(alias?: string | undefined | null): EnumValueBuilder
-  skip(skip?: boolean | undefined | null): EnumValueBuilder
-  description(description?: string | undefined | null): EnumValueBuilder
+  setAlias(alias?: string | undefined | null): EnumValueBuilder
+  setSkip(skip?: boolean | undefined | null): EnumValueBuilder
+  setDescription(description?: string | undefined | null): EnumValueBuilder
+  alias(): string | null
+  description(): string | null
+  skip(): boolean
+  source(): 'baml' | 'dynamic'
 }
 
 export declare class FieldType {
@@ -119,7 +139,7 @@ export declare class FunctionLog {
   get usage(): Usage
   get calls(): (LLMCall | LLMStreamCall)[]
   get rawLlmResponse(): string | null
-  get selectedCall(): unknown
+  get selectedCall(): LLMCall | LLMStreamCall | null
 }
 
 export declare class FunctionResult {
@@ -221,7 +241,9 @@ export declare class TraceStats {
 export declare class TypeBuilder {
   static new(runtime: BamlRuntime): TypeBuilder
   reset(): void
+  addEnum(name: string): EnumBuilder
   getEnum(name: string): EnumBuilder
+  addClass(name: string): ClassBuilder
   getClass(name: string): ClassBuilder
   list(inner: FieldType): FieldType
   optional(inner: FieldType): FieldType

@@ -68,3 +68,28 @@ test TestMakePoem() {
     functions [MakePoem]
     args { length 4 }
 }
+
+function Search(search_term: string) -> string[] {
+  client GPT4o
+  prompt #"
+    Search for {{ search_term }}
+  "#
+}
+
+function AgentLoop(search_term: string) -> string[] {
+  let all_terms = [];
+  let max_terms = 10;
+  while (all_terms.length < 10 && max_terms > 0) {
+    let search_results = Search(search_term);
+    let terms = search_results.filter((result) => {
+      // ensure each result is a high qualty result and related to the search term
+      let quality = EnsureQuality(search_term, result);
+      if (quality.score > 0.5) {
+        return true;
+      }
+    })
+    all_terms.extend(terms);
+    max_terms -= 1;
+  }
+  all_terms
+}

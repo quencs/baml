@@ -6,7 +6,7 @@ use internal_baml_parser_database::ParserDatabase;
 pub trait RuntimeProvider: IRProvider {
     /// Get access to the parser database for BAML validation
     fn get_db(&self) -> &ParserDatabase;
-    
+
     /// Clone the parser database for scoped modifications
     fn clone_db(&self) -> ParserDatabase;
 }

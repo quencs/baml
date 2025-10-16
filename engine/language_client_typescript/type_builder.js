@@ -1,26 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EnumBuilder = exports.EnumValueViewer = exports.EnumViewer = exports.EnumAst = exports.ClassBuilder = exports.ClassViewer = exports.ClassAst = exports.TypeBuilder = void 0;
-const native_1 = require("./native");
+exports.EnumValueBuilder = exports.EnumBuilder = exports.ClassBuilder = exports.TypeBuilder = void 0;
+const native_1 = require("../native");
 class TypeBuilder {
     tb;
-    classes;
-    enums;
-    runtime;
-    constructor({ classes, enums, runtime }) {
-        this.classes = classes;
-        this.enums = enums;
-        this.tb = new native_1.TypeBuilder();
-        this.runtime = runtime;
-    }
-    reset() {
-        this.tb.reset();
+    constructor({ runtime }) {
+        this.tb = native_1.TypeBuilder.new(runtime);
     }
     _tb() {
         return this.tb;
     }
-    null() {
-        return this.tb.null();
+    reset() {
+        this.tb.reset();
+    }
+    toString() {
+        return this.tb.toString();
     }
     string() {
         return this.tb.string();
@@ -46,179 +40,207 @@ class TypeBuilder {
     list(type) {
         return this.tb.list(type);
     }
+    null() {
+        return this.tb.null();
+    }
     map(keyType, valueType) {
         return this.tb.map(keyType, valueType);
     }
     union(types) {
         return this.tb.union(types);
     }
-    classViewer(name, properties) {
-        return new ClassViewer(this.tb, name, new Set(properties));
-    }
-    classBuilder(name, properties) {
-        return new ClassBuilder(this.tb, name, new Set(properties));
-    }
-    enumViewer(name, values) {
-        return new EnumViewer(this.tb, name, new Set(values));
-    }
-    enumBuilder(name, values) {
-        return new EnumBuilder(this.tb, name, new Set(values));
-    }
     addClass(name) {
-        if (this.classes.has(name)) {
-            throw new Error(`Class ${name} already exists`);
-        }
-        if (this.enums.has(name)) {
-            throw new Error(`Enum ${name} already exists`);
-        }
-        this.classes.add(name);
-        return new ClassBuilder(this.tb, name);
+        return new ClassBuilder(this.tb.addClass(name));
+    }
+    getClass(name) {
+        return new ClassBuilder(this.tb.getClass(name));
     }
     addEnum(name) {
-        if (this.classes.has(name)) {
-            throw new Error(`Class ${name} already exists`);
-        }
-        if (this.enums.has(name)) {
-            throw new Error(`Enum ${name} already exists`);
-        }
-        this.enums.add(name);
-        return new EnumBuilder(this.tb, name);
+        return new EnumBuilder(this.tb.addEnum(name));
+    }
+    getEnum(name) {
+        return new EnumBuilder(this.tb.getEnum(name));
     }
     addBaml(baml) {
-        this.tb.addBaml(baml, this.runtime);
+        this.tb.addBaml(baml);
     }
 }
 exports.TypeBuilder = TypeBuilder;
-class ClassAst {
-    properties;
-    bldr;
-    constructor(tb, name, properties = new Set()) {
-        this.properties = properties;
-        this.bldr = tb.getClass(name);
-    }
-    listProperties() {
-        return this.bldr.listProperties();
+class ClassBuilder {
+    cb;
+    constructor(cb) {
+        this.cb = cb;
     }
     type() {
-        return this.bldr.field();
-    }
-}
-exports.ClassAst = ClassAst;
-class ClassViewer extends ClassAst {
-    constructor(tb, name, properties = new Set()) {
-        super(tb, name, properties);
+        return this.cb.field();
     }
     listProperties() {
-        return Array.from(this.properties).map((name) => [name, new ClassPropertyViewer()]);
-    }
-    property(name) {
-        if (!this.properties.has(name)) {
-            throw new Error(`Property ${name} not found.`);
-        }
-        return new ClassPropertyViewer();
-    }
-}
-exports.ClassViewer = ClassViewer;
-class ClassBuilder extends ClassAst {
-    constructor(tb, name, properties = new Set()) {
-        super(tb, name, properties);
-    }
-    addProperty(name, type) {
-        if (this.properties.has(name)) {
-            throw new Error(`Property ${name} already exists.`);
-        }
-        this.properties.add(name);
-        return new ClassPropertyBuilder(this.bldr.property(name).setType(type));
-    }
-    listProperties() {
-        return this.bldr.listProperties();
-    }
-    removeProperty(name) {
-        this.properties.delete(name);
-        this.bldr.removeProperty(name);
+        return this.cb
+            .listProperties()
+            .map(([name, property]) => [
+            name,
+            new ClassPropertyBuilder(property),
+        ]);
     }
     reset() {
-        this.bldr.reset();
+        return this.cb.reset();
     }
-    property(name) {
-        if (!this.properties.has(name)) {
-            throw new Error(`Property ${name} not found.`);
-        }
-        return new ClassPropertyBuilder(this.bldr.property(name));
+    getProperty(name) {
+        return new ClassPropertyBuilder(this.cb.getProperty(name));
+    }
+    /**
+     * addProperty:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    addProperty(name, fieldType) {
+        let cpb = this.cb.addProperty(name, fieldType);
+        return new ClassPropertyBuilder(cpb);
+    }
+    /**
+     * removeProperty:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    removeProperty(name) {
+        this.cb.removeProperty(name);
+    }
+    /**
+     * setAlias:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    setAlias(alias) {
+        this.cb.setAlias(alias);
+        return this;
+    }
+    /**
+     * setDescription:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    setDescription(description) {
+        this.cb.setDescription(description);
+        return this;
+    }
+    alias() {
+        return this.cb.alias();
+    }
+    description() {
+        return this.cb.description();
+    }
+    source() {
+        return this.cb.source();
     }
 }
 exports.ClassBuilder = ClassBuilder;
-class ClassPropertyViewer {
-    constructor() { }
-}
-class ClassPropertyBuilder {
-    bldr;
-    constructor(bldr) {
-        this.bldr = bldr;
-    }
-    getType() {
-        return this.bldr.getType();
-    }
-    setType(type) {
-        this.bldr.setType(type);
-        return this;
-    }
-    alias(alias) {
-        this.bldr.alias(alias);
-        return this;
-    }
-    description(description) {
-        this.bldr.description(description);
-        return this;
-    }
-}
-class EnumAst {
-    values;
-    bldr;
-    constructor(tb, name, values = new Set()) {
-        this.values = values;
-        this.bldr = tb.getEnum(name);
+class EnumBuilder {
+    eb;
+    constructor(eb) {
+        this.eb = eb;
     }
     type() {
-        return this.bldr.field();
-    }
-}
-exports.EnumAst = EnumAst;
-class EnumViewer extends EnumAst {
-    constructor(tb, name, values = new Set()) {
-        super(tb, name, values);
+        return this.eb.field();
     }
     listValues() {
-        return Array.from(this.values).map((name) => [name, new EnumValueViewer()]);
+        return this.eb
+            .listValues()
+            .map(([name, value]) => [
+            name,
+            new EnumValueBuilder(value),
+        ]);
     }
-    value(name) {
-        if (!this.values.has(name)) {
-            throw new Error(`Value ${name} not found.`);
-        }
-        return new EnumValueViewer();
-    }
-}
-exports.EnumViewer = EnumViewer;
-class EnumValueViewer {
-    constructor() { }
-}
-exports.EnumValueViewer = EnumValueViewer;
-class EnumBuilder extends EnumAst {
-    constructor(tb, name, values = new Set()) {
-        super(tb, name, values);
-    }
+    /**
+     * addValue:
+     *  - only allowed if Enum marked with @@dynamic
+     */
     addValue(name) {
-        if (this.values.has(name)) {
-            throw new Error(`Value ${name} already exists.`);
-        }
-        this.values.add(name);
-        return this.bldr.value(name);
+        let evb = this.eb.addValue(name);
+        return new EnumValueBuilder(evb);
     }
-    listValues() {
-        return Array.from(this.values).map((name) => [name, this.bldr.value(name)]);
+    getValue(name) {
+        let evb = this.eb.getValue(name);
+        return new EnumValueBuilder(evb);
     }
-    value(name) {
-        return this.bldr.value(name);
+    /**
+     * removeValue:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    removeValue(name) {
+        this.eb.removeValue(name);
+        return this;
+    }
+    /**
+     * setAlias:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    setAlias(alias) {
+        this.eb.setAlias(alias);
+        return this;
+    }
+    /**
+     * setDescription:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    setDescription(description) {
+        this.eb.setDescription(description);
+        return this;
+    }
+    alias() {
+        return this.eb.alias();
+    }
+    description() {
+        return this.eb.description();
     }
 }
 exports.EnumBuilder = EnumBuilder;
+class ClassPropertyBuilder {
+    cpb;
+    constructor(cpb) {
+        this.cpb = cpb;
+    }
+    type() {
+        return this.cpb.getType();
+    }
+    setType(fieldType) {
+        this.cpb.setType(fieldType);
+        return this;
+    }
+    setAlias(alias) {
+        this.cpb.setAlias(alias);
+        return this;
+    }
+    setDescription(description) {
+        this.cpb.setDescription(description);
+        return this;
+    }
+    alias() {
+        return this.cpb.alias();
+    }
+    description() {
+        return this.cpb.description();
+    }
+    source() {
+        return this.cpb.source();
+    }
+}
+class EnumValueBuilder {
+    evb;
+    constructor(evb) {
+        this.evb = evb;
+    }
+    setAlias(alias) {
+        this.evb.setAlias(alias);
+        return this;
+    }
+    setDescription(description) {
+        this.evb.setDescription(description);
+        return this;
+    }
+    alias() {
+        return this.evb.alias();
+    }
+    description() {
+        return this.evb.description();
+    }
+    source() {
+        return this.evb.source();
+    }
+}
+exports.EnumValueBuilder = EnumValueBuilder;

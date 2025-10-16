@@ -15,6 +15,10 @@ class TypeBuilder:
         self.__tb = _TypeBuilder(runtime)
         self.__runtime = runtime
 
+    @property
+    def _tb(self) -> _TypeBuilder:
+        return self.__tb
+
     def reset(self):
         self.__tb.reset()
 
@@ -50,10 +54,6 @@ class TypeBuilder:
         """
         return str(self._tb)
 
-    @property
-    def _tb(self) -> _TypeBuilder:
-        return self.__tb
-
     def string(self):
         return self._tb.string()
 
@@ -87,67 +87,11 @@ class TypeBuilder:
     def union(self, types: typing.List[FieldType]):
         return self._tb.union(*types)
 
-    def add_class(self, name: str) -> "NewClassBuilder":
-        return NewClassBuilder(self._tb, name)
+    def add_class(self, name: str) -> ClassBuilder:
+        return self._tb.add_class(name)
 
-    def add_enum(self, name: str) -> "NewEnumBuilder":
-        return NewEnumBuilder(self._tb, name)
+    def add_enum(self, name: str) -> EnumBuilder:
+        return self._tb.add_enum(name)
 
     def add_baml(self, baml: str):
         return self._tb.add_baml(baml)
-
-
-class NewClassBuilder:
-    def __init__(self, tb: _TypeBuilder, name: str):
-        self.__bldr = tb.add_class(name)
-
-    def type(self) -> FieldType:
-        return self.__bldr.field()
-
-    def list_properties(self) -> typing.List[typing.Tuple[str, ClassPropertyBuilder]]:
-        return self.__bldr.list_properties()
-
-    def reset(self):
-        self.__bldr.reset()
-
-    def remove_property(self, name: str):
-        self.__bldr.remove_property(name)
-
-    def add_property(self, name: str, type: FieldType) -> ClassPropertyBuilder:
-        return self.__bldr.add_property(name, type)
-
-    @property
-    def class_name(self) -> str:
-        return self.__bldr.class_name()
-
-
-class NewEnumBuilder:
-    def __init__(self, tb: _TypeBuilder, name: str):
-        self.__bldr = tb.add_enum(name)
-        self.__vals = NewEnumValues(self.__bldr)
-
-    def type(self) -> FieldType:
-        return self.__bldr.field()
-
-    @property
-    def values(self) -> "NewEnumValues":
-        return self.__vals
-
-    def list_values(self) -> typing.List[typing.Tuple[str, EnumValueBuilder]]:
-        return self.__bldr.list_values()
-
-    def add_value(self, name: str) -> "EnumValueBuilder":
-        return self.__bldr.add_value(name)
-
-
-class NewEnumValues:
-    def __init__(self, enum_bldr: EnumBuilder):
-        self.__bldr = enum_bldr
-
-    def __getattr__(self, name: str) -> "EnumValueBuilder":
-        return self.__bldr.get_value(name)
-
-
-class EnumValueViewer:
-    def __init__(self, bldr: "EnumValueBuilder"):
-        self.__bldr = bldr

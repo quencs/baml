@@ -18,9 +18,9 @@ function ModernFunction(x: int) -> int {
   };
    
   // Method call
-  .let result = receipt.calculate();
+  let result = receipt.calculate();
 
-  ^if (true) {
+  if (true) {
     return 1;
   }
    

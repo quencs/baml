@@ -10,7 +10,6 @@ use internal_baml_core::ir::repr::IntermediateRepr;
 use serde_json::json;
 use stream_cancel::Tripwire;
 
-#[cfg(not(target_arch = "wasm32"))]
 use crate::runtime::runtime_interface::TypeBuilder;
 use crate::{
     client_registry::ClientRegistry,

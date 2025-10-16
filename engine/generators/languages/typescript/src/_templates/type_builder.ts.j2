@@ -1,52 +1,56 @@
 import { FieldType } from '@boundaryml/baml/native'
-import { TypeBuilder as _TypeBuilder, EnumBuilder, EnumViewer, ClassBuilder, ClassViewer } from '@boundaryml/baml/type_builder'
+import { TypeBuilder as _TypeBuilder, EnumBuilder, ClassBuilder } from '@boundaryml/baml/type_builder'
 import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./globals"
 
 export { FieldType, EnumBuilder, ClassBuilder }
 
+type ClassProperties = {
+    {% for cls in classes %}
+    "{{cls.name}}": [{% for field in cls.fields %}"{{field.name}}", {% endfor %}],
+    {% endfor %}
+}
+type EnumValues = {
+    {% for e in enums %}
+    "{{e.name}}": [{% for (value, _) in e.values %}"{{value}}", {% endfor %}],
+    {% endfor %}
+}
+type ClassNames = keyof ClassProperties;
+type EnumNames = keyof EnumValues;
+
+type _ClassBuilder<Name extends ClassNames, Dynamic> = ClassBuilder<Name, ClassProperties[Name][number], Dynamic>;
+type _EnumBuilder<Name extends EnumNames, Dynamic> = EnumBuilder<Name, EnumValues[Name][number], Dynamic>;
+
+function _getEnum<Dynamic, Name extends EnumNames>(tb: _TypeBuilder, name: Name): _EnumBuilder<Name, Dynamic> {
+    return tb.getEnum<Name, EnumValues[Name][number], Dynamic>(name);
+}
+
+function _getClass<Dynamic, Name extends ClassNames>(tb: _TypeBuilder, name: Name): _ClassBuilder<Name, Dynamic> {
+    return tb.getClass<Name, ClassProperties[Name][number], Dynamic>(name);
+}
+
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     {% for cls in classes %}
-    {{cls.name}}: {% if cls.dynamic %}ClassBuilder{% else %}ClassViewer{% endif %}<'{{cls.name}}'
-    {%- for field in cls.fields %}{% if loop.first %}, {%endif%}"{{field.name}}"{% if !loop.last %} | {% endif %}{% endfor -%}
-    >;
+    {{cls.name}}: _ClassBuilder<'{{cls.name}}', {{ cls.dynamic }}>;
     {% endfor %}
     {% for e in enums %}
-    {{e.name}}: {% if e.dynamic %}EnumBuilder{% else %}EnumViewer{% endif %}<'{{e.name}}'{%- for (value, _) in e.values %}{% if loop.first %}, {%endif%}"{{value}}"{% if !loop.last %} | {% endif %}{% endfor -%}>;
+    {{e.name}}: _EnumBuilder<'{{e.name}}', {{ e.dynamic }}>;
     {% endfor %}
 
     constructor() {
         this.tb = new _TypeBuilder({
-          classes: new Set([
-            {% for cls in classes %}"{{cls.name}}",{% endfor %}
-          ]),
-          enums: new Set([
-            {% for e in enums %}"{{e.name}}",{% endfor %}
-          ]),
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
         {% for cls in classes %}
-        this.{{cls.name}} = this.tb.{% if cls.dynamic %}classBuilder{% else %}classViewer{% endif %}("{{cls.name}}", [
-          {% for field in cls.fields %}"{{field.name}}",{% endfor %}
-        ]);
+        this.{{cls.name}} = _getClass<{{ cls.dynamic }}>(this.tb, "{{cls.name}}");
         {% endfor %}
         {% for e in enums %}
-        this.{{e.name}} = this.tb.{% if e.dynamic %}enumBuilder{% else %}enumViewer{% endif %}("{{e.name}}", [
-          {% for (value, _) in e.values %}"{{value}}",{% endfor %}
-        ]);
+        this.{{e.name}} = _getEnum<{{ e.dynamic }}>(this.tb, "{{e.name}}");
         {% endfor %}
     }
 
     reset(): void {
         this.tb.reset();
-        // TODO: This should happen in Rust. Problem is, when we construct the
-        // typebuilder we instantiate class builders once and it seems to make
-        // a JS copy, bypassing the Rust side? In Python however, every time we
-        // access a class builder with @property, we get a new instance that
-        // wraps over the Rust type builder, so we only need to call tb.reset().
-        // In JS it's not possible unless we refactor the way class builders are
-        // accessed.
-        {% for cls in classes %}{% if cls.dynamic %} this.{{cls.name}}.reset(); {% endif %}{% endfor %}
     }
 
     __tb() {
@@ -97,11 +101,11 @@ export default class TypeBuilder {
         return this.tb.union(types)
     }
 
-    addClass<Name extends string>(name: Name): ClassBuilder<Name> {
+    addClass(name: string): ClassBuilder<string, string, true> {
         return this.tb.addClass(name);
     }
 
-    addEnum<Name extends string>(name: Name): EnumBuilder<Name> {
+    addEnum(name: string): EnumBuilder<string, string, true> {
         return this.tb.addEnum(name);
     }
 

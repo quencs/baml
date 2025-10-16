@@ -96,7 +96,6 @@ use tracingv2::{
 pub use types::*;
 use web_time::{Duration, SystemTime};
 
-#[cfg(not(target_arch = "wasm32"))]
 use crate::runtime::runtime_interface::TypeBuilder;
 use crate::{
     errors::IntoBamlError,

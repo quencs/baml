@@ -1,22 +1,14 @@
-import { ClassBuilder as _ClassBuilder, EnumBuilder as _EnumBuilder, ClassPropertyBuilder as _ClassPropertyBuilder, EnumValueBuilder, FieldType, TypeBuilder as _TypeBuilder, BamlRuntime } from './native';
-type IsLiteral<T extends string> = string extends T ? false : true;
-type NameOf<T extends string> = IsLiteral<T> extends true ? T : 'DynamicType';
-type CheckNever<T, TypeName extends string, Value extends string> = [T] extends [never] ? `Error: Attempt to add value '${Value}' which is already a part of '${NameOf<TypeName>}'.` : T;
-type ExcludeFrom<T, U> = T extends U ? never : T;
-type RestrictNot<Name extends string, Value extends string, T extends string> = IsLiteral<T> extends true ? CheckNever<ExcludeFrom<Value, T>, Name, Value> : Value;
+import { ClassBuilder as _ClassBuilder, EnumBuilder as _EnumBuilder, ClassPropertyBuilder as _ClassPropertyBuilder, EnumValueBuilder as _EnumValueBuilder, FieldType, TypeBuilder as _TypeBuilder, BamlRuntime } from "../native";
+type IfDynamic<D extends boolean, T, F = never> = D extends true ? T : F;
+type MustBeDynamic<Name extends string, Method extends string> = `'${Name}.${Method}' is only allowed when ${Name} is marked @@dynamic.`;
 export declare class TypeBuilder {
     private tb;
-    protected classes: Set<string>;
-    protected enums: Set<string>;
-    protected runtime: BamlRuntime;
-    constructor({ classes, enums, runtime }: {
-        classes: Set<string>;
-        enums: Set<string>;
+    constructor({ runtime }: {
         runtime: BamlRuntime;
     });
-    reset(): void;
     _tb(): _TypeBuilder;
-    null(): FieldType;
+    reset(): void;
+    toString(): string;
     string(): FieldType;
     literalString(value: string): FieldType;
     literalInt(value: number): FieldType;
@@ -25,66 +17,102 @@ export declare class TypeBuilder {
     float(): FieldType;
     bool(): FieldType;
     list(type: FieldType): FieldType;
+    null(): FieldType;
     map(keyType: FieldType, valueType: FieldType): FieldType;
     union(types: FieldType[]): FieldType;
-    classViewer<Name extends string, Properties extends string>(name: Name, properties: Properties[]): ClassViewer<Name, Properties>;
-    classBuilder<Name extends string, Properties extends string>(name: Name, properties: Properties[]): ClassBuilder<Name, Properties>;
-    enumViewer<Name extends string, Values extends string>(name: Name, values: Values[]): EnumViewer<Name, Values>;
-    enumBuilder<Name extends string, Values extends string>(name: Name, values: Values[]): EnumBuilder<Name, Values>;
-    addClass<Name extends string>(name: Name): ClassBuilder<Name>;
-    addEnum<Name extends string>(name: Name): EnumBuilder<Name>;
+    addClass(name: string): ClassBuilder<string, string, true>;
+    getClass<Name extends string, Properties extends string, Dynamic extends boolean>(name: Name): ClassBuilder<Name, Properties, Dynamic>;
+    addEnum(name: string): EnumBuilder<string, string, true>;
+    getEnum<Name extends string, Values extends string, Dynamic extends boolean>(name: Name): EnumBuilder<Name, Values, Dynamic>;
     addBaml(baml: string): void;
 }
-export declare class ClassAst<ClassName extends string, Properties extends string = string> {
-    protected properties: Set<Properties | string>;
-    protected bldr: _ClassBuilder;
-    constructor(tb: _TypeBuilder, name: ClassName, properties?: Set<Properties | string>);
-    listProperties(): Record<string, FieldType | null>;
+export declare class ClassBuilder<Name extends string, PropertyName extends string, Dynamic extends boolean> {
+    private readonly cb;
+    constructor(cb: _ClassBuilder);
     type(): FieldType;
-}
-export declare class ClassViewer<ClassName extends string, Properties extends string = string> extends ClassAst<ClassName, Properties> {
-    constructor(tb: _TypeBuilder, name: ClassName, properties?: Set<Properties | string>);
-    listProperties(): Array<[string, ClassPropertyViewer]>;
-    property(name: string): ClassPropertyViewer;
-}
-export declare class ClassBuilder<ClassName extends string, Properties extends string = string> extends ClassAst<ClassName, Properties> {
-    constructor(tb: _TypeBuilder, name: ClassName, properties?: Set<Properties | string>);
-    addProperty<S extends string>(name: RestrictNot<ClassName, S, Properties>, type: FieldType): ClassPropertyBuilder;
-    listProperties(): Array<[string, ClassPropertyBuilder]>;
-    removeProperty(name: string): void;
+    listProperties(): Array<[
+        IfDynamic<Dynamic, PropertyName | string, PropertyName>,
+        ClassPropertyBuilder<Name, IfDynamic<Dynamic, PropertyName | string, PropertyName>, Dynamic>
+    ]>;
     reset(): void;
-    property(name: string): ClassPropertyBuilder;
+    getProperty(name: PropertyName): ClassPropertyBuilder<Name, PropertyName, Dynamic>;
+    getProperty(name: IfDynamic<Dynamic, string, never>): ClassPropertyBuilder<Name, string, Dynamic>;
+    /**
+     * addProperty:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    addProperty(this: Dynamic extends true ? ClassBuilder<Name, PropertyName, Dynamic> : MustBeDynamic<Name, "addProperty">, name: string, fieldType: FieldType): ClassPropertyBuilder<Name, string, Dynamic>;
+    /**
+     * removeProperty:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    removeProperty(this: Dynamic extends true ? ClassBuilder<Name, PropertyName, Dynamic> : MustBeDynamic<Name, "removeProperty">, name: IfDynamic<Dynamic, PropertyName | string, never>): void;
+    /**
+     * setAlias:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    setAlias(this: Dynamic extends true ? ClassBuilder<Name, PropertyName, Dynamic> : MustBeDynamic<Name, "setAlias">, alias: string | null): ClassBuilder<Name, PropertyName, Dynamic>;
+    /**
+     * setDescription:
+     *  - only allowed if Class marked with @@dynamic
+     */
+    setDescription(this: Dynamic extends true ? ClassBuilder<Name, PropertyName, Dynamic> : MustBeDynamic<Name, "setDescription">, description: string | null): ClassBuilder<Name, PropertyName, Dynamic>;
+    alias(): string | null;
+    description(): string | null;
+    source(): "baml" | "dynamic";
 }
-declare class ClassPropertyViewer {
-    constructor();
-}
-declare class ClassPropertyBuilder {
-    private bldr;
-    constructor(bldr: _ClassPropertyBuilder);
-    getType(): FieldType;
-    setType(type: FieldType): ClassPropertyBuilder;
-    alias(alias: string | null): ClassPropertyBuilder;
-    description(description: string | null): ClassPropertyBuilder;
-}
-export declare class EnumAst<EnumName extends string, Values extends string = string> {
-    protected values: Set<Values | string>;
-    protected bldr: _EnumBuilder;
-    constructor(tb: _TypeBuilder, name: EnumName, values?: Set<Values | string>);
+export declare class EnumBuilder<Name extends string, ValueName extends string, Dynamic extends boolean> {
+    private readonly eb;
+    constructor(eb: _EnumBuilder);
     type(): FieldType;
+    listValues(): Array<[
+        IfDynamic<Dynamic, ValueName | string, ValueName>,
+        EnumValueBuilder<Name, IfDynamic<Dynamic, ValueName | string, ValueName>, Dynamic>
+    ]>;
+    /**
+     * addValue:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    addValue(this: Dynamic extends true ? EnumBuilder<Name, ValueName, Dynamic> : MustBeDynamic<Name, "addValue">, name: string): EnumValueBuilder<Name, ValueName, Dynamic>;
+    getValue(name: ValueName): EnumValueBuilder<Name, ValueName, Dynamic>;
+    getValue(name: IfDynamic<Dynamic, string, never>): EnumValueBuilder<Name, string, Dynamic>;
+    /**
+     * removeValue:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    removeValue<V extends ValueName>(this: Dynamic extends true ? EnumBuilder<Name, ValueName, Dynamic> : MustBeDynamic<Name, "removeValue">, name: IfDynamic<Dynamic, V, never>): EnumBuilder<Name, ValueName, Dynamic>;
+    /**
+     * setAlias:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    setAlias(this: Dynamic extends true ? EnumBuilder<Name, ValueName, Dynamic> : MustBeDynamic<Name, "setAlias">, alias: IfDynamic<Dynamic, string | null, never>): EnumBuilder<Name, ValueName, Dynamic>;
+    /**
+     * setDescription:
+     *  - only allowed if Enum marked with @@dynamic
+     */
+    setDescription(this: Dynamic extends true ? EnumBuilder<Name, ValueName, Dynamic> : MustBeDynamic<Name, "setDescription">, description: IfDynamic<Dynamic, string | null, never>): EnumBuilder<Name, ValueName, Dynamic>;
+    alias(): string | null;
+    description(): string | null;
 }
-export declare class EnumViewer<EnumName extends string, T extends string = string> extends EnumAst<EnumName, T> {
-    constructor(tb: _TypeBuilder, name: EnumName, values?: Set<T | string>);
-    listValues(): Array<[string, EnumValueViewer]>;
-    value(name: string): EnumValueViewer;
+declare class ClassPropertyBuilder<ClassName extends string, PropertyName extends string, Dynamic extends boolean> {
+    private readonly cpb;
+    constructor(cpb: _ClassPropertyBuilder);
+    type(): FieldType;
+    setType(this: Dynamic extends true ? ClassPropertyBuilder<ClassName, PropertyName, Dynamic> : MustBeDynamic<`${ClassName}.${PropertyName}`, "setType">, fieldType: FieldType): ClassPropertyBuilder<ClassName, PropertyName, Dynamic>;
+    setAlias(this: Dynamic extends true ? ClassPropertyBuilder<ClassName, PropertyName, Dynamic> : MustBeDynamic<`${ClassName}.${PropertyName}`, "setAlias">, alias: string | null): ClassPropertyBuilder<ClassName, PropertyName, Dynamic>;
+    setDescription(this: Dynamic extends true ? ClassPropertyBuilder<ClassName, PropertyName, Dynamic> : MustBeDynamic<`${ClassName}.${PropertyName}`, "setDescription">, description: string | null): ClassPropertyBuilder<ClassName, PropertyName, Dynamic>;
+    alias(): string | null;
+    description(): string | null;
+    source(): "baml" | "dynamic";
 }
-export declare class EnumValueViewer {
-    constructor();
-}
-export declare class EnumBuilder<EnumName extends string, T extends string = string> extends EnumAst<EnumName, T> {
-    constructor(tb: _TypeBuilder, name: EnumName, values?: Set<T | string>);
-    addValue<S extends string>(name: RestrictNot<EnumName, S, T>): EnumValueBuilder;
-    listValues(): Array<[string, EnumValueBuilder]>;
-    value(name: string): EnumValueBuilder;
+export declare class EnumValueBuilder<EnumName extends string, ValueName extends string, Dynamic extends boolean> {
+    private readonly evb;
+    constructor(evb: _EnumValueBuilder);
+    setAlias(this: Dynamic extends true ? EnumValueBuilder<EnumName, ValueName, Dynamic> : MustBeDynamic<`${EnumName}.${ValueName}`, "setAlias">, alias: string | null): EnumValueBuilder<EnumName, ValueName, Dynamic>;
+    setDescription(this: Dynamic extends true ? EnumValueBuilder<EnumName, ValueName, Dynamic> : MustBeDynamic<`${EnumName}.${ValueName}`, "setDescription">, description: string | null): EnumValueBuilder<EnumName, ValueName, Dynamic>;
+    alias(): string | null;
+    description(): string | null;
+    source(): "baml" | "dynamic";
 }
 export {};
 //# sourceMappingURL=type_builder.d.ts.map
