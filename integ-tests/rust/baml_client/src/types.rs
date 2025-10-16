@@ -11336,16 +11336,7 @@ impl AliasedEnum {
             Self::KEY_TWO => "KEY_TWO",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "KEY_ONE" => Some(Self::KEY_ONE),
-            "KEY_TWO" => Some(Self::KEY_TWO),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11361,16 +11352,18 @@ impl std::fmt::Display for AliasedEnum {
 impl std::str::FromStr for AliasedEnum {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid AliasedEnum value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "KEY_ONE" => Ok(Self::KEY_ONE),
+            "KEY_TWO" => Ok(Self::KEY_TWO),
+            _ => Err(format!("Invalid AliasedEnum value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -11439,19 +11432,7 @@ impl Category {
             Self::Question => "Question",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Refund" => Some(Self::Refund),
-            "CancelOrder" => Some(Self::CancelOrder),
-            "TechnicalSupport" => Some(Self::TechnicalSupport),
-            "AccountIssue" => Some(Self::AccountIssue),
-            "Question" => Some(Self::Question),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11467,16 +11448,21 @@ impl std::fmt::Display for Category {
 impl std::str::FromStr for Category {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid Category value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "Refund" => Ok(Self::Refund),
+            "CancelOrder" => Ok(Self::CancelOrder),
+            "TechnicalSupport" => Ok(Self::TechnicalSupport),
+            "AccountIssue" => Ok(Self::AccountIssue),
+            "Question" => Ok(Self::Question),
+            _ => Err(format!("Invalid Category value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -11545,19 +11531,7 @@ impl Category2 {
             Self::Question => "Question",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Refund" => Some(Self::Refund),
-            "CancelOrder" => Some(Self::CancelOrder),
-            "TechnicalSupport" => Some(Self::TechnicalSupport),
-            "AccountIssue" => Some(Self::AccountIssue),
-            "Question" => Some(Self::Question),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11573,16 +11547,21 @@ impl std::fmt::Display for Category2 {
 impl std::str::FromStr for Category2 {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid Category2 value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "Refund" => Ok(Self::Refund),
+            "CancelOrder" => Ok(Self::CancelOrder),
+            "TechnicalSupport" => Ok(Self::TechnicalSupport),
+            "AccountIssue" => Ok(Self::AccountIssue),
+            "Question" => Ok(Self::Question),
+            _ => Err(format!("Invalid Category2 value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -11651,19 +11630,7 @@ impl Category3 {
             Self::Question => "Question",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Refund" => Some(Self::Refund),
-            "CancelOrder" => Some(Self::CancelOrder),
-            "TechnicalSupport" => Some(Self::TechnicalSupport),
-            "AccountIssue" => Some(Self::AccountIssue),
-            "Question" => Some(Self::Question),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11679,16 +11646,21 @@ impl std::fmt::Display for Category3 {
 impl std::str::FromStr for Category3 {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid Category3 value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "Refund" => Ok(Self::Refund),
+            "CancelOrder" => Ok(Self::CancelOrder),
+            "TechnicalSupport" => Ok(Self::TechnicalSupport),
+            "AccountIssue" => Ok(Self::AccountIssue),
+            "Question" => Ok(Self::Question),
+            _ => Err(format!("Invalid Category3 value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -11761,20 +11733,7 @@ impl Color {
             Self::WHITE => "WHITE",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "RED" => Some(Self::RED),
-            "BLUE" => Some(Self::BLUE),
-            "GREEN" => Some(Self::GREEN),
-            "YELLOW" => Some(Self::YELLOW),
-            "BLACK" => Some(Self::BLACK),
-            "WHITE" => Some(Self::WHITE),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11790,16 +11749,22 @@ impl std::fmt::Display for Color {
 impl std::str::FromStr for Color {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid Color value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "RED" => Ok(Self::RED),
+            "BLUE" => Ok(Self::BLUE),
+            "GREEN" => Ok(Self::GREEN),
+            "YELLOW" => Ok(Self::YELLOW),
+            "BLACK" => Ok(Self::BLACK),
+            "WHITE" => Ok(Self::WHITE),
+            _ => Err(format!("Invalid Color value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -11856,16 +11821,7 @@ impl DataType {
             Self::Event => "Event",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Resume" => Some(Self::Resume),
-            "Event" => Some(Self::Event),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11881,16 +11837,18 @@ impl std::fmt::Display for DataType {
 impl std::str::FromStr for DataType {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid DataType value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "Resume" => Ok(Self::Resume),
+            "Event" => Ok(Self::Event),
+            _ => Err(format!("Invalid DataType value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -11938,14 +11896,7 @@ impl DynEnumOne {
     pub fn as_str(&self) -> &'static str {
         unreachable!("Enum DynEnumOne has no variants");
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -11961,16 +11912,16 @@ impl std::fmt::Display for DynEnumOne {
 impl std::str::FromStr for DynEnumOne {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid DynEnumOne value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            _ => Err(format!("Invalid DynEnumOne value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12028,16 +11979,7 @@ impl DynEnumThree {
             Self::TRIANGLE => "TRIANGLE",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "TRICYCLE" => Some(Self::TRICYCLE),
-            "TRIANGLE" => Some(Self::TRIANGLE),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12053,16 +11995,18 @@ impl std::fmt::Display for DynEnumThree {
 impl std::str::FromStr for DynEnumThree {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid DynEnumThree value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "TRICYCLE" => Ok(Self::TRICYCLE),
+            "TRIANGLE" => Ok(Self::TRIANGLE),
+            _ => Err(format!("Invalid DynEnumThree value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12110,14 +12054,7 @@ impl DynEnumTwo {
     pub fn as_str(&self) -> &'static str {
         unreachable!("Enum DynEnumTwo has no variants");
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12133,16 +12070,16 @@ impl std::fmt::Display for DynEnumTwo {
 impl std::str::FromStr for DynEnumTwo {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid DynEnumTwo value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            _ => Err(format!("Invalid DynEnumTwo value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12200,16 +12137,7 @@ impl EnumInClass {
             Self::TWO => "TWO",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "ONE" => Some(Self::ONE),
-            "TWO" => Some(Self::TWO),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12225,16 +12153,18 @@ impl std::fmt::Display for EnumInClass {
 impl std::str::FromStr for EnumInClass {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid EnumInClass value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "ONE" => Ok(Self::ONE),
+            "TWO" => Ok(Self::TWO),
+            _ => Err(format!("Invalid EnumInClass value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12295,17 +12225,7 @@ impl EnumOutput {
             Self::THREE => "THREE",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "ONE" => Some(Self::ONE),
-            "TWO" => Some(Self::TWO),
-            "THREE" => Some(Self::THREE),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12321,16 +12241,19 @@ impl std::fmt::Display for EnumOutput {
 impl std::str::FromStr for EnumOutput {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid EnumOutput value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "ONE" => Ok(Self::ONE),
+            "TWO" => Ok(Self::TWO),
+            "THREE" => Ok(Self::THREE),
+            _ => Err(format!("Invalid EnumOutput value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12391,17 +12314,7 @@ impl Hobby {
             Self::READING => "READING",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "SPORTS" => Some(Self::SPORTS),
-            "MUSIC" => Some(Self::MUSIC),
-            "READING" => Some(Self::READING),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12417,16 +12330,19 @@ impl std::fmt::Display for Hobby {
 impl std::str::FromStr for Hobby {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid Hobby value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "SPORTS" => Ok(Self::SPORTS),
+            "MUSIC" => Ok(Self::MUSIC),
+            "READING" => Ok(Self::READING),
+            _ => Err(format!("Invalid Hobby value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12487,17 +12403,7 @@ impl MapKey {
             Self::C => "C",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "A" => Some(Self::A),
-            "B" => Some(Self::B),
-            "C" => Some(Self::C),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12513,16 +12419,19 @@ impl std::fmt::Display for MapKey {
 impl std::str::FromStr for MapKey {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid MapKey value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "A" => Ok(Self::A),
+            "B" => Ok(Self::B),
+            "C" => Ok(Self::C),
+            _ => Err(format!("Invalid MapKey value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12579,16 +12488,7 @@ impl NamedArgsSingleEnum {
             Self::TWO => "TWO",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "ONE" => Some(Self::ONE),
-            "TWO" => Some(Self::TWO),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12604,16 +12504,18 @@ impl std::fmt::Display for NamedArgsSingleEnum {
 impl std::str::FromStr for NamedArgsSingleEnum {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid NamedArgsSingleEnum value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "ONE" => Ok(Self::ONE),
+            "TWO" => Ok(Self::TWO),
+            _ => Err(format!("Invalid NamedArgsSingleEnum value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12670,16 +12572,7 @@ impl NamedArgsSingleEnumList {
             Self::TWO => "TWO",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "ONE" => Some(Self::ONE),
-            "TWO" => Some(Self::TWO),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12695,16 +12588,18 @@ impl std::fmt::Display for NamedArgsSingleEnumList {
 impl std::str::FromStr for NamedArgsSingleEnumList {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid NamedArgsSingleEnumList value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "ONE" => Ok(Self::ONE),
+            "TWO" => Ok(Self::TWO),
+            _ => Err(format!("Invalid NamedArgsSingleEnumList value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12765,17 +12660,7 @@ impl OptionalTest_CategoryType {
             Self::Gamma => "Gamma",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Aleph" => Some(Self::Aleph),
-            "Beta" => Some(Self::Beta),
-            "Gamma" => Some(Self::Gamma),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12791,16 +12676,19 @@ impl std::fmt::Display for OptionalTest_CategoryType {
 impl std::str::FromStr for OptionalTest_CategoryType {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid OptionalTest_CategoryType value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "Aleph" => Ok(Self::Aleph),
+            "Beta" => Ok(Self::Beta),
+            "Gamma" => Ok(Self::Gamma),
+            _ => Err(format!("Invalid OptionalTest_CategoryType value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12865,18 +12753,7 @@ impl OrderStatus {
             Self::CANCELLED => "CANCELLED",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "ORDERED" => Some(Self::ORDERED),
-            "SHIPPED" => Some(Self::SHIPPED),
-            "DELIVERED" => Some(Self::DELIVERED),
-            "CANCELLED" => Some(Self::CANCELLED),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12892,16 +12769,20 @@ impl std::fmt::Display for OrderStatus {
 impl std::str::FromStr for OrderStatus {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid OrderStatus value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "ORDERED" => Ok(Self::ORDERED),
+            "SHIPPED" => Ok(Self::SHIPPED),
+            "DELIVERED" => Ok(Self::DELIVERED),
+            "CANCELLED" => Ok(Self::CANCELLED),
+            _ => Err(format!("Invalid OrderStatus value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -12958,16 +12839,7 @@ impl RenderStatusEnum {
             Self::INACTIVE => "INACTIVE",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "ACTIVE" => Some(Self::ACTIVE),
-            "INACTIVE" => Some(Self::INACTIVE),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -12983,16 +12855,18 @@ impl std::fmt::Display for RenderStatusEnum {
 impl std::str::FromStr for RenderStatusEnum {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid RenderStatusEnum value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "ACTIVE" => Ok(Self::ACTIVE),
+            "INACTIVE" => Ok(Self::INACTIVE),
+            _ => Err(format!("Invalid RenderStatusEnum value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -13049,16 +12923,7 @@ impl RenderTestEnum {
             Self::SCOOTER => "SCOOTER",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "BIKE" => Some(Self::BIKE),
-            "SCOOTER" => Some(Self::SCOOTER),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -13074,16 +12939,18 @@ impl std::fmt::Display for RenderTestEnum {
 impl std::str::FromStr for RenderTestEnum {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid RenderTestEnum value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "BIKE" => Ok(Self::BIKE),
+            "SCOOTER" => Ok(Self::SCOOTER),
+            _ => Err(format!("Invalid RenderTestEnum value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -13144,17 +13011,7 @@ impl Tag {
             Self::Blockchain => "Blockchain",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "Security" => Some(Self::Security),
-            "AI" => Some(Self::AI),
-            "Blockchain" => Some(Self::Blockchain),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -13170,16 +13027,19 @@ impl std::fmt::Display for Tag {
 impl std::str::FromStr for Tag {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid Tag value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "Security" => Ok(Self::Security),
+            "AI" => Ok(Self::AI),
+            "Blockchain" => Ok(Self::Blockchain),
+            _ => Err(format!("Invalid Tag value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 
@@ -13256,21 +13116,7 @@ impl TestEnum {
             Self::G => "G",
         }
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "A" => Some(Self::A),
-            "B" => Some(Self::B),
-            "C" => Some(Self::C),
-            "D" => Some(Self::D),
-            "E" => Some(Self::E),
-            "F" => Some(Self::F),
-            "G" => Some(Self::G),
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         Self::values().contains(self)
@@ -13286,16 +13132,23 @@ impl std::fmt::Display for TestEnum {
 impl std::str::FromStr for TestEnum {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid TestEnum value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "A" => Ok(Self::A),
+            "B" => Ok(Self::B),
+            "C" => Ok(Self::C),
+            "D" => Ok(Self::D),
+            "E" => Ok(Self::E),
+            "F" => Ok(Self::F),
+            "G" => Ok(Self::G),
+            _ => Err(format!("Invalid TestEnum value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+        }
     }
 }
 

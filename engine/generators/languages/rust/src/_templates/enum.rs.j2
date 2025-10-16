@@ -2,14 +2,15 @@
 /// {{ docstring }}
 {% endif -%}
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-{% if dynamic -%}
-#[serde(rename_all = "snake_case")]
-{% endif -%}
 pub enum {{ name }} {
     {%- for value in values %}
     /// {{ value }} variant
     {{ value }},
     {%- endfor %}
+    {%- if dynamic %}
+    /// Dynamic enum variant
+    _Dynamic(String),
+    {%- endif %}
 }
 
 impl {{ name }} {
@@ -31,20 +32,13 @@ impl {{ name }} {
             {%- for value in values %}
             Self::{{ value }} => "{{ value }}",
             {%- endfor %}
+            {%- if dynamic %}
+            Self::_Dynamic(value) => value.as_str(),
+            {%- endif %}
         }
         {%- endif %}
     }
-    
-    /// Create enum from string, if valid
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            {%- for value in values %}
-            "{{ value }}" => Some(Self::{{ value }}),
-            {%- endfor %}
-            _ => None,
-        }
-    }
-    
+
     /// Check if this enum variant is valid
     pub fn is_valid(&self) -> bool {
         {% if dynamic -%}
@@ -65,16 +59,23 @@ impl std::fmt::Display for {{ name }} {
 impl std::str::FromStr for {{ name }} {
     type Err = String;
     
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| {
-            format!("Invalid {{ name }} value: '{}'. Valid values are: [{}]", 
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            {%- for value in values %}
+            "{{ value }}" => Ok(Self::{{ value }}),
+            {%- endfor %}
+            {%- if dynamic %}
+            other => Ok(Self::_Dynamic(other.to_string())),
+            {%- else %}
+            _ => Err(format!("Invalid {{ name }} value: '{}'. Valid values are: [{}]", 
                 s, 
                 Self::values().iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
-        })
+            )),
+            {%- endif %}
+        }
     }
 }
 

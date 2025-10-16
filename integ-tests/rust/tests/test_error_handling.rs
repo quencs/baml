@@ -52,7 +52,9 @@ async fn test_invalid_api_key() {
 
     match invalid_client_result {
         Ok(invalid_client) => {
-            let result = invalid_client
+            let invalid_baml_client = BamlClient::with_core_client(invalid_client);
+
+            let result = invalid_baml_client
                 .test_fn_named_args_single_string("test".to_string())
                 .await;
 

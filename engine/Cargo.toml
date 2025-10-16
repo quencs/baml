@@ -22,7 +22,6 @@ members = [
   "generators/utils/*",
   "generators/languages/*",
   "sandbox",
-  "llm-response-parser",
   "boundary-udf",
   "playground-server",
 ]
