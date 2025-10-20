@@ -497,21 +497,8 @@ fn lower_stmt_with_options(
 
             let watch_spec = if *is_watched {
                 let var_name = identifier.to_string();
-                let mut spec = WatchSpec::default_for_variable(var_name.clone(), span.clone());
-
-                // Apply watch options if they exist for this variable
-                if let Some((name_opt, when_opt)) = watch_options.get(&var_name) {
-                    if let Some(custom_name) = name_opt {
-                        spec.name = custom_name.clone();
-                    }
-                    if let Some(when_fn) = when_opt {
-                        spec.when = crate::watch::WatchWhen::FunctionName(ast::Identifier::Local(
-                            when_fn.clone(),
-                            span.clone(),
-                        ));
-                    }
-                }
-
+                // Create default watch spec - runtime WatchOptions statements will modify it
+                let spec = WatchSpec::default_for_variable(var_name.clone(), span.clone());
                 Some(spec)
             } else {
                 None

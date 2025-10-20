@@ -1,12 +1,12 @@
 function WorkflowWatch() -> int {
-  let x: int = 10 @watch;
-  let y: bool = true @watch;
-  let once: string = "Hello" @watch;
-  let twice: string[] = ["Takedown", ""] @watch;
-  let story = LLMEcho(#"
+  watch let x: int = 10;
+  watch let y: bool = true;
+  watch let once: string = "Hello";
+  watch let twice: string[] = ["Takedown", ""];
+  watch let story = LLMEcho(#"
     Hello world this is a test of a longish string.
     I want it to be long enough to generate a few chunks.
-    "#) @watch;
+    "#);
 
   y = false;
   x = WorkflowWatchChild();
@@ -15,7 +15,7 @@ function WorkflowWatch() -> int {
 }
 
 function WorkflowWatchChild() -> int {
-  let x: string = "Hello" @watch;
+  watch let x: string = "Hello";
   100
 }
 
@@ -53,7 +53,8 @@ function WorkflowWatchWithFilter() -> int {
                           "elderberry", "banana", "fig", "grape", "honeydew"];
 
   // This variable will only notify watchers when the word is "banana" (as determined by LLM)
-  let this_word: string = "" @watch(when=IsTargetWord);
+  watch let this_word: string = "";
+  this_word.$watch.options( baml.WatchOptions{ when: IsTargetWord })
 
   let i: int = 0;
   for (let word in words) {

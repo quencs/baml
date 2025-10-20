@@ -197,14 +197,6 @@ async fn check_watch_changes<F, Fut>(
             let last_notified = watch_var.last_notified.lock().unwrap().clone();
             let last_checked = watch_var.last_checked.lock().unwrap().clone();
 
-            log::debug!(
-                "Collecting watch var '{}': current={:?}, last_notified={:?}, last_checked={:?}",
-                watch_var.name,
-                current_value,
-                last_notified,
-                last_checked
-            );
-
             checks.push((
                 watch_var.name.clone(),
                 watch_var.spec.clone(),
@@ -1246,6 +1238,56 @@ where
                         BamlValueWithMeta::Bool(false, _) => bail!("assertion failed"),
                         _ => bail!("assert condition must be boolean"),
                     }
+                }
+                Statement::WatchOptions {
+                    variable,
+                    name,
+                    when,
+                    span,
+                } => {
+                    // Find and update the watch variable for this variable
+                    // We need to find the watch variable by checking which one references the same value
+                    for scope in scopes.iter_mut().rev() {
+                        if let Some(var_ref) = scope.variables.get(variable) {
+                            // Find the watch variable that references this variable
+                            if let Some(watch_var) = scope
+                                .watch_variables
+                                .iter_mut()
+                                .find(|wv| Arc::ptr_eq(&wv.value_ref, var_ref))
+                            {
+                                // Update the channel name if provided
+                                if let Some(new_name) = name {
+                                    watch_var.spec.name = new_name.clone();
+                                }
+
+                                // Update the when condition if provided
+                                if let Some(when_str) = when {
+                                    watch_var.spec.when = match when_str.as_str() {
+                                        "manual" => crate::watch::WatchWhen::Manual,
+                                        "true" => crate::watch::WatchWhen::True,
+                                        _ => crate::watch::WatchWhen::FunctionName(
+                                            internal_baml_ast::ast::Identifier::Local(
+                                                when_str.clone(),
+                                                span.clone(),
+                                            ),
+                                        ),
+                                    };
+                                }
+
+                                watch_var.spec.span = span.clone();
+                                break;
+                            }
+                        }
+                    }
+                }
+                Statement::WatchNotify { variable, .. } => {
+                    // Manually trigger a watch notification for this variable
+                    fire_watch_notification_for_variable(
+                        scopes,
+                        variable,
+                        watch_handler,
+                        function_name,
+                    )?;
                 }
             }
         }
