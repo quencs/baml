@@ -195,6 +195,12 @@ pub enum Statement {
         when: Option<String>,
         span: Span,
     },
+    /// Manually notify watchers of a variable.
+    /// Syntax: `variable.$watch.notify()`
+    WatchNotify {
+        variable: String,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug)]

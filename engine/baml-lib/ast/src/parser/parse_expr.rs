@@ -129,6 +129,9 @@ pub fn parse_top_level_assignment(
         Stmt::WatchOptions(WatchOptionsStmt { span, .. }) => {
             only_let_stmt("watch options statements", span, diagnostics)
         }
+        Stmt::WatchNotify(WatchNotifyStmt { span, .. }) => {
+            only_let_stmt("watch notify statements", span, diagnostics)
+        }
     }
 }
 
@@ -515,63 +518,23 @@ fn parse_statement_inner_rule(
             // First token is the variable identifier
             let variable = parse_identifier(tokens.next()?, diagnostics);
 
-            // Parse watch option pairs (name: "value", when: Function)
-            let mut name: Option<String> = None;
-            let mut when: Option<Identifier> = None;
-
-            while let Some(pair_token) = tokens.next() {
-                if pair_token.as_rule() != Rule::watch_option_pair {
-                    continue;
-                }
-
-                // Get the span before consuming pair_token
-                let pair_span = diagnostics.span(pair_token.as_span());
-                let mut pair_tokens = pair_token.into_inner();
-                let option_name = pair_tokens.next()?.as_str();
-                let option_value = pair_tokens.next()?;
-
-                match option_name {
-                    "name" => {
-                        // Must be a string literal
-                        if option_value.as_rule() == Rule::quoted_string_literal {
-                            name = Some(option_value.as_str().trim_matches('"').to_string());
-                        } else {
-                            diagnostics.push_error(DatamodelError::new_static(
-                                "watch options 'name' must be a string literal",
-                                diagnostics.span(option_value.as_span()),
-                            ));
-                        }
-                    }
-                    "when" => {
-                        // Must be an identifier (function name)
-                        if option_value.as_rule() == Rule::identifier {
-                            when = Some(parse_identifier(option_value, diagnostics));
-                        } else {
-                            diagnostics.push_error(DatamodelError::new_static(
-                                "watch options 'when' must be a function identifier",
-                                diagnostics.span(option_value.as_span()),
-                            ));
-                        }
-                    }
-                    _ => {
-                        let error_msg = format!(
-                            "unknown watch option '{}'. Valid options are: name, when",
-                            option_name
-                        );
-                        diagnostics.push_error(DatamodelError::new_validation_error(
-                            &error_msg,
-                            pair_span.clone(),
-                        ));
-                    }
-                }
-            }
+            // Second token is the WatchOptions expression (should be a class constructor)
+            let options_expr_token = tokens.next()?;
+            let options_expr = parse_expression(options_expr_token, diagnostics)?;
 
             Some(Stmt::WatchOptions(WatchOptionsStmt {
                 variable,
-                name,
-                when,
+                options_expr,
                 span,
             }))
+        }
+        Rule::watch_notify_stmt => {
+            let mut tokens = stmt_token.into_inner();
+
+            // Only token is the variable identifier
+            let variable = parse_identifier(tokens.next()?, diagnostics);
+
+            Some(Stmt::WatchNotify(WatchNotifyStmt { variable, span }))
         }
         Rule::let_expr => {
             let mut let_binding_tokens = stmt_token.into_inner();
@@ -1084,6 +1047,9 @@ fn bind_headers_to_statement(
         }
         Stmt::WatchOptions(_) => {
             // Watch options statements do not carry annotations
+        }
+        Stmt::WatchNotify(_) => {
+            // Watch notify statements do not carry annotations
         }
     }
 }

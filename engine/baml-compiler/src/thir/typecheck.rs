@@ -1190,6 +1190,19 @@ fn typecheck_statement(
             // that gets processed during watch analysis
             None
         }
+        hir::Statement::WatchNotify { variable, span } => {
+            // Check that the variable exists in context
+            if !context.vars.contains_key(variable) {
+                diagnostics.push_error(DatamodelError::new_validation_error(
+                    &format!("Unknown variable '{}' in watch notify", variable),
+                    span.clone(),
+                ));
+            }
+
+            // Watch notify statements are not included in THIR - they're for runtime
+            // manual notification of watchers
+            None
+        }
     }
 }
 

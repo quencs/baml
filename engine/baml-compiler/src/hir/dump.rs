@@ -293,6 +293,9 @@ impl Statement {
                 doc = doc.append(RcDoc::intersperse(parts, RcDoc::text(", ")));
                 doc.append(RcDoc::text(");"))
             }
+            Statement::WatchNotify { variable, .. } => {
+                RcDoc::text(variable.clone()).append(RcDoc::text(".$watch.notify();"))
+            }
         }
     }
 }

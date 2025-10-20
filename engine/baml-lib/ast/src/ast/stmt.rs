@@ -103,15 +103,23 @@ pub struct AssertStmt {
 }
 
 /// Special statement for configuring watch options on a watched variable.
-/// Syntax: `variable_name.$watch.options(name: "channel", when: SomeFunction)`
+/// Syntax: `variable_name.$watch.options(baml.WatchOptions{name: "channel", when: SomeFunction})`
+/// Note: .$watch.options is a special method, but baml.WatchOptions is a real struct
 #[derive(Debug, Clone)]
 pub struct WatchOptionsStmt {
     /// The variable being configured
     pub variable: Identifier,
-    /// Optional custom channel name
-    pub name: Option<String>,
-    /// Optional filter function for conditional watching
-    pub when: Option<Identifier>,
+    /// The WatchOptions constructor expression
+    pub options_expr: Expression,
+    pub span: Span,
+}
+
+/// Special statement for manually notifying watchers of a variable.
+/// Syntax: `variable_name.$watch.notify()`
+#[derive(Debug, Clone)]
+pub struct WatchNotifyStmt {
+    /// The variable to notify watchers about
+    pub variable: Identifier,
     pub span: Span,
 }
 
@@ -133,6 +141,7 @@ pub enum Stmt {
     Return(ReturnStmt),
     Assert(AssertStmt),
     WatchOptions(WatchOptionsStmt),
+    WatchNotify(WatchNotifyStmt),
 }
 
 impl fmt::Display for AssignOp {
@@ -215,21 +224,13 @@ impl fmt::Display for Stmt {
             Stmt::Assert(AssertStmt { value, .. }) => write!(f, "assert {value}"),
             Stmt::WatchOptions(WatchOptionsStmt {
                 variable,
-                name,
-                when,
+                options_expr,
                 ..
             }) => {
-                write!(f, "{}.$watch.options(", variable.name())?;
-                if let Some(n) = name {
-                    write!(f, "name: \"{n}\"")?;
-                }
-                if let Some(w) = when {
-                    if name.is_some() {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "when: {}", w.name())?;
-                }
-                write!(f, ")")
+                write!(f, "{}.$watch.options({})", variable.name(), options_expr)
+            }
+            Stmt::WatchNotify(WatchNotifyStmt { variable, .. }) => {
+                write!(f, "{}.$watch.notify()", variable.name())
             }
         }
     }
@@ -329,24 +330,24 @@ impl Stmt {
             (
                 Stmt::WatchOptions(WatchOptionsStmt {
                     variable: v1,
-                    name: n1,
-                    when: w1,
+                    options_expr: e1,
                     ..
                 }),
                 Stmt::WatchOptions(WatchOptionsStmt {
                     variable: v2,
-                    name: n2,
-                    when: w2,
+                    options_expr: e2,
                     ..
                 }),
             ) => {
                 v1.assert_eq_up_to_span(v2);
-                assert_eq!(n1, n2, "watch option names do not match");
-                match (w1, w2) {
-                    (Some(w1), Some(w2)) => w1.assert_eq_up_to_span(w2),
-                    (None, None) => {}
-                    _ => panic!("watch option when clauses do not match"),
-                }
+                e1.assert_eq_up_to_span(e2);
+            }
+
+            (
+                Stmt::WatchNotify(WatchNotifyStmt { variable: v1, .. }),
+                Stmt::WatchNotify(WatchNotifyStmt { variable: v2, .. }),
+            ) => {
+                v1.assert_eq_up_to_span(v2);
             }
 
             (
@@ -362,7 +363,8 @@ impl Stmt {
                 | Stmt::Break(_)
                 | Stmt::Continue(_)
                 | Stmt::Assert(_)
-                | Stmt::WatchOptions(_),
+                | Stmt::WatchOptions(_)
+                | Stmt::WatchNotify(_),
                 _,
             ) => {
                 panic!("Types do not match: {self:?} and {other:?}")
@@ -398,6 +400,7 @@ impl Stmt {
                 ),
             },
             Stmt::WatchOptions(WatchOptionsStmt { variable, .. }) => variable,
+            Stmt::WatchNotify(WatchNotifyStmt { variable, .. }) => variable,
         }
     }
 
@@ -413,7 +416,8 @@ impl Stmt {
             | Stmt::Break(span)
             | Stmt::Continue(span)
             | Stmt::Assert(AssertStmt { span, .. })
-            | Stmt::WatchOptions(WatchOptionsStmt { span, .. }) => span,
+            | Stmt::WatchOptions(WatchOptionsStmt { span, .. })
+            | Stmt::WatchNotify(WatchNotifyStmt { span, .. }) => span,
 
             Stmt::Expression(es) => &es.span,
             Stmt::Semicolon(expr) => expr.span(),

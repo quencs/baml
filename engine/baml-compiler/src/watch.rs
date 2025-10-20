@@ -634,17 +634,17 @@ mod tests {
             r#"
                 function A() -> int {
                     watch let a_1: int = 1;
-                    a_1.$watch.options(name: "a");
+                    a_1.$watch.options(baml.WatchOptions{name: "a"});
                     watch let a_2: string = "hi";
-                    a_2.$watch.options(name: "a");
+                    a_2.$watch.options(baml.WatchOptions{name: "a"});
                     watch let b_1: int | bool = true;
-                    b_1.$watch.options(name: "b");
+                    b_1.$watch.options(baml.WatchOptions{name: "b"});
                     watch let b_2: int = 3;
-                    b_2.$watch.options(name: "b");
+                    b_2.$watch.options(baml.WatchOptions{name: "b"});
                     watch let c_1: int = 1;
-                    c_1.$watch.options(name: "c");
+                    c_1.$watch.options(baml.WatchOptions{name: "c"});
                     watch let c_2: int | bool = 3;
-                    c_2.$watch.options(name: "c");
+                    c_2.$watch.options(baml.WatchOptions{name: "c"});
                     1
                 }
             "#,

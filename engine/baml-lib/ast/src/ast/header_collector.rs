@@ -435,6 +435,7 @@ impl HeaderCollector {
                 }
                 Stmt::Assert(assert_stmt) => self.visit_expression(&assert_stmt.value),
                 Stmt::WatchOptions(_) => {} // Watch options don't contain expressions to visit
+                Stmt::WatchNotify(_) => {} // Watch notify statements don't contain expressions to visit
             }
         }
 

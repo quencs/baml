@@ -772,6 +772,10 @@ impl MermaidDiagramGenerator {
                 let label = format!("WatchOptions: {}", watch_opts.variable.name());
                 self.get_node_id_with_class(&key, &label, "statementNode")
             }
+            Stmt::WatchNotify(watch_notify) => {
+                let label = format!("WatchNotify: {}", watch_notify.variable.name());
+                self.get_node_id_with_class(&key, &label, "statementNode")
+            }
         }
     }
 

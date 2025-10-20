@@ -301,6 +301,52 @@ impl ExprFunction {
     }
 }
 
+/// Extract name and when fields from a WatchOptions class constructor expression.
+/// Expected expression: baml.WatchOptions{name: "value", when: FunctionName}
+fn extract_watch_options_fields(expr: &ast::Expression) -> (Option<String>, Option<String>) {
+    use ast::Expression;
+
+    // The expression should be a class constructor
+    if let Expression::ClassConstructor(class_ctor, _) = expr {
+        let mut name = None;
+        let mut when = None;
+
+        // Extract field values
+        for field in &class_ctor.fields {
+            if let ast::ClassConstructorField::Named(field_name, field_value) = field {
+                match field_name.name() {
+                    "name" => {
+                        // name should be a string value
+                        if let Expression::StringValue(s, _) = field_value {
+                            name = Some(s.clone());
+                        } else if let Expression::RawStringValue(raw) = field_value {
+                            name = Some(raw.value().to_string());
+                        }
+                    }
+                    "when" => {
+                        // when should be an identifier (function name) or string "manual"
+                        match field_value {
+                            Expression::Identifier(id) => {
+                                when = Some(id.name().to_string());
+                            }
+                            Expression::StringValue(s, _) if s == "manual" => {
+                                when = Some("manual".to_string());
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {} // Ignore unknown fields
+                }
+            }
+        }
+
+        (name, when)
+    } else {
+        // If not a class constructor, return empty options
+        (None, None)
+    }
+}
+
 impl Block {
     /// Lower an expression block into HIR for expression blocks.
     pub fn from_expr_block(block: &ast::ExpressionBlock) -> Self {
@@ -310,15 +356,13 @@ impl Block {
         for stmt in &block.stmts {
             if let ast::Stmt::WatchOptions(ast::WatchOptionsStmt {
                 variable,
-                name,
-                when,
+                options_expr,
                 ..
             }) = stmt
             {
-                watch_options_map.insert(
-                    variable.to_string(),
-                    (name.clone(), when.as_ref().map(|id| id.to_string())),
-                );
+                // Extract name and when from the WatchOptions class constructor expression
+                let (name, when) = extract_watch_options_fields(options_expr);
+                watch_options_map.insert(variable.to_string(), (name, when));
             }
         }
 
@@ -327,8 +371,10 @@ impl Block {
             .stmts
             .iter()
             .filter_map(|stmt| {
-                // Skip WatchOptions statements - they're applied during watch spec creation
-                if matches!(stmt, ast::Stmt::WatchOptions(_)) {
+                // Skip WatchOptions and WatchNotify statements
+                // WatchOptions are applied during watch spec creation
+                // WatchNotify will be handled separately when we implement manual notifications
+                if matches!(stmt, ast::Stmt::WatchOptions(_) | ast::Stmt::WatchNotify(_)) {
                     None
                 } else {
                     Some(lower_stmt_with_options(stmt, &watch_options_map))
@@ -538,6 +584,11 @@ fn lower_stmt_with_options(
             // and their settings applied to the WatchSpec of the watched variable.
             // If we reach here, it's a bug in the lowering logic.
             unreachable!("WatchOptions statements should not reach lower_stmt_with_options")
+        }
+        ast::Stmt::WatchNotify(_) => {
+            // WatchNotify statements should be filtered out during Block::from_expr_block.
+            // If we reach here, it's a bug in the lowering logic.
+            unreachable!("WatchNotify statements should not reach lower_stmt_with_options")
         }
     }
 }

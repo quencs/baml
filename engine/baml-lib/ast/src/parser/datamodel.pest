@@ -348,6 +348,7 @@ expr_body_stmt = {
         (
             let_expr
             | watch_options_stmt
+            | watch_notify_stmt
             | assign_op_stmt
             | assign_stmt
         )
@@ -373,6 +374,7 @@ stmt = {
                 | return_stmt
                 | assert_stmt
                 | watch_options_stmt
+                | watch_notify_stmt
                 | assign_op_stmt
                 | assign_stmt
                 | expression
@@ -407,9 +409,13 @@ assign_stmt = { expression ~ "=" ~ expression }
 assign_op_stmt = { expression ~ assign_op ~ expression }
 
 // Special syntax for configuring watch options on a watched variable
-// e.g. variable.$watch.options(name: "channel", when: FilterFunc)
-watch_options_stmt = { identifier ~ ".$watch.options" ~ "(" ~ watch_option_pair? ~ ("," ~ watch_option_pair)* ~ ","? ~ ")" }
-watch_option_pair = { identifier ~ ":" ~ (quoted_string_literal | identifier) }
+// e.g. variable.$watch.options(baml.WatchOptions{name: "channel", when: FilterFunc})
+// Note: .$watch.options is a special method, but baml.WatchOptions is a real struct
+watch_options_stmt = { identifier ~ ".$watch.options" ~ "(" ~ expression ~ ")" }
+
+// Special syntax for manually notifying watchers of a variable
+// e.g. variable.$watch.notify()
+watch_notify_stmt = { identifier ~ ".$watch.notify" ~ "(" ~ ")" }
 
 assign_op = _{ BIT_SHL_ASSIGN | BIT_SHR_ASSIGN | ADD_ASSIGN | SUB_ASSIGN | MUL_ASSIGN | DIV_ASSIGN | MOD_ASSIGN | BIT_AND_ASSIGN | BIT_OR_ASSIGN | BIT_XOR_ASSIGN }
 
