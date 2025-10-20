@@ -322,7 +322,8 @@ top_level_assignment = { top_level_stmt }
 // More forgiving statement rule for top-level - similar to expr_body_stmt but more restrictive
 top_level_stmt = {
     (
-        let_expr
+        watch_expr
+        | let_expr
         | assign_op_stmt
         | assign_stmt
     )
@@ -346,7 +347,8 @@ expr_body_stmt = {
     (
         INVALID_STMT_STARTING_CHAR* ~
         (
-            let_expr
+            watch_expr
+            | let_expr
             | assign_op_stmt
             | assign_stmt
         )
@@ -368,6 +370,7 @@ stmt = {
             (
                 BREAK_KEYWORD
                 | CONTINUE_KEYWORD
+                | watch_expr
                 | let_expr
                 | return_stmt
                 | assert_stmt
@@ -385,24 +388,11 @@ stmt = {
 
 // Let-binding statement with optional type annotation.
 // e.g. `let x: int|float = 10.0;` or `let x = 10.0;`
+// Watch-binding statement for watched variables.
+// e.g. `watch x: int = 10;`
 let_type_annotation = { COLON ~ field_type_chain }
-let_expr = { "let" ~ identifier ~ let_type_annotation? ~ "=" ~ expression ~ watch_decorator? }
-
-watch_decorator = { SPACER_TEXT? ~ "@watch" ~ watch_arguments? }
-watch_arguments = {
-    "("
-        ~ SPACER_TEXT?
-        ~ watch_argument?
-        ~ ("," ~ SPACER_TEXT? ~ watch_argument)*
-        ~ ","?
-        ~ SPACER_TEXT?
-    ~ ")"
-}
-watch_argument = _{ watch_argument_kv | watch_argument_invalid | watch_argument_missing_value }
-watch_argument_kv = { identifier? ~ "=" ~ watch_argument_value? }
-watch_argument_invalid = { expression }
-watch_argument_missing_value = { identifier ~ "=" ~ SPACER_TEXT? ~ &("," | ")") }
-watch_argument_value = { expression }
+let_expr = { "let" ~ identifier ~ let_type_annotation? ~ "=" ~ expression }
+watch_expr = { "watch" ~ identifier ~ let_type_annotation? ~ "=" ~ expression }
 
 // NOTE: Needs to supports things like `object.getter().field[x + y] = value`,
 // so can't be just `identifier ~ "=" ~ expression`.
@@ -462,7 +452,7 @@ LET_KEYWORD = { "let" }
 iterator_for_loop = { (LET_KEYWORD ~ identifier | identifier) ~ "in" ~ block_aware_tail_expression }
 c_for_loop = { c_for_init_stmt? ~ ";" ~ expression? ~ ";" ~ c_for_after_stmt?  }
 // NOTE: let_expr ... list copied from `stmt` rule, discarding nonsensical stmts
-c_for_init_stmt = { let_expr | assign_op_stmt | assign_stmt | fn_app | generic_fn_app }
+c_for_init_stmt = { watch_expr | let_expr | assign_op_stmt | assign_stmt | fn_app | generic_fn_app }
 // same as above but without `let`.
 c_for_after_stmt = {  block_aware_assign_op_stmt | block_aware_assign_stmt | fn_app | generic_fn_app }
 

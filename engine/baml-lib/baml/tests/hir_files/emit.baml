@@ -1,7 +1,7 @@
 function Foo() -> int {
-  let x = 5 @watch;
-  let y = 10 @watch(skip_def=true);
-  let z: int = 20 @watch(when=MyFunction, name=foo_bar);
+  watch x = 5;
+  watch y = 10;
+  watch z: int = 20;
   10
 }
 
@@ -13,7 +13,7 @@ function MyFunction(prev: int, next: int) -> bool {
 // function Foo() {
 //   let x = 5 @watch(name=x);
 //   let y = 10 @watch(name=y);
-//   let z: int = 20 @watch(when=MyFunction, name=foo_bar);
+//   let z: int = 20 @watch(name=z);
 //
 //   10
 // }

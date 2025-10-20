@@ -1,12 +1,12 @@
-function WatchMissingValue() -> int {
-    let progress: int = 0 @watch(skip_def=);
+function WatchValid() -> int {
+    watch progress: int = 0;
     progress.watchers.$notify();
     progress
 }
 
-// error: Error validating: Missing value for watch argument e.g. true, false
-//   -->  expr/emit_missing_value.baml:2
+// error: Error validating: Can only access fields on class instances
+//   -->  expr/emit_missing_value.baml:3
 //    | 
-//  1 | function WatchMissingValue() -> int {
-//  2 |     let progress: int = 0 @watch(skip_def=);
+//  2 |     watch progress: int = 0;
+//  3 |     progress.watchers.$notify();
 //    | 
