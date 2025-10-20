@@ -296,6 +296,61 @@ impl FunctionMetadata {
         };
     }
 
+    /// Handle a call to VAR_NAME.$watch.options(baml.WatchOptions{...})
+    /// Extract the channel name from the WatchOptions constructor and update the channel type.
+    fn handle_watch_options_call(
+        &mut self,
+        var_name: &str,
+        args: &[thir::Expr<ExprMetadata>],
+        _meta: &ExprMetadata,
+        diagnostics: &mut Diagnostics,
+    ) {
+        // The argument should be a ClassConstructor for baml.WatchOptions
+        if args.len() != 1 {
+            return; // Type checker should have caught this
+        }
+
+        if let thir::Expr::ClassConstructor { fields, .. } = &args[0] {
+            // Extract the "name" field value
+            for field in fields {
+                if let ClassConstructorField::Named { name, value } = field {
+                    if name == "name" {
+                        if let thir::Expr::Value(baml_value) = value {
+                            // Extract string value from BamlValueWithMeta::String
+                            if let baml_types::BamlValueWithMeta::String(channel_name, _) =
+                                baml_value
+                            {
+                                // Find the watch variable and update its channel name
+                                if let Some((spec, var_type)) = self.watch_vars.get(var_name) {
+                                    let new_spec = WatchSpec {
+                                        name: channel_name.clone(),
+                                        when: spec.when.clone(),
+                                        span: spec.span.clone(),
+                                    };
+                                    let var_type_clone = var_type.clone();
+                                    // The immutable borrow ends here naturally
+                                    self.push_watch_var(
+                                        var_name.to_string(),
+                                        new_spec,
+                                        var_type_clone,
+                                    );
+                                } else {
+                                    diagnostics.push_error(DatamodelError::new_validation_error(
+                                        &format!(
+                                            "Variable '{}' is not a watched variable",
+                                            var_name
+                                        ),
+                                        baml_value.meta().0.clone(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Walk the parts of an expression, appending metadata.
     pub fn analyze_expression(
         &mut self,
@@ -310,7 +365,31 @@ impl FunctionMetadata {
             thir::Expr::FieldAccess { base, .. } => {
                 self.analyze_expression(base, diagnostics);
             }
-            thir::Expr::MethodCall { receiver, args, .. } => {
+            thir::Expr::MethodCall {
+                receiver,
+                method,
+                args,
+                meta,
+            } => {
+                // Check for VAR_NAME.$watch.options(baml.WatchOptions{name: "...", ...})
+                if let thir::Expr::FieldAccess { base, field, .. } = receiver.as_ref() {
+                    if field == "$watch" {
+                        if let thir::Expr::Var(method_name, _) = method.as_ref() {
+                            if method_name == "options" {
+                                // Extract the variable name and channel configuration
+                                if let thir::Expr::Var(var_name, _) = base.as_ref() {
+                                    self.handle_watch_options_call(
+                                        var_name,
+                                        args,
+                                        meta,
+                                        diagnostics,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+
                 self.analyze_expression(receiver, diagnostics);
                 for arg in args {
                     self.analyze_expression(arg, diagnostics);
@@ -472,15 +551,16 @@ mod tests {
         let hir = Hir::from_source(
             r#"
             function A() -> int {
-                let a_1 = 1 @watch();
-                let a_2 = true @watch(name=a_2_renamed);
+                watch a_1 = 1;
+                watch a_2 = true;
+                a_2.$watch.options(baml.WatchOptions{name: "a_2_renamed"});
                 B();
                 1
             }
             function B() -> int {
                 C();
                 if (true) {
-                  let b_1 = "hey" @watch();
+                  watch b_1 = "hey";
                   A();
                 } else {
                   B();
@@ -550,12 +630,18 @@ mod tests {
         let hir = Hir::from_source(
             r#"
                 function A() -> int {
-                    let a_1: int = 1 @watch(name=a);
-                    let a_2: string = "hi" @watch(name=a);
-                    let b_1: int | bool = true @watch(name=b);
-                    let b_2: int = 3 @watch(name=b);
-                    let c_1: int = 1 @watch(name=c);
-                    let c_2: int | bool = 3 @watch(name=c);
+                    watch a_1: int = 1;
+                    a_1.$watch.options(baml.WatchOptions{name: "a"});
+                    watch a_2: string = "hi";
+                    a_2.$watch.options(baml.WatchOptions{name: "a"});
+                    watch b_1: int | bool = true;
+                    b_1.$watch.options(baml.WatchOptions{name: "b"});
+                    watch b_2: int = 3;
+                    b_2.$watch.options(baml.WatchOptions{name: "b"});
+                    watch c_1: int = 1;
+                    c_1.$watch.options(baml.WatchOptions{name: "c"});
+                    watch c_2: int | bool = 3;
+                    c_2.$watch.options(baml.WatchOptions{name: "c"});
                     1
                 }
             "#,

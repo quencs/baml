@@ -1,7 +1,4 @@
-use internal_baml_ast::{
-    self,
-    ast::{Expression, Identifier},
-};
+use internal_baml_ast::{self, ast::Identifier};
 use internal_baml_diagnostics::Span;
 
 /// The user-specified options for a watched variable.
