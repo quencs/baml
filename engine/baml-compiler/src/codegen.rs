@@ -906,6 +906,10 @@ impl<'g> HirCompiler<'g> {
                 self.compile_expression(condition);
                 self.emit(Instruction::Assert);
             }
+            thir::Statement::WatchOptions { .. } | thir::Statement::WatchNotify { .. } => {
+                // These are handled at the interpreter level, not in bytecode
+                // They update runtime watch specs and don't need bytecode generation
+            }
         }
     }
 

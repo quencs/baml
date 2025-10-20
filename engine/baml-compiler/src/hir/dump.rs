@@ -24,13 +24,17 @@ impl Hir {
         for func in &self.llm_functions {
             docs.push(func.to_doc());
         }
-        // Add classes
+        // Add classes (excluding builtins)
         for class in &self.classes {
-            docs.push(class.to_doc());
+            if !crate::builtin::is_builtin_class(&class.name) {
+                docs.push(class.to_doc());
+            }
         }
-        // Add enums
+        // Add enums (excluding builtins)
         for enum_def in &self.enums {
-            docs.push(enum_def.to_doc());
+            if !crate::builtin::is_builtin_enum(&enum_def.name) {
+                docs.push(enum_def.to_doc());
+            }
         }
         if docs.is_empty() {
             RcDoc::nil()

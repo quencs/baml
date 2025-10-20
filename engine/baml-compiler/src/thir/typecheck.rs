@@ -1171,8 +1171,8 @@ fn typecheck_statement(
         }
         hir::Statement::WatchOptions {
             variable,
-            name: _,
-            when: _,
+            name,
+            when,
             span,
         } => {
             // Check that the variable exists in context
@@ -1186,9 +1186,12 @@ fn typecheck_statement(
             // TODO: Validate that 'when' function exists and has correct signature
             // For now, we just pass it through
 
-            // Watch options statements are not included in THIR - they're metadata
-            // that gets processed during watch analysis
-            None
+            Some(thir::Statement::WatchOptions {
+                variable: variable.clone(),
+                name: name.clone(),
+                when: when.clone(),
+                span: span.clone(),
+            })
         }
         hir::Statement::WatchNotify { variable, span } => {
             // Check that the variable exists in context
@@ -1199,9 +1202,10 @@ fn typecheck_statement(
                 ));
             }
 
-            // Watch notify statements are not included in THIR - they're for runtime
-            // manual notification of watchers
-            None
+            Some(thir::Statement::WatchNotify {
+                variable: variable.clone(),
+                span: span.clone(),
+            })
         }
     }
 }
@@ -2044,13 +2048,7 @@ pub fn typecheck_expression(
             let mut typed_fields = Vec::new();
 
             // Look up class definition to validate fields
-            // Normalize class name: try both dot and :: separators (baml.WatchOptions vs baml::WatchOptions)
-            let normalized_class_name = constructor.class_name.replace('.', "::");
-            let class_def = context
-                .classes
-                .get(&constructor.class_name)
-                .or_else(|| context.classes.get(&normalized_class_name))
-                .cloned();
+            let class_def = context.classes.get(&constructor.class_name).cloned();
 
             if let Some(class_def) = class_def {
                 // Create a map of field names to types

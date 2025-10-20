@@ -37,8 +37,8 @@ impl Hir {
         Hir {
             expr_functions: vec![],
             llm_functions: vec![],
-            classes: vec![],
-            enums: vec![],
+            classes: crate::builtin::builtin_classes(),
+            enums: crate::builtin::builtin_enums(),
             global_assignments: baml_types::BamlMap::new(),
         }
     }

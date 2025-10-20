@@ -366,20 +366,11 @@ impl Block {
             }
         }
 
-        // Second pass: lower statements, filtering out WatchOptions and applying them to watch specs
+        // Second pass: lower statements, applying watch options to watch specs
         let statements: Vec<Statement> = block
             .stmts
             .iter()
-            .filter_map(|stmt| {
-                // Skip WatchOptions and WatchNotify statements
-                // WatchOptions are applied during watch spec creation
-                // WatchNotify will be handled separately when we implement manual notifications
-                if matches!(stmt, ast::Stmt::WatchOptions(_) | ast::Stmt::WatchNotify(_)) {
-                    None
-                } else {
-                    Some(lower_stmt_with_options(stmt, &watch_options_map))
-                }
-            })
+            .map(|stmt| lower_stmt_with_options(stmt, &watch_options_map))
             .collect();
 
         Block {
@@ -579,17 +570,24 @@ fn lower_stmt_with_options(
             condition: Expression::from_ast(value),
             span: span.clone(),
         },
-        ast::Stmt::WatchOptions(_) => {
-            // WatchOptions statements should be filtered out during Block::from_expr_block
-            // and their settings applied to the WatchSpec of the watched variable.
-            // If we reach here, it's a bug in the lowering logic.
-            unreachable!("WatchOptions statements should not reach lower_stmt_with_options")
+        ast::Stmt::WatchOptions(ast::WatchOptionsStmt {
+            variable,
+            options_expr,
+            span,
+        }) => {
+            // Extract name and when from the WatchOptions expression
+            let (name, when) = extract_watch_options_fields(options_expr);
+            Statement::WatchOptions {
+                variable: variable.to_string(),
+                name,
+                when,
+                span: span.clone(),
+            }
         }
-        ast::Stmt::WatchNotify(_) => {
-            // WatchNotify statements should be filtered out during Block::from_expr_block.
-            // If we reach here, it's a bug in the lowering logic.
-            unreachable!("WatchNotify statements should not reach lower_stmt_with_options")
-        }
+        ast::Stmt::WatchNotify(ast::WatchNotifyStmt { variable, span }) => Statement::WatchNotify {
+            variable: variable.to_string(),
+            span: span.clone(),
+        },
     }
 }
 

@@ -8,7 +8,7 @@ fn notify_primitive_on_change() -> anyhow::Result<()> {
     assert_vm_emits(EmitProgram {
         source: r#"
             function primitive() -> int {
-                let value = 0 @watch;
+                watch let value = 0;
 
                 value = 1;
 
@@ -25,7 +25,7 @@ fn notify_primitive_on_nested_scope() -> anyhow::Result<()> {
     assert_vm_emits(EmitProgram {
         source: r#"
             function primitive() -> int {
-                let value = 0 @watch;
+                watch let value = 0;
 
                 if (true) {
                     value = 1;

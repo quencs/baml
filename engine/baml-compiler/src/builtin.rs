@@ -90,6 +90,16 @@ pub fn baml_fetch_as_signature(return_type: TypeIR) -> TypeIR {
 pub fn is_builtin_identifier(identifier: &str) -> bool {
     identifier.starts_with("std::")
         || identifier.starts_with("baml::")
+        || identifier.starts_with("std.")
+        || identifier.starts_with("baml.")
         || identifier == "true"
         || identifier == "false"
+}
+
+pub fn is_builtin_class(class_name: &str) -> bool {
+    class_name == classes::REQUEST || class_name == classes::WATCH_OPTIONS
+}
+
+pub fn is_builtin_enum(enum_name: &str) -> bool {
+    enum_name == enums::HTTP_METHOD
 }

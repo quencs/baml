@@ -81,16 +81,19 @@ impl WatchChannels {
             )
         });
         channels.extend(md_channels);
-        let var_channels = watch_vars.into_iter().map(|(_, (watch_spec, chan_type))| {
-            (
-                ChannelFQN {
-                    namespace: None,
-                    r#type: ChannelType::Variable,
-                    name: watch_spec.name.clone(),
-                },
-                chan_type.clone(),
-            )
-        });
+        let var_channels =
+            watch_vars
+                .into_iter()
+                .map(|(channel_name, (_watch_spec, chan_type))| {
+                    (
+                        ChannelFQN {
+                            namespace: None,
+                            r#type: ChannelType::Variable,
+                            name: channel_name.clone(),
+                        },
+                        chan_type.clone(),
+                    )
+                });
         channels.extend(var_channels);
 
         let mut dependencies = transitive_closures[fn_name].clone();
@@ -114,16 +117,18 @@ impl WatchChannels {
                 });
                 channels.extend(sub_md_channels);
                 let sub_var_channels =
-                    watch_vars.into_iter().map(|(_, (watch_spec, chan_type))| {
-                        (
-                            ChannelFQN {
-                                namespace: Some(subfunction.clone()),
-                                r#type: ChannelType::Variable,
-                                name: watch_spec.name.clone(),
-                            },
-                            chan_type.clone(),
-                        )
-                    });
+                    watch_vars
+                        .into_iter()
+                        .map(|(channel_name, (_watch_spec, chan_type))| {
+                            (
+                                ChannelFQN {
+                                    namespace: Some(subfunction.clone()),
+                                    r#type: ChannelType::Variable,
+                                    name: channel_name.clone(),
+                                },
+                                chan_type.clone(),
+                            )
+                        });
                 channels.extend(sub_var_channels);
             }
         }
@@ -224,7 +229,17 @@ impl FunctionMetadata {
                 if let Some(spec) = watch {
                     match &value.meta().1 {
                         Some(var_type) => {
-                            self.push_watch_var(spec.name.clone(), spec.clone(), var_type.clone());
+                            // Create a default channel with the variable's own name
+                            self.push_watch_var(name.clone(), spec.clone(), var_type.clone());
+
+                            // If the WatchSpec has a different configured name, create that channel too
+                            if &spec.name != name {
+                                self.push_watch_var(
+                                    spec.name.clone(),
+                                    spec.clone(),
+                                    var_type.clone(),
+                                );
+                            }
                         }
                         None => {
                             diagnostics.push_error(DatamodelError::new_validation_error(
@@ -252,7 +267,17 @@ impl FunctionMetadata {
                 if let Some(spec) = watch {
                     match &value.meta().1 {
                         Some(var_type) => {
-                            self.push_watch_var(spec.name.clone(), spec.clone(), var_type.clone());
+                            // Create a default channel with the variable's own name
+                            self.push_watch_var(name.clone(), spec.clone(), var_type.clone());
+
+                            // If the WatchSpec has a different configured name, create that channel too
+                            if &spec.name != name {
+                                self.push_watch_var(
+                                    spec.name.clone(),
+                                    spec.clone(),
+                                    var_type.clone(),
+                                );
+                            }
                         }
                         None => {
                             diagnostics.push_error(DatamodelError::new_validation_error(
@@ -293,62 +318,11 @@ impl FunctionMetadata {
             thir::Statement::Assert { condition, .. } => {
                 self.analyze_expression(condition, diagnostics);
             }
-        };
-    }
-
-    /// Handle a call to VAR_NAME.$watch.options(baml.WatchOptions{...})
-    /// Extract the channel name from the WatchOptions constructor and update the channel type.
-    fn handle_watch_options_call(
-        &mut self,
-        var_name: &str,
-        args: &[thir::Expr<ExprMetadata>],
-        _meta: &ExprMetadata,
-        diagnostics: &mut Diagnostics,
-    ) {
-        // The argument should be a ClassConstructor for baml.WatchOptions
-        if args.len() != 1 {
-            return; // Type checker should have caught this
-        }
-
-        if let thir::Expr::ClassConstructor { fields, .. } = &args[0] {
-            // Extract the "name" field value
-            for field in fields {
-                if let ClassConstructorField::Named { name, value } = field {
-                    if name == "name" {
-                        if let thir::Expr::Value(baml_value) = value {
-                            // Extract string value from BamlValueWithMeta::String
-                            if let baml_types::BamlValueWithMeta::String(channel_name, _) =
-                                baml_value
-                            {
-                                // Find the watch variable and update its channel name
-                                if let Some((spec, var_type)) = self.watch_vars.get(var_name) {
-                                    let new_spec = WatchSpec {
-                                        name: channel_name.clone(),
-                                        when: spec.when.clone(),
-                                        span: spec.span.clone(),
-                                    };
-                                    let var_type_clone = var_type.clone();
-                                    // The immutable borrow ends here naturally
-                                    self.push_watch_var(
-                                        var_name.to_string(),
-                                        new_spec,
-                                        var_type_clone,
-                                    );
-                                } else {
-                                    diagnostics.push_error(DatamodelError::new_validation_error(
-                                        &format!(
-                                            "Variable '{}' is not a watched variable",
-                                            var_name
-                                        ),
-                                        baml_value.meta().0.clone(),
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                }
+            thir::Statement::WatchOptions { .. } | thir::Statement::WatchNotify { .. } => {
+                // These are runtime statements that update watch specs dynamically
+                // No static analysis needed here
             }
-        }
+        };
     }
 
     /// Walk the parts of an expression, appending metadata.
@@ -365,31 +339,7 @@ impl FunctionMetadata {
             thir::Expr::FieldAccess { base, .. } => {
                 self.analyze_expression(base, diagnostics);
             }
-            thir::Expr::MethodCall {
-                receiver,
-                method,
-                args,
-                meta,
-            } => {
-                // Check for VAR_NAME.$watch.options(baml.WatchOptions{name: "...", ...})
-                if let thir::Expr::FieldAccess { base, field, .. } = receiver.as_ref() {
-                    if field == "$watch" {
-                        if let thir::Expr::Var(method_name, _) = method.as_ref() {
-                            if method_name == "options" {
-                                // Extract the variable name and channel configuration
-                                if let thir::Expr::Var(var_name, _) = base.as_ref() {
-                                    self.handle_watch_options_call(
-                                        var_name,
-                                        args,
-                                        meta,
-                                        diagnostics,
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-
+            thir::Expr::MethodCall { receiver, args, .. } => {
                 self.analyze_expression(receiver, diagnostics);
                 for arg in args {
                     self.analyze_expression(arg, diagnostics);
@@ -681,19 +631,6 @@ mod tests {
     }
 
     #[test]
-    fn test_plain_let() {
-        let hir = Hir::from_source(
-            r#"
-            function A() -> int {
-                let a_1 = 1;
-                1
-            }
-        "#,
-        );
-        assert_eq!(hir.expr_functions.len(), 1);
-    }
-
-    #[test]
     fn test_let_watch_simple() {
         let hir = Hir::from_source(
             r#"
@@ -707,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn test_let_watch_with_options() {
+    fn test_watch_let_with_options() {
         let hir = Hir::from_source(
             r#"
             function A() -> int {
@@ -721,6 +658,65 @@ mod tests {
         "#,
         );
         assert_eq!(hir.expr_functions.len(), 2);
+    }
+
+    #[test]
+    fn test_watch_let_shared_channel() {
+        let hir = Hir::from_source(
+            r#"
+            function A() -> int {
+              watch let x = 1;
+              x.$watch.notify();
+              x.$watch.options(baml.WatchOptions{ name: "c"});
+              watch let y = 1;
+              y.$watch.options(baml.WatchOptions{ name: "c"});
+              0
+            }
+            "#,
+        );
+        let mut diagnostics = Diagnostics::new(PathBuf::from("test"));
+        let thir = typecheck(&hir, &mut diagnostics);
+        let watch_channels = WatchChannels::analyze_program(&thir, &mut diagnostics);
+        let a_channels = watch_channels.functions_channels.get("A").unwrap();
+
+        // Should have 3 channels: "x", "y", and "c"
+        assert_eq!(a_channels.channels.len(), 3);
+
+        // Check that we have a channel named "x"
+        assert_eq!(
+            a_channels
+                .channels
+                .iter()
+                .filter(|channel| channel.0.name == "x"
+                    && channel.0.namespace.is_none()
+                    && channel.0.r#type == ChannelType::Variable)
+                .count(),
+            1
+        );
+
+        // Check that we have a channel named "y"
+        assert_eq!(
+            a_channels
+                .channels
+                .iter()
+                .filter(|channel| channel.0.name == "y"
+                    && channel.0.namespace.is_none()
+                    && channel.0.r#type == ChannelType::Variable)
+                .count(),
+            1
+        );
+
+        // Check that we have a channel named "c" (shared by both x and y)
+        assert_eq!(
+            a_channels
+                .channels
+                .iter()
+                .filter(|channel| channel.0.name == "c"
+                    && channel.0.namespace.is_none()
+                    && channel.0.r#type == ChannelType::Variable)
+                .count(),
+            1
+        );
     }
 
     #[test]
