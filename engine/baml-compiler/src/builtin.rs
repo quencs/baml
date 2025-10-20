@@ -1,4 +1,4 @@
-use baml_types::ir_type::TypeIR;
+use baml_types::ir_type::{TypeIR, UnionConstructor};
 use internal_baml_diagnostics::Span;
 
 use crate::hir::{Class, Enum, EnumVariant, Field};
@@ -9,6 +9,7 @@ pub mod functions {
 
 pub mod classes {
     pub const REQUEST: &str = "std::Request";
+    pub const WATCH_OPTIONS: &str = "baml::WatchOptions";
 }
 
 pub mod enums {
@@ -16,28 +17,53 @@ pub mod enums {
 }
 
 pub fn builtin_classes() -> Vec<Class> {
-    vec![Class {
-        name: String::from(classes::REQUEST),
-        methods: vec![],
-        fields: vec![
-            Field {
-                name: String::from("base_url"),
-                r#type: TypeIR::string(),
-                span: Span::fake(),
-            },
-            Field {
-                name: String::from("headers"),
-                r#type: TypeIR::map(TypeIR::string(), TypeIR::string()),
-                span: Span::fake(),
-            },
-            Field {
-                name: String::from("query_params"),
-                r#type: TypeIR::map(TypeIR::string(), TypeIR::string()),
-                span: Span::fake(),
-            },
-        ],
-        span: Span::fake(),
-    }]
+    vec![
+        Class {
+            name: String::from(classes::REQUEST),
+            methods: vec![],
+            fields: vec![
+                Field {
+                    name: String::from("base_url"),
+                    r#type: TypeIR::string(),
+                    span: Span::fake(),
+                },
+                Field {
+                    name: String::from("headers"),
+                    r#type: TypeIR::map(TypeIR::string(), TypeIR::string()),
+                    span: Span::fake(),
+                },
+                Field {
+                    name: String::from("query_params"),
+                    r#type: TypeIR::map(TypeIR::string(), TypeIR::string()),
+                    span: Span::fake(),
+                },
+            ],
+            span: Span::fake(),
+        },
+        Class {
+            name: String::from(classes::WATCH_OPTIONS),
+            methods: vec![],
+            fields: vec![
+                Field {
+                    name: String::from("name"),
+                    r#type: TypeIR::string(),
+                    span: Span::fake(),
+                },
+                Field {
+                    name: String::from("when"),
+                    // "never" | "manual" | ((T, T) -> bool)
+                    // We use a generic function type with top types for T
+                    r#type: TypeIR::union(vec![
+                        TypeIR::literal_string("never".to_string()),
+                        TypeIR::literal_string("manual".to_string()),
+                        TypeIR::arrow(vec![TypeIR::top(), TypeIR::top()], TypeIR::bool()),
+                    ]),
+                    span: Span::fake(),
+                },
+            ],
+            span: Span::fake(),
+        },
+    ]
 }
 
 pub fn builtin_enums() -> Vec<Enum> {
@@ -62,5 +88,8 @@ pub fn baml_fetch_as_signature(return_type: TypeIR) -> TypeIR {
 }
 
 pub fn is_builtin_identifier(identifier: &str) -> bool {
-    identifier.starts_with("std::") || identifier == "true" || identifier == "false"
+    identifier.starts_with("std::")
+        || identifier.starts_with("baml::")
+        || identifier == "true"
+        || identifier == "false"
 }

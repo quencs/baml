@@ -8,7 +8,6 @@ use internal_baml_diagnostics::Span;
 #[derive(Clone, Debug, PartialEq)]
 pub struct WatchSpec {
     pub when: WatchWhen,
-    pub skip_def: bool,
     pub name: String,
     pub span: Span,
 }
@@ -16,7 +15,7 @@ pub struct WatchSpec {
 /// The user-specified option for when to auto-notify watchers for a variable.
 #[derive(Clone, Debug, PartialEq)]
 pub enum WatchWhen {
-    Manual, // Manual notification only (via .watchers.$notify())
+    Manual, // Manual notification only (via .$watch.notify())
     True,
     FunctionName(Identifier),
 }
@@ -27,7 +26,6 @@ impl WatchSpec {
     pub fn default_for_variable(variable_name: String, span: Span) -> Self {
         WatchSpec {
             when: WatchWhen::True,
-            skip_def: false,
             name: variable_name,
             span,
         }

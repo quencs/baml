@@ -15,6 +15,11 @@ class User {
 //   query_params: map<string, string>
 // }
 //
+// class baml::WatchOptions {
+//   name: string
+//   when: ("never" | "manual" | (ANY, ANY) -> bool)
+// }
+//
 // class MyClass {
 //   field1: string @stream.done
 //   field2: int @stream.needed

@@ -11,6 +11,11 @@ class DataModel {
 //   query_params: map<string, string>
 // }
 //
+// class baml::WatchOptions {
+//   name: string
+//   when: ("never" | "manual" | (ANY, ANY) -> bool)
+// }
+//
 // class DataModel {
 //   tags: array<string>
 //   status: (string @stream.done | int @stream.done) @stream.done

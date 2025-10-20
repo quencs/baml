@@ -127,6 +127,7 @@ function WhileWithScopes() -> int {
 //      33   RETURN              
 //
 // Class: std::Request with 3 fields
+// Class: baml::WatchOptions with 2 fields
 // Enum std::HttpMethod
 // Function: baml.Array.length
 //

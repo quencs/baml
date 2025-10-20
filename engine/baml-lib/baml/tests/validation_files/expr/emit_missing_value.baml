@@ -1,6 +1,6 @@
 function WatchValid() -> int {
     watch progress: int = 0;
-    progress.watchers.$notify();
+    progress.$watch.notify();
     progress
 }
 
@@ -8,5 +8,5 @@ function WatchValid() -> int {
 //   -->  expr/emit_missing_value.baml:3
 //    | 
 //  2 |     watch progress: int = 0;
-//  3 |     progress.watchers.$notify();
+//  3 |     progress.$watch.notify();
 //    | 

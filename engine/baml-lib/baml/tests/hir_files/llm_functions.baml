@@ -66,6 +66,11 @@ function AnalyzeSentiment(text: string) -> Sentiment {
 //   query_params: map<string, string>
 // }
 //
+// class baml::WatchOptions {
+//   name: string
+//   when: ("never" | "manual" | (ANY, ANY) -> bool)
+// }
+//
 // enum std::HttpMethod {
 //   Get
 // }

@@ -123,7 +123,7 @@ fn expr_value_to_watch_value(
     })
 }
 
-/// Fire a watch notification for a specific variable (for manual watchers.$notify() calls)
+/// Fire a watch notification for a specific variable (for manual $watch.notify() calls)
 fn fire_watch_notification_for_variable(
     scopes: &[Scope],
     var_name: &str,
@@ -144,7 +144,7 @@ fn fire_watch_notification_for_variable(
             return Ok(());
         }
     }
-    bail!("Variable '{}' not found for watchers.$notify()", var_name)
+    bail!("Variable '{}' not found for $watch.notify()", var_name)
 }
 
 enum EvalValue {

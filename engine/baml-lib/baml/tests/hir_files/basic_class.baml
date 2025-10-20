@@ -9,6 +9,11 @@ class Person {
 //   query_params: map<string, string>
 // }
 //
+// class baml::WatchOptions {
+//   name: string
+//   when: ("never" | "manual" | (ANY, ANY) -> bool)
+// }
+//
 // class Person {
 //   name: string
 //   age: int

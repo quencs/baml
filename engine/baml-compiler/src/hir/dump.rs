@@ -695,9 +695,6 @@ impl AssignOp {
 impl WatchSpec {
     pub fn to_doc(&self) -> RcDoc<'static, ()> {
         let mut args: Vec<String> = Vec::new();
-        if self.skip_def {
-            args.push("skip_def=true".to_string())
-        }
         match &self.when {
             WatchWhen::Manual => args.push("when=manual".to_string()),
             WatchWhen::True => {}
