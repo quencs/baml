@@ -2,7 +2,7 @@
 //!
 //! This files contains the convertions between Baml AST nodes to HIR nodes.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use baml_types::{
     type_meta::{self, base::StreamingBehavior},
@@ -304,8 +304,40 @@ impl ExprFunction {
 impl Block {
     /// Lower an expression block into HIR for expression blocks.
     pub fn from_expr_block(block: &ast::ExpressionBlock) -> Self {
+        // First pass: collect all WatchOptions statements into a map
+        let mut watch_options_map: HashMap<String, (Option<String>, Option<String>)> =
+            HashMap::new();
+        for stmt in &block.stmts {
+            if let ast::Stmt::WatchOptions(ast::WatchOptionsStmt {
+                variable,
+                name,
+                when,
+                ..
+            }) = stmt
+            {
+                watch_options_map.insert(
+                    variable.to_string(),
+                    (name.clone(), when.as_ref().map(|id| id.to_string())),
+                );
+            }
+        }
+
+        // Second pass: lower statements, filtering out WatchOptions and applying them to watch specs
+        let statements: Vec<Statement> = block
+            .stmts
+            .iter()
+            .filter_map(|stmt| {
+                // Skip WatchOptions statements - they're applied during watch spec creation
+                if matches!(stmt, ast::Stmt::WatchOptions(_)) {
+                    None
+                } else {
+                    Some(lower_stmt_with_options(stmt, &watch_options_map))
+                }
+            })
+            .collect();
+
         Block {
-            statements: block.stmts.iter().map(lower_stmt).collect(),
+            statements,
             trailing_expr: block
                 .expr
                 .as_deref()
@@ -316,6 +348,13 @@ impl Block {
 }
 
 fn lower_stmt(stmt: &ast::Stmt) -> Statement {
+    lower_stmt_with_options(stmt, &HashMap::new())
+}
+
+fn lower_stmt_with_options(
+    stmt: &ast::Stmt,
+    watch_options: &HashMap<String, (Option<String>, Option<String>)>,
+) -> Statement {
     match stmt {
         ast::Stmt::CForLoop(stmt) => {
             // we'll add  a block if we an init statement, otherwise we'll just
@@ -420,10 +459,23 @@ fn lower_stmt(stmt: &ast::Stmt) -> Statement {
             let annotated_type = annotation.as_ref().map(type_ir_from_ast);
 
             let watch_spec = if *is_watched {
-                Some(WatchSpec::default_for_variable(
-                    identifier.to_string(),
-                    span.clone(),
-                ))
+                let var_name = identifier.to_string();
+                let mut spec = WatchSpec::default_for_variable(var_name.clone(), span.clone());
+
+                // Apply watch options if they exist for this variable
+                if let Some((name_opt, when_opt)) = watch_options.get(&var_name) {
+                    if let Some(custom_name) = name_opt {
+                        spec.name = custom_name.clone();
+                    }
+                    if let Some(when_fn) = when_opt {
+                        spec.when = crate::watch::WatchWhen::FunctionName(ast::Identifier::Local(
+                            when_fn.clone(),
+                            span.clone(),
+                        ));
+                    }
+                }
+
+                Some(spec)
             } else {
                 None
             };
@@ -481,6 +533,12 @@ fn lower_stmt(stmt: &ast::Stmt) -> Statement {
             condition: Expression::from_ast(value),
             span: span.clone(),
         },
+        ast::Stmt::WatchOptions(_) => {
+            // WatchOptions statements should be filtered out during Block::from_expr_block
+            // and their settings applied to the WatchSpec of the watched variable.
+            // If we reach here, it's a bug in the lowering logic.
+            unreachable!("WatchOptions statements should not reach lower_stmt_with_options")
+        }
     }
 }
 

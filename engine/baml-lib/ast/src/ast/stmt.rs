@@ -1,6 +1,7 @@
 use std::fmt;
 
 use super::{Expression, ExpressionBlock, FieldType, Identifier, Span};
+use crate::ast::traits::WithName;
 
 #[derive(Debug, Clone)]
 pub struct LetStmt {
@@ -101,6 +102,19 @@ pub struct AssertStmt {
     pub span: Span,
 }
 
+/// Special statement for configuring watch options on a watched variable.
+/// Syntax: `variable_name.$watch.options(name: "channel", when: SomeFunction)`
+#[derive(Debug, Clone)]
+pub struct WatchOptionsStmt {
+    /// The variable being configured
+    pub variable: Identifier,
+    /// Optional custom channel name
+    pub name: Option<String>,
+    /// Optional filter function for conditional watching
+    pub when: Option<Identifier>,
+    pub span: Span,
+}
+
 // Stmt(statements) perform actions and not often return values.
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -118,6 +132,7 @@ pub enum Stmt {
     Continue(Span),
     Return(ReturnStmt),
     Assert(AssertStmt),
+    WatchOptions(WatchOptionsStmt),
 }
 
 impl fmt::Display for AssignOp {
@@ -198,6 +213,24 @@ impl fmt::Display for Stmt {
             Stmt::Continue(_) => f.write_str("continue"),
             Stmt::Return(ReturnStmt { value, .. }) => write!(f, "return {value}"),
             Stmt::Assert(AssertStmt { value, .. }) => write!(f, "assert {value}"),
+            Stmt::WatchOptions(WatchOptionsStmt {
+                variable,
+                name,
+                when,
+                ..
+            }) => {
+                write!(f, "{}.$watch.options(", variable.name())?;
+                if let Some(n) = name {
+                    write!(f, "name: \"{n}\"")?;
+                }
+                if let Some(w) = when {
+                    if name.is_some() {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "when: {}", w.name())?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
@@ -294,6 +327,29 @@ impl Stmt {
             ) => a.assert_eq_up_to_span(b),
 
             (
+                Stmt::WatchOptions(WatchOptionsStmt {
+                    variable: v1,
+                    name: n1,
+                    when: w1,
+                    ..
+                }),
+                Stmt::WatchOptions(WatchOptionsStmt {
+                    variable: v2,
+                    name: n2,
+                    when: w2,
+                    ..
+                }),
+            ) => {
+                v1.assert_eq_up_to_span(v2);
+                assert_eq!(n1, n2, "watch option names do not match");
+                match (w1, w2) {
+                    (Some(w1), Some(w2)) => w1.assert_eq_up_to_span(w2),
+                    (None, None) => {}
+                    _ => panic!("watch option when clauses do not match"),
+                }
+            }
+
+            (
                 Stmt::Let(_)
                 | Stmt::ForLoop(_)
                 | Stmt::Expression(_)
@@ -305,7 +361,8 @@ impl Stmt {
                 | Stmt::Return(_)
                 | Stmt::Break(_)
                 | Stmt::Continue(_)
-                | Stmt::Assert(_),
+                | Stmt::Assert(_)
+                | Stmt::WatchOptions(_),
                 _,
             ) => {
                 panic!("Types do not match: {self:?} and {other:?}")
@@ -340,6 +397,7 @@ impl Stmt {
                     stmt.left
                 ),
             },
+            Stmt::WatchOptions(WatchOptionsStmt { variable, .. }) => variable,
         }
     }
 
@@ -354,7 +412,8 @@ impl Stmt {
             | Stmt::Return(ReturnStmt { span, .. })
             | Stmt::Break(span)
             | Stmt::Continue(span)
-            | Stmt::Assert(AssertStmt { span, .. }) => span,
+            | Stmt::Assert(AssertStmt { span, .. })
+            | Stmt::WatchOptions(WatchOptionsStmt { span, .. }) => span,
 
             Stmt::Expression(es) => &es.span,
             Stmt::Semicolon(expr) => expr.span(),

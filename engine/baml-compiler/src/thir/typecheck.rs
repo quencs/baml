@@ -1169,6 +1169,27 @@ fn typecheck_statement(
                 span: span.clone(),
             })
         }
+        hir::Statement::WatchOptions {
+            variable,
+            name: _,
+            when: _,
+            span,
+        } => {
+            // Check that the variable exists in context
+            if !context.vars.contains_key(variable) {
+                diagnostics.push_error(DatamodelError::new_validation_error(
+                    &format!("Unknown variable '{}' in watch options", variable),
+                    span.clone(),
+                ));
+            }
+
+            // TODO: Validate that 'when' function exists and has correct signature
+            // For now, we just pass it through
+
+            // Watch options statements are not included in THIR - they're metadata
+            // that gets processed during watch analysis
+            None
+        }
     }
 }
 

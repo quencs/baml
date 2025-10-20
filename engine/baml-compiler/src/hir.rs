@@ -186,6 +186,15 @@ pub enum Statement {
         condition: Expression,
         span: Span,
     },
+
+    /// Configure watch options for a watched variable.
+    /// Syntax: `variable.$watch.options(name: "channel", when: FilterFunc)`
+    WatchOptions {
+        variable: String,
+        name: Option<String>,
+        when: Option<String>,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug)]

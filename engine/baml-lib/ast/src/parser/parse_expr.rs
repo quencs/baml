@@ -34,7 +34,14 @@ pub fn parse_expr_fn(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Option<e
     // Otherwise, we have just a body.
     let (maybe_return_type, maybe_body) = if matches!(arrow_or_body.as_rule(), Rule::ARROW) {
         let return_type = parse_field_type_chain(tokens.next()?, diagnostics);
-        let function_body = parse_function_body(tokens.next()?, diagnostics);
+        // Skip optional SPACER_TEXT if present
+        let next_token = tokens.next()?;
+        let body_token = if matches!(next_token.as_rule(), Rule::SPACER_TEXT) {
+            tokens.next()?
+        } else {
+            next_token
+        };
+        let function_body = parse_function_body(body_token, diagnostics);
         (Some(return_type), function_body)
     } else {
         diagnostics.push_error(DatamodelError::new_static(
@@ -118,6 +125,9 @@ pub fn parse_top_level_assignment(
 
         Stmt::Assert(AssertStmt { span, .. }) => {
             only_let_stmt("assert statements", span, diagnostics)
+        }
+        Stmt::WatchOptions(WatchOptionsStmt { span, .. }) => {
+            only_let_stmt("watch options statements", span, diagnostics)
         }
     }
 }
@@ -499,13 +509,88 @@ fn parse_statement_inner_rule(
 
             finish_assign_op_stmt(span, diagnostics, lhs, op_token, maybe_body).map(Stmt::AssignOp)
         }
-        Rule::let_expr | Rule::watch_expr => {
-            let is_watched = stmt_token.as_rule() == Rule::watch_expr;
+        Rule::watch_options_stmt => {
+            let mut tokens = stmt_token.into_inner();
+
+            // First token is the variable identifier
+            let variable = parse_identifier(tokens.next()?, diagnostics);
+
+            // Parse watch option pairs (name: "value", when: Function)
+            let mut name: Option<String> = None;
+            let mut when: Option<Identifier> = None;
+
+            while let Some(pair_token) = tokens.next() {
+                if pair_token.as_rule() != Rule::watch_option_pair {
+                    continue;
+                }
+
+                // Get the span before consuming pair_token
+                let pair_span = diagnostics.span(pair_token.as_span());
+                let mut pair_tokens = pair_token.into_inner();
+                let option_name = pair_tokens.next()?.as_str();
+                let option_value = pair_tokens.next()?;
+
+                match option_name {
+                    "name" => {
+                        // Must be a string literal
+                        if option_value.as_rule() == Rule::quoted_string_literal {
+                            name = Some(option_value.as_str().trim_matches('"').to_string());
+                        } else {
+                            diagnostics.push_error(DatamodelError::new_static(
+                                "watch options 'name' must be a string literal",
+                                diagnostics.span(option_value.as_span()),
+                            ));
+                        }
+                    }
+                    "when" => {
+                        // Must be an identifier (function name)
+                        if option_value.as_rule() == Rule::identifier {
+                            when = Some(parse_identifier(option_value, diagnostics));
+                        } else {
+                            diagnostics.push_error(DatamodelError::new_static(
+                                "watch options 'when' must be a function identifier",
+                                diagnostics.span(option_value.as_span()),
+                            ));
+                        }
+                    }
+                    _ => {
+                        let error_msg = format!(
+                            "unknown watch option '{}'. Valid options are: name, when",
+                            option_name
+                        );
+                        diagnostics.push_error(DatamodelError::new_validation_error(
+                            &error_msg,
+                            pair_span.clone(),
+                        ));
+                    }
+                }
+            }
+
+            Some(Stmt::WatchOptions(WatchOptionsStmt {
+                variable,
+                name,
+                when,
+                span,
+            }))
+        }
+        Rule::let_expr => {
             let mut let_binding_tokens = stmt_token.into_inner();
 
             let is_mutable = true; // Always mutable now after mut keyword removal
 
-            let identifier = parse_identifier(let_binding_tokens.next()?, diagnostics);
+            // Check if "watch" keyword is present
+            let first_token = let_binding_tokens.next()?;
+
+            let (is_watched, identifier) = if first_token.as_rule() == Rule::WATCH_KEYWORD {
+                // "watch" keyword present, next token is identifier
+                (
+                    true,
+                    parse_identifier(let_binding_tokens.next()?, diagnostics),
+                )
+            } else {
+                // No "watch" keyword, first token is identifier
+                (false, parse_identifier(first_token, diagnostics))
+            };
 
             // Optional type annotation: `: <field_type_chain>`
             // Grammar packs this as a `let_type_annotation` pair if present.
@@ -996,6 +1081,9 @@ fn bind_headers_to_statement(
         }
         Stmt::Assert(_) => {
             // Assert statements do not carry annotations (for now)
+        }
+        Stmt::WatchOptions(_) => {
+            // Watch options statements do not carry annotations
         }
     }
 }

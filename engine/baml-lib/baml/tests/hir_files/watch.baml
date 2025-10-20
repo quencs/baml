@@ -1,7 +1,7 @@
 function Foo() -> int {
-  watch x = 5;
-  watch y = 10;
-  watch z: int = 20;
+  watch let x = 5;
+  watch let y = 10;
+  watch let z: int = 20;
   10
 }
 

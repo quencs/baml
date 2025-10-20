@@ -270,6 +270,29 @@ impl Statement {
                     .append(block)
                     .append(RcDoc::text("}"))
             }
+            Statement::WatchOptions {
+                variable,
+                name,
+                when,
+                ..
+            } => {
+                let mut doc = RcDoc::text(variable.clone()).append(RcDoc::text(".$watch.options("));
+
+                let mut parts = vec![];
+                if let Some(n) = name {
+                    parts.push(
+                        RcDoc::text("name: \"")
+                            .append(RcDoc::text(n.clone()))
+                            .append(RcDoc::text("\"")),
+                    );
+                }
+                if let Some(w) = when {
+                    parts.push(RcDoc::text("when: ").append(RcDoc::text(w.clone())));
+                }
+
+                doc = doc.append(RcDoc::intersperse(parts, RcDoc::text(", ")));
+                doc.append(RcDoc::text(");"))
+            }
         }
     }
 }

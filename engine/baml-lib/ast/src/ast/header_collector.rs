@@ -434,6 +434,7 @@ impl HeaderCollector {
                     self.visit_expression(&return_stmt.value);
                 }
                 Stmt::Assert(assert_stmt) => self.visit_expression(&assert_stmt.value),
+                Stmt::WatchOptions(_) => {} // Watch options don't contain expressions to visit
             }
         }
 
