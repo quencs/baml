@@ -39,17 +39,17 @@ function ReturnArray() -> int[] {
 //   [1, 2, 3, 4, 5]
 // }
 //
-// class std::Request {
+// class std.Request {
 //   base_url: string
 //   headers: map<string, string>
 //   query_params: map<string, string>
 // }
 //
-// class baml::WatchOptions {
+// class baml.WatchOptions {
 //   name: string
 //   when: ("never" | "manual" | (ANY, ANY) -> bool)
 // }
 //
-// enum std::HttpMethod {
+// enum std.HttpMethod {
 //   Get
 // }

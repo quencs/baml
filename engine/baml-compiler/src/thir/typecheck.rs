@@ -1481,7 +1481,7 @@ pub fn typecheck_expression(
             // TODO: Handle generics uniformly, not with this kind of one-off handler.
             if func_name == crate::builtin::functions::FETCH_AS && type_args.is_empty() {
                 diagnostics.push_error(DatamodelError::new_validation_error(
-                        "Generic function std::fetch_value must have a type argument. Try adding a type argument like this: std::fetch_value<Type>",
+                        "Generic function std.fetch_value must have a type argument. Try adding a type argument like this: std.fetch_value<Type>",
                         function.span().clone(),
                     ));
             }
@@ -2044,7 +2044,13 @@ pub fn typecheck_expression(
             let mut typed_fields = Vec::new();
 
             // Look up class definition to validate fields
-            let class_def = context.classes.get(&constructor.class_name).cloned();
+            // Normalize class name: try both dot and :: separators (baml.WatchOptions vs baml::WatchOptions)
+            let normalized_class_name = constructor.class_name.replace('.', "::");
+            let class_def = context
+                .classes
+                .get(&constructor.class_name)
+                .or_else(|| context.classes.get(&normalized_class_name))
+                .cloned();
 
             if let Some(class_def) = class_def {
                 // Create a map of field names to types
@@ -2189,7 +2195,13 @@ pub fn typecheck_expression(
                     }
                 }
             } else {
-                // If we don't have the class def, validate each field anyway
+                // Class doesn't exist - report an error
+                diagnostics.push_error(DatamodelError::new_validation_error(
+                    &format!("Unknown class '{}'", constructor.class_name),
+                    span.clone(),
+                ));
+
+                // Still typecheck the fields to catch any additional errors
                 for field in &constructor.fields {
                     match field {
                         hir::ClassConstructorField::Named { name, value } => {

@@ -18,13 +18,13 @@ function TestClass() -> int {
 //   example.a
 // }
 //
-// class std::Request {
+// class std.Request {
 //   base_url: string
 //   headers: map<string, string>
 //   query_params: map<string, string>
 // }
 //
-// class baml::WatchOptions {
+// class baml.WatchOptions {
 //   name: string
 //   when: ("never" | "manual" | (ANY, ANY) -> bool)
 // }
@@ -34,6 +34,6 @@ function TestClass() -> int {
 //   b: string
 // }
 //
-// enum std::HttpMethod {
+// enum std.HttpMethod {
 //   Get
 // }

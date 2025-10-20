@@ -8,12 +8,12 @@ pub mod functions {
 }
 
 pub mod classes {
-    pub const REQUEST: &str = "std::Request";
-    pub const WATCH_OPTIONS: &str = "baml::WatchOptions";
+    pub const REQUEST: &str = "std.Request";
+    pub const WATCH_OPTIONS: &str = "baml.WatchOptions";
 }
 
 pub mod enums {
-    pub const HTTP_METHOD: &str = "std::HttpMethod";
+    pub const HTTP_METHOD: &str = "std.HttpMethod";
 }
 
 pub fn builtin_classes() -> Vec<Class> {
@@ -46,18 +46,18 @@ pub fn builtin_classes() -> Vec<Class> {
             fields: vec![
                 Field {
                     name: String::from("name"),
-                    r#type: TypeIR::string(),
+                    r#type: TypeIR::optional(TypeIR::string()),
                     span: Span::fake(),
                 },
                 Field {
                     name: String::from("when"),
                     // "never" | "manual" | ((T, T) -> bool)
                     // We use a generic function type with top types for T
-                    r#type: TypeIR::union(vec![
+                    r#type: TypeIR::optional(TypeIR::union(vec![
                         TypeIR::literal_string("never".to_string()),
                         TypeIR::literal_string("manual".to_string()),
                         TypeIR::arrow(vec![TypeIR::top(), TypeIR::top()], TypeIR::bool()),
-                    ]),
+                    ])),
                     span: Span::fake(),
                 },
             ],

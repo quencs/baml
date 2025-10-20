@@ -9,13 +9,13 @@ class User {
   age int @check(valid_age, {{ this >= 0 }})
 }
 
-// class std::Request {
+// class std.Request {
 //   base_url: string
 //   headers: map<string, string>
 //   query_params: map<string, string>
 // }
 //
-// class baml::WatchOptions {
+// class baml.WatchOptions {
 //   name: string
 //   when: ("never" | "manual" | (ANY, ANY) -> bool)
 // }
@@ -31,6 +31,6 @@ class User {
 //   age: int @constrained
 // }
 //
-// enum std::HttpMethod {
+// enum std.HttpMethod {
 //   Get
 // }

@@ -138,9 +138,9 @@ function Len() -> int {
 //      4   CALL 1           
 //      5   RETURN           
 //
-// Class: std::Request with 3 fields
-// Class: baml::WatchOptions with 2 fields
-// Enum std::HttpMethod
+// Class: std.Request with 3 fields
+// Class: baml.WatchOptions with 2 fields
+// Enum std.HttpMethod
 // Function: baml.Array.length
 //
 // Function: baml.Map.length

@@ -3,13 +3,13 @@ class Person {
   age int
 }
 
-// class std::Request {
+// class std.Request {
 //   base_url: string
 //   headers: map<string, string>
 //   query_params: map<string, string>
 // }
 //
-// class baml::WatchOptions {
+// class baml.WatchOptions {
 //   name: string
 //   when: ("never" | "manual" | (ANY, ANY) -> bool)
 // }
@@ -19,6 +19,6 @@ class Person {
 //   age: int
 // }
 //
-// enum std::HttpMethod {
+// enum std.HttpMethod {
 //   Get
 // }
