@@ -1,6 +1,6 @@
 // Simple filter function that only notifies when value is not empty
-function NotEmpty(prev: string, next: string) -> bool {
-  next != ""
+function NotEmpty(value: string) -> bool {
+  value != ""
 }
 
 // Simple test without loops

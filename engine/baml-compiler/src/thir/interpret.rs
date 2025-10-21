@@ -257,11 +257,10 @@ async fn check_watch_changes<F, Fut>(
                 // For filter functions, ALWAYS call the filter - it subsumes change detection
                 // Evaluate the filter function
                 log::debug!(
-                    "Evaluating filter function '{fn_name}' for variable '{var_name}': prev={last_notified:?}, next={current_baml_value:?}"
+                    "Evaluating filter function '{fn_name}' for variable '{var_name}': current={current_baml_value:?}"
                 );
                 match evaluate_filter_function(
                     fn_name,
-                    last_notified.as_ref(),
                     &current_baml_value,
                     scopes,
                     thir,
@@ -309,11 +308,10 @@ async fn check_watch_changes<F, Fut>(
 }
 
 /// Evaluate a filter function for watch
-/// The filter function takes (prev_value, next_value) -> bool
+/// The filter function takes (current_value) -> bool
 async fn evaluate_filter_function<F, Fut>(
     fn_name: &internal_baml_ast::ast::Identifier,
-    prev_value: Option<&BamlValue>,
-    next_value: &BamlValue,
+    current_value: &BamlValue,
     scopes: &mut Vec<Scope>,
     thir: &THir<ExprMetadata>,
     run_llm_function: &mut F,
@@ -331,40 +329,24 @@ where
         .with_context(|| format!("Filter function '{fn_name}' not found"))?;
 
     // Check arity
-    if filter_func.parameters.len() != 2 {
+    if filter_func.parameters.len() != 1 {
         bail!(
-            "Filter function '{}' must take exactly 2 parameters (prev, next)",
+            "Filter function '{}' must take exactly 1 parameter (current value)",
             fn_name
         );
     }
 
     // Convert BamlValue to BamlValueWithMeta
-    let prev_with_meta = match prev_value {
-        Some(v) => {
-            log::debug!("Filter function prev_value (Some): {v:?}");
-            baml_value_to_value_with_meta(v.clone())
-        }
-        None => {
-            log::debug!("Filter function prev_value: None");
-            BamlValueWithMeta::Null((Span::fake(), None))
-        }
-    };
-    log::debug!("Filter function next_value: {next_value:?}");
-    let next_with_meta = baml_value_to_value_with_meta(next_value.clone());
+    log::debug!("Filter function current_value: {current_value:?}");
+    let value_with_meta = baml_value_to_value_with_meta(current_value.clone());
 
-    // Create a new scope with the function parameters
+    // Create a new scope with the function parameter
     // Mark this as a filter context to prevent infinite recursion
     scopes.push(Scope {
-        variables: [
-            (
-                filter_func.parameters[0].name.clone(),
-                Arc::new(Mutex::new(prev_with_meta)),
-            ),
-            (
-                filter_func.parameters[1].name.clone(),
-                Arc::new(Mutex::new(next_with_meta)),
-            ),
-        ]
+        variables: [(
+            filter_func.parameters[0].name.clone(),
+            Arc::new(Mutex::new(value_with_meta)),
+        )]
         .into_iter()
         .collect(),
         watch_variables: Vec::new(),

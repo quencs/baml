@@ -27,13 +27,13 @@ function AnotherTakedown(xs: string[]) -> int {
 
 // Filter function that uses an LLM to check if a word equals "banana"
 // This tests that filter functions can call LLMs
-function IsTargetWord(prev: string, next: string) -> bool {
-  let result = CheckWordEquality(next, "banana");
+function IsTargetWord(word: string) -> bool {
+  let result = CheckWordEquality(word, "banana");
   result
 }
 
-function IsTargetWord2(prev: string, next: string) -> bool {
-  next == "banana"
+function IsTargetWord2(word: string) -> bool {
+  word == "banana"
 }
 
 // LLM function that checks if two words are equal

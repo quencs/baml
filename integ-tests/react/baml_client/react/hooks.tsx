@@ -12464,9 +12464,7 @@ export function useHomeEnvVarIsEmpty(
  *
  * **Input Types:**
  *
- * - prev: string
- *
- * - next: string
+ * - word: string
  *
  *
  * **Return Type:**
@@ -12516,9 +12514,7 @@ export function useIsTargetWord(
  *
  * **Input Types:**
  *
- * - prev: string
- *
- * - next: string
+ * - word: string
  *
  *
  * **Return Type:**
@@ -12672,7 +12668,7 @@ export function useNormalElseIfStmt(
  *
  * - prev: string
  *
- * - next: string
+ * - value: string
  *
  *
  * **Return Type:**

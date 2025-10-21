@@ -1183,8 +1183,28 @@ fn typecheck_statement(
                 ));
             }
 
-            // TODO: Validate that 'when' function exists and has correct signature
-            // For now, we just pass it through
+            // Validate the 'when' function if provided
+            if let Some(when_str) = when {
+                // Parse the when string to get the function name
+                // For now, when is just a string with the function name
+                let fn_name =
+                    internal_baml_ast::ast::Identifier::Local(when_str.clone(), span.clone());
+
+                // Get the variable's type for validation (clone to avoid borrow issues)
+                let var_type = context.vars.get(variable).map(|vi| vi.ty.clone());
+
+                if let Some(var_type) = var_type {
+                    // Create a WatchSpec to validate
+                    let watch_spec = crate::watch::WatchSpec {
+                        name: variable.clone(),
+                        when: crate::watch::WatchWhen::FunctionName(fn_name),
+                        span: span.clone(),
+                    };
+
+                    // Use the existing validation function
+                    typecheck_emit(&watch_spec, &var_type, context, diagnostics);
+                }
+            }
 
             Some(thir::Statement::WatchOptions {
                 variable: variable.clone(),
@@ -2604,7 +2624,7 @@ fn typecheck_emit(
         WatchWhen::FunctionName(fn_name) => {
             let required_predicate_type = TypeIR::Arrow(
                 Box::new(ArrowGeneric {
-                    param_types: vec![var_type.clone(), var_type.clone()],
+                    param_types: vec![var_type.clone()],
                     return_type: TypeIR::bool(),
                 }),
                 Default::default(),
@@ -2619,7 +2639,7 @@ fn typecheck_emit(
                 Some(function_type) => {
                     if !function_type.is_subtype(&required_predicate_type) {
                         diagnostics.push_error(DatamodelError::new_validation_error(
-                            &format!("Function '{fn_name}' has incorrect type"),
+                            &format!("Function '{fn_name}' has incorrect type. Expected (T) -> bool, where T matches the variable type"),
                             fn_name.span().clone(),
                         ));
                     }
