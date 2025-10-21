@@ -248,7 +248,7 @@ async fn check_watch_changes<F, Fut>(
             crate::watch::WatchWhen::True => {
                 // For WatchWhen::True, use built-in change detection
                 let has_changed = match last_notified.as_ref() {
-                    None => true,                              // First time, always notify
+                    None => false,                             // First time (declaration), don't notify
                     Some(last) => last != &current_baml_value, // Compare values
                 };
                 has_changed

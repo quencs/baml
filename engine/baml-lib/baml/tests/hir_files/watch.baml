@@ -8,11 +8,11 @@ function Foo() -> int {
 }
 
 
-function MyFunctionBad(prev: int, next: int) -> bool {
+function MyFunctionBad(value: int) -> bool {
   true
 }
 
-function MyFunctionGood(prev: int, next: int) -> bool {
+function MyFunctionGood(value: int) -> bool {
   true
 }
 
@@ -26,10 +26,10 @@ function MyFunctionGood(prev: int, next: int) -> bool {
 //   10
 // }
 //
-// function MyFunctionBad(prev, next) {
+// function MyFunctionBad(value) {
 //   true
 // }
 //
-// function MyFunctionGood(prev, next) {
+// function MyFunctionGood(value) {
 //   true
 // }
