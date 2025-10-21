@@ -133,10 +133,19 @@ fn fire_watch_notification_for_variable(
     // Find the variable in scopes
     for scope in scopes.iter().rev() {
         if let Some(value_ref) = scope.variables.get(var_name) {
+            // Find the watch variable to get the current channel name
+            let channel_name = scope
+                .watch_variables
+                .iter()
+                .find(|wv| Arc::ptr_eq(&wv.value_ref, value_ref))
+                .map(|wv| wv.spec.name.clone())
+                .unwrap_or_else(|| var_name.to_string());
+
             let current_value = value_ref.lock().unwrap();
             let watch_value = expr_value_to_watch_value(current_value.clone());
             let notification = crate::watch::WatchNotification::new_var(
-                var_name.to_string(),
+                var_name.to_string(), // variable name
+                channel_name,         // current channel name from WatchSpec
                 watch_value,
                 function_name.to_string(),
             );
@@ -289,7 +298,8 @@ async fn check_watch_changes<F, Fut>(
             // Fire the notification
             let watch_value = expr_value_to_watch_value(current_value);
             let notification = crate::watch::WatchNotification::new_var(
-                spec.name.clone(),
+                var_name.clone(),  // variable name
+                spec.name.clone(), // channel name
                 watch_value,
                 function_name.to_string(),
             );
@@ -1241,7 +1251,7 @@ where
                 }
                 Statement::WatchOptions {
                     variable,
-                    name,
+                    channel,
                     when,
                     span,
                 } => {
@@ -1256,8 +1266,8 @@ where
                                 .find(|wv| Arc::ptr_eq(&wv.value_ref, var_ref))
                             {
                                 // Update the channel name if provided
-                                if let Some(new_name) = name {
-                                    watch_var.spec.name = new_name.clone();
+                                if let Some(new_channel) = channel {
+                                    watch_var.spec.name = new_channel.clone();
                                 }
 
                                 // Update the when condition if provided

@@ -710,7 +710,7 @@ pub enum Statement<T> {
     /// Configure watch options for a watched variable.
     WatchOptions {
         variable: String,
-        name: Option<String>,
+        channel: Option<String>,
         when: Option<String>,
         span: Span,
     },
@@ -814,13 +814,13 @@ impl<T: Clone> Statement<T> {
             }
             Statement::WatchOptions {
                 variable,
-                name,
+                channel,
                 when,
                 ..
             } => {
                 let mut parts = vec![];
-                if let Some(n) = name {
-                    parts.push(format!("name: \"{}\"", n));
+                if let Some(c) = channel {
+                    parts.push(format!("channel: \"{}\"", c));
                 }
                 if let Some(w) = when {
                     parts.push(format!("when: {}", w));

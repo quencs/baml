@@ -188,10 +188,10 @@ pub enum Statement {
     },
 
     /// Configure watch options for a watched variable.
-    /// Syntax: `variable.$watch.options(name: "channel", when: FilterFunc)`
+    /// Syntax: `variable.$watch.options( baml.WatchOptions { channel: "channel", when: FilterFunc } )`
     WatchOptions {
         variable: String,
-        name: Option<String>,
+        channel: Option<String>,
         when: Option<String>,
         span: Span,
     },

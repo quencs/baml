@@ -315,7 +315,7 @@ fn extract_watch_options_fields(expr: &ast::Expression) -> (Option<String>, Opti
         for field in &class_ctor.fields {
             if let ast::ClassConstructorField::Named(field_name, field_value) = field {
                 match field_name.name() {
-                    "name" => {
+                    "channel" => {
                         // name should be a string value
                         if let Expression::StringValue(s, _) = field_value {
                             name = Some(s.clone());
@@ -563,10 +563,10 @@ fn lower_stmt_with_options(
             span,
         }) => {
             // Extract name and when from the WatchOptions expression
-            let (name, when) = extract_watch_options_fields(options_expr);
+            let (channel, when) = extract_watch_options_fields(options_expr);
             Statement::WatchOptions {
                 variable: variable.to_string(),
-                name,
+                channel,
                 when,
                 span: span.clone(),
             }

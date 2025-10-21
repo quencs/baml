@@ -320,20 +320,20 @@ impl FunctionMetadata {
             }
             thir::Statement::WatchOptions {
                 variable,
-                name,
+                channel,
                 span,
                 ..
             } => {
                 // If a new channel name is configured, we need to create that channel
-                if let Some(new_name) = name {
+                if let Some(new_channel) = channel {
                     // Find the existing watch variable for this variable to get its type
                     if let Some((_, var_type)) = self.watch_vars.get(variable) {
-                        // Create a channel for the new name if it doesn't already exist
-                        if !self.watch_vars.contains_key(new_name) {
+                        // Create a channel for the new channel name if it doesn't already exist
+                        if !self.watch_vars.contains_key(new_channel) {
                             self.push_watch_var(
-                                new_name.clone(),
+                                new_channel.clone(),
                                 crate::watch::WatchSpec {
-                                    name: new_name.clone(),
+                                    name: new_channel.clone(),
                                     when: crate::watch::WatchWhen::True,
                                     span: span.clone(),
                                 },

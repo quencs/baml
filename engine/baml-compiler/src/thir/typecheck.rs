@@ -1171,7 +1171,7 @@ fn typecheck_statement(
         }
         hir::Statement::WatchOptions {
             variable,
-            name,
+            channel,
             when,
             span,
         } => {
@@ -1188,7 +1188,7 @@ fn typecheck_statement(
 
             Some(thir::Statement::WatchOptions {
                 variable: variable.clone(),
-                name: name.clone(),
+                channel: channel.clone(),
                 when: when.clone(),
                 span: span.clone(),
             })

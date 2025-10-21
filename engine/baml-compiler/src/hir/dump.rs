@@ -276,14 +276,14 @@ impl Statement {
             }
             Statement::WatchOptions {
                 variable,
-                name,
+                channel,
                 when,
                 ..
             } => {
                 let mut doc = RcDoc::text(variable.clone()).append(RcDoc::text(".$watch.options("));
 
                 let mut parts = vec![];
-                if let Some(n) = name {
+                if let Some(n) = channel {
                     parts.push(
                         RcDoc::text("name: \"")
                             .append(RcDoc::text(n.clone()))
