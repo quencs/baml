@@ -1524,14 +1524,16 @@ impl<'g> HirCompiler<'g> {
     fn emit_annotated_block(&mut self, v: &str) {
         self.emit_string_literal(v);
         let mut function_name: [u8; 1024] = [0; 1024];
-        function_name.copy_from_slice(v.as_bytes());
+        let bytes = v.as_bytes();
+        let len = std::cmp::min(bytes.len(), 1023);
+        function_name[..len].copy_from_slice(&bytes[..len]);
         // null terminate the vec in case its too long
-        function_name[std::cmp::min(v.len(), 1023)] = 0;
+        function_name[len] = 0;
 
         let mut block_name: [u8; 1024] = [0; 1024];
-        block_name.copy_from_slice(v.as_bytes());
+        block_name[..len].copy_from_slice(&bytes[..len]);
         // null terminate the vec in case its too long
-        block_name[std::cmp::min(v.len(), 1023)] = 0;
+        block_name[len] = 0;
 
         self.emit(Instruction::NotifyBlock(
             baml_vm::bytecode::BlockNotification {

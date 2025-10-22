@@ -1789,6 +1789,7 @@ impl WasmRuntime {
         get_baml_src_cb: js_sys::Function,
         env: js_sys::Object,
         abort_signal: Option<js_sys::Object>,
+        watch_handler: js_sys::Function,
     ) -> Result<WasmTestResponses, JsValue> {
         // Convert abort signal to tripwire
         let tripwire = match crate::abort_controller::js_abort_signal_to_tripwire(abort_signal) {
@@ -1851,6 +1852,81 @@ impl WasmRuntime {
                     let test_tripwire = tripwire.clone();
                     let on_tick = if false { Some(|| {}) } else { None };
 
+                    // Create watch handler callback for this test
+                    let watch_handler_clone = watch_handler.clone();
+                    let watch_handler_cb = Box::new(
+                        move |notification: baml_compiler::watch::WatchNotification| {
+                            // Convert notification to a JS object
+                            let js_notification = js_sys::Object::new();
+
+                            if let Some(ref var_name) = notification.variable_name {
+                                js_sys::Reflect::set(
+                                    &js_notification,
+                                    &JsValue::from_str("variable_name"),
+                                    &JsValue::from_str(var_name),
+                                )
+                                .unwrap();
+                            }
+
+                            if let Some(ref channel_name) = notification.channel_name {
+                                js_sys::Reflect::set(
+                                    &js_notification,
+                                    &JsValue::from_str("channel_name"),
+                                    &JsValue::from_str(channel_name),
+                                )
+                                .unwrap();
+                            }
+
+                            js_sys::Reflect::set(
+                                &js_notification,
+                                &JsValue::from_str("function_name"),
+                                &JsValue::from_str(&notification.function_name),
+                            )
+                            .unwrap();
+
+                            js_sys::Reflect::set(
+                                &js_notification,
+                                &JsValue::from_str("is_stream"),
+                                &JsValue::from_bool(notification.is_stream),
+                            )
+                            .unwrap();
+
+                            // Serialize the value as JSON
+                            let value_json = match &notification.value {
+                                baml_compiler::watch::WatchBamlValue::Value(v) => {
+                                    let value: BamlValue = v.clone().into();
+                                    serde_json::to_string(&value).unwrap_or_else(|_| format!("{:?}", value))
+                                }
+                                baml_compiler::watch::WatchBamlValue::Block(s) => {
+                                    serde_json::json!({ "type": "block", "label": s }).to_string()
+                                }
+                                baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                                    serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+                                }
+                                baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
+                                    let value: BamlValue = v.clone().into();
+                                    let value_json = serde_json::to_string(&value)
+                                        .unwrap_or_else(|_| format!("{:?}", value));
+                                    serde_json::json!({ "type": "stream_update", "id": id, "value": value_json }).to_string()
+                                }
+                                baml_compiler::watch::WatchBamlValue::StreamEnd(id) => {
+                                    serde_json::json!({ "type": "stream_end", "id": id }).to_string()
+                                }
+                            };
+
+                            js_sys::Reflect::set(
+                                &js_notification,
+                                &JsValue::from_str("value"),
+                                &JsValue::from_str(&value_json),
+                            )
+                            .unwrap();
+
+                            watch_handler_clone
+                                .call1(&JsValue::NULL, &js_notification)
+                                .unwrap();
+                        },
+                    );
+
                     // Create a future for this test
                     let future = async move {
                         let (test_response, span) = rt
@@ -1864,9 +1940,7 @@ impl WasmRuntime {
                                 None,          // tags
                                 test_tripwire, // Pass tripwire to each test
                                 on_tick,
-                                None::<
-                                    Box<dyn Fn(baml_compiler::watch::WatchNotification) + 'static>,
-                                >, // watch_handler
+                                Some(watch_handler_cb),
                             )
                             .await;
 
@@ -2258,11 +2332,33 @@ impl WasmFunction {
                 )
                 .unwrap();
 
-                // Convert the value to a string for now
+                // Serialize the value as JSON
+                let value_json = match &notification.value {
+                    baml_compiler::watch::WatchBamlValue::Value(v) => {
+                        let value: BamlValue = v.clone().into();
+                        serde_json::to_string(&value).unwrap_or_else(|_| format!("{:?}", value))
+                    }
+                    baml_compiler::watch::WatchBamlValue::Block(s) => {
+                        serde_json::json!({ "type": "block", "label": s }).to_string()
+                    }
+                    baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                        serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+                    }
+                    baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
+                        let value: BamlValue = v.clone().into();
+                        let value_json = serde_json::to_string(&value)
+                            .unwrap_or_else(|_| format!("{:?}", value));
+                        serde_json::json!({ "type": "stream_update", "id": id, "value": value_json }).to_string()
+                    }
+                    baml_compiler::watch::WatchBamlValue::StreamEnd(id) => {
+                        serde_json::json!({ "type": "stream_end", "id": id }).to_string()
+                    }
+                };
+
                 js_sys::Reflect::set(
                     &js_notification,
                     &JsValue::from_str("value"),
-                    &JsValue::from_str(&format!("{:?}", notification.value)),
+                    &JsValue::from_str(&value_json),
                 )
                 .unwrap();
 
@@ -2422,11 +2518,33 @@ impl WasmFunction {
                 )
                 .unwrap();
 
-                // Convert the value to a string for now
+                // Serialize the value as JSON
+                let value_json = match &notification.value {
+                    baml_compiler::watch::WatchBamlValue::Value(v) => {
+                        let value: BamlValue = v.clone().into();
+                        serde_json::to_string(&value).unwrap_or_else(|_| format!("{:?}", value))
+                    }
+                    baml_compiler::watch::WatchBamlValue::Block(s) => {
+                        serde_json::json!({ "type": "block", "label": s }).to_string()
+                    }
+                    baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                        serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+                    }
+                    baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
+                        let value: BamlValue = v.clone().into();
+                        let value_json = serde_json::to_string(&value)
+                            .unwrap_or_else(|_| format!("{:?}", value));
+                        serde_json::json!({ "type": "stream_update", "id": id, "value": value_json }).to_string()
+                    }
+                    baml_compiler::watch::WatchBamlValue::StreamEnd(id) => {
+                        serde_json::json!({ "type": "stream_end", "id": id }).to_string()
+                    }
+                };
+
                 js_sys::Reflect::set(
                     &js_notification,
                     &JsValue::from_str("value"),
-                    &JsValue::from_str(&format!("{:?}", notification.value)),
+                    &JsValue::from_str(&value_json),
                 )
                 .unwrap();
 

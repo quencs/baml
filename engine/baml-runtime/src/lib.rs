@@ -752,7 +752,7 @@ impl BamlRuntime {
             .await
     }
 
-    pub async fn run_test_with_expr_events<F, G>(
+    pub async fn run_test_with_expr_events<F, G, H>(
         &self,
         function_name: &str,
         test_name: &str,
@@ -764,11 +764,12 @@ impl BamlRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
         on_tick: Option<G>,
-        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
+        watch_handler: Option<H>,
     ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
         G: Fn(),
+        H: Fn(baml_compiler::watch::WatchNotification),
     {
         baml_log::set_from_env(&env_vars).unwrap();
 
@@ -957,7 +958,7 @@ impl BamlRuntime {
         (response, call_id)
     }
 
-    pub async fn run_test<F, G>(
+    pub async fn run_test<F, G, H>(
         &self,
         function_name: &str,
         test_name: &str,
@@ -968,14 +969,15 @@ impl BamlRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
         on_tick: Option<G>,
-        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
+        watch_handler: Option<H>,
     ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
         G: Fn(),
+        H: Fn(baml_compiler::watch::WatchNotification),
     {
         let res = self
-            .run_test_with_expr_events::<F, G>(
+            .run_test_with_expr_events::<F, G, H>(
                 function_name,
                 test_name,
                 ctx,
@@ -993,14 +995,17 @@ impl BamlRuntime {
     }
 
     /// Run an expr function test - simpler path that doesn't involve LLM infrastructure
-    pub async fn run_expr_test(
+    pub async fn run_expr_test<H>(
         &self,
         function_name: &str,
         test_name: &str,
         ctx: &RuntimeContextManager,
         env_vars: HashMap<String, String>,
-        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
-    ) -> (Result<TestResponse>, FunctionCallId) {
+        watch_handler: Option<H>,
+    ) -> (Result<TestResponse>, FunctionCallId)
+    where
+        H: Fn(baml_compiler::watch::WatchNotification),
+    {
         log::info!(
             "[Runtime] run_expr_test start function={} test={}",
             function_name,

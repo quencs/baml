@@ -170,11 +170,9 @@ const useRunTests = (maxBatchSize = 5) => {
                 console.log('Watch notification:', notification);
 
                 // Update state with accumulated notifications
-                setState(test, {
-                  status: 'running',
-                  response: undefined, // Keep existing response if any
-                  watchNotifications: [...watchNotifications]
-                });
+                // Don't update state on every notification to avoid too many re-renders
+                // The notifications are already being collected and will be included
+                // in the partial response updates and final state
               }
             )
             console.log('result', result)
@@ -404,19 +402,40 @@ const useParallelRunTests = (maxBatchSize = 5) => {
             const startTime = performance.now()
             set(areTestsRunningAtom, true)
 
+            // Collect watch notifications per test
+            const watchNotificationsByTest: Record<string, WatchNotification[]> = {}
+
             // Call `run_tests` on the runtime
             const results = await rt.run_tests(
               testCases,
               (partial: WasmFunctionResponse) => {
                 const pair = partial.func_test_pair()
+                const testKey = `${pair.function_name}:${pair.test_name}`
                 setState(
                   { functionName: pair.function_name, testName: pair.test_name },
-                  { status: 'running', response: partial },
+                  {
+                    status: 'running',
+                    response: partial,
+                    watchNotifications: watchNotificationsByTest[testKey] || []
+                  },
                 )
               },
               vscode.loadMediaFile,
               apiKeys,
-              controller.signal, // Now supported!
+              controller.signal,
+              (notification: any) => {  // Watch handler for parallel tests
+                // Determine which test this notification belongs to
+                const testKey = `${notification.function_name}:${notification.test_name || 'unknown'}`
+
+                if (!watchNotificationsByTest[testKey]) {
+                  watchNotificationsByTest[testKey] = []
+                }
+
+                watchNotificationsByTest[testKey].push(notification as WatchNotification)
+
+                // Log for debugging
+                console.log('Watch notification (parallel):', notification)
+              }
             )
 
             const endTime = performance.now()
@@ -448,6 +467,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
                 failureMessage: response.failure_message(),
               })
 
+              const testKey = `${pair.function_name}:${pair.test_name}`
               setState(
                 { functionName: pair.function_name, testName: pair.test_name },
                 {
@@ -455,6 +475,7 @@ const useParallelRunTests = (maxBatchSize = 5) => {
                   response: response,
                   response_status: responseStatusMap[status] || 'error',
                   latency_ms: endTime - startTime,
+                  watchNotifications: watchNotificationsByTest[testKey] || []
                 },
               )
             }

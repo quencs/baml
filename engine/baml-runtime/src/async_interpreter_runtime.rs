@@ -222,13 +222,12 @@ impl BamlAsyncInterpreterRuntime {
             .collect::<BamlMap<_, _>>();
 
         // Wrap watch handler in Arc<Mutex> so it can be shared with llm_handler
-        let watch_handler_shared: Arc<
-            Mutex<Box<dyn Fn(baml_compiler::watch::WatchNotification)>>,
-        > = Arc::new(Mutex::new(if let Some(handler) = watch_handler {
-            Box::new(handler)
-        } else {
-            Box::new(|_notification| {})
-        }));
+        let watch_handler_shared: Arc<Mutex<Box<dyn Fn(baml_compiler::watch::WatchNotification)>>> =
+            Arc::new(Mutex::new(if let Some(handler) = watch_handler {
+                Box::new(handler)
+            } else {
+                Box::new(|_notification| {})
+            }));
 
         // Create a cloneable watch handler for llm_handler
         let watch_handler_for_llm = Arc::clone(&watch_handler_shared);

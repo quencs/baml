@@ -111,11 +111,20 @@ export const ResponseRenderer: React.FC<ResponseRendererProps> = ({ response, st
       {/* Error Messages are rendered inside ParsedResponseRenderer*/}
 
       {/* Watch Notifications Section */}
-      {test && 'watchNotifications' in test && test.watchNotifications && (
-        <div className="mt-4 border-t pt-4">
-          <WatchNotificationsView notifications={test.watchNotifications} />
-        </div>
-      )}
+      {(() => {
+        console.log('ResponseRenderer - test object:', test);
+        if (test && 'watchNotifications' in test) {
+          console.log('ResponseRenderer - watchNotifications:', test.watchNotifications);
+          if (test.watchNotifications && test.watchNotifications.length > 0) {
+            return (
+              <div className="mt-4 border-t pt-4">
+                <WatchNotificationsView notifications={test.watchNotifications} />
+              </div>
+            );
+          }
+        }
+        return null;
+      })()}
     </div>
   )
 }
