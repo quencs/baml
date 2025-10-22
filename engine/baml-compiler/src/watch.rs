@@ -7,11 +7,14 @@ use std::collections::HashSet;
 use baml_types::{ir_type::UnionConstructor, BamlMap, TypeIR};
 use internal_baml_diagnostics::{DatamodelError, Diagnostics};
 
-use crate::thir::{self, typecheck::TypeCompatibility, ClassConstructorField, ExprMetadata, THir};
-pub use crate::watch::{
-    watch_event::{WatchBamlValue, WatchNotification, WatchValueMetadata},
-    watch_options::{WatchSpec, WatchWhen},
+use crate::{
+    hir,
+    thir::{self, typecheck::TypeCompatibility, ClassConstructorField, ExprMetadata, THir},
 };
+pub use watch_event::{
+    WatchBamlValue, WatchNotification, WatchValueMetadata, MARKDOWN_HEADER_CHANNEL,
+};
+pub use watch_options::{WatchSpec, WatchWhen};
 
 /// The result of analyzing the watch variables in a BAML program.
 /// See `WatchChannels::analyze_program` for more details.
@@ -70,17 +73,16 @@ impl WatchChannels {
             ..
         } = &function_metadatas[fn_name];
 
-        let md_channels = markdown_headers.iter().map(|header| {
-            (
+        if !markdown_headers.is_empty() {
+            channels.insert((
                 ChannelFQN {
                     namespace: None,
                     r#type: ChannelType::MarkdownHeader,
-                    name: header.clone(),
+                    name: MARKDOWN_HEADER_CHANNEL.to_string(),
                 },
                 TypeIR::string(),
-            )
-        });
-        channels.extend(md_channels);
+            ));
+        }
         let var_channels =
             watch_vars
                 .into_iter()
@@ -105,17 +107,16 @@ impl WatchChannels {
                 ..
             }) = &function_metadatas.get(&subfunction)
             {
-                let sub_md_channels = markdown_headers.iter().map(|header| {
-                    (
+                if !markdown_headers.is_empty() {
+                    channels.insert((
                         ChannelFQN {
                             namespace: Some(subfunction.clone()),
                             r#type: ChannelType::MarkdownHeader,
-                            name: header.clone(),
+                            name: MARKDOWN_HEADER_CHANNEL.to_string(),
                         },
                         TypeIR::string(),
-                    )
-                });
-                channels.extend(sub_md_channels);
+                    ));
+                }
                 let sub_var_channels =
                     watch_vars
                         .into_iter()
@@ -170,7 +171,7 @@ pub enum ChannelType {
 struct FunctionMetadata {
     subfunctions: HashSet<String>,
     watch_vars: BamlMap<String, (WatchSpec, TypeIR)>,
-    markdown_headers: HashSet<String>,
+    markdown_headers: BamlMap<String, hir::MarkdownHeaderMetadata>,
 }
 
 impl FunctionMetadata {
@@ -228,8 +229,14 @@ impl FunctionMetadata {
         let mut metadata = FunctionMetadata {
             subfunctions: HashSet::new(),
             watch_vars: BamlMap::new(),
-            markdown_headers: HashSet::new(),
+            markdown_headers: BamlMap::new(),
         };
+
+        for header in &function.markdown_headers {
+            metadata
+                .markdown_headers
+                .insert(header.span_key.clone(), header.clone());
+        }
 
         let thir::ExprFunction { body, .. } = function;
         for (idx, statement) in body.statements.iter().enumerate() {

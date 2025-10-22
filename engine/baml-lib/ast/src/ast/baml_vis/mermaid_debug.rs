@@ -778,6 +778,10 @@ impl MermaidDiagramGenerator {
                 let label = format!("WatchNotify: {}", watch_notify.variable.name());
                 self.get_node_id_with_class(&key, &label, "statementNode")
             }
+            Stmt::MarkdownHeaderComment(md) => {
+                let label = format!("MarkdownHeader: {}", md.header.title);
+                self.get_node_id_with_class(&key, &label, "statementNode")
+            }
         }
     }
 

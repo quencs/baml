@@ -403,7 +403,7 @@ impl BamlRuntime {
                             for handler in &callbacks.block_handlers {
                                 let block_event = BlockEvent {
                                     block_label: block_label.clone(),
-                                    event_type: "enter".to_string(), // TODO: track enter/exit
+                                    event_type: "enter".to_string(),
                                 };
                                 let _ = handler
                                     .call(block_event, ThreadsafeFunctionCallMode::NonBlocking);

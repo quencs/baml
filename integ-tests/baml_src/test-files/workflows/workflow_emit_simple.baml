@@ -7,6 +7,20 @@ function NotEmpty(value: string) -> bool {
 function SimpleWatchWithFilter() -> int {
   watch let word: string = "";
   word.$watch.options(baml.WatchOptions{ when: NotEmpty });
+  //# statement 1
+
+  //## statement 2
+
+  let foo = 5;
+
+  //### statement 3
+
+  //# statement 4
+
+  if (true) {
+    //# statement 5
+    let bar = 10;
+  }
 
   word = "hello";  // Should notify (not empty)
   word = "world";  // Should notify (not empty)

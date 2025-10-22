@@ -11,7 +11,8 @@ use crate::{
     assert_correct_parser,
     ast::{
         self, expr::ExprFn, App, ArgumentsList, AssignOp, AssignOpStmt, AssignStmt, ExprStmt,
-        Expression, ExpressionBlock, ForLoopStmt, LetStmt, Stmt, TopLevelAssignment, *,
+        Expression, ExpressionBlock, ForLoopStmt, LetStmt, MarkdownHeaderCommentStmt, Stmt,
+        TopLevelAssignment, *,
     },
     parser::{
         parse_arguments::parse_arguments_list, parse_expression::parse_expression,
@@ -131,6 +132,9 @@ pub fn parse_top_level_assignment(
         }
         Stmt::WatchNotify(WatchNotifyStmt { span, .. }) => {
             only_let_stmt("watch notify statements", span, diagnostics)
+        }
+        Stmt::MarkdownHeaderComment(MarkdownHeaderCommentStmt { span, .. }) => {
+            only_let_stmt("markdown header comments", span.clone(), diagnostics)
         }
     }
 }
@@ -809,6 +813,12 @@ pub fn parse_expr_block(token: Pair<'_>, diagnostics: &mut Diagnostics) -> Optio
                         &mut current_headers,
                         &mut headers_since_last_stmt,
                     );
+
+                    let span = header.span.clone();
+                    stmts.push(Stmt::MarkdownHeaderComment(MarkdownHeaderCommentStmt {
+                        header,
+                        span,
+                    }));
                 }
             }
             Rule::empty_lines => {
@@ -1050,6 +1060,9 @@ fn bind_headers_to_statement(
         }
         Stmt::WatchNotify(_) => {
             // Watch notify statements do not carry annotations
+        }
+        Stmt::MarkdownHeaderComment(_) => {
+            // Markdown header comment statements do not own annotations directly
         }
     }
 }

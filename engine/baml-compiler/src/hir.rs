@@ -50,6 +50,7 @@ pub struct ExprFunction {
     pub parameters: Vec<Parameter>,
     pub return_type: TypeIR,
     pub body: Block,
+    pub markdown_headers: Vec<MarkdownHeaderMetadata>,
     pub span: Span,
 }
 
@@ -108,6 +109,17 @@ pub struct Block {
 
     /// Final expression in the block without semicolon (used as return).
     pub trailing_expr: Option<Box<Expression>>,
+
+    /// Markdown headers encountered within this block (local to the block).
+    pub markdown_headers: Vec<MarkdownHeaderMetadata>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MarkdownHeaderMetadata {
+    pub span_key: String,
+    pub title: String,
+    pub level: u8,
+    pub span: Span,
 }
 
 /// A single unit of execution within a block.

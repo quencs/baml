@@ -1,6 +1,9 @@
 use std::fmt;
 
 use baml_types::{BamlValueWithMeta, Completion, Constraint, ResponseCheck, TypeIR};
+use internal_baml_diagnostics::Span;
+
+pub const MARKDOWN_HEADER_CHANNEL: &str = "__baml_markdown_header";
 
 /// Unique identifier for a streaming watch notification
 pub type StreamId = String;
@@ -8,7 +11,12 @@ pub type StreamId = String;
 #[derive(Debug)]
 pub enum WatchBamlValue {
     Value(BamlValueWithMeta<WatchValueMetadata>),
-    Block(String),
+    MarkdownHeader {
+        span_key: String,
+        title: String,
+        level: u8,
+        span: Span,
+    },
     StreamStart(StreamId),
     StreamUpdate(StreamId, BamlValueWithMeta<WatchValueMetadata>),
     StreamEnd(StreamId),
@@ -56,8 +64,13 @@ impl fmt::Display for WatchNotification {
                     write!(f, "{}", value.clone().value())
                 }
             },
-            WatchBamlValue::Block(label) => {
-                write!(f, "(block) {label}")
+            WatchBamlValue::MarkdownHeader {
+                title,
+                level,
+                span_key,
+                ..
+            } => {
+                write!(f, "(markdown header L{level}) {title} [{span_key}]")
             }
             WatchBamlValue::StreamStart(stream_id) => {
                 write!(f, "(stream start) {stream_id}")
@@ -107,11 +120,23 @@ impl WatchNotification {
         }
     }
 
-    pub fn new_block(block_label: String, function_name: String) -> Self {
+    pub fn new_block(
+        span_key: String,
+        title: String,
+        level: u8,
+        span: Span,
+        channel_name: String,
+        function_name: String,
+    ) -> Self {
         Self {
-            value: WatchBamlValue::Block(block_label),
-            variable_name: None,
-            channel_name: None,
+            value: WatchBamlValue::MarkdownHeader {
+                span_key,
+                title,
+                level,
+                span,
+            },
+            variable_name: Some(MARKDOWN_HEADER_CHANNEL.to_string()),
+            channel_name: Some(channel_name),
             function_name,
             is_stream: false,
         }

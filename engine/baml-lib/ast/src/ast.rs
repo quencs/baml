@@ -41,7 +41,8 @@ pub use internal_baml_diagnostics::Span;
 pub use newline_type::NewlineType;
 pub use stmt::{
     AssertStmt, AssignOp, AssignOpStmt, AssignStmt, CForLoopStmt, ExprStmt, ForLoopStmt, Header,
-    LetStmt, ReturnStmt, Stmt, WatchNotifyStmt, WatchOptionsStmt, WhileStmt,
+    LetStmt, MarkdownHeaderCommentStmt, ReturnStmt, Stmt, WatchNotifyStmt, WatchOptionsStmt,
+    WhileStmt,
 };
 pub use template_string::TemplateString;
 pub use top::Top;

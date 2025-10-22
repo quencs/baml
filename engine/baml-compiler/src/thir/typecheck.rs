@@ -298,6 +298,7 @@ pub fn typecheck_returning_context<'a>(
                 .collect(),
             return_type: func.return_type.clone(),
             body: typed_body,
+            markdown_headers: func.markdown_headers.clone(),
             span: func.span.clone(),
         });
     }
@@ -351,6 +352,7 @@ pub fn typecheck_returning_context<'a>(
                                     .collect(),
                                 return_type: method.return_type,
                                 body: typed_body,
+                                markdown_headers: method.markdown_headers,
                                 span: method.span,
                             }
                         })
@@ -490,8 +492,10 @@ impl TypeContext<'_> {
                             body: hir::Block {
                                 statements: vec![], // Empty for simplicity
                                 trailing_expr: None,
+                                markdown_headers: Vec::new(),
                             },
                             span: method.span.clone(),
+                            markdown_headers: Vec::new(),
                         }
                     })
                     .collect(),

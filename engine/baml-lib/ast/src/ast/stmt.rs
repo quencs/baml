@@ -123,6 +123,12 @@ pub struct WatchNotifyStmt {
     pub span: Span,
 }
 
+#[derive(Debug, Clone)]
+pub struct MarkdownHeaderCommentStmt {
+    pub header: std::sync::Arc<Header>,
+    pub span: Span,
+}
+
 // Stmt(statements) perform actions and not often return values.
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -142,6 +148,7 @@ pub enum Stmt {
     Assert(AssertStmt),
     WatchOptions(WatchOptionsStmt),
     WatchNotify(WatchNotifyStmt),
+    MarkdownHeaderComment(MarkdownHeaderCommentStmt),
 }
 
 impl fmt::Display for AssignOp {
@@ -231,6 +238,9 @@ impl fmt::Display for Stmt {
             }
             Stmt::WatchNotify(WatchNotifyStmt { variable, .. }) => {
                 write!(f, "{}.$watch.notify()", variable.name())
+            }
+            Stmt::MarkdownHeaderComment(MarkdownHeaderCommentStmt { header, .. }) => {
+                write!(f, "//{} {}", "#".repeat(header.level.into()), header.title)
             }
         }
     }
@@ -351,6 +361,14 @@ impl Stmt {
             }
 
             (
+                Stmt::MarkdownHeaderComment(MarkdownHeaderCommentStmt { header: h1, .. }),
+                Stmt::MarkdownHeaderComment(MarkdownHeaderCommentStmt { header: h2, .. }),
+            ) => {
+                assert_eq!(h1.level, h2.level);
+                assert_eq!(h1.title, h2.title);
+            }
+
+            (
                 Stmt::Let(_)
                 | Stmt::ForLoop(_)
                 | Stmt::Expression(_)
@@ -364,7 +382,8 @@ impl Stmt {
                 | Stmt::Continue(_)
                 | Stmt::Assert(_)
                 | Stmt::WatchOptions(_)
-                | Stmt::WatchNotify(_),
+                | Stmt::WatchNotify(_)
+                | Stmt::MarkdownHeaderComment(_),
                 _,
             ) => {
                 panic!("Types do not match: {self:?} and {other:?}")
@@ -401,6 +420,9 @@ impl Stmt {
             },
             Stmt::WatchOptions(WatchOptionsStmt { variable, .. }) => variable,
             Stmt::WatchNotify(WatchNotifyStmt { variable, .. }) => variable,
+            Stmt::MarkdownHeaderComment(_) => {
+                panic!("markdown header comments do not have identifiers")
+            }
         }
     }
 
@@ -417,7 +439,8 @@ impl Stmt {
             | Stmt::Continue(span)
             | Stmt::Assert(AssertStmt { span, .. })
             | Stmt::WatchOptions(WatchOptionsStmt { span, .. })
-            | Stmt::WatchNotify(WatchNotifyStmt { span, .. }) => span,
+            | Stmt::WatchNotify(WatchNotifyStmt { span, .. })
+            | Stmt::MarkdownHeaderComment(MarkdownHeaderCommentStmt { span, .. }) => span,
 
             Stmt::Expression(es) => &es.span,
             Stmt::Semicolon(expr) => expr.span(),

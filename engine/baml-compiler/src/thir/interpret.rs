@@ -11,7 +11,7 @@ use internal_baml_diagnostics::Span;
 
 use crate::{
     thir::{Block, ClassConstructorField, Expr, ExprMetadata, Statement, THir},
-    watch::WatchNotification,
+    watch::{MARKDOWN_HEADER_CHANNEL, WatchNotification},
 };
 
 // Type alias for pinned boxed futures - conditionally Send for non-WASM targets
@@ -129,6 +129,7 @@ fn fire_watch_notification_for_variable(
     var_name: &str,
     watch_handler: &mut impl FnMut(crate::watch::WatchNotification),
     function_name: &str,
+    thir: &THir<ExprMetadata>,
 ) -> Result<()> {
     // Find the variable in scopes
     for scope in scopes.iter().rev() {
@@ -142,10 +143,41 @@ fn fire_watch_notification_for_variable(
                 .unwrap_or_else(|| var_name.to_string());
 
             let current_value = value_ref.lock().unwrap();
+            if var_name == MARKDOWN_HEADER_CHANNEL {
+                if let BamlValueWithMeta::String(span_key, _) = &*current_value {
+                    let header_meta = thir
+                        .expr_functions
+                        .iter()
+                        .find(|f| f.name == function_name)
+                        .and_then(|f| {
+                            f.markdown_headers
+                                .iter()
+                                .find(|header| &header.span_key == span_key)
+                        });
+
+                    let (title, level, span) = header_meta
+                        .map(|meta| (meta.title.clone(), meta.level, meta.span.clone()))
+                        .unwrap_or_else(|| (span_key.clone(), 1, Span::fake()));
+
+                    let notification = crate::watch::WatchNotification::new_block(
+                        span_key.clone(),
+                        title,
+                        level,
+                        span,
+                        channel_name,
+                        function_name.to_string(),
+                    );
+                    watch_handler(notification);
+                    return Ok(());
+                }
+
+                // Fallback to generic notification if the value isn't a string
+            }
+
             let watch_value = expr_value_to_watch_value(current_value.clone());
             let notification = crate::watch::WatchNotification::new_var(
-                var_name.to_string(), // variable name
-                channel_name,         // current channel name from WatchSpec
+                var_name.to_string(),
+                channel_name,
                 watch_value,
                 function_name.to_string(),
             );
@@ -1279,6 +1311,7 @@ where
                         variable,
                         watch_handler,
                         function_name,
+                        thir,
                     )?;
                 }
             }

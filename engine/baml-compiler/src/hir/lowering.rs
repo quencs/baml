@@ -9,13 +9,15 @@ use baml_types::{
     Constraint, ConstraintLevel, TypeIR, TypeValue,
 };
 use internal_baml_ast::ast::{self, App, AssertStmt, Attribute, ReturnStmt, WithName, WithSpan};
+use internal_baml_diagnostics::Span;
 
 use crate::{
     hir::{
         self, Block, Class, ClassConstructor, ClassConstructorField, Enum, EnumVariant,
-        ExprFunction, Expression, Field, Hir, LlmFunction, Parameter, Statement, TypeArg,
+        ExprFunction, Expression, Field, Hir, LlmFunction, MarkdownHeaderMetadata, Parameter,
+        Statement, TypeArg,
     },
-    watch::WatchSpec,
+    watch::{MARKDOWN_HEADER_CHANNEL, WatchSpec, WatchWhen},
 };
 
 impl Hir {
@@ -291,11 +293,15 @@ fn lower_fn_args(input: &ast::BlockArgs) -> Vec<Parameter> {
 impl ExprFunction {
     /// Lower an expression function into HIR.
     pub fn from_ast(function: &ast::ExprFn) -> Self {
+        let body = Block::from_expr_block_with_config(&function.body, true);
+        let markdown_headers = collect_markdown_headers_recursive(&body);
+
         ExprFunction {
             name: function.name.to_string(),
             parameters: lower_fn_args(&function.args),
             return_type: type_ir_from_ast_optional(function.return_type.as_ref()),
-            body: Block::from_expr_block(&function.body),
+            body,
+            markdown_headers,
             span: function.span.clone(),
         }
     }
@@ -350,6 +356,10 @@ fn extract_watch_options_fields(expr: &ast::Expression) -> (Option<String>, Opti
 impl Block {
     /// Lower an expression block into HIR for expression blocks.
     pub fn from_expr_block(block: &ast::ExpressionBlock) -> Self {
+        Self::from_expr_block_with_config(block, false)
+    }
+
+    fn from_expr_block_with_config(block: &ast::ExpressionBlock, is_function_root: bool) -> Self {
         // First pass: collect all WatchOptions statements into a map
         let mut watch_options_map: HashMap<String, (Option<String>, Option<String>)> =
             HashMap::new();
@@ -366,12 +376,69 @@ impl Block {
             }
         }
 
-        // Second pass: lower statements, applying watch options to watch specs
-        let statements: Vec<Statement> = block
+        let contains_markdown_headers = block
             .stmts
             .iter()
-            .map(|stmt| lower_stmt_with_options(stmt, &watch_options_map))
-            .collect();
+            .any(|stmt| matches!(stmt, ast::Stmt::MarkdownHeaderComment(_)));
+
+        let span_key = |span: &Span| {
+            format!("{}::{}::{}", span.file.path(), span.start, span.end)
+        };
+
+        let mut statements: Vec<Statement> = Vec::new();
+        let mut markdown_headers: Vec<MarkdownHeaderMetadata> = Vec::new();
+
+        if is_function_root && contains_markdown_headers {
+            let first_header_span = block
+                .stmts
+                .iter()
+                .find_map(|stmt| match stmt {
+                    ast::Stmt::MarkdownHeaderComment(md) => Some(md.span.clone()),
+                    _ => None,
+                })
+                .unwrap_or_else(Span::fake);
+
+            let watch_spec = WatchSpec {
+                when: WatchWhen::Manual,
+                name: MARKDOWN_HEADER_CHANNEL.to_string(),
+                span: first_header_span.clone(),
+            };
+
+            statements.push(Statement::DeclareAndAssign {
+                name: MARKDOWN_HEADER_CHANNEL.to_string(),
+                value: Expression::StringValue(span_key(&first_header_span), first_header_span.clone()),
+                annotated_type: Some(TypeIR::string()),
+                watch: Some(watch_spec),
+                span: first_header_span,
+            });
+        }
+
+        for stmt in &block.stmts {
+            if let ast::Stmt::MarkdownHeaderComment(md) = stmt {
+                let span = md.span.clone();
+                let header = md.header.clone();
+
+                markdown_headers.push(MarkdownHeaderMetadata {
+                    span_key: span_key(&span),
+                    title: header.title.clone(),
+                    level: header.level,
+                    span: span.clone(),
+                });
+
+                statements.push(Statement::Assign {
+                    left: Expression::Identifier(MARKDOWN_HEADER_CHANNEL.to_string(), span.clone()),
+                    value: Expression::StringValue(span_key(&span), span.clone()),
+                    span: span.clone(),
+                });
+                statements.push(Statement::WatchNotify {
+                    variable: MARKDOWN_HEADER_CHANNEL.to_string(),
+                    span,
+                });
+                continue;
+            }
+
+            statements.push(lower_stmt_with_options(stmt, &watch_options_map));
+        }
 
         Block {
             statements,
@@ -380,6 +447,165 @@ impl Block {
                 .as_deref()
                 .map(Expression::from_ast)
                 .map(Box::new),
+            markdown_headers,
+        }
+    }
+}
+
+fn collect_markdown_headers_recursive(block: &Block) -> Vec<MarkdownHeaderMetadata> {
+    let mut headers = block.markdown_headers.clone();
+
+    for statement in &block.statements {
+        collect_markdown_headers_from_statement(statement, &mut headers);
+    }
+
+    if let Some(expr) = &block.trailing_expr {
+        collect_markdown_headers_from_expression(expr, &mut headers);
+    }
+
+    headers
+}
+
+fn collect_markdown_headers_from_statement(
+    stmt: &Statement,
+    acc: &mut Vec<MarkdownHeaderMetadata>,
+) {
+    match stmt {
+        Statement::Let { value, .. } => collect_markdown_headers_from_expression(value, acc),
+        Statement::Declare { .. } => {},
+        Statement::DeclareAndAssign { value, .. } => {
+            collect_markdown_headers_from_expression(value, acc)
+        }
+        Statement::Assign { left, value, .. } => {
+            collect_markdown_headers_from_expression(left, acc);
+            collect_markdown_headers_from_expression(value, acc);
+        }
+        Statement::AssignOp { left, value, .. } => {
+            collect_markdown_headers_from_expression(left, acc);
+            collect_markdown_headers_from_expression(value, acc);
+        }
+        Statement::Return { expr, .. }
+        | Statement::Expression { expr, .. }
+        | Statement::Semicolon { expr, .. } => {
+            collect_markdown_headers_from_expression(expr, acc)
+        }
+        Statement::While { condition, block, .. } => {
+            collect_markdown_headers_from_expression(condition, acc);
+            acc.extend(collect_markdown_headers_recursive(block));
+        }
+        Statement::ForLoop { iterator, block, .. } => {
+            collect_markdown_headers_from_expression(iterator, acc);
+            acc.extend(collect_markdown_headers_recursive(block));
+        }
+        Statement::CForLoop {
+            condition,
+            after,
+            block,
+        } => {
+            if let Some(cond) = condition {
+                collect_markdown_headers_from_expression(cond, acc);
+            }
+            if let Some(after_stmt) = after.as_deref() {
+                collect_markdown_headers_from_statement(after_stmt, acc);
+            }
+            acc.extend(collect_markdown_headers_recursive(block));
+        }
+        Statement::Assert { condition, .. } => {
+            collect_markdown_headers_from_expression(condition, acc)
+        }
+        Statement::WatchOptions { .. }
+        | Statement::WatchNotify { .. }
+        | Statement::Break(_)
+        | Statement::Continue(_) => {}
+    }
+}
+
+fn collect_markdown_headers_from_expression(
+    expr: &Expression,
+    acc: &mut Vec<MarkdownHeaderMetadata>,
+) {
+    match expr {
+        Expression::ArrayAccess { base, index, .. } => {
+            collect_markdown_headers_from_expression(base, acc);
+            collect_markdown_headers_from_expression(index, acc);
+        }
+        Expression::FieldAccess { base, .. } => {
+            collect_markdown_headers_from_expression(base, acc);
+        }
+        Expression::MethodCall { receiver, args, .. } => {
+            collect_markdown_headers_from_expression(receiver, acc);
+            for arg in args {
+                collect_markdown_headers_from_expression(arg, acc);
+            }
+        }
+        Expression::BoolValue(_, _)
+        | Expression::NumericValue(_, _)
+        | Expression::Identifier(_, _)
+        | Expression::StringValue(_, _)
+        | Expression::RawStringValue(_, _)
+        | Expression::JinjaExpressionValue(_, _) => {}
+        Expression::If {
+            condition,
+            if_branch,
+            else_branch,
+            ..
+        } => {
+            collect_markdown_headers_from_expression(condition, acc);
+            collect_markdown_headers_from_expression(if_branch, acc);
+            if let Some(else_expr) = else_branch {
+                collect_markdown_headers_from_expression(else_expr, acc);
+            }
+        }
+        Expression::Array(elements, _) => {
+            for element in elements {
+                collect_markdown_headers_from_expression(element, acc);
+            }
+        }
+        Expression::Map(entries, _) => {
+            for (key, value) in entries {
+                collect_markdown_headers_from_expression(key, acc);
+                collect_markdown_headers_from_expression(value, acc);
+            }
+        }
+        Expression::Call {
+            function,
+            args,
+            ..
+        } => {
+            collect_markdown_headers_from_expression(function, acc);
+            for arg in args {
+                collect_markdown_headers_from_expression(arg, acc);
+            }
+        }
+        Expression::ClassConstructor(class_ctor, _) => {
+            for field in &class_ctor.fields {
+                collect_markdown_headers_from_constructor_field(field, acc);
+            }
+        }
+        Expression::Block(block, _) => {
+            acc.extend(collect_markdown_headers_recursive(block));
+        }
+        Expression::BinaryOperation { left, right, .. } => {
+            collect_markdown_headers_from_expression(left, acc);
+            collect_markdown_headers_from_expression(right, acc);
+        }
+        Expression::UnaryOperation { expr, .. } => {
+            collect_markdown_headers_from_expression(expr, acc);
+        }
+        Expression::Paren(inner, _) => {
+            collect_markdown_headers_from_expression(inner, acc);
+        }
+    }
+}
+
+fn collect_markdown_headers_from_constructor_field(
+    field: &ClassConstructorField,
+    acc: &mut Vec<MarkdownHeaderMetadata>,
+) {
+    match field {
+        ClassConstructorField::Named { value, .. }
+        | ClassConstructorField::Spread { value } => {
+            collect_markdown_headers_from_expression(value, acc)
         }
     }
 }
@@ -427,6 +653,7 @@ fn lower_stmt_with_options(
                             Block {
                                 statements: vec![init, inner_loop],
                                 trailing_expr: None,
+                                markdown_headers: Vec::new(),
                             },
                             stmt.span.clone(),
                         ),
@@ -575,6 +802,9 @@ fn lower_stmt_with_options(
             variable: variable.to_string(),
             span: span.clone(),
         },
+        ast::Stmt::MarkdownHeaderComment(_) => {
+            unreachable!("Markdown header comments should be lowered at the block level")
+        }
     }
 }
 

@@ -39,6 +39,7 @@ pub struct ExprFunction<T> {
     pub parameters: Vec<Parameter>,
     pub return_type: TypeIR,
     pub body: Block<T>,
+    pub markdown_headers: Vec<hir::MarkdownHeaderMetadata>,
     pub span: Span,
 }
 
