@@ -1317,6 +1317,7 @@ name = "baml-schema-build"
 version = "0.211.2"
 dependencies = [
  "anyhow",
+ "baml-compiler",
  "baml-ids",
  "baml-runtime",
  "baml-types",

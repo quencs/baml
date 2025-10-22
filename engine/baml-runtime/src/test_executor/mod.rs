@@ -310,6 +310,13 @@ impl TestExecutor for BamlRuntime {
                                     None,                // tags
                                     TripWire::new(None), // No tripwire for test executor,
                                     on_tick,
+                                    None::<
+                                        Box<
+                                            dyn Fn(baml_compiler::watch::WatchNotification)
+                                                + Send
+                                                + 'static,
+                                        >,
+                                    >,
                                 )
                                 .await
                         }
@@ -321,6 +328,13 @@ impl TestExecutor for BamlRuntime {
                                     &test_name,
                                     &ctx_manager,
                                     env_vars.clone(),
+                                    None::<
+                                        Box<
+                                            dyn Fn(baml_compiler::watch::WatchNotification)
+                                                + Send
+                                                + 'static,
+                                        >,
+                                    >,
                                 )
                                 .await
                         }

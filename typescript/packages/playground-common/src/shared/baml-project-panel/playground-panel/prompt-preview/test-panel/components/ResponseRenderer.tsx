@@ -1,6 +1,6 @@
 // ResponseRenderer.tsx
 import { WasmFunctionResponse, WasmTestResponse, WasmLLMFailure, WasmLLMResponse } from '@gloo-ai/baml-schema-wasm-web'
-import { DoneTestStatusType } from '../../../atoms'
+import { DoneTestStatusType, TestState } from '../../../atoms'
 import { useState } from 'react'
 import {
   AlertCircle,
@@ -18,14 +18,16 @@ import { Badge } from '@baml/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@baml/ui/tooltip'
 import { ParsedResponseRenderer } from './ParsedResponseRender'
 import { RenderPromptPart } from '../../render-text'
+import { WatchNotificationsView } from './WatchNotificationsView'
 
 interface ResponseRendererProps {
   response?: WasmFunctionResponse | WasmTestResponse
   status?: DoneTestStatusType
+  test?: TestState  // NEW - to access watchNotifications
 }
 
 // Renders both the raw LLM response and the parsed response
-export const ResponseRenderer: React.FC<ResponseRendererProps> = ({ response, status }) => {
+export const ResponseRenderer: React.FC<ResponseRendererProps> = ({ response, status, test }) => {
   const [parsedCopied, setParsedCopied] = useState(false)
   const [llmCopied, setLlmCopied] = useState(false)
 
@@ -107,6 +109,13 @@ export const ResponseRenderer: React.FC<ResponseRendererProps> = ({ response, st
       </div>
 
       {/* Error Messages are rendered inside ParsedResponseRenderer*/}
+
+      {/* Watch Notifications Section */}
+      {test && 'watchNotifications' in test && test.watchNotifications && (
+        <div className="mt-4 border-t pt-4">
+          <WatchNotificationsView notifications={test.watchNotifications} />
+        </div>
+      )}
     </div>
   )
 }

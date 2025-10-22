@@ -418,7 +418,7 @@ pub async fn interpret_thir<F, Fut>(
     thir: THir<ExprMetadata>,
     expr: Expr<ExprMetadata>,
     mut run_llm_function: F,
-    mut watch_notification_handler: impl FnMut(WatchNotification) + Send,
+    mut watch_notification_handler: impl FnMut(WatchNotification),
     extra_bindings: BamlMap<String, BamlValueWithMeta<ExprMetadata>>,
     env_vars: HashMap<String, String>,
 ) -> Result<BamlValueWithMeta<ExprMetadata>>
@@ -494,7 +494,7 @@ fn evaluate_block_with_control_flow<'a, F, Fut, E>(
 where
     F: LlmHandler<Fut>,
     Fut: LlmFuture,
-    E: FnMut(crate::watch::WatchNotification) + Send,
+    E: FnMut(crate::watch::WatchNotification),
 {
     Box::pin(async move {
         scopes.push(Scope {
@@ -524,7 +524,7 @@ where
         where
             F: LlmHandler<Fut>,
             Fut: LlmFuture,
-            E: FnMut(crate::watch::WatchNotification) + Send,
+            E: FnMut(crate::watch::WatchNotification),
         {
             Box::pin(async move {
                 match stmt {
@@ -1412,7 +1412,7 @@ async fn evaluate_block<F, Fut, E>(
 where
     F: LlmHandler<Fut>,
     Fut: LlmFuture,
-    E: FnMut(crate::watch::WatchNotification) + Send,
+    E: FnMut(crate::watch::WatchNotification),
 {
     match evaluate_block_with_control_flow(
         block,
@@ -1471,7 +1471,7 @@ async fn assign_to_expr<F, Fut, E>(
 where
     F: LlmHandler<Fut>,
     Fut: LlmFuture,
-    E: FnMut(crate::watch::WatchNotification) + Send,
+    E: FnMut(crate::watch::WatchNotification),
 {
     let mut current_expr = target;
     let mut value_to_assign = new_value;
@@ -1636,7 +1636,7 @@ fn evaluate_expr<'a, F, Fut, E>(
 where
     F: LlmHandler<Fut>,
     Fut: LlmFuture,
-    E: FnMut(crate::watch::WatchNotification) + Send,
+    E: FnMut(crate::watch::WatchNotification),
 {
     evaluate_expr_with_context(
         expr,
@@ -1662,7 +1662,7 @@ fn evaluate_expr_with_context<'a, F, Fut, E>(
 where
     F: LlmHandler<Fut>,
     Fut: LlmFuture,
-    E: FnMut(crate::watch::WatchNotification) + Send,
+    E: FnMut(crate::watch::WatchNotification),
 {
     Box::pin(async move {
         Ok(match expr {

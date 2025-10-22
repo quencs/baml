@@ -164,8 +164,8 @@ impl BamlAsyncVmRuntime {
         env_vars: HashMap<String, String>,
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
-        mut watch_handler: Option<
-            impl FnMut(baml_compiler::watch::WatchNotification) + Send + 'static,
+        watch_handler: Option<
+            impl Fn(baml_compiler::watch::WatchNotification),
         >,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
         // Find the function.
@@ -377,13 +377,13 @@ impl BamlAsyncVmRuntime {
                                     function_name.to_owned(),
                                 );
 
-                                if let Some(handler) = watch_handler.as_mut() {
+                                if let Some(handler) = watch_handler.as_ref() {
                                     handler(notification);
                                 }
                             }
                         }
                         baml_vm::vm::WatchNotification::Block(notification) => {
-                            if let Some(handler) = watch_handler.as_mut() {
+                            if let Some(handler) = watch_handler.as_ref() {
                                 handler(watch::WatchNotification::new_block(
                                     String::from_utf8_lossy(&notification.block_name).to_string(),
                                     String::from_utf8_lossy(&notification.function_name)
@@ -726,7 +726,7 @@ impl BamlAsyncVmRuntime {
         env_vars: HashMap<String, String>,
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
-        watch_handler: Option<impl FnMut(baml_compiler::watch::WatchNotification) + Send + 'static>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
         self.async_runtime.block_on(self.call_function(
             function_name,
@@ -873,7 +873,7 @@ impl BamlAsyncVmRuntime {
     }
 
     // Test execution methods
-    pub async fn run_test<F, G>(
+    pub async fn run_test<F, G, H>(
         &self,
         function_name: &str,
         test_name: &str,
@@ -884,6 +884,7 @@ impl BamlAsyncVmRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<crate::TripWire>,
         on_tick: Option<G>,
+        watch_handler: Option<H>,
     ) -> (
         Result<crate::TestResponse, anyhow::Error>,
         baml_ids::FunctionCallId,
@@ -891,6 +892,7 @@ impl BamlAsyncVmRuntime {
     where
         F: Fn(crate::FunctionResult),
         G: Fn(),
+        H: Fn(baml_compiler::watch::WatchNotification),
     {
         self.llm_runtime
             .run_test(
@@ -903,11 +905,12 @@ impl BamlAsyncVmRuntime {
                 tags,
                 cancel_tripwire,
                 on_tick,
+                watch_handler,
             )
             .await
     }
 
-    pub async fn run_test_with_expr_events<F, G>(
+    pub async fn run_test_with_expr_events<F, G, H>(
         &self,
         function_name: &str,
         test_name: &str,
@@ -923,6 +926,7 @@ impl BamlAsyncVmRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<crate::TripWire>,
         on_tick: Option<G>,
+        watch_handler: Option<H>,
     ) -> (
         Result<crate::TestResponse, anyhow::Error>,
         baml_ids::FunctionCallId,
@@ -930,6 +934,7 @@ impl BamlAsyncVmRuntime {
     where
         F: Fn(crate::FunctionResult),
         G: Fn(),
+        H: Fn(baml_compiler::watch::WatchNotification),
     {
         self.llm_runtime
             .run_test_with_expr_events(
@@ -943,6 +948,7 @@ impl BamlAsyncVmRuntime {
                 tags,
                 cancel_tripwire,
                 on_tick,
+                watch_handler,
             )
             .await
     }

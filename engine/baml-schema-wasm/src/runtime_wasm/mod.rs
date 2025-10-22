@@ -1864,6 +1864,9 @@ impl WasmRuntime {
                                 None,          // tags
                                 test_tripwire, // Pass tripwire to each test
                                 on_tick,
+                                None::<
+                                    Box<dyn Fn(baml_compiler::watch::WatchNotification) + 'static>,
+                                >, // watch_handler
                             )
                             .await;
 
@@ -2189,6 +2192,7 @@ impl WasmFunction {
         on_expr_event: js_sys::Function,
         env: js_sys::Object,
         abort_signal: Option<js_sys::Object>,
+        watch_handler: js_sys::Function,
     ) -> Result<WasmTestResponse, JsValue> {
         // Convert abort signal to tripwire
         let tripwire = js_abort_signal_to_tripwire(abort_signal).map_err(JsValue::from)?;
@@ -2216,6 +2220,57 @@ impl WasmFunction {
             .into();
             on_partial_response.call1(&this, &res).unwrap();
         });
+
+        let watch_handler_cb = Box::new(
+            move |notification: baml_compiler::watch::WatchNotification| {
+                // Convert notification to a JS object
+                let js_notification = js_sys::Object::new();
+
+                if let Some(var_name) = &notification.variable_name {
+                    js_sys::Reflect::set(
+                        &js_notification,
+                        &JsValue::from_str("variable_name"),
+                        &JsValue::from_str(var_name),
+                    )
+                    .unwrap();
+                }
+
+                if let Some(channel) = &notification.channel_name {
+                    js_sys::Reflect::set(
+                        &js_notification,
+                        &JsValue::from_str("channel_name"),
+                        &JsValue::from_str(channel),
+                    )
+                    .unwrap();
+                }
+
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("function_name"),
+                    &JsValue::from_str(&notification.function_name),
+                )
+                .unwrap();
+
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("is_stream"),
+                    &JsValue::from_bool(notification.is_stream),
+                )
+                .unwrap();
+
+                // Convert the value to a string for now
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("value"),
+                    &JsValue::from_str(&format!("{:?}", notification.value)),
+                )
+                .unwrap();
+
+                watch_handler
+                    .call1(&JsValue::NULL, &js_notification)
+                    .unwrap();
+            },
+        );
 
         // Create the channel for expression events
         let (tx, mut rx) = mpsc::unbounded::<Vec<SerializedSpan>>();
@@ -2262,6 +2317,7 @@ impl WasmFunction {
                 None, // tags
                 tripwire,
                 on_tick,
+                Some(watch_handler_cb),
             )
             .await;
 
@@ -2303,6 +2359,7 @@ impl WasmFunction {
         get_baml_src_cb: js_sys::Function,
         env: js_sys::Object,
         abort_signal: Option<js_sys::Object>,
+        watch_handler: js_sys::Function,
     ) -> Result<WasmTestResponse, JsValue> {
         // Convert abort signal to tripwire
         let tripwire = js_abort_signal_to_tripwire(abort_signal).map_err(JsValue::from)?;
@@ -2326,6 +2383,58 @@ impl WasmFunction {
             .into();
             on_partial_response.call1(&this, &res).unwrap();
         });
+
+        // Create the closure to handle watch notifications (similar to on_partial_response):
+        let watch_handler_cb = Box::new(
+            move |notification: baml_compiler::watch::WatchNotification| {
+                // Convert notification to a JS object
+                let js_notification = js_sys::Object::new();
+
+                if let Some(var_name) = &notification.variable_name {
+                    js_sys::Reflect::set(
+                        &js_notification,
+                        &JsValue::from_str("variable_name"),
+                        &JsValue::from_str(var_name),
+                    )
+                    .unwrap();
+                }
+
+                if let Some(channel) = &notification.channel_name {
+                    js_sys::Reflect::set(
+                        &js_notification,
+                        &JsValue::from_str("channel_name"),
+                        &JsValue::from_str(channel),
+                    )
+                    .unwrap();
+                }
+
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("function_name"),
+                    &JsValue::from_str(&notification.function_name),
+                )
+                .unwrap();
+
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("is_stream"),
+                    &JsValue::from_bool(notification.is_stream),
+                )
+                .unwrap();
+
+                // Convert the value to a string for now
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("value"),
+                    &JsValue::from_str(&format!("{:?}", notification.value)),
+                )
+                .unwrap();
+
+                watch_handler
+                    .call1(&JsValue::NULL, &js_notification)
+                    .unwrap();
+            },
+        );
 
         // Create your evaluation context, etc.
         let ctx = rt.create_ctx_manager_for_wasm(js_fn_to_baml_src_reader(get_baml_src_cb));
@@ -2351,6 +2460,7 @@ impl WasmFunction {
                 None, // tags
                 tripwire,
                 on_tick,
+                Some(watch_handler_cb),
             )
             .await;
 

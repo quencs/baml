@@ -165,7 +165,7 @@ impl BamlAsyncInterpreterRuntime {
         env_vars: HashMap<String, String>,
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
-        watch_handler: Option<impl FnMut(baml_compiler::watch::WatchNotification) + Send + 'static>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
         // Check if this is an expression function
         let expr_fn = self
@@ -223,7 +223,7 @@ impl BamlAsyncInterpreterRuntime {
 
         // Wrap watch handler in Arc<Mutex> so it can be shared with llm_handler
         let watch_handler_shared: Arc<
-            Mutex<Box<dyn FnMut(baml_compiler::watch::WatchNotification) + Send>>,
+            Mutex<Box<dyn Fn(baml_compiler::watch::WatchNotification)>>,
         > = Arc::new(Mutex::new(if let Some(handler) = watch_handler {
             Box::new(handler)
         } else {
@@ -256,7 +256,7 @@ impl BamlAsyncInterpreterRuntime {
                 let env_vars = env_vars_clone.clone();
                 let cancel_tripwire = cancel_tripwire_clone.clone();
                 let watch_handler: Arc<
-                    Mutex<Box<dyn FnMut(baml_compiler::watch::WatchNotification) + Send>>,
+                    Mutex<Box<dyn Fn(baml_compiler::watch::WatchNotification)>>,
                 > = Arc::clone(&watch_handler_for_llm);
                 let parent_fn = parent_function_name.clone();
                 let tags = tags_clone.clone();
@@ -326,7 +326,7 @@ impl BamlAsyncInterpreterRuntime {
                         let variable_name = watch_ctx.variable_name.clone();
                         let stream_id = watch_ctx.stream_id.clone();
                         let watch_handler_for_stream: Arc<
-                            Mutex<Box<dyn FnMut(baml_compiler::watch::WatchNotification) + Send>>,
+                            Mutex<Box<dyn Fn(baml_compiler::watch::WatchNotification)>>,
                         > = Arc::clone(&watch_handler);
 
                         let parent_fn_for_stream = parent_fn.clone();
@@ -528,7 +528,7 @@ impl BamlAsyncInterpreterRuntime {
         env_vars: HashMap<String, String>,
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
-        watch_handler: Option<impl FnMut(baml_compiler::watch::WatchNotification) + Send + 'static>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
         self.async_runtime.block_on(self.call_function(
             function_name,
@@ -686,6 +686,7 @@ impl BamlAsyncInterpreterRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<crate::TripWire>,
         on_tick: Option<G>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (Result<crate::TestResponse>, baml_ids::FunctionCallId)
     where
         F: Fn(crate::FunctionResult),
@@ -702,6 +703,7 @@ impl BamlAsyncInterpreterRuntime {
                 tags,
                 cancel_tripwire,
                 on_tick,
+                watch_handler,
             )
             .await
     }
@@ -720,6 +722,7 @@ impl BamlAsyncInterpreterRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<crate::TripWire>,
         on_tick: Option<G>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (Result<crate::TestResponse>, baml_ids::FunctionCallId)
     where
         F: Fn(crate::FunctionResult),
@@ -737,6 +740,7 @@ impl BamlAsyncInterpreterRuntime {
                 tags,
                 cancel_tripwire,
                 on_tick,
+                watch_handler,
             )
             .await
     }

@@ -13,6 +13,7 @@ import {
   currentAbortControllerAtom,
   flashRangesAtom,
 } from '../../atoms'
+import type { WatchNotification } from './types'
 import { isParallelTestsEnabledAtom, testHistoryAtom, selectedHistoryIndexAtom, type TestHistoryRun } from './atoms'
 import { isClientCallGraphEnabledAtom } from '../../preview-toolbar'
 import { apiKeysAtom } from '../../../../../components/api-keys-dialog/atoms';
@@ -116,6 +117,9 @@ const useRunTests = (maxBatchSize = 5) => {
               hasSignal: !!controller.signal,
               signalAborted: controller.signal.aborted
             })
+            // Collect watch notifications
+            const watchNotifications: WatchNotification[] = [];
+
             console.log('[TestRunner] Starting run_test_with_expr_events', {
               functionName: testCase.fn.name,
               testCaseName: testCase.tc.name,
@@ -126,7 +130,11 @@ const useRunTests = (maxBatchSize = 5) => {
               rt,
               testCase.tc.name,
               (partial: WasmFunctionResponse) => {
-                setState(test, { status: 'running', response: partial })
+                setState(test, {
+                  status: 'running',
+                  response: partial,
+                  watchNotifications: [...watchNotifications]  // Include current notifications
+                })
               },
               vscode.loadMediaFile,
               (spans: WasmSpan[]) => {
@@ -152,9 +160,22 @@ const useRunTests = (maxBatchSize = 5) => {
                   console.error('Failed to send spans to VSCode:', e)
                 }
               },
-              // TODO this needs to be moved down cause its wrong param.
               apiKeys,
               controller.signal, // Pass abort signal
+              (notification: any) => {  // NEW 8th parameter - watch handler
+                // Collect notifications
+                watchNotifications.push(notification as WatchNotification);
+
+                // Log for debugging
+                console.log('Watch notification:', notification);
+
+                // Update state with accumulated notifications
+                setState(test, {
+                  status: 'running',
+                  response: undefined, // Keep existing response if any
+                  watchNotifications: [...watchNotifications]
+                });
+              }
             )
             console.log('result', result)
 
@@ -180,6 +201,7 @@ const useRunTests = (maxBatchSize = 5) => {
               response: result,
               response_status: responseStatusMap[response_status] || 'error',
               latency_ms: endTime - startTime,
+              watchNotifications: [...watchNotifications]  // NEW - preserve notifications
             })
           } catch (e) {
             console.log('test error!')

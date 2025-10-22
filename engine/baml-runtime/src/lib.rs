@@ -764,6 +764,7 @@ impl BamlRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
         on_tick: Option<G>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
@@ -801,7 +802,7 @@ impl BamlRuntime {
                 test_name
             );
             let result = self
-                .run_expr_test(function_name, test_name, ctx, env_vars)
+                .run_expr_test(function_name, test_name, ctx, env_vars, watch_handler)
                 .await;
             match &result.0 {
                 Ok(_) => log::info!(
@@ -967,6 +968,7 @@ impl BamlRuntime {
         tags: Option<HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
         on_tick: Option<G>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (Result<TestResponse>, FunctionCallId)
     where
         F: Fn(FunctionResult),
@@ -984,6 +986,7 @@ impl BamlRuntime {
                 tags,
                 cancel_tripwire,
                 on_tick,
+                watch_handler,
             )
             .await;
         res
@@ -996,6 +999,7 @@ impl BamlRuntime {
         test_name: &str,
         ctx: &RuntimeContextManager,
         env_vars: HashMap<String, String>,
+        watch_handler: Option<impl Fn(baml_compiler::watch::WatchNotification)>,
     ) -> (Result<TestResponse>, FunctionCallId) {
         log::info!(
             "[Runtime] run_expr_test start function={} test={}",
@@ -1050,7 +1054,7 @@ impl BamlRuntime {
                 env_vars.clone(),
                 None, // tags
                 TripWire::new(None),
-                None::<fn(baml_compiler::watch::WatchNotification)>, // watch_handler
+                watch_handler,
             )
             .await;
 
