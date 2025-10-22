@@ -57,7 +57,11 @@ impl fmt::Display for WatchNotification {
                 }
             },
             WatchBamlValue::Block(label) => {
-                write!(f, "(block) {label}")
+                write!(
+                    f,
+                    "(block) {function_name}.{label}",
+                    function_name = self.function_name
+                )
             }
             WatchBamlValue::StreamStart(stream_id) => {
                 write!(f, "(stream start) {stream_id}")

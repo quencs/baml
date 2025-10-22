@@ -367,25 +367,59 @@ impl Block {
         }
 
         // Second pass: lower statements, applying watch options to watch specs
-        let statements: Vec<Statement> = block
+        let mut statements: Vec<Statement> = block
             .stmts
             .iter()
             .map(|stmt| lower_stmt_with_options(stmt, &watch_options_map))
             .collect();
 
+        let trailing_expr = block
+            .expr
+            .as_deref()
+            .map(Expression::from_ast)
+            .map(Box::new);
+
+        if !block.expr_headers.is_empty() {
+            println!(
+                "Annotated!: {}",
+                trailing_expr
+                    .as_ref()
+                    .map(|f| f.to_doc().pretty(80).to_string())
+                    .unwrap_or_else(|| "<..>".to_string())
+            );
+            statements.push(Statement::AnnotatedStatement {
+                headers: block.expr_headers.iter().map(|h| h.title.clone()).collect(),
+                statement: None,
+            });
+        }
+
         Block {
             statements,
-            trailing_expr: block
-                .expr
-                .as_deref()
-                .map(Expression::from_ast)
-                .map(Box::new),
+            trailing_expr,
         }
     }
 }
 
 fn lower_stmt(stmt: &ast::Stmt) -> Statement {
     lower_stmt_with_options(stmt, &HashMap::new())
+}
+
+fn maybe_annotated_statement(
+    stmt: Statement,
+    annotated_comments: &Vec<std::sync::Arc<ast::Header>>,
+) -> Statement {
+    if annotated_comments.is_empty() {
+        stmt
+    } else {
+        println!("Annotated!: {}", stmt.to_doc().pretty(80));
+        Statement::AnnotatedStatement {
+            headers: annotated_comments
+                .iter()
+                .map(|a| a.title.to_string())
+                .collect(),
+            statement: Some(Box::new(stmt)),
+        }
+    }
 }
 
 fn lower_stmt_with_options(
@@ -489,7 +523,7 @@ fn lower_stmt_with_options(
             annotation,
             expr,
             span,
-            annotations: _,
+            annotations: annotated_comments,
             is_watched,
         }) => {
             let lifted_expr = Expression::from_ast(expr);
@@ -504,7 +538,7 @@ fn lower_stmt_with_options(
                 None
             };
 
-            if *is_mutable {
+            let statement = if *is_mutable {
                 Statement::DeclareAndAssign {
                     name: identifier.to_string(),
                     value: lifted_expr,
@@ -520,7 +554,9 @@ fn lower_stmt_with_options(
                     watch: watch_spec,
                     span: span.clone(),
                 }
-            }
+            };
+
+            maybe_annotated_statement(statement, annotated_comments)
         }
         ast::Stmt::ForLoop(ast::ForLoopStmt {
             identifier,
@@ -528,23 +564,32 @@ fn lower_stmt_with_options(
             body,
             span,
             has_let: _,
-            annotations: _,
+            annotations: annotated_comments,
         }) => {
             // Lower for loop to HIR
             let lifted_iterator = Expression::from_ast(iterator);
 
             // Add the for loop statement
-            Statement::ForLoop {
+            let statement = Statement::ForLoop {
                 identifier: identifier.name().to_string(),
                 iterator: Box::new(lifted_iterator),
                 block: Block::from_expr_block(body),
                 span: span.clone(),
-            }
+            };
+
+            maybe_annotated_statement(statement, &annotated_comments)
         }
-        ast::Stmt::Expression(expr) => Statement::Expression {
-            expr: Expression::from_ast(&expr.expr),
-            span: expr.span.clone(),
-        },
+        ast::Stmt::Expression(ast::ExprStmt {
+            expr,
+            span,
+            annotations: annotated_comments,
+        }) => {
+            let statement = Statement::Expression {
+                expr: Expression::from_ast(expr),
+                span: span.clone(),
+            };
+            maybe_annotated_statement(statement, &annotated_comments)
+        }
         ast::Stmt::Semicolon(expr) => Statement::Semicolon {
             expr: Expression::from_ast(expr),
             span: expr.span().clone(),
@@ -653,7 +698,6 @@ impl Expression {
                 type_args,
                 args,
                 span,
-                ..
             }) => {
                 // Note: AST function calls are always just names next to argument lists.
                 // Later, we will be able to call any expression that is a function.

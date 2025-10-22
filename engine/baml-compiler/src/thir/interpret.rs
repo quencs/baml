@@ -513,206 +513,45 @@ where
             block.statements.len()
         };
 
-        for stmt in block.statements.iter().take(statements_to_execute) {
-            match stmt {
-                Statement::Let {
-                    name, value, watch, ..
-                } => {
-                    match evaluate_expr(
-                        value,
-                        scopes,
-                        thir,
-                        run_llm_function,
-                        watch_handler,
-                        function_name,
-                    )
-                    .await?
-                    {
-                        EvalValue::Value(v) => {
-                            declare(scopes, name, v);
-                            // Register watch tracking if @watch is present
-                            if let Some(watch_spec) = watch {
-                                if let Some(var_ref) = lookup_variable(scopes, name) {
-                                    register_watch_variable(
-                                        scopes,
-                                        name,
-                                        var_ref,
-                                        watch_spec.clone(),
-                                    );
-                                }
-                            }
-                        }
-                        EvalValue::Reference(cell) => {
-                            declare_with_cell(scopes, name, cell.clone());
-                            // Register watch tracking if @watch is present
-                            if let Some(emit_spec) = watch {
-                                register_watch_variable(scopes, name, cell, emit_spec.clone());
-                            }
-                        }
-                        EvalValue::Function(_, _, _) => {
-                            bail!("cannot assign function to variable `{}`", name);
+        fn handle_statement<'a, F, Fut, E>(
+            stmt: &'a Statement<ExprMetadata>,
+            scopes: &'a mut Vec<Scope>,
+            thir: &'a THir<ExprMetadata>,
+            run_llm_function: &'a mut F,
+            watch_handler: &'a mut E,
+            function_name: &'a str,
+        ) -> BoxFuture<'a, Result<Option<ControlFlow>>>
+        where
+            F: LlmHandler<Fut>,
+            Fut: LlmFuture,
+            E: FnMut(crate::watch::WatchNotification) + Send,
+        {
+            Box::pin(async move {
+                match stmt {
+                    Statement::AnnotatedStatement { headers, statement } => {
+                        headers.iter().for_each(|header| {
+                            watch_handler(WatchNotification::new_block(
+                                header.clone(),
+                                "FunctionNameNotPlumbed".to_string(),
+                            ));
+                        });
+                        if let Some(statement) = statement {
+                            return handle_statement(
+                                statement,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await;
                         }
                     }
-                    // Check for changes in all watch variables after the let statement
-                    check_watch_changes(
-                        scopes,
-                        watch_handler,
-                        function_name,
-                        thir,
-                        run_llm_function,
-                    )
-                    .await;
-                }
-                Statement::Declare { name, span } => {
-                    declare(scopes, name, BamlValueWithMeta::Null((span.clone(), None)));
-                }
-                Statement::Assign { left, value } => {
-                    let assigned_value = expect_value(
-                        evaluate_expr(
+                    Statement::Let {
+                        name, value, watch, ..
+                    } => {
+                        match evaluate_expr(
                             value,
-                            scopes,
-                            thir,
-                            run_llm_function,
-                            watch_handler,
-                            function_name,
-                        )
-                        .await?,
-                    )?;
-                    assign_to_expr(
-                        left,
-                        assigned_value,
-                        scopes,
-                        thir,
-                        run_llm_function,
-                        watch_handler,
-                        function_name,
-                    )
-                    .await?;
-                    // Check for changes in watch variables after assignment
-                    check_watch_changes(
-                        scopes,
-                        watch_handler,
-                        function_name,
-                        thir,
-                        run_llm_function,
-                    )
-                    .await;
-                }
-                Statement::DeclareAndAssign {
-                    name, value, watch, ..
-                } => {
-                    // Create watch context if @watch is present
-                    let watch_ctx = watch.as_ref().map(|_| {
-                        use std::time::{SystemTime, UNIX_EPOCH};
-                        let timestamp = SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap()
-                            .as_millis();
-                        WatchStreamContext {
-                            variable_name: name.clone(),
-                            stream_id: format!("{function_name}_{name}_{timestamp}"),
-                        }
-                    });
-
-                    match evaluate_expr_with_context(
-                        value,
-                        scopes,
-                        thir,
-                        run_llm_function,
-                        watch_handler,
-                        function_name,
-                        watch_ctx.as_ref(),
-                    )
-                    .await?
-                    {
-                        EvalValue::Value(v) => {
-                            declare(scopes, name, v);
-                            // Register watch tracking if @watch is present
-                            if let Some(watch_spec) = watch {
-                                if let Some(var_ref) = lookup_variable(scopes, name) {
-                                    register_watch_variable(
-                                        scopes,
-                                        name,
-                                        var_ref,
-                                        watch_spec.clone(),
-                                    );
-                                }
-                            }
-                        }
-                        EvalValue::Reference(cell) => {
-                            declare_with_cell(scopes, name, cell.clone());
-                            // Register watch tracking if @watch is present
-                            if let Some(emit_spec) = watch {
-                                register_watch_variable(scopes, name, cell, emit_spec.clone());
-                            }
-                        }
-                        EvalValue::Function(_, _, _) => {
-                            bail!("cannot assign function to variable `{}`", name);
-                        }
-                    }
-                    // Check for changes in all watch variables after the declare and assign
-                    check_watch_changes(
-                        scopes,
-                        watch_handler,
-                        function_name,
-                        thir,
-                        run_llm_function,
-                    )
-                    .await;
-                }
-                Statement::Return { expr, .. } => {
-                    let v = expect_value(
-                        evaluate_expr(
-                            expr,
-                            scopes,
-                            thir,
-                            run_llm_function,
-                            watch_handler,
-                            function_name,
-                        )
-                        .await?,
-                    )?;
-                    scopes.pop();
-                    return Ok(ControlFlow::Return(v));
-                }
-                Statement::Expression { expr, .. } => {
-                    // For expression statements, we still need to evaluate them for side effects
-                    // (and the last one might be the implicit return value)
-                    let _ = evaluate_expr(
-                        expr,
-                        scopes,
-                        thir,
-                        run_llm_function,
-                        watch_handler,
-                        function_name,
-                    )
-                    .await?;
-                }
-                Statement::Break(_) => {
-                    scopes.pop();
-                    return Ok(ControlFlow::Break);
-                }
-                Statement::Continue(_) => {
-                    scopes.pop();
-                    return Ok(ControlFlow::Continue);
-                }
-                Statement::While {
-                    condition, block, ..
-                } => loop {
-                    let cond_val = expect_value(
-                        evaluate_expr(
-                            condition,
-                            scopes,
-                            thir,
-                            run_llm_function,
-                            watch_handler,
-                            function_name,
-                        )
-                        .await?,
-                    )?;
-                    match cond_val {
-                        BamlValueWithMeta::Bool(true, _) => match evaluate_block_with_control_flow(
-                            block,
                             scopes,
                             thir,
                             run_llm_function,
@@ -721,46 +560,190 @@ where
                         )
                         .await?
                         {
-                            ControlFlow::Break => break,
-                            ControlFlow::Continue => continue,
-                            ControlFlow::Normal(_) => {}
-                            ControlFlow::Return(val) => {
-                                scopes.pop();
-                                return Ok(ControlFlow::Return(val));
+                            EvalValue::Value(v) => {
+                                declare(scopes, name, v);
+                                // Register watch tracking if @watch is present
+                                if let Some(watch_spec) = watch {
+                                    if let Some(var_ref) = lookup_variable(scopes, name) {
+                                        register_watch_variable(
+                                            scopes,
+                                            name,
+                                            var_ref,
+                                            watch_spec.clone(),
+                                        );
+                                    }
+                                }
                             }
-                        },
-                        BamlValueWithMeta::Bool(false, _) => break,
-                        _ => bail!("while condition must be boolean"),
+                            EvalValue::Reference(cell) => {
+                                declare_with_cell(scopes, name, cell.clone());
+                                // Register watch tracking if @watch is present
+                                if let Some(emit_spec) = watch {
+                                    register_watch_variable(scopes, name, cell, emit_spec.clone());
+                                }
+                            }
+                            EvalValue::Function(_, _, _) => {
+                                bail!("cannot assign function to variable `{}`", name);
+                            }
+                        }
+                        // Check for changes in all watch variables after the let statement
+                        check_watch_changes(
+                            scopes,
+                            watch_handler,
+                            function_name,
+                            thir,
+                            run_llm_function,
+                        )
+                        .await;
                     }
-                },
-                Statement::ForLoop {
-                    identifier,
-                    iterator,
-                    block,
-                    ..
-                } => {
-                    let iterable_val = expect_value(
-                        evaluate_expr(
-                            iterator,
+                    Statement::Declare { name, span } => {
+                        declare(scopes, name, BamlValueWithMeta::Null((span.clone(), None)));
+                    }
+                    Statement::Assign { left, value } => {
+                        let assigned_value = expect_value(
+                            evaluate_expr(
+                                value,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+                        assign_to_expr(
+                            left,
+                            assigned_value,
                             scopes,
                             thir,
                             run_llm_function,
                             watch_handler,
                             function_name,
                         )
-                        .await?,
-                    )?;
-                    match iterable_val {
-                        BamlValueWithMeta::List(items, _) => {
-                            for item_val in items.iter() {
-                                // Create new scope for loop iteration
-                                scopes.push(Scope {
-                                    variables: BamlMap::new(),
-                                    watch_variables: Vec::new(),
-                                    is_filter_context: false,
-                                });
-                                declare(scopes, identifier, item_val.clone());
+                        .await?;
+                        // Check for changes in watch variables after assignment
+                        check_watch_changes(
+                            scopes,
+                            watch_handler,
+                            function_name,
+                            thir,
+                            run_llm_function,
+                        )
+                        .await;
+                    }
+                    Statement::DeclareAndAssign {
+                        name, value, watch, ..
+                    } => {
+                        // Create watch context if @watch is present
+                        let watch_ctx = watch.as_ref().map(|_| {
+                            use std::time::{SystemTime, UNIX_EPOCH};
+                            let timestamp = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_millis();
+                            WatchStreamContext {
+                                variable_name: name.clone(),
+                                stream_id: format!("{function_name}_{name}_{timestamp}"),
+                            }
+                        });
 
+                        match evaluate_expr_with_context(
+                            value,
+                            scopes,
+                            thir,
+                            run_llm_function,
+                            watch_handler,
+                            function_name,
+                            watch_ctx.as_ref(),
+                        )
+                        .await?
+                        {
+                            EvalValue::Value(v) => {
+                                declare(scopes, name, v);
+                                // Register watch tracking if @watch is present
+                                if let Some(watch_spec) = watch {
+                                    if let Some(var_ref) = lookup_variable(scopes, name) {
+                                        register_watch_variable(
+                                            scopes,
+                                            name,
+                                            var_ref,
+                                            watch_spec.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                            EvalValue::Reference(cell) => {
+                                declare_with_cell(scopes, name, cell.clone());
+                                // Register watch tracking if @watch is present
+                                if let Some(emit_spec) = watch {
+                                    register_watch_variable(scopes, name, cell, emit_spec.clone());
+                                }
+                            }
+                            EvalValue::Function(_, _, _) => {
+                                bail!("cannot assign function to variable `{}`", name);
+                            }
+                        }
+                        // Check for changes in all watch variables after the declare and assign
+                        check_watch_changes(
+                            scopes,
+                            watch_handler,
+                            function_name,
+                            thir,
+                            run_llm_function,
+                        )
+                        .await;
+                    }
+                    Statement::Return { expr, .. } => {
+                        let v = expect_value(
+                            evaluate_expr(
+                                expr,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+                        scopes.pop();
+                        return Ok(Some(ControlFlow::Return(v)));
+                    }
+                    Statement::Expression { expr, .. } => {
+                        // For expression statements, we still need to evaluate them for side effects
+                        // (and the last one might be the implicit return value)
+                        let _ = evaluate_expr(
+                            expr,
+                            scopes,
+                            thir,
+                            run_llm_function,
+                            watch_handler,
+                            function_name,
+                        )
+                        .await?;
+                    }
+                    Statement::Break(_) => {
+                        scopes.pop();
+                        return Ok(Some(ControlFlow::Break));
+                    }
+                    Statement::Continue(_) => {
+                        scopes.pop();
+                        return Ok(Some(ControlFlow::Continue));
+                    }
+                    Statement::While {
+                        condition, block, ..
+                    } => loop {
+                        let cond_val = expect_value(
+                            evaluate_expr(
+                                condition,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+                        match cond_val {
+                            BamlValueWithMeta::Bool(true, _) => {
                                 match evaluate_block_with_control_flow(
                                     block,
                                     scopes,
@@ -771,516 +754,609 @@ where
                                 )
                                 .await?
                                 {
-                                    ControlFlow::Break => {
-                                        scopes.pop();
-                                        break;
-                                    }
-                                    ControlFlow::Continue => {
-                                        scopes.pop();
-                                        continue;
-                                    }
-                                    ControlFlow::Normal(_) => {
-                                        scopes.pop();
-                                    }
+                                    ControlFlow::Break => break,
+                                    ControlFlow::Continue => continue,
+                                    ControlFlow::Normal(_) => {}
                                     ControlFlow::Return(val) => {
                                         scopes.pop();
-                                        scopes.pop();
-                                        return Ok(ControlFlow::Return(val));
+                                        return Ok(Some(ControlFlow::Return(val)));
                                     }
                                 }
                             }
+                            BamlValueWithMeta::Bool(false, _) => break,
+                            _ => bail!("while condition must be boolean"),
                         }
-                        _ => bail!("for loop requires iterable (list)"),
+                    },
+                    Statement::ForLoop {
+                        identifier,
+                        iterator,
+                        block,
+                        ..
+                    } => {
+                        let iterable_val = expect_value(
+                            evaluate_expr(
+                                iterator,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+                        match iterable_val {
+                            BamlValueWithMeta::List(items, _) => {
+                                for item_val in items.iter() {
+                                    // Create new scope for loop iteration
+                                    scopes.push(Scope {
+                                        variables: BamlMap::new(),
+                                        watch_variables: Vec::new(),
+                                        is_filter_context: false,
+                                    });
+                                    declare(scopes, identifier, item_val.clone());
+
+                                    match evaluate_block_with_control_flow(
+                                        block,
+                                        scopes,
+                                        thir,
+                                        run_llm_function,
+                                        watch_handler,
+                                        function_name,
+                                    )
+                                    .await?
+                                    {
+                                        ControlFlow::Break => {
+                                            scopes.pop();
+                                            return Ok(Some(ControlFlow::Break));
+                                        }
+                                        ControlFlow::Continue => {
+                                            scopes.pop();
+                                            continue;
+                                        }
+                                        ControlFlow::Normal(_) => {
+                                            scopes.pop();
+                                        }
+                                        ControlFlow::Return(val) => {
+                                            scopes.pop();
+                                            scopes.pop();
+                                            return Ok(Some(ControlFlow::Return(val)));
+                                        }
+                                    }
+                                }
+                            }
+                            _ => bail!("for loop requires iterable (list)"),
+                        }
                     }
-                }
-                Statement::AssignOp {
-                    left,
-                    value,
-                    assign_op,
-                    ..
-                } => {
-                    use crate::hir::AssignOp;
-
-                    let current_val = expect_value(
-                        evaluate_expr(
-                            left,
-                            scopes,
-                            thir,
-                            run_llm_function,
-                            watch_handler,
-                            function_name,
-                        )
-                        .await?,
-                    )?;
-
-                    // Evaluate the right-hand side expression
-                    let rhs_val = expect_value(
-                        evaluate_expr(
-                            value,
-                            scopes,
-                            thir,
-                            run_llm_function,
-                            watch_handler,
-                            function_name,
-                        )
-                        .await?,
-                    )?;
-
-                    // Perform the compound assignment operation
-                    let result_val = match assign_op {
-                        AssignOp::AddAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Int(a + b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                BamlValueWithMeta::Float(a + b, meta)
-                            }
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                BamlValueWithMeta::Float(a as f64 + b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Float(a + (b as f64), meta)
-                            }
-                            (
-                                BamlValueWithMeta::String(a, meta),
-                                BamlValueWithMeta::String(b, _),
-                            ) => BamlValueWithMeta::String(format!("{a}{b}"), meta),
-                            _ => bail!("unsupported types for += operator"),
-                        },
-                        AssignOp::SubAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Int(a - b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                BamlValueWithMeta::Float(a - b, meta)
-                            }
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                BamlValueWithMeta::Float((a as f64) - b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Float(a - (b as f64), meta)
-                            }
-                            _ => bail!("unsupported types for -= operator"),
-                        },
-                        AssignOp::MulAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Int(a * b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                BamlValueWithMeta::Float(a * b, meta)
-                            }
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                BamlValueWithMeta::Float((a as f64) * b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Float(a * (b as f64), meta)
-                            }
-                            _ => bail!("unsupported types for *= operator"),
-                        },
-                        AssignOp::DivAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                if b == 0 {
-                                    bail!("division by zero in /= operator");
-                                }
-                                BamlValueWithMeta::Float((a as f64) / (b as f64), meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                if b == 0.0 {
-                                    bail!("division by zero in /= operator");
-                                }
-                                BamlValueWithMeta::Float(a / b, meta)
-                            }
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Float(b, _)) => {
-                                if b == 0.0 {
-                                    bail!("division by zero in /= operator");
-                                }
-                                BamlValueWithMeta::Float((a as f64) / b, meta)
-                            }
-                            (BamlValueWithMeta::Float(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                if b == 0 {
-                                    bail!("division by zero in /= operator");
-                                }
-                                BamlValueWithMeta::Float(a / (b as f64), meta)
-                            }
-                            _ => bail!("unsupported types for /= operator"),
-                        },
-                        AssignOp::ModAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                if b == 0 {
-                                    bail!("modulo by zero in %= operator");
-                                }
-                                BamlValueWithMeta::Int(a % b, meta)
-                            }
-                            _ => bail!("unsupported types for %= operator"),
-                        },
-                        AssignOp::BitXorAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Int(a ^ b, meta)
-                            }
-                            _ => bail!("bitwise ^= requires integer operands"),
-                        },
-                        AssignOp::BitAndAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Int(a & b, meta)
-                            }
-                            _ => bail!("bitwise &= requires integer operands"),
-                        },
-                        AssignOp::BitOrAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                BamlValueWithMeta::Int(a | b, meta)
-                            }
-                            _ => bail!("bitwise |= requires integer operands"),
-                        },
-                        AssignOp::ShlAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                if b < 0 {
-                                    bail!("negative shift amount in <<= operator");
-                                }
-                                BamlValueWithMeta::Int(a << b, meta)
-                            }
-                            _ => bail!("shift <<= requires integer operands"),
-                        },
-                        AssignOp::ShrAssign => match (current_val.clone(), rhs_val.clone()) {
-                            (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
-                                if b < 0 {
-                                    bail!("negative shift amount in >>= operator");
-                                }
-                                BamlValueWithMeta::Int(a >> b, meta)
-                            }
-                            _ => bail!("shift >>= requires integer operands"),
-                        },
-                    };
-
-                    // Assign the result back to the target expression
-                    assign_to_expr(
+                    Statement::AssignOp {
                         left,
-                        result_val,
-                        scopes,
-                        thir,
-                        run_llm_function,
-                        watch_handler,
-                        function_name,
-                    )
-                    .await?;
-                    // Check for changes in watch variables after compound assignment
-                    check_watch_changes(
-                        scopes,
-                        watch_handler,
-                        function_name,
-                        thir,
-                        run_llm_function,
-                    )
-                    .await;
-                }
-                Statement::SemicolonExpression { expr, .. } => {
-                    let _ = evaluate_expr(
-                        expr,
-                        scopes,
-                        thir,
-                        run_llm_function,
-                        watch_handler,
-                        function_name,
-                    )
-                    .await?;
-                }
-                Statement::CForLoop {
-                    condition,
-                    after,
-                    block,
-                } => {
-                    loop {
-                        // Check condition (if present)
-                        if let Some(cond_expr) = condition {
-                            let cond_val = expect_value(
-                                evaluate_expr(
-                                    cond_expr,
-                                    scopes,
-                                    thir,
-                                    run_llm_function,
-                                    watch_handler,
-                                    function_name,
-                                )
-                                .await?,
-                            )?;
-                            match cond_val {
-                                BamlValueWithMeta::Bool(false, _) => break,
-                                BamlValueWithMeta::Bool(true, _) => {}
-                                _ => bail!("C-style for loop condition must be boolean"),
-                            }
-                        }
+                        value,
+                        assign_op,
+                        ..
+                    } => {
+                        use crate::hir::AssignOp;
 
-                        // Execute loop body
-                        match evaluate_block_with_control_flow(
-                            block,
+                        let current_val = expect_value(
+                            evaluate_expr(
+                                left,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+
+                        // Evaluate the right-hand side expression
+                        let rhs_val = expect_value(
+                            evaluate_expr(
+                                value,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+
+                        // Perform the compound assignment operation
+                        let result_val = match assign_op {
+                            AssignOp::AddAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    BamlValueWithMeta::Int(a + b, meta)
+                                }
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => BamlValueWithMeta::Float(a + b, meta),
+                                (
+                                    BamlValueWithMeta::Int(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => BamlValueWithMeta::Float(a as f64 + b, meta),
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Int(b, _),
+                                ) => BamlValueWithMeta::Float(a + (b as f64), meta),
+                                (
+                                    BamlValueWithMeta::String(a, meta),
+                                    BamlValueWithMeta::String(b, _),
+                                ) => BamlValueWithMeta::String(format!("{a}{b}"), meta),
+                                _ => bail!("unsupported types for += operator"),
+                            },
+                            AssignOp::SubAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    BamlValueWithMeta::Int(a - b, meta)
+                                }
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => BamlValueWithMeta::Float(a - b, meta),
+                                (
+                                    BamlValueWithMeta::Int(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => BamlValueWithMeta::Float((a as f64) - b, meta),
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Int(b, _),
+                                ) => BamlValueWithMeta::Float(a - (b as f64), meta),
+                                _ => bail!("unsupported types for -= operator"),
+                            },
+                            AssignOp::MulAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    BamlValueWithMeta::Int(a * b, meta)
+                                }
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => BamlValueWithMeta::Float(a * b, meta),
+                                (
+                                    BamlValueWithMeta::Int(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => BamlValueWithMeta::Float((a as f64) * b, meta),
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Int(b, _),
+                                ) => BamlValueWithMeta::Float(a * (b as f64), meta),
+                                _ => bail!("unsupported types for *= operator"),
+                            },
+                            AssignOp::DivAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    if b == 0 {
+                                        bail!("division by zero in /= operator");
+                                    }
+                                    BamlValueWithMeta::Float((a as f64) / (b as f64), meta)
+                                }
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => {
+                                    if b == 0.0 {
+                                        bail!("division by zero in /= operator");
+                                    }
+                                    BamlValueWithMeta::Float(a / b, meta)
+                                }
+                                (
+                                    BamlValueWithMeta::Int(a, meta),
+                                    BamlValueWithMeta::Float(b, _),
+                                ) => {
+                                    if b == 0.0 {
+                                        bail!("division by zero in /= operator");
+                                    }
+                                    BamlValueWithMeta::Float((a as f64) / b, meta)
+                                }
+                                (
+                                    BamlValueWithMeta::Float(a, meta),
+                                    BamlValueWithMeta::Int(b, _),
+                                ) => {
+                                    if b == 0 {
+                                        bail!("division by zero in /= operator");
+                                    }
+                                    BamlValueWithMeta::Float(a / (b as f64), meta)
+                                }
+                                _ => bail!("unsupported types for /= operator"),
+                            },
+                            AssignOp::ModAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    if b == 0 {
+                                        bail!("modulo by zero in %= operator");
+                                    }
+                                    BamlValueWithMeta::Int(a % b, meta)
+                                }
+                                _ => bail!("unsupported types for %= operator"),
+                            },
+                            AssignOp::BitXorAssign => {
+                                match (current_val.clone(), rhs_val.clone()) {
+                                    (
+                                        BamlValueWithMeta::Int(a, meta),
+                                        BamlValueWithMeta::Int(b, _),
+                                    ) => BamlValueWithMeta::Int(a ^ b, meta),
+                                    _ => bail!("bitwise ^= requires integer operands"),
+                                }
+                            }
+                            AssignOp::BitAndAssign => {
+                                match (current_val.clone(), rhs_val.clone()) {
+                                    (
+                                        BamlValueWithMeta::Int(a, meta),
+                                        BamlValueWithMeta::Int(b, _),
+                                    ) => BamlValueWithMeta::Int(a & b, meta),
+                                    _ => bail!("bitwise &= requires integer operands"),
+                                }
+                            }
+                            AssignOp::BitOrAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    BamlValueWithMeta::Int(a | b, meta)
+                                }
+                                _ => bail!("bitwise |= requires integer operands"),
+                            },
+                            AssignOp::ShlAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    if b < 0 {
+                                        bail!("negative shift amount in <<= operator");
+                                    }
+                                    BamlValueWithMeta::Int(a << b, meta)
+                                }
+                                _ => bail!("shift <<= requires integer operands"),
+                            },
+                            AssignOp::ShrAssign => match (current_val.clone(), rhs_val.clone()) {
+                                (BamlValueWithMeta::Int(a, meta), BamlValueWithMeta::Int(b, _)) => {
+                                    if b < 0 {
+                                        bail!("negative shift amount in >>= operator");
+                                    }
+                                    BamlValueWithMeta::Int(a >> b, meta)
+                                }
+                                _ => bail!("shift >>= requires integer operands"),
+                            },
+                        };
+
+                        // Assign the result back to the target expression
+                        assign_to_expr(
+                            left,
+                            result_val,
                             scopes,
                             thir,
                             run_llm_function,
                             watch_handler,
                             function_name,
                         )
-                        .await?
-                        {
-                            ControlFlow::Break => break,
-                            ControlFlow::Continue => {
-                                // Execute after statement if present
-                                if let Some(after_stmt) = after {
-                                    // Execute the after statement in the current scope context
-                                    match after_stmt.as_ref() {
-                                        Statement::AssignOp {
-                                            left,
-                                            value,
-                                            assign_op,
-                                            ..
-                                        } => {
-                                            use crate::hir::AssignOp;
-
-                                            let current_val = expect_value(
-                                                evaluate_expr(
-                                                    left,
-                                                    scopes,
-                                                    thir,
-                                                    run_llm_function,
-                                                    watch_handler,
-                                                    function_name,
-                                                )
-                                                .await?,
-                                            )?;
-                                            let rhs_val = expect_value(
-                                                evaluate_expr(
-                                                    value,
-                                                    scopes,
-                                                    thir,
-                                                    run_llm_function,
-                                                    watch_handler,
-                                                    function_name,
-                                                )
-                                                .await?,
-                                            )?;
-
-                                            let result_val = match assign_op {
-                                                AssignOp::AddAssign => {
-                                                    match (current_val.clone(), rhs_val.clone()) {
-                                                        (
-                                                            BamlValueWithMeta::Int(a, meta),
-                                                            BamlValueWithMeta::Int(b, _),
-                                                        ) => BamlValueWithMeta::Int(a + b, meta),
-                                                        _ => bail!(
-                                                            "unsupported types for += in C-for after clause"
-                                                        ),
-                                                    }
-                                                }
-                                                _ => bail!(
-                                                    "unsupported assign op in C-for after clause"
-                                                ),
-                                            };
-                                            assign_to_expr(
-                                                left,
-                                                result_val,
-                                                scopes,
-                                                thir,
-                                                run_llm_function,
-                                                watch_handler,
-                                                function_name,
-                                            )
-                                            .await?;
-                                        }
-                                        Statement::Assign { left, value } => {
-                                            let v = expect_value(
-                                                evaluate_expr(
-                                                    value,
-                                                    scopes,
-                                                    thir,
-                                                    run_llm_function,
-                                                    watch_handler,
-                                                    function_name,
-                                                )
-                                                .await?,
-                                            )?;
-                                            assign_to_expr(
-                                                left,
-                                                v,
-                                                scopes,
-                                                thir,
-                                                run_llm_function,
-                                                watch_handler,
-                                                function_name,
-                                            )
-                                            .await?;
-                                        }
-                                        _ => bail!(
-                                            "unsupported statement type in C-for after clause"
-                                        ),
-                                    }
-                                }
-                                continue;
-                            }
-                            ControlFlow::Normal(_) => {
-                                // Execute after statement if present
-                                if let Some(after_stmt) = after {
-                                    // Execute the after statement in the current scope context
-                                    match after_stmt.as_ref() {
-                                        Statement::AssignOp {
-                                            left,
-                                            value,
-                                            assign_op,
-                                            ..
-                                        } => {
-                                            use crate::hir::AssignOp;
-
-                                            let current_val = expect_value(
-                                                evaluate_expr(
-                                                    left,
-                                                    scopes,
-                                                    thir,
-                                                    run_llm_function,
-                                                    watch_handler,
-                                                    function_name,
-                                                )
-                                                .await?,
-                                            )?;
-                                            let rhs_val = expect_value(
-                                                evaluate_expr(
-                                                    value,
-                                                    scopes,
-                                                    thir,
-                                                    run_llm_function,
-                                                    watch_handler,
-                                                    function_name,
-                                                )
-                                                .await?,
-                                            )?;
-
-                                            let result_val = match assign_op {
-                                                AssignOp::AddAssign => {
-                                                    match (current_val.clone(), rhs_val.clone()) {
-                                                        (
-                                                            BamlValueWithMeta::Int(a, meta),
-                                                            BamlValueWithMeta::Int(b, _),
-                                                        ) => BamlValueWithMeta::Int(a + b, meta),
-                                                        _ => bail!(
-                                                            "unsupported types for += in C-for after clause"
-                                                        ),
-                                                    }
-                                                }
-                                                _ => bail!(
-                                                    "unsupported assign op in C-for after clause"
-                                                ),
-                                            };
-                                            assign_to_expr(
-                                                left,
-                                                result_val,
-                                                scopes,
-                                                thir,
-                                                run_llm_function,
-                                                watch_handler,
-                                                function_name,
-                                            )
-                                            .await?;
-                                        }
-                                        Statement::Assign { left, value } => {
-                                            let v = expect_value(
-                                                evaluate_expr(
-                                                    value,
-                                                    scopes,
-                                                    thir,
-                                                    run_llm_function,
-                                                    watch_handler,
-                                                    function_name,
-                                                )
-                                                .await?,
-                                            )?;
-                                            assign_to_expr(
-                                                left,
-                                                v,
-                                                scopes,
-                                                thir,
-                                                run_llm_function,
-                                                watch_handler,
-                                                function_name,
-                                            )
-                                            .await?;
-                                        }
-                                        _ => bail!(
-                                            "unsupported statement type in C-for after clause"
-                                        ),
-                                    }
-                                }
-                            }
-                            ControlFlow::Return(val) => {
-                                scopes.pop();
-                                return Ok(ControlFlow::Return(val));
-                            }
-                        }
+                        .await?;
+                        // Check for changes in watch variables after compound assignment
+                        check_watch_changes(
+                            scopes,
+                            watch_handler,
+                            function_name,
+                            thir,
+                            run_llm_function,
+                        )
+                        .await;
                     }
-                }
-                Statement::Assert { condition, .. } => {
-                    let cond_val = expect_value(
-                        evaluate_expr(
-                            condition,
+                    Statement::SemicolonExpression { expr, .. } => {
+                        let _ = evaluate_expr(
+                            expr,
                             scopes,
                             thir,
                             run_llm_function,
                             watch_handler,
                             function_name,
                         )
-                        .await?,
-                    )?;
-                    match cond_val {
-                        BamlValueWithMeta::Bool(true, _) => {}
-                        BamlValueWithMeta::Bool(false, _) => bail!("assertion failed"),
-                        _ => bail!("assert condition must be boolean"),
+                        .await?;
                     }
-                }
-                Statement::WatchOptions {
-                    variable,
-                    channel,
-                    when,
-                    span,
-                } => {
-                    // Find and update the watch variable for this variable
-                    // We need to find the watch variable by checking which one references the same value
-                    for scope in scopes.iter_mut().rev() {
-                        if let Some(var_ref) = scope.variables.get(variable) {
-                            // Find the watch variable that references this variable
-                            if let Some(watch_var) = scope
-                                .watch_variables
-                                .iter_mut()
-                                .find(|wv| Arc::ptr_eq(&wv.value_ref, var_ref))
+                    Statement::CForLoop {
+                        condition,
+                        after,
+                        block,
+                    } => {
+                        loop {
+                            // Check condition (if present)
+                            if let Some(cond_expr) = condition {
+                                let cond_val = expect_value(
+                                    evaluate_expr(
+                                        cond_expr,
+                                        scopes,
+                                        thir,
+                                        run_llm_function,
+                                        watch_handler,
+                                        function_name,
+                                    )
+                                    .await?,
+                                )?;
+                                match cond_val {
+                                    BamlValueWithMeta::Bool(false, _) => break,
+                                    BamlValueWithMeta::Bool(true, _) => {}
+                                    _ => bail!("C-style for loop condition must be boolean"),
+                                }
+                            }
+
+                            // Execute loop body
+                            match evaluate_block_with_control_flow(
+                                block,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?
                             {
-                                // Update the channel name if provided
-                                if let Some(new_channel) = channel {
-                                    watch_var.spec.name = new_channel.clone();
-                                }
+                                ControlFlow::Break => break,
+                                ControlFlow::Continue => {
+                                    // Execute after statement if present
+                                    if let Some(after_stmt) = after {
+                                        // Execute the after statement in the current scope context
+                                        match after_stmt.as_ref() {
+                                            Statement::AssignOp {
+                                                left,
+                                                value,
+                                                assign_op,
+                                                ..
+                                            } => {
+                                                use crate::hir::AssignOp;
 
-                                // Update the when condition if provided
-                                if let Some(when_str) = when {
-                                    watch_var.spec.when = match when_str.as_str() {
-                                        "manual" => crate::watch::WatchWhen::Manual,
-                                        "true" => crate::watch::WatchWhen::True,
-                                        _ => crate::watch::WatchWhen::FunctionName(
-                                            internal_baml_ast::ast::Identifier::Local(
-                                                when_str.clone(),
-                                                span.clone(),
+                                                let current_val = expect_value(
+                                                    evaluate_expr(
+                                                        left,
+                                                        scopes,
+                                                        thir,
+                                                        run_llm_function,
+                                                        watch_handler,
+                                                        function_name,
+                                                    )
+                                                    .await?,
+                                                )?;
+                                                let rhs_val = expect_value(
+                                                    evaluate_expr(
+                                                        value,
+                                                        scopes,
+                                                        thir,
+                                                        run_llm_function,
+                                                        watch_handler,
+                                                        function_name,
+                                                    )
+                                                    .await?,
+                                                )?;
+
+                                                let result_val = match assign_op {
+                                                    AssignOp::AddAssign => {
+                                                        match (current_val.clone(), rhs_val.clone()) {
+                                                    (
+                                                        BamlValueWithMeta::Int(a, meta),
+                                                        BamlValueWithMeta::Int(b, _),
+                                                    ) => BamlValueWithMeta::Int(a + b, meta),
+                                                    _ => bail!(
+                                                        "unsupported types for += in C-for after clause"
+                                                    ),
+                                                }
+                                                    }
+                                                    _ => bail!(
+                                                    "unsupported assign op in C-for after clause"
+                                                ),
+                                                };
+                                                assign_to_expr(
+                                                    left,
+                                                    result_val,
+                                                    scopes,
+                                                    thir,
+                                                    run_llm_function,
+                                                    watch_handler,
+                                                    function_name,
+                                                )
+                                                .await?;
+                                            }
+                                            Statement::Assign { left, value } => {
+                                                let v = expect_value(
+                                                    evaluate_expr(
+                                                        value,
+                                                        scopes,
+                                                        thir,
+                                                        run_llm_function,
+                                                        watch_handler,
+                                                        function_name,
+                                                    )
+                                                    .await?,
+                                                )?;
+                                                assign_to_expr(
+                                                    left,
+                                                    v,
+                                                    scopes,
+                                                    thir,
+                                                    run_llm_function,
+                                                    watch_handler,
+                                                    function_name,
+                                                )
+                                                .await?;
+                                            }
+                                            _ => bail!(
+                                                "unsupported statement type in C-for after clause"
                                             ),
-                                        ),
-                                    };
+                                        }
+                                    }
+                                    continue;
                                 }
+                                ControlFlow::Normal(_) => {
+                                    // Execute after statement if present
+                                    if let Some(after_stmt) = after {
+                                        // Execute the after statement in the current scope context
+                                        match after_stmt.as_ref() {
+                                            Statement::AssignOp {
+                                                left,
+                                                value,
+                                                assign_op,
+                                                ..
+                                            } => {
+                                                use crate::hir::AssignOp;
 
-                                watch_var.spec.span = span.clone();
-                                break;
+                                                let current_val = expect_value(
+                                                    evaluate_expr(
+                                                        left,
+                                                        scopes,
+                                                        thir,
+                                                        run_llm_function,
+                                                        watch_handler,
+                                                        function_name,
+                                                    )
+                                                    .await?,
+                                                )?;
+                                                let rhs_val = expect_value(
+                                                    evaluate_expr(
+                                                        value,
+                                                        scopes,
+                                                        thir,
+                                                        run_llm_function,
+                                                        watch_handler,
+                                                        function_name,
+                                                    )
+                                                    .await?,
+                                                )?;
+
+                                                let result_val = match assign_op {
+                                                    AssignOp::AddAssign => {
+                                                        match (current_val.clone(), rhs_val.clone()) {
+                                                    (
+                                                        BamlValueWithMeta::Int(a, meta),
+                                                        BamlValueWithMeta::Int(b, _),
+                                                    ) => BamlValueWithMeta::Int(a + b, meta),
+                                                    _ => bail!(
+                                                        "unsupported types for += in C-for after clause"
+                                                    ),
+                                                }
+                                                    }
+                                                    _ => bail!(
+                                                    "unsupported assign op in C-for after clause"
+                                                ),
+                                                };
+                                                assign_to_expr(
+                                                    left,
+                                                    result_val,
+                                                    scopes,
+                                                    thir,
+                                                    run_llm_function,
+                                                    watch_handler,
+                                                    function_name,
+                                                )
+                                                .await?;
+                                            }
+                                            Statement::Assign { left, value } => {
+                                                let v = expect_value(
+                                                    evaluate_expr(
+                                                        value,
+                                                        scopes,
+                                                        thir,
+                                                        run_llm_function,
+                                                        watch_handler,
+                                                        function_name,
+                                                    )
+                                                    .await?,
+                                                )?;
+                                                assign_to_expr(
+                                                    left,
+                                                    v,
+                                                    scopes,
+                                                    thir,
+                                                    run_llm_function,
+                                                    watch_handler,
+                                                    function_name,
+                                                )
+                                                .await?;
+                                            }
+                                            _ => bail!(
+                                                "unsupported statement type in C-for after clause"
+                                            ),
+                                        }
+                                    }
+                                }
+                                ControlFlow::Return(val) => {
+                                    scopes.pop();
+                                    return Ok(Some(ControlFlow::Return(val)));
+                                }
                             }
                         }
                     }
-                }
-                Statement::WatchNotify { variable, .. } => {
-                    // Manually trigger a watch notification for this variable
-                    fire_watch_notification_for_variable(
-                        scopes,
+                    Statement::Assert { condition, .. } => {
+                        let cond_val = expect_value(
+                            evaluate_expr(
+                                condition,
+                                scopes,
+                                thir,
+                                run_llm_function,
+                                watch_handler,
+                                function_name,
+                            )
+                            .await?,
+                        )?;
+                        match cond_val {
+                            BamlValueWithMeta::Bool(true, _) => {}
+                            BamlValueWithMeta::Bool(false, _) => bail!("assertion failed"),
+                            _ => bail!("assert condition must be boolean"),
+                        }
+                    }
+                    Statement::WatchOptions {
                         variable,
-                        watch_handler,
-                        function_name,
-                    )?;
+                        channel,
+                        when,
+                        span,
+                    } => {
+                        // Find and update the watch variable for this variable
+                        // We need to find the watch variable by checking which one references the same value
+                        for scope in scopes.iter_mut().rev() {
+                            if let Some(var_ref) = scope.variables.get(variable) {
+                                // Find the watch variable that references this variable
+                                if let Some(watch_var) = scope
+                                    .watch_variables
+                                    .iter_mut()
+                                    .find(|wv| Arc::ptr_eq(&wv.value_ref, var_ref))
+                                {
+                                    // Update the channel name if provided
+                                    if let Some(new_channel) = channel {
+                                        watch_var.spec.name = new_channel.clone();
+                                    }
+
+                                    // Update the when condition if provided
+                                    if let Some(when_str) = when {
+                                        watch_var.spec.when = match when_str.as_str() {
+                                            "manual" => crate::watch::WatchWhen::Manual,
+                                            "true" => crate::watch::WatchWhen::True,
+                                            _ => crate::watch::WatchWhen::FunctionName(
+                                                internal_baml_ast::ast::Identifier::Local(
+                                                    when_str.clone(),
+                                                    span.clone(),
+                                                ),
+                                            ),
+                                        };
+                                    }
+
+                                    watch_var.spec.span = span.clone();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Statement::WatchNotify { variable, .. } => {
+                        // Manually trigger a watch notification for this variable
+                        fire_watch_notification_for_variable(
+                            scopes,
+                            variable,
+                            watch_handler,
+                            function_name,
+                        )?;
+                    }
                 }
+                Ok(None)
+            })
+        }
+
+        for stmt in block.statements.iter().take(statements_to_execute) {
+            let result = handle_statement(
+                stmt,
+                scopes,
+                thir,
+                run_llm_function,
+                watch_handler,
+                function_name,
+            )
+            .await?;
+
+            if let Some(control_flow) = result {
+                return Ok(control_flow);
             }
         }
 

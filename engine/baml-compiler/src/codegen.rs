@@ -551,6 +551,14 @@ impl<'g> HirCompiler<'g> {
     /// A statement is anything that does not produce a value by itself.
     fn compile_statement(&mut self, statement: &thir::Statement<(Span, Option<TypeIR>)>) {
         match statement {
+            thir::Statement::AnnotatedStatement { headers, statement } => {
+                for header in headers {
+                    self.emit_annotated_block(header);
+                }
+                if let Some(statement) = statement {
+                    self.compile_statement(statement);
+                }
+            }
             thir::Statement::Let { name, value, .. } => {
                 self.compile_expression(value);
                 self.track_local(name);
@@ -1511,6 +1519,29 @@ impl<'g> HirCompiler<'g> {
         // Add a constant that points to the string object
         let const_index = self.add_constant(Value::Object(object_index));
         self.emit(Instruction::LoadConst(const_index));
+    }
+
+    fn emit_annotated_block(&mut self, v: &str) {
+        self.emit_string_literal(v);
+        let mut function_name: [u8; 1024] = [0; 1024];
+        function_name.copy_from_slice(v.as_bytes());
+        // null terminate the vec in case its too long
+        function_name[std::cmp::min(v.len(), 1023)] = 0;
+
+        let mut block_name: [u8; 1024] = [0; 1024];
+        block_name.copy_from_slice(v.as_bytes());
+        // null terminate the vec in case its too long
+        block_name[std::cmp::min(v.len(), 1023)] = 0;
+
+        self.emit(Instruction::NotifyBlock(
+            baml_vm::bytecode::BlockNotification {
+                function_name,
+                block_name,
+                level: 1,
+                block_type: baml_vm::bytecode::BlockNotificationType::Statement,
+                is_enter: true,
+            },
+        ));
     }
 
     /// Emits a single instruction and returns the index of the instruction.

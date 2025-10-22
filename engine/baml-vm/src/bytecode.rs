@@ -230,6 +230,30 @@ pub enum Instruction {
     ///
     /// Format: `ASSERT`
     Assert,
+
+    /// Notifies about entering or exiting a block.
+    ///
+    /// Format: `NOTIFY_BLOCK function_name block_name`
+    NotifyBlock(BlockNotification),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BlockNotification {
+    // This is a hack cause i don't wanna deal with implementing Copy by allocating this on the heap + doing an object pointer.
+    pub function_name: [u8; 1024],
+    pub block_name: [u8; 1024],
+    pub level: usize,
+    pub block_type: BlockNotificationType,
+    pub is_enter: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum BlockNotificationType {
+    Statement,
+    If,
+    While,
+    For,
+    Function,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -335,6 +359,19 @@ impl std::fmt::Display for Instruction {
             Instruction::Assert => f.write_str("ASSERT"),
             Instruction::AllocMap(n) => write!(f, "ALLOC_MAP {n}"),
             Instruction::Watch => f.write_str("WATCH"),
+            Instruction::NotifyBlock(notification) => {
+                write!(
+                    f,
+                    "{}_BLOCK {function_name}.{block_name}",
+                    if notification.is_enter {
+                        "ENTER"
+                    } else {
+                        "EXIT"
+                    },
+                    function_name = String::from_utf8_lossy(&notification.function_name),
+                    block_name = String::from_utf8_lossy(&notification.block_name),
+                )
+            }
         }
     }
 }
