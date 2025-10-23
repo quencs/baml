@@ -2,6 +2,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/7df7ff7d8e00218376575f0acdcc5d66741351ee";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-for-wasm-bindgen.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
     fenix = {
       url = "github:nix-community/fenix";
@@ -21,6 +22,7 @@
       self,
       nixpkgs,
       nixpkgs-unstable,
+      nixpkgs-for-wasm-bindgen,
       flake-utils,
       fenix,
       crane,
@@ -33,6 +35,8 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+        # We rely on wasm-bindgen 0.2.92, which is available under this nixpkgs.
+        pkgs-for-wasm-bindgen = nixpkgs-for-wasm-bindgen.legacyPackages.${system};
         clang = pkgs.llvmPackages.clang;
         pythonEnv = pkgs.python3.withPackages (ps: [ ]);
 
@@ -177,7 +181,7 @@
             wasm-pack
             pkgs.gcc
             napi-rs-cli
-            wasm-bindgen-cli
+            pkgs-for-wasm-bindgen.wasm-bindgen-cli
 
             # For building the typescript client.
             pixman
@@ -908,7 +912,7 @@
             if pkgs.stdenv.isDarwin then
               "" # Rely on default includes provided by stdenv.cc + libclang
             else
-              "-isystem ${pkgs.llvmPackages_17.libclang.lib}/lib/clang/17/include -isystem ${pkgs.llvmPackages_17.libclang.lib}/include -isystem ${pkgs.glibc.dev}/include";
+              "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include -isystem ${pkgs.llvmPackages.libclang.lib}/include -isystem ${pkgs.glibc.dev}/include";
 
           # Prevent SDK conflicts on macOS
           shellHook = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
