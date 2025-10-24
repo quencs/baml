@@ -65,7 +65,7 @@ class TravelAgentContext {
 // *********** CONTEXT ******************
 // **************************************
 
-function LLMChooseTool(history: Message[], ctx: TravelAgentContext) -> Tool[] {
+function LLMChooseTool(history: Message[], ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights)[] {
   client CustomSonnet4
   prompt #"
     You are a helpful travel agent. Here is what you already know about
@@ -98,14 +98,11 @@ function Main() -> int {
 	 let tools = LLMChooseTool(messages, context);
 	 for (let t in tools) {
 		current_tool_type = t.type;
-		if (t instanceOf RequestInfoFromUser) {
-
+		if (t instanceof RequestInfoFromUser) {
+		  messages.push(Message { sender: "agent", content: t.message_to_user });
+		  let userResponse = TalkToUser(t.message_to_user);
+		  messages.push(Message { sender: "user", content: userResponse.message} );
 		}
-		// if (t instanceOf RequestInfoFromUser) {
-		  // messages.push(Message { sender: "agent", content: t.message });
-		  // let userResponse = TalkToUser(t.message);
-		  // messages.push(Message { sender: "user", content: userResponse.message} );
-		// }
 	 }
   }
 
