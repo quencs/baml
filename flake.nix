@@ -240,6 +240,8 @@
               CARGO_RELEASE_FLAG = releaseFlag;
               CARGO_BUILD_RUSTFLAGS = targetRustFlags;
 
+              CARGO_BUILD_TARGET = pkgs.rust.toRustTarget pkgs.stdenv.hostPlatform;
+
               nativeBuildInputs = nativeBuildInputs ++ nativeBuildInputsExtra;
               doCheck = false;
 
@@ -281,6 +283,7 @@
             runHook postInstall
           '';
           extraAttrs = {
+            cargoExtraArgs = "-p baml-cli";
             PYTHON_SYS_EXECUTABLE = "${pythonEnv}/bin/python3";
             LD_LIBRARY_PATH = "${pythonEnv}/lib";
             PYTHONPATH = "${pythonEnv}/${pythonEnv.sitePackages}";
@@ -326,7 +329,7 @@
               muslCommonArgs
               // {
                 pname = "baml-cli";
-                cargoExtraArgs = "--target x86_64-unknown-linux-musl";
+                cargoExtraArgs = "-p baml-cli --target x86_64-unknown-linux-musl";
 
                 installPhase = ''
                   runHook preInstall
@@ -341,6 +344,7 @@
                   strip $out/bin/baml-cli 2>/dev/null || true
                   runHook postInstall
                 '';
+
               }
             );
 
@@ -364,6 +368,7 @@
             runHook postInstall
           '';
           extraAttrs = {
+            cargoExtraArgs = "-p baml-cli";
             PYTHON_SYS_EXECUTABLE = "${pythonEnv}/bin/python3";
             LD_LIBRARY_PATH = "${pythonEnv}/lib";
             PYTHONPATH = "${pythonEnv}/${pythonEnv.sitePackages}";
@@ -398,6 +403,9 @@
             cp "$wheel_path" "$out/lib/"
             echo "$wheel_path" > $out/wheel-name.txt
           '';
+          extraAttrs = {
+            cargoExtraArgs = "-p baml-cli";
+          };
         };
 
         packages."baml-py-debug" = bamlRustPackage {
@@ -428,6 +436,9 @@
             cp "$wheel_path" "$out/lib/"
             echo "$wheel_path" > $out/wheel-name.txt
           '';
+          extraAttrs = {
+            CARGO_BUILD_RUSTFLAGS = "--cfg tracing_unstable";
+          };
         };
 
         packages.baml-py = pkgs.python3Packages.buildPythonPackage {
@@ -657,6 +668,7 @@
             cp -r dist/* $out/lib/
           '';
           extraAttrs = {
+            CARGO_BUILD_RUSTFLAGS = "--cfg tracing_unstable";
             SKIP_BAML_VALIDATION = "1";
           };
         };
@@ -799,6 +811,7 @@
             cp -r dist/* $out/lib/
           '';
           extraAttrs = {
+            CARGO_BUILD_RUSTFLAGS = "--cfg tracing_unstable";
             SKIP_BAML_VALIDATION = "1";
           };
         };
