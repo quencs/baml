@@ -84,12 +84,13 @@ function TalkToUser(message: string) -> string {
 // *********** CONTEXT ******************
 // **************************************
 
-function LLMChooseTool(history: Message[], ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights)[] {
+function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights)[] {
   client CustomSonnet4
   prompt #"
+    {{ ctx.output_format }}
     You are a helpful travel agent. Here is what you already know about
     the customer:
-    {{ ctx }}
+    {{ user_ctx }}
 
     Issue commands in the following format to interact with the user and
     to build an itinerary around their interests, preferred destination
@@ -105,6 +106,8 @@ function LLMChooseTool(history: Message[], ctx: TravelAgentContext) -> (RequestI
 }
 
 function Main() -> int {
+  watch let debug = "";
+  debug = "Hello";
   let messages: Message[] = [];
   let context = TravelAgentContext {
     nAdults: null,
@@ -120,12 +123,16 @@ function Main() -> int {
 	 for (let t in tools) {
 		current_tool_type = t.type;
 		if (t instanceof RequestInfoFromUser) {
-		  messages.push(Message { sender: "agent", content: t.message_to_user });
-		  let userResponse = TalkToUser(t.message_to_user);
-		  messages.push(Message { sender: "user", content: userResponse} );
+		  debug = "Got RequestInfoFromUser";
+		  // messages.push(Message { sender: "agent", content: t.message_to_user });
+		  // let userResponse = TalkToUser(t.message_to_user);
+		  // messages.push(Message { sender: "user", content: userResponse} );
+		} else {
+		  debug = "FALLTHROUGH!!!";
 		}
 	 }
   }
+  debug = "finished for somehow";
 
   0
 }

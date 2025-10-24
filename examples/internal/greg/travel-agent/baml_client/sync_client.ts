@@ -97,7 +97,7 @@ export class BamlSyncClient {
 
   
   LLMChooseTool(
-      history: types.Message[],ctx: types.TravelAgentContext,
+      history: types.Message[],user_ctx: types.TravelAgentContext,
       __baml_options__?: BamlCallOptions<never>
   ): (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[] {
     try {
@@ -121,7 +121,7 @@ export class BamlSyncClient {
       const raw = this.runtime.callFunctionSync(
         "LLMChooseTool",
         {
-          "history": history,"ctx": ctx
+          "history": history,"user_ctx": user_ctx
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),

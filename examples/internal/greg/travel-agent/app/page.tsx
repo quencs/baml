@@ -25,6 +25,15 @@ export default function Home() {
   // Keep ref in sync with state to avoid stale closures
   pendingUserInputRef.current = pendingUserInput;
 
+  // Start the agent when the page loads
+  useEffect(() => {
+    console.log("[Page] Starting agent on mount...");
+    fetch("/api/agent/start", { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => console.log("[Page] Agent start response:", data))
+      .catch((err) => console.error("[Page] Failed to start agent:", err));
+  }, []); // Run once on mount
+
   // Poll for pending API requests
   useEffect(() => {
     let isMounted = true;

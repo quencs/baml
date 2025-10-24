@@ -109,13 +109,17 @@ export interface EventCollectorInternal {
 
 type MainEventCollectorVarTypes = {
   
-  "current_tool_type": string
+  "current_tool_type": string,
+  
+  "debug": string
   
 }
 
 type MainEventCollectorStreamTypes = {
   
-  "current_tool_type": string | null
+  "current_tool_type": string | null,
+  
+  "debug": string | null
   
 }
 
@@ -127,6 +131,8 @@ export interface MainEventCollector extends EventCollectorInternal {
   
   on_stream(channel: "current_tool_type", handler: StreamHandler<string | null, string | null>): void
   
+  on_stream(channel: "debug", handler: StreamHandler<string | null, string | null>): void
+  
   
   
 }
@@ -137,6 +143,9 @@ export function Main(): MainEventCollector {
   
   const varHandlers_current_tool_type = new Set<VarHandler<string>>()
   const streamHandlers_current_tool_type = new Set<StreamHandler<string | null, string | null>>()
+  
+  const varHandlers_debug = new Set<VarHandler<string>>()
+  const streamHandlers_debug = new Set<StreamHandler<string | null, string | null>>()
   
 
   // Track active streams by stream_id
@@ -181,13 +190,17 @@ export function Main(): MainEventCollector {
   
   const varHandlerMap = {
     
-    "current_tool_type": varHandlers_current_tool_type
+    "current_tool_type": varHandlers_current_tool_type,
+    
+    "debug": varHandlers_debug
     
   }
 
   const streamHandlerMap = {
     
-    "current_tool_type": streamHandlers_current_tool_type
+    "current_tool_type": streamHandlers_current_tool_type,
+    
+    "debug": streamHandlers_debug
     
   }
   

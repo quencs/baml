@@ -38,7 +38,7 @@ export class HttpRequest {
 
   
   LLMChooseTool(
-      history: types.Message[],ctx: types.TravelAgentContext,
+      history: types.Message[],user_ctx: types.TravelAgentContext,
       __baml_options__?: BamlCallOptions<never>
   ): HTTPRequest {
     try {
@@ -49,7 +49,7 @@ export class HttpRequest {
       return this.runtime.buildRequestSync(
         "LLMChooseTool",
         {
-          "history": history,"ctx": ctx
+          "history": history,"user_ctx": user_ctx
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -119,7 +119,7 @@ export class HttpStreamRequest {
 
   
   LLMChooseTool(
-      history: types.Message[],ctx: types.TravelAgentContext,
+      history: types.Message[],user_ctx: types.TravelAgentContext,
       __baml_options__?: BamlCallOptions<never>
   ): HTTPRequest {
     try {
@@ -130,7 +130,7 @@ export class HttpStreamRequest {
       return this.runtime.buildRequestSync(
         "LLMChooseTool",
         {
-          "history": history,"ctx": ctx
+          "history": history,"user_ctx": user_ctx
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

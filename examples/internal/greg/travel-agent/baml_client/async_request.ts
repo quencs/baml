@@ -42,7 +42,7 @@ env?: Record<string, string | undefined>
 
   
   async LLMChooseTool(
-  history: types.Message[],ctx: types.TravelAgentContext,
+  history: types.Message[],user_ctx: types.TravelAgentContext,
   __baml_options__?: BamlCallOptions<never>
   ): Promise<HTTPRequest> {
     try {
@@ -53,7 +53,7 @@ env?: Record<string, string | undefined>
       return await this.runtime.buildRequest(
       "LLMChooseTool",
       {
-      "history": history,"ctx": ctx
+      "history": history,"user_ctx": user_ctx
       },
       this.ctxManager.cloneContext(),
       __baml_options__?.tb?.__tb(),
@@ -123,7 +123,7 @@ env?: Record<string, string | undefined>
 
       
       async LLMChooseTool(
-      history: types.Message[],ctx: types.TravelAgentContext,
+      history: types.Message[],user_ctx: types.TravelAgentContext,
       __baml_options__?: BamlCallOptions<never>
       ): Promise<HTTPRequest> {
         try {
@@ -134,7 +134,7 @@ env?: Record<string, string | undefined>
           return await this.runtime.buildRequest(
           "LLMChooseTool",
           {
-          "history": history,"ctx": ctx
+          "history": history,"user_ctx": user_ctx
           },
           this.ctxManager.cloneContext(),
           __baml_options__?.tb?.__tb(),

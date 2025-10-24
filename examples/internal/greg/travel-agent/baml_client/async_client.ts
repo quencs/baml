@@ -97,7 +97,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
 
         
         async LLMChooseTool(
-        history: types.Message[],ctx: types.TravelAgentContext,
+        history: types.Message[],user_ctx: types.TravelAgentContext,
         __baml_options__?: BamlCallOptions<never>
         ): Promise<(types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]> {
           try {
@@ -111,7 +111,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
           // Check if onTick is provided - route through streaming if so
           if (options.onTick) {
           const stream = this.stream.LLMChooseTool(
-          history,ctx,
+          history,user_ctx,
           __baml_options__
           );
 
@@ -127,7 +127,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             const raw = await this.runtime.callFunction(
             "LLMChooseTool",
             {
-            "history": history,"ctx": ctx
+            "history": history,"user_ctx": user_ctx
             },
             this.ctxManager.cloneContext(),
             options.tb?.__tb(),
@@ -255,7 +255,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
 
             
             LLMChooseTool(
-            history: types.Message[],ctx: types.TravelAgentContext,
+            history: types.Message[],user_ctx: types.TravelAgentContext,
             __baml_options__?: BamlCallOptions<never>
             ): BamlStream<(partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[], (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]>
               {
@@ -296,7 +296,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                 const raw = this.runtime.streamFunction(
                 "LLMChooseTool",
                 {
-                "history": history,"ctx": ctx
+                "history": history,"user_ctx": user_ctx
                 },
                 undefined,
                 this.ctxManager.cloneContext(),
