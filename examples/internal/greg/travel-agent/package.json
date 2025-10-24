@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "@boundaryml/baml": "link:/Users/greghale/code/baml/integ-tests/typescript/node_modules/@boundaryml/baml",
+    "@boundaryml/baml": "link:/Users/greghale/code/baml/engine/language_client_typescript",
     "@boundaryml/baml-nextjs-plugin": "^0.1.0",
+    "jotai": "^2.15.0",
     "next": "16.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"
