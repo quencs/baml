@@ -265,6 +265,11 @@
         packages.default = bamlRustPackage {
           pname = "baml-cli";
           buildType = "release";
+          buildPhase = ''
+            runHook preBuild
+            cargo build --release --package baml-cli
+            runHook postBuild
+          '';
           installPhase = ''
             runHook preInstall
             build_root=''${CARGO_TARGET_DIR:-target}
@@ -351,6 +356,11 @@
         packages."baml-cli-debug" = bamlRustPackage {
           pname = "baml-cli";
           buildType = "debug";
+          buildPhase = ''
+            runHook preBuild
+            cargo build --package baml-cli
+            runHook postBuild
+          '';
           installPhase = ''
             runHook preInstall
             build_root=''${CARGO_TARGET_DIR:-target}
