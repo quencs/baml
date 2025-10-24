@@ -30,7 +30,6 @@
     flake-utils.lib.eachDefaultSystem (
       system:
 
-
       let
         pkgs = nixpkgs.legacyPackages.${system};
         pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
@@ -99,6 +98,13 @@
             && baseName != "result";
         };
 
+        # Target-specific rustflags that should NOT be applied to build dependencies
+        targetRustFlags =
+          if pkgs.stdenv.isDarwin then
+            "--cfg tracing_unstable"
+          else
+            "--cfg tracing_unstable -C target-feature=+crt-static";
+
         # Common arguments for all crane builds
         commonArgs = {
           inherit
@@ -112,24 +118,33 @@
           LIBCLANG_PATH = pkgs.libclang.lib + "/lib/";
           BINDGEN_EXTRA_CLANG_ARGS =
             if pkgs.stdenv.isDarwin then
-              "-I${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/headers "
+              "-I${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include"
             else
-              "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include -isystem ${pkgs.llvmPackages.libclang.lib}/include -isystem ${pkgs.glibc.dev}/include";
-          RUSTFLAGS =
-            if pkgs.stdenv.isDarwin then
-              "--cfg tracing_unstable"
-            else
-              "--cfg tracing_unstable -C target-feature=+crt-static";
+              "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include -isystem ${pkgs.glibc.dev}/include";
+          # RUSTFLAGS =
+          #   if pkgs.stdenv.isDarwin then
+          #     "--cfg tracing_unstable"
+          #   else
+          #     "--cfg tracing_unstable -C target-feature=+crt-static";
           OPENSSL_STATIC = "1";
           OPENSSL_DIR = "${pkgs.openssl.dev}";
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
           PROTOC_GEN_GO_PATH = "${protocGenGo}/bin/protoc-gen-go";
           SKIP_BAML_VALIDATION = "1";
+
+          # Skip cargo check to avoid proc-macro cross-compilation issues
+          doCheck = false;
+          cargoCheckCommand = "true";
         };
 
         # Build dependencies only (this will be cached separately)
-        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+        cargoArtifacts = craneLib.buildDepsOnly (
+          commonArgs
+          // {
+            # CARGO_BUILD_RUSTFLAGS = targetRustFlags;
+          }
+        );
 
         devEnvInputs = (
           with pkgs;
@@ -212,7 +227,7 @@
             {
               inherit pname cargoArtifacts;
               inherit (commonArgs) src version buildInputs;
-              inherit (commonArgs) LIBCLANG_PATH BINDGEN_EXTRA_CLANG_ARGS RUSTFLAGS;
+              inherit (commonArgs) LIBCLANG_PATH BINDGEN_EXTRA_CLANG_ARGS;
               inherit (commonArgs)
                 OPENSSL_STATIC
                 OPENSSL_DIR
@@ -223,13 +238,16 @@
 
               CARGO_PROFILE_DIR = cargoProfileDir;
               CARGO_RELEASE_FLAG = releaseFlag;
-              CARGO_BUILD_RUSTFLAGS = commonArgs.RUSTFLAGS;
+              CARGO_BUILD_RUSTFLAGS = targetRustFlags;
 
               nativeBuildInputs = nativeBuildInputs ++ nativeBuildInputsExtra;
               doCheck = false;
 
               # Set CARGO_PROFILE to control release vs debug builds
               CARGO_PROFILE = if buildType == "release" then "release" else "dev";
+
+              # Skip Crane's check phase entirely to avoid proc-macro issues
+              cargoCheckCommand = "true"; # No-op instead of cargo check
 
               # Prevent SDK conflicts on macOS
               preBuild = preBuildWrapper + (extraAttrs.preBuild or "");

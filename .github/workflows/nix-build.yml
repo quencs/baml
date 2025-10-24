@@ -1,0 +1,312 @@
+name: Nix Build with Cachix
+
+on:
+  pull_request:
+  push:
+  # Run periodically to populate cache
+  schedule:
+    # Daily at 3am PST
+    - cron: 0 11 * * *
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # Build BAML CLI (release build)
+  # This will automatically build and cache Rust dependencies first
+  build-baml-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build BAML CLI
+        run: |
+          nix build .#default --print-build-logs
+
+      - name: Verify CLI binary
+        run: |
+          ./result/bin/baml-cli --version
+          echo "### BAML CLI Built ✅" >> $GITHUB_STEP_SUMMARY
+          echo "Version: $(./result/bin/baml-cli --version)" >> $GITHUB_STEP_SUMMARY
+
+  # Build BAML CLI debug version
+  build-baml-cli-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build BAML CLI (debug)
+        run: |
+          nix build .#baml-cli-debug --print-build-logs
+
+      - name: Verify CLI binary
+        run: |
+          ./result/bin/baml-cli --version
+          echo "### BAML CLI (Debug) Built ✅" >> $GITHUB_STEP_SUMMARY
+
+  # Build Python SDK
+  build-python-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build Python library (wheel)
+        run: |
+          nix build .#pyLib --print-build-logs
+
+      - name: Build Python package
+        run: |
+          nix build .#baml-py --print-build-logs
+
+      - name: List Python artifacts
+        run: |
+          ls -lh result/lib/
+          echo "### Python SDK Built ✅" >> $GITHUB_STEP_SUMMARY
+          echo "Wheel location: \`result/lib/\`" >> $GITHUB_STEP_SUMMARY
+
+  # Build Python SDK debug version
+  build-python-sdk-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build Python library (debug)
+        run: |
+          nix build .#baml-py-debug --print-build-logs
+
+      - name: List Python artifacts
+        run: |
+          ls -lh result/lib/
+          echo "### Python SDK (Debug) Built ✅" >> $GITHUB_STEP_SUMMARY
+
+  # Build TypeScript SDK
+  build-typescript-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build TypeScript library
+        run: |
+          nix build .#tsLib --print-build-logs
+
+      - name: Build TypeScript package (tarball)
+        run: |
+          nix build .#baml-ts --print-build-logs
+
+      - name: List TypeScript artifacts
+        run: |
+          ls -lh result/lib/
+          echo "### TypeScript SDK Built ✅" >> $GITHUB_STEP_SUMMARY
+          echo "Package location: \`result/lib/\`" >> $GITHUB_STEP_SUMMARY
+
+  # Build TypeScript SDK debug version
+  build-typescript-sdk-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build TypeScript library (debug)
+        run: |
+          nix build .#tsLib-debug --print-build-logs
+
+      - name: Build TypeScript package (debug tarball)
+        run: |
+          nix build .#baml-ts-debug --print-build-logs
+
+      - name: List TypeScript artifacts
+        run: |
+          ls -lh result/lib/
+          echo "### TypeScript SDK (Debug) Built ✅" >> $GITHUB_STEP_SUMMARY
+
+  # macOS builds (separate job for macOS-specific packages)
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        package:
+          [default, baml-cli-debug, pyLib, baml-py-debug, tsLib, tsLib-debug]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build ${{ matrix.package }} for macOS
+        run: |
+          nix build .#${{ matrix.package }} --print-build-logs
+
+      - name: Build summary
+        run: |
+          echo "### ${{ matrix.package }} (macOS) Built ✅" >> $GITHUB_STEP_SUMMARY
+
+  # Development shell check (ensure dev environment can be built)
+  check-dev-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build development shell
+        run: |
+          nix develop --command echo "Development shell loaded successfully"
+
+      - name: Verify tools in dev shell
+        run: |
+          nix develop --command cargo --version
+          nix develop --command rustc --version
+          nix develop --command node --version
+          nix develop --command python3 --version
+
+      - name: Build summary
+        run: |
+          echo "### Development Shell ✅" >> $GITHUB_STEP_SUMMARY
+          echo "All development tools are accessible" >> $GITHUB_STEP_SUMMARY
+
+  # Flake checks
+  check-flake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix (read-only for checks)
+        uses: cachix/cachix-action@v16
+        with:
+          name: boundaryml
+
+      - name: Run flake checks
+        run: |
+          nix flake check --print-build-logs
+
+      - name: Show flake info
+        run: |
+          nix flake show
+          nix flake metadata
+
+      - name: Build summary
+        run: |
+          echo "### Flake Checks Passed ✅" >> $GITHUB_STEP_SUMMARY
+
+  # Summary job that depends on all build jobs
+  build-summary:
+    runs-on: ubuntu-latest
+    needs:
+      - build-baml-cli
+      - build-baml-cli-debug
+      - build-python-sdk
+      - build-python-sdk-debug
+      - build-typescript-sdk
+      - build-typescript-sdk-debug
+      - check-dev-shell
+      - check-flake
+    if: always()
+    steps:
+      - name: Check build results
+        run: |
+          echo "All Nix builds completed"
+          echo "Check individual job results for details"
