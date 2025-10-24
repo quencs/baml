@@ -23,7 +23,7 @@ import { toBamlError } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {Activity, Flight, Itinerary, Message, RequestInfoFromUser, SearchFlights, SetItinerary, TravelAgentContext, UpdateTravelAgentContext} from "./types"
+import type {APIMessage, Activity, Flight, Itinerary, Message, RequestInfoFromUser, SearchFlights, SetItinerary, TravelAgentContext, UpdateTravelAgentContext} from "./types"
 import type TypeBuilder from "./type_builder"
 
 export class LlmResponseParser {
@@ -76,6 +76,29 @@ export class LlmResponseParser {
     }
   }
   
+  TalkToUser(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, env?: Record<string, string | undefined> }
+  ): string {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.parseLlmResponse(
+        "TalkToUser",
+        llmResponse,
+        false,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as string
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
 }
 
 export class LlmStreamParser {
@@ -123,6 +146,29 @@ export class LlmStreamParser {
         __baml_options__?.clientRegistry,
         env,
       ) as number | null
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  TalkToUser(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, env?: Record<string, string | undefined> }
+  ): string | null {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.parseLlmResponse(
+        "TalkToUser",
+        llmResponse,
+        true,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as string | null
     } catch (error) {
       throw toBamlError(error);
     }

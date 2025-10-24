@@ -47,6 +47,11 @@ export function all_succeeded<CheckName extends string>(checks: Record<CheckName
 export function get_checks<CheckName extends string>(checks: Record<CheckName, Check>): Check[] {
     return Object.values(checks)
 }
+export interface APIMessage {
+  message: string
+  
+}
+
 export interface Activity {
   name: string
   location: string

@@ -59,7 +59,26 @@ class TravelAgentContext {
   interests string[]
   homeLocation string?
   dateRange string?
+
 }
+
+// **************************************
+// ************* APIs *******************
+// **************************************
+class APIMessage {
+  message string
+}
+
+function TalkToUser(message: string) -> string {
+  let resp = baml.fetch_as<APIMessage>(baml.HttpRequest {
+    url: "http://localhost:3001/api/user_message",
+    method: baml.HttpMethod.POST,
+    json: APIMessage { message: message }
+  });
+  resp.message
+
+}
+
 
 // **************************************
 // *********** CONTEXT ******************
@@ -77,6 +96,8 @@ function LLMChooseTool(history: Message[], ctx: TravelAgentContext) -> (RequestI
     and time constraints.
 
     {{ ctx.output_format }}
+
+    If the conversation history is empty, start with a greeting.
 
     Here is the full conversation history:
     {{ history }}
@@ -101,7 +122,7 @@ function Main() -> int {
 		if (t instanceof RequestInfoFromUser) {
 		  messages.push(Message { sender: "agent", content: t.message_to_user });
 		  let userResponse = TalkToUser(t.message_to_user);
-		  messages.push(Message { sender: "user", content: userResponse.message} );
+		  messages.push(Message { sender: "user", content: userResponse} );
 		}
 	 }
   }

@@ -20,7 +20,7 @@ $ pnpm add @boundaryml/baml
 
 import type { Image, Audio, Pdf, Video } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
-import type {  Activity,  Flight,  Itinerary,  Message,  RequestInfoFromUser,  SearchFlights,  SetItinerary,  TravelAgentContext,  UpdateTravelAgentContext } from "./types"
+import type {  APIMessage,  Activity,  Flight,  Itinerary,  Message,  RequestInfoFromUser,  SearchFlights,  SetItinerary,  TravelAgentContext,  UpdateTravelAgentContext } from "./types"
 import type * as types from "./types"
 
 /******************************************************************************
@@ -36,6 +36,9 @@ export interface StreamState<T> {
 }
 
 export namespace partial_types {
+    export interface APIMessage {
+      message?: string | null
+    }
     export interface Activity {
       name?: string | null
       location?: string | null

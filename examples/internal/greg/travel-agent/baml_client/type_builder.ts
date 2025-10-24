@@ -27,6 +27,8 @@ export { FieldType, EnumBuilder, ClassBuilder }
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
+    APIMessage: ClassViewer<'APIMessage', "message">;
+    
     Activity: ClassViewer<'Activity', "name" | "location" | "price_dollars">;
     
     Flight: ClassViewer<'Flight', "source" | "dest" | "datetime">;
@@ -50,13 +52,17 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "Activity","Flight","Itinerary","Message","RequestInfoFromUser","SearchFlights","SetItinerary","TravelAgentContext","UpdateTravelAgentContext",
+            "APIMessage","Activity","Flight","Itinerary","Message","RequestInfoFromUser","SearchFlights","SetItinerary","TravelAgentContext","UpdateTravelAgentContext",
           ]),
           enums: new Set([
             
           ]),
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
+        
+        this.APIMessage = this.tb.classViewer("APIMessage", [
+          "message",
+        ]);
         
         this.Activity = this.tb.classViewer("Activity", [
           "name","location","price_dollars",

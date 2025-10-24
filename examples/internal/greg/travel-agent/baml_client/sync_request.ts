@@ -22,7 +22,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio, Pdf, Vi
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {Activity, Flight, Itinerary, Message, RequestInfoFromUser, SearchFlights, SetItinerary, TravelAgentContext, UpdateTravelAgentContext} from "./types"
+import type {APIMessage, Activity, Flight, Itinerary, Message, RequestInfoFromUser, SearchFlights, SetItinerary, TravelAgentContext, UpdateTravelAgentContext} from "./types"
 import type TypeBuilder from "./type_builder"
 import type * as events from "./events"
 
@@ -87,6 +87,31 @@ export class HttpRequest {
     }
   }
   
+  TalkToUser(
+      message: string,
+      __baml_options__?: BamlCallOptions<events.TalkToUserEventCollector>
+  ): HTTPRequest {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.buildRequestSync(
+        "TalkToUser",
+        {
+          "message": message
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
 }
 
 export class HttpStreamRequest {
@@ -131,6 +156,31 @@ export class HttpStreamRequest {
         "Main",
         {
           
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  TalkToUser(
+      message: string,
+      __baml_options__?: BamlCallOptions<events.TalkToUserEventCollector>
+  ): HTTPRequest {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.buildRequestSync(
+        "TalkToUser",
+        {
+          "message": message
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

@@ -24,7 +24,7 @@ import { toBamlError, BamlStream, BamlAbortError, Collector } from "@boundaryml/
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {Activity, Flight, Itinerary, Message, RequestInfoFromUser, SearchFlights, SetItinerary, TravelAgentContext, UpdateTravelAgentContext} from "./types"
+import type {APIMessage, Activity, Flight, Itinerary, Message, RequestInfoFromUser, SearchFlights, SetItinerary, TravelAgentContext, UpdateTravelAgentContext} from "./types"
 import type TypeBuilder from "./type_builder"
 import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -192,6 +192,54 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             }
             }
             
+        async TalkToUser(
+        message: string,
+        __baml_options__?: BamlCallOptions<events.TalkToUserEventCollector>
+        ): Promise<string> {
+          try {
+          const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+          const signal = options.signal;
+
+          if (signal?.aborted) {
+          throw new BamlAbortError('Operation was aborted', signal.reason);
+          }
+
+          // Check if onTick is provided - route through streaming if so
+          if (options.onTick) {
+          const stream = this.stream.TalkToUser(
+          message,
+          __baml_options__
+          );
+
+          return await stream.getFinalResponse();
+          }
+
+          const collector = options.collector ? (Array.isArray(options.collector) ? options.collector :
+          [options.collector]) : [];
+          const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+          const env: Record<string, string> = Object.fromEntries(
+            Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+            );
+            const raw = await this.runtime.callFunction(
+            "TalkToUser",
+            {
+            "message": message
+            },
+            this.ctxManager.cloneContext(),
+            options.tb?.__tb(),
+            options.clientRegistry,
+            collector,
+            options.tags || {},
+            env,
+            signal,
+            options.watchers,
+            )
+            return raw.parsed(false) as string
+            } catch (error) {
+            throw toBamlError(error);
+            }
+            }
+            
             }
 
             class BamlStreamClient {
@@ -330,6 +378,72 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                   raw,
                   (a): number | null => a,
                   (a): number => a,
+                  this.ctxManager.cloneContext(),
+                  options.signal,
+                  )
+                  } catch (error) {
+                  throw toBamlError(error);
+                  }
+                  }
+                  
+            TalkToUser(
+            message: string,
+            __baml_options__?: BamlCallOptions<events.TalkToUserEventCollector>
+            ): BamlStream<string | null, string>
+              {
+              try {
+              const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+              const signal = options.signal;
+
+              if (signal?.aborted) {
+              throw new BamlAbortError('Operation was aborted', signal.reason);
+              }
+
+              let collector = options.collector ? (Array.isArray(options.collector) ? options.collector :
+              [options.collector]) : [];
+
+              let onTickWrapper: (() => void) | undefined;
+
+              // Create collector and wrap onTick if provided
+              if (options.onTick) {
+              const tickCollector = new Collector("on-tick-collector");
+              collector = [...collector, tickCollector];
+
+              onTickWrapper = () => {
+              const log = tickCollector.last;
+              if (log) {
+              try {
+              options.onTick!("Unknown", log);
+              } catch (error) {
+              console.error("Error in onTick callback for TalkToUser", error);
+              }
+              }
+              };
+              }
+
+              const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+              const env: Record<string, string> = Object.fromEntries(
+                Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+                );
+                const raw = this.runtime.streamFunction(
+                "TalkToUser",
+                {
+                "message": message
+                },
+                undefined,
+                this.ctxManager.cloneContext(),
+                options.tb?.__tb(),
+                options.clientRegistry,
+                collector,
+                options.tags || {},
+                env,
+                signal,
+                onTickWrapper,
+                )
+                return new BamlStream<string | null, string>(
+                  raw,
+                  (a): string | null => a,
+                  (a): string => a,
                   this.ctxManager.cloneContext(),
                   options.signal,
                   )
