@@ -1,6 +1,3 @@
-// **************************************
-// ************ TOOLS *******************
-// **************************************
 class RequestInfoFromUser {
   type "request_info_from_user"
   message_to_user string
@@ -23,9 +20,6 @@ class SetItinerary {
 type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights
 
 
-// **************************************
-// ************ TYPES *******************
-// **************************************
 
 class Message {
   sender "user" | "agent"
@@ -50,9 +44,6 @@ class Activity {
 }
 
 
-// **************************************
-// *********** CONTEXT ******************
-// **************************************
 class TravelAgentContext {
   nAdults int?
   nChildren int?
@@ -62,9 +53,6 @@ class TravelAgentContext {
 
 }
 
-// **************************************
-// ************* APIs *******************
-// **************************************
 class APIMessage {
   message string
 }
@@ -80,29 +68,8 @@ function TalkToUser(message: string) -> string {
 }
 
 
-// **************************************
-// *********** CONTEXT ******************
-// **************************************
-
 function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights)[] {
-  client CustomSonnet4
-  prompt #"
-    {{ ctx.output_format }}
-    You are a helpful travel agent. Here is what you already know about
-    the customer:
-    {{ user_ctx }}
-
-    Issue commands in the following format to interact with the user and
-    to build an itinerary around their interests, preferred destination
-    and time constraints.
-
-    {{ ctx.output_format }}
-
-    If the conversation history is empty, start with a greeting.
-
-    Here is the full conversation history:
-    {{ history }}
-  "#
+  [RequestInfoFromUser{type: "request_info_from_user", message_to_user: "Hey wassup" }]
 }
 
 function Main() -> int {
@@ -136,3 +103,7 @@ function Main() -> int {
 
   0
 }
+
+//> Main()
+//
+// 10
