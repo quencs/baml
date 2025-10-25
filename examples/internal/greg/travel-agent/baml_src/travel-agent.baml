@@ -124,11 +124,15 @@ function Main() -> int {
 		if (t instanceof RequestInfoFromUser) {
 		  current_tool_type = t.type;
 		  debug = "Got RequestInfoFromUser";
-		  // messages.push(Message { sender: "agent", content: t.message_to_user });
-		  // let userResponse = TalkToUser(t.message_to_user);
-		  // messages.push(Message { sender: "user", content: userResponse} );
+		  messages.push(Message { sender: "agent", content: t.message_to_user });
+		  debug = "Pushed message";
+		  let userResponse = TalkToUser(t.message_to_user);
+		  debug = "Got Response! " + userResponse;
+		  messages.push(Message { sender: "user", content: userResponse} );
+		  debug = "Pushed response";
 		} else {
 		  debug = "FALLTHROUGH!!!";
+		  break;
 		}
 	 }
   }

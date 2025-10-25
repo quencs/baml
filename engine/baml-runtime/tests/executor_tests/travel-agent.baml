@@ -90,14 +90,18 @@ function Main() -> int {
 	 for (let t in tools) {
 		if (t instanceof RequestInfoFromUser) {
 		  current_tool_type = t.type;
-		  debug = "Got RequestInfoFromUser";
+
+		  debug = t.type;
 		  // messages.push(Message { sender: "agent", content: t.message_to_user });
 		  // let userResponse = TalkToUser(t.message_to_user);
 		  // messages.push(Message { sender: "user", content: userResponse} );
+		  break;
 		} else {
 		  debug = "FALLTHROUGH!!!";
+		  break;
 		}
 	 }
+	 break;
   }
   debug = "finished for somehow";
 
