@@ -1,5 +1,5 @@
 import { atom, getDefaultStore, useAtomValue, useSetAtom } from 'jotai';
-import { atomFamily, atomWithStorage } from 'jotai/utils';
+import { atomFamily, atomWithStorage, atomWithReset, RESET } from 'jotai/utils';
 import { useEffect } from 'react';
 
 import type {
@@ -118,19 +118,39 @@ export const betaFeatureEnabledAtom = atom((get) => {
 });
 
 
-let wasmAtomAsync = atom(async () => {
-  const wasm = await import('@gloo-ai/baml-schema-wasm-web/baml_schema_build');
+// Trigger atom to force WASM reload - increment this to reload WASM
+const wasmReloadTriggerAtom = atom(0);
+
+let wasmAtomAsync = atom(async (get) => {
+  // Subscribe to the trigger to force reload when it changes
+  const trigger = get(wasmReloadTriggerAtom);
+  console.log("sam Loading WASM module, trigger:", trigger)
+
+  // Add cache busting to the import with timestamp
+  const wasm = await import(`@gloo-ai/baml-schema-wasm-web/baml_schema_build`);
   // Enable WASM logging for debugging
   wasm.init_js_callback_bridge(vscode.loadAwsCreds, vscode.loadGcpCreds);
   return wasm;
-},
-
-  async (_get, set, newValue: null) => {
-    set(wasmAtomAsync, null)
-  }
-);
+});
 
 export const wasmAtom = unwrap(wasmAtomAsync);
+
+const store = getDefaultStore();
+
+const hot = (import.meta as any).hot;
+if (hot) {
+  console.log("sam HMR import.meta.hot", hot);
+
+  // Listen for custom WASM reload events from the plugin
+  hot.on('wasm-hard-reload', (data: unknown) => {
+    console.log("sam HMR received wasm-hard-reload event, triggering reload", data);
+
+    // Increment the trigger to force WASM atom to re-evaluate
+    const currentValue = store.get(wasmReloadTriggerAtom);
+    store.set(wasmReloadTriggerAtom, currentValue + 1);
+  });
+}
+
 
 export const useWaitForWasm = () => {
   const wasm = useAtomValue(wasmAtom);

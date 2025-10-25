@@ -62,6 +62,7 @@ pub fn on_wasm_init() {
     // this is disabled by default because its slows down release mode builds.
     cfg_if::cfg_if! {
         if #[cfg(debug_assertions)] {
+
             const LOG_LEVEL: log::Level = log::Level::Debug;
         } else {
             const LOG_LEVEL: log::Level = log::Level::Debug;
@@ -71,10 +72,10 @@ pub fn on_wasm_init() {
     //wasm_logger::init(wasm_logger::Config::new(LOG_LEVEL));
     match console_log::init_with_level(LOG_LEVEL) {
         Ok(_) => web_sys::console::log_1(
-            &format!("Initialized BAML runtime logging as log::{LOG_LEVEL}").into(),
+            &format!("Initialized BAML runtime logging as log::{LOG_LEVEL}...").into(),
         ),
         Err(e) => web_sys::console::log_1(
-            &format!("Failed to initialize BAML runtime logging: {e:?}").into(),
+            &format!("Failed to initialize BAML runtime logging: {e:?}.").into(),
         ),
     }
 

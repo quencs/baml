@@ -14,6 +14,9 @@ java = "temurin-23"
 "cargo:cargo-watch" = "latest"
 "cargo:wasm-pack" = "0.13.1"
 "cargo:ripgrep" = "latest"
+# Makes the wasm-pack build slightly faster by not
+# having wasm-pack redownload everything again.
+"cargo:wasm-bindgen-cli" = "0.2.101"
 
 # Go tools
 # locked to match the version in .github/actions/setup-go/action.yml

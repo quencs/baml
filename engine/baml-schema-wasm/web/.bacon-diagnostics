@@ -1,0 +1,394 @@
+[INFO]: 🎯  Checking for the Wasm target...
+[INFO]: 🌀  Compiling to Wasm...
+[1m[36m    Blocking[0m waiting for file lock on build directory
+[0m[1m[33mwarning[0m[0m[1m: unused variable: `w`[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/hir/dump.rs:305:29[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m305[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m                if let Some(w) = when {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m                             [0m[0m[1m[33m^[0m[0m [0m[0m[1m[33mhelp: if this is intentional, prefix it with an underscore: `_w`[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(unused_variables)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: unused variable: `watch_options`[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/hir/lowering.rs:462:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m462[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    watch_options: &HashMap<String, (Option<String>, Option<WatchWhen>)>,[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^^^^^^^^^^^[0m[0m [0m[0m[1m[33mhelp: if this is intentional, prefix it with an underscore: `_watch_options`[0m
+
+[0m[1m[33mwarning[0m[0m[1m: unreachable pattern[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/thir/typecheck.rs:144:13[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m109[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            "baml.String.length" => TypeIR::arrow(vec![TypeIR::string()], TypeIR::int()),[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m             [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mmatches all the relevant values[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m144[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            "baml.String.length" => TypeIR::arrow(vec![TypeIR::string()], TypeIR::int()),[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m             [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[33mno value can reach this[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(unreachable_patterns)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: unused variable: `var_name`[0m
+[0m    [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/thir/typecheck.rs:2571:30[0m
+[0m     [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m2571[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m                if let Some((var_name, excluded_type)) = else_narrowing {[0m
+[0m     [0m[0m[1m[38;5;12m|[0m[0m                              [0m[0m[1m[33m^^^^^^^^[0m[0m [0m[0m[1m[33mhelp: if this is intentional, prefix it with an underscore: `_var_name`[0m
+
+[0m[1m[33mwarning[0m[0m[1m: unused variable: `excluded_type`[0m
+[0m    [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/thir/typecheck.rs:2571:40[0m
+[0m     [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m2571[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m                if let Some((var_name, excluded_type)) = else_narrowing {[0m
+[0m     [0m[0m[1m[38;5;12m|[0m[0m                                        [0m[0m[1m[33m^^^^^^^^^^^^^[0m[0m [0m[0m[1m[33mhelp: if this is intentional, prefix it with an underscore: `_excluded_type`[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `assign_error` is never used[0m
+[0m    [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/thir/typecheck.rs:1444:4[0m
+[0m     [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m1444[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mfn assign_error(lhs: &thir::Expr<IRMeta>) -> Cow<'static, str> {[0m
+[0m     [0m[0m[1m[38;5;12m|[0m[0m    [0m[0m[1m[33m^^^^^^^^^^^^[0m
+[0m     [0m[0m[1m[38;5;12m|[0m
+[0m     [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `is_assignable` is never used[0m
+[0m    [0m[0m[1m[38;5;12m--> [0m[0mbaml-compiler/src/thir/typecheck.rs:1465:4[0m
+[0m     [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m1465[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mfn is_assignable([0m
+[0m     [0m[0m[1m[38;5;12m|[0m[0m    [0m[0m[1m[33m^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m:[0m `baml-compiler` (lib) generated 7 warnings
+[0m[1m[33mwarning[0m[0m[1m: unused variable: `output_path`[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/utils/dir_writer/src/lib.rs:407:30[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m407[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn commit(&mut self, output_path: &Path) -> Result<IndexMap<PathBuf, String>> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m                              [0m[0m[1m[33m^^^^^^^^^^^[0m[0m [0m[0m[1m[33mhelp: if this is intentional, prefix it with an underscore: `_output_path`[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(unused_variables)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `lang` is never read[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/utils/dir_writer/src/lib.rs:220:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m217[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub struct FileCollector<'a, L: LanguageFeatures + Default> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[38;5;12m-------------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m220[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    lang: L,[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^^[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `try_delete_tmp_dir` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/utils/dir_writer/src/lib.rs:226:4[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m226[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mfn try_delete_tmp_dir(temp_path: &Path) -> Result<()> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m    [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `remove_dir_safe` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/utils/dir_writer/src/lib.rs:326:8[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m274[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl<'a, L: LanguageFeatures + Default> FileCollector<'a, L> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m------------------------------------------------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m326[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    fn remove_dir_safe(&self, output_path: &Path) -> Result<()> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m:[0m `dir-writer` (lib) generated 4 warnings
+[0m[1m[33mwarning[0m[0m[1m: field `docstring` is never read[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/go/src/generated_types.rs:78:13[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m75[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct UnionGo<'a> {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[38;5;12m-------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m78[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub docstring: Option<String>,[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m             [0m[0m[1m[33m^^^^^^^^^[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: associated items `current` and `types_builder` are never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/go/src/package.rs:34:12[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m9[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl Package {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m------------[0m[0m [0m[0m[1m[38;5;12massociated items in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m34[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn current(&self) -> String {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^^^^[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m46[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn types_builder() -> Package {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `is_optional` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/go/src/type.rs:46:12[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m45[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl TypeMetaGo {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m---------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m46[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn is_optional(&self) -> bool {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m:[0m `generators-go` (lib) generated 3 warnings
+[0m[1m[33mwarning[0m[0m[1m: field `documentation` is never read[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:11:16[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m10[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub struct FunctionRb {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[38;5;12m----------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m11[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub(crate) documentation: Option<String>,[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[33m^^^^^^^^^^^^^[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: struct `Parser` is never constructed[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:40:8[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m40[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct Parser<'a> {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `render_parser` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:45:8[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m45[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn render_parser([0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: struct `TypeMap` is never constructed[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:71:8[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m71[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct TypeMap<'a> {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `render_type_map` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:76:8[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m76[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn render_type_map(classes: &[ClassRb], enums: &[EnumRb]) -> Result<String, askama::Error> {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: struct `SourceFiles` is never constructed[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:96:8[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m96[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct SourceFiles<'a> {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `render_source_files` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:100:8[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m100[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn render_source_files(file_map: Vec<(String, String)>) -> Result<String, askama::Error> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `render_config` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:119:8[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m119[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn render_config(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `render_tracing` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:123:8[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m123[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn render_tracing(_pkg: &CurrentRenderPackage) -> Result<String, askama::Error> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: struct `Init` is never constructed[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:130:8[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m130[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct Init<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `render_init` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/functions.rs:135:8[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m135[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn render_init([0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `pkg` is never read[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:386:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m385[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct RbTypesUtils<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[38;5;12m------------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m386[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pkg: &'a CurrentRenderPackage,[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `pkg` is never read[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:444:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m443[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub struct RbStreamTypesUtils<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[38;5;12m------------------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m444[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pkg: &'a CurrentRenderPackage,[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `pkg` is never read[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:30:13[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m25[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct ClassRb<'a> {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[38;5;12m-------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m30[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub pkg: &'a CurrentRenderPackage,[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m             [0m[0m[1m[33m^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `to_type_builder_property` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:110:16[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m109[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    impl super::EnumRb {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[38;5;12m------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m110[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn to_type_builder_property(&self) -> TypeBuilderProperty<'_, Self> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `to_type_builder_property` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:129:16[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m128[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    impl super::ClassRb<'_> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[38;5;12m-----------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m129[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn to_type_builder_property(&self) -> TypeBuilderProperty<'_, Self> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `to_type_builder_object` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:240:16[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m215[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    impl<'a> super::ClassRb<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[38;5;12m---------------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m240[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn to_type_builder_object(&'a self) -> TypeBuilderClassObject<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `to_type_builder_object` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/generated_types.rs:336:16[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m311[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    impl<'a> super::EnumRb {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[38;5;12m----------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m336[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn to_type_builder_object(&'a self) -> TypeBuilderEnumObject<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m                [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `in_type_definition` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/package.rs:34:12[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m11[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl Package {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m34[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn in_type_definition(&self) -> bool {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `name` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/package.rs:128:12[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m81[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl CurrentRenderPackage {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m-------------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m128[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn name(&self) -> String {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `is_checked` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/type.rs:28:12[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m23[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl TypeMetaRb {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m---------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m28[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn is_checked(&self) -> bool {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: associated function `new` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/ruby/src/type.rs:95:12[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m94[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl EscapedRubyString {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m----------------------[0m[0m [0m[0m[1m[38;5;12massociated function in this implementation[0m
+[0m[1m[38;5;12m95[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn new(s: &str) -> Self {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `name` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/python/src/package.rs:126:12[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m82[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl CurrentRenderPackage {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m-------------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m126[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn name(&self) -> String {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `stream_type` is never read[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/python/src/watchers.rs:28:9[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m24[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub struct VarEventPy {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[38;5;12m----------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m28[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub stream_type: String,[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m         [0m[0m[1m[33m^^^^^^^^^^^[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `VarEventPy` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `class_name` is never read[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/python/src/watchers.rs:36:9[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m32[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub struct ChildCollectorPy {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[38;5;12m----------------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m36[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub class_name: String,[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m         [0m[0m[1m[33m^^^^^^^^^^[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `ChildCollectorPy` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `pkg` is never read[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/typescript/src/functions.rs:151:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m150[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct Tracing<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[38;5;12m-------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m151[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pkg: &'a CurrentRenderPackage,[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(dead_code)]` on by default[0m
+
+[0m[1m[33mwarning[0m[0m[1m: field `pkg` is never read[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/typescript/src/functions.rs:257:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m254[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mstruct ReactServerStreamingTypes<'a> {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[38;5;12m-------------------------[0m[0m [0m[0m[1m[38;5;12mfield in this struct[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m257[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pkg: &'a CurrentRenderPackage,[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: function `ir_expr_fn_to_ts` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/typescript/src/ir_to_ts/functions.rs:36:8[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m36[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub fn ir_expr_fn_to_ts(function: &ExprFunctionNode, pkg: &CurrentRenderPackage) -> FunctionTS {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `name` is never used[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/typescript/src/package.rs:96:12[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m67[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl CurrentRenderPackage {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m-------------------------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m96[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn name(&self) -> String {[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^[0m
+
+[0m[1m[33mwarning[0m[0m[1m: variant `Interface` is never constructed[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/typescript/src/type.rs:148:5[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m117[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mpub enum TypeTS {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m          [0m[0m[1m[38;5;12m------[0m[0m [0m[0m[1m[38;5;12mvariant in this enum[0m
+[0m[1m[38;5;12m...[0m
+[0m[1m[38;5;12m148[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    Interface {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m     [0m[0m[1m[33m^^^^^^^^^[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `TypeTS` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis[0m
+
+[0m[1m[33mwarning[0m[0m[1m: method `default_name_within_union` is never used[0m
+[0m   [0m[0m[1m[38;5;12m--> [0m[0mgenerators/languages/typescript/src/type.rs:162:12[0m
+[0m    [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m160[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0mimpl TypeTS {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m-----------[0m[0m [0m[0m[1m[38;5;12mmethod in this implementation[0m
+[0m[1m[38;5;12m161[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    // for unions, we need a default name for the type when the union is not named[0m
+[0m[1m[38;5;12m162[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn default_name_within_union(&self) -> String {[0m
+[0m    [0m[0m[1m[38;5;12m|[0m[0m            [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m:[0m `generators-ruby` (lib) generated 22 warnings
+[1m[33mwarning[0m[1m:[0m `generators-python` (lib) generated 3 warnings
+[1m[33mwarning[0m[1m:[0m `generators-typescript` (lib) generated 6 warnings
+[1m[32m   Compiling[0m baml-schema-build v0.211.2 (/Users/aaronvillalpando/Projects/baml/engine/baml-schema-wasm)
+[0m[1m[38;5;9merror[E0599][0m[0m[1m: no variant or associated item named `Debu` found for enum `Level` in the current scope[0m
+[0m  [0m[0m[1m[38;5;12m--> [0m[0mbaml-schema-wasm/src/runtime_wasm/mod.rs:65:55[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m65[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            const LOG_LEVEL: log::Level = log::Level::Debu;[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m                                                       [0m[0m[1m[38;5;9m^^^^[0m[0m [0m[0m[1m[38;5;9mvariant or associated item not found in `Level`[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;14mhelp[0m[0m: there is a variant with a similar name[0m
+[0m   [0m[0m[1m[38;5;12m|[0m
+[0m[1m[38;5;12m65[0m[0m [0m[0m[1m[38;5;12m| [0m[0m            const LOG_LEVEL: log::Level = log::Level::Debu[0m[0m[38;5;10mg[0m[0m;[0m
+[0m   [0m[0m[1m[38;5;12m|[0m[0m                                                           [0m[0m[38;5;10m+[0m
+
+[0m[1mFor more information about this error, try `rustc --explain E0599`.[0m
+[1m[31merror[0m[1m:[0m could not compile `baml-schema-build` (lib) due to 1 previous error
+Error: Compiling your crate to WebAssembly failed
+Caused by: Compiling your crate to WebAssembly failed
+Caused by: failed to execute `cargo build`: exited with exit status: 101
+  full command: cd "../" && "cargo" "build" "--lib" "--target" "wasm32-unknown-unknown"

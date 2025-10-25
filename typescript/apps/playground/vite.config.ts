@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import wasm from 'vite-plugin-wasm';
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { wasmHmr } from './plugins/vite-plugin-wasm-hmr';
 
 const isWatchMode = process.argv.includes('--watch');
 const srcPath = normalizePath(path.resolve(__dirname, './dist/'));
@@ -19,6 +20,10 @@ export default defineConfig({
       },
     }),
     wasm(),
+    wasmHmr({
+      wasmPackagePath: path.resolve(__dirname, '../../../engine/baml-schema-wasm/web'),
+      watchPath: 'dist',
+    }),
     viteStaticCopy({
       targets: [
         {
@@ -39,6 +44,8 @@ export default defineConfig({
     },
     headers: {
       'Access-Control-Allow-Origin': '*',
+      // Prevent caching of WASM files during development
+      'Cache-Control': 'no-store',
     },
     hmr: {
       // This is needed for HMR to work in VSCode webviews
@@ -83,5 +90,6 @@ export default defineConfig({
     esbuildOptions: {
       target: 'esnext',
     },
+    include: ['@gloo-ai/baml-schema-wasm-web/baml_schema_build'],
   },
 });
