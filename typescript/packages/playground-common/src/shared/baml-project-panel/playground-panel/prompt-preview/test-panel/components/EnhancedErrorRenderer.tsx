@@ -46,7 +46,6 @@ const CopyErrorButton: React.FC<{ errorMessage: string }> = ({ errorMessage }) =
       setTimeout(() => setCopyStatus('idle'), 2000);
     }
   };
-
   const getButtonStyle = () => {
     if (copyStatus === 'success') {
       return {
@@ -99,6 +98,7 @@ const ErrorDetails: React.FC<{ errorMessage: string }> = ({ errorMessage }) => {
         variant="outline"
         size="xs"
         className="inline-flex items-center gap-1 text-xs px-2 py-0 h-7 transition-colors duration-150 border-[var(--vscode-panel-border)] text-[var(--vscode-charts-red)] bg-[var(--vscode-editor-background)] cursor-pointer hover:opacity-80"
+
         style={{
           color: '#dc2626',
           background: 'var(--vscode-editor-background)',

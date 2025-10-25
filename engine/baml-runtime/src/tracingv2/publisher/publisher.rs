@@ -228,7 +228,7 @@ pub fn start_publisher(
         return;
     }
     if lookup.env_var("BOUNDARY_API_KEY").is_none() {
-        log::debug!("Skipping publisher because BOUNDARY_API_KEY is not set---ahh");
+        log::debug!("Skipping publisher because BOUNDARY_API_KEY is not set.---exp3");
         return;
     }
     log::debug!("Starting publisher");

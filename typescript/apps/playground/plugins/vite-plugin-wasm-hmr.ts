@@ -8,6 +8,8 @@ interface WasmHmrOptions {
   wasmPackagePath: string;
   /** Directory to watch for changes (the dist output) */
   watchPath: string;
+  /** Local path to copy WASM files to for HMR */
+  localCopyPath?: string;
 }
 
 export function wasmHmr(options: WasmHmrOptions): Plugin {
@@ -60,11 +62,11 @@ export function wasmHmr(options: WasmHmrOptions): Plugin {
             event: 'wasm-build-status',
             data: { status: 'refreshing' },
           });
-          server.ws.send({
-            type: 'full-reload',
-            path: '*',
+          // server.ws.send({
+          //   type: 'full-reload',
+          //   path: '*',
 
-          })
+          // })
           return;
         }
 
@@ -82,7 +84,36 @@ export function wasmHmr(options: WasmHmrOptions): Plugin {
           // Small delay to ensure files are fully written and flushed to disk
           // before triggering reload
           setTimeout(() => {
-            console.log('[wasm-hmr] Triggering hard reload to clear WASM cache');
+            // Copy WASM files to local path if configured
+            if (options.localCopyPath) {
+              const sourcePath = path.resolve(options.wasmPackagePath, options.watchPath);
+              const destPath = options.localCopyPath;
+
+              console.log('[wasm-hmr] Copying WASM files from', sourcePath, 'to', destPath);
+
+              try {
+                // Ensure destination directory exists
+                if (!fs.existsSync(destPath)) {
+                  fs.mkdirSync(destPath, { recursive: true });
+                }
+
+                // Copy all files from source to destination
+                const files = fs.readdirSync(sourcePath);
+                for (const file of files) {
+                  const srcFile = path.join(sourcePath, file);
+                  const destFile = path.join(destPath, file);
+
+                  if (fs.statSync(srcFile).isFile()) {
+                    fs.copyFileSync(srcFile, destFile);
+                    console.log('[wasm-hmr] Copied', file);
+                  }
+                }
+              } catch (error) {
+                console.error('[wasm-hmr] Error copying WASM files:', error);
+              }
+            }
+
+            console.log('[wasm-hmr] Triggering WASM reload');
             server.ws.send({
               type: 'custom',
               event: 'wasm-hard-reload',
@@ -111,10 +142,10 @@ export function wasmHmr(options: WasmHmrOptions): Plugin {
         } else {
           // Has content but no errors - probably warnings, treat as success
           console.log('[wasm-hmr] Build succeeded with warnings, triggering reload');
-          server.ws.send({
-            type: 'full-reload',
-            path: '*',
-          });
+          // server.ws.send({
+          //   type: 'full-reload',
+          //   path: '*',
+          // });
         }
       };
 
@@ -159,10 +190,10 @@ if (import.meta.hot) {
     showBuildStatus('WASM rebuilt, hot reloading...');
 
     // Invalidate the WASM module to force re-import with cache busting
-    const wasmModulePath = '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
+    // const wasmModulePath = '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 
     // Use import.meta.hot.invalidate() to trigger HMR for this module
-    import.meta.hot.invalidate();
+    // import.meta.hot.invalidate();
   });
 
   function showBuildStatus(message) {

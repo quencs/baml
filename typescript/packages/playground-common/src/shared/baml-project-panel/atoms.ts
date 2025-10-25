@@ -143,11 +143,11 @@ if (hot) {
 
   // Listen for custom WASM reload events from the plugin
   hot.on('wasm-hard-reload', (data: unknown) => {
-    console.log("sam HMR received wasm-hard-reload event, triggering reload", data);
+    console.log("sam HMR received wasm-hard-reload event, triggering reload...", data);
 
     // Increment the trigger to force WASM atom to re-evaluate
-    const currentValue = store.get(wasmReloadTriggerAtom);
-    store.set(wasmReloadTriggerAtom, currentValue + 1);
+    // const currentValue = store.get(wasmReloadTriggerAtom);
+    // store.set(wasmReloadTriggerAtom, currentValue + 1);
   });
 }
 

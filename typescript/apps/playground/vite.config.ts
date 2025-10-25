@@ -11,6 +11,10 @@ const isWatchMode = process.argv.includes('--watch');
 const srcPath = normalizePath(path.resolve(__dirname, './dist/'));
 const destPath = normalizePath(path.resolve(__dirname, '../vscode-ext/dist/playground'));
 
+// Path to WASM source and local copy
+const wasmSourcePath = path.resolve(__dirname, '../../../engine/baml-schema-wasm/web/dist');
+const wasmLocalPath = path.resolve(__dirname, './baml-schema-wasm-web/dist');
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -23,12 +27,17 @@ export default defineConfig({
     wasmHmr({
       wasmPackagePath: path.resolve(__dirname, '../../../engine/baml-schema-wasm/web'),
       watchPath: 'dist',
+      localCopyPath: wasmLocalPath,
     }),
     viteStaticCopy({
       targets: [
         {
           src: srcPath,
           dest: destPath
+        },
+        {
+          src: normalizePath(wasmSourcePath) + '/*',
+          dest: normalizePath(wasmLocalPath)
         }
       ]
     })
@@ -45,6 +54,7 @@ export default defineConfig({
     headers: {
       'Access-Control-Allow-Origin': '*',
       // Prevent caching of WASM files during development
+      // TODO: idk if this actually does anything.
       'Cache-Control': 'no-store',
     },
     hmr: {
@@ -55,20 +65,15 @@ export default defineConfig({
     watch: {
       usePolling: true,
       interval: 100,
+      ignored: ['../../../engine/baml-schema-wasm/web/dist/**/*.wasm'],
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
       '~': path.resolve(__dirname, './src'),
-      '@gloo-ai/baml-schema-wasm-web': path.resolve(
-        __dirname,
-        '../../../engine/baml-schema-wasm/web/dist',
-      ),
-      baml_wasm_web: path.resolve(
-        __dirname,
-        '../../../engine/baml-schema-wasm/web/dist',
-      ),
+      '@gloo-ai/baml-schema-wasm-web': wasmLocalPath,
+      baml_wasm_web: wasmLocalPath,
     },
   },
   mode: isWatchMode ? 'development' : 'production',
@@ -90,6 +95,7 @@ export default defineConfig({
     esbuildOptions: {
       target: 'esnext',
     },
-    include: ['@gloo-ai/baml-schema-wasm-web/baml_schema_build'],
+
+    // exclude: ['@gloo-ai/baml-schema-wasm-web'],
   },
 });
