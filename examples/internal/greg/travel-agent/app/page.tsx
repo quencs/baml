@@ -86,7 +86,7 @@ export default function Home() {
       }
     };
 
-    const pollInterval = setInterval(poll, 1000);
+    const pollInterval = setInterval(poll, 2000);
     poll(); // Initial poll
 
     return () => {
@@ -109,11 +109,11 @@ export default function Home() {
           setContext(contextData);
         }
       } catch (error) {
-        console.error("Context polling error:", error);
+        // Silently fail - polling errors are not critical
       }
     };
 
-    const pollInterval = setInterval(pollContext, 500); // Poll every 500ms for context updates
+    const pollInterval = setInterval(pollContext, 2000); // Poll every 2s for context updates
     pollContext(); // Initial poll
 
     return () => {

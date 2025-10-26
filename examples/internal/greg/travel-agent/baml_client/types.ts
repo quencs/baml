@@ -86,6 +86,12 @@ export interface RequestInfoFromUser {
 
 export interface SearchFlights {
   type: "search_flights"
+  departure_id: string
+  arrival_id: string
+  adults: number
+  children: number
+  outbound_date: string
+  return_date: string
   
 }
 

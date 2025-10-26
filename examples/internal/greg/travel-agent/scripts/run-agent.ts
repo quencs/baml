@@ -2,7 +2,7 @@ import { b, watchers } from "../baml_client";
 
 async function sendContextUpdate(context: any) {
   try {
-    await fetch("http://localhost:3000/api/watch/context", {
+    await fetch("http://localhost:3001/api/watch/context", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(context),

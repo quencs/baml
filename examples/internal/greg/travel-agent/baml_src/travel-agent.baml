@@ -13,6 +13,12 @@ class UpdateTravelAgentContext {
 
 class SearchFlights {
   type "search_flights"
+  departure_id string @description("like IAD or AUS")
+  arrival_id string @description("like IAD or AUS")
+  adults int
+  children int
+  outbound_date string @description("YYYY-MM-DD")
+  return_date string @description("YYYY-MM-DD")
 }
 
 class SetItinerary {
@@ -76,9 +82,39 @@ function TalkToUser(message: string) -> string {
     json: APIMessage { message: message }
   });
   resp.message
-
 }
 
+// class GoogleFlightsResponse {
+//   best_flights ResponseFlights[]
+// }
+// class ResponseFlights {
+//   flights ResponseFlight[]
+// }
+//
+// class ResponseFlight {
+//   departure_airport ResponseAirport
+// }
+//
+
+function GoogleSearchFlights(departure_id: string, arrival_id: string, adults: int, children: int, outbound_date: string, return_date: string) -> string {
+  let api_key = env.SERP_API_KEY;
+  let resp = baml.fetch_as<string>(baml.HttpRequest {
+      url: "https://serpapi.com/search?engine=google_flights&api_key=" + api_key + "&departure_id=" + departure_id + "&arrival_id=" + arrival_id + "&adults=" + baml.unstable.string(adults) + "&children=" + baml.unstable.string(children) + "&outbound_date=" + outbound_date + "&return_date=" + return_date,
+      method: baml.HttpMethod.Get,
+      headers: { }
+    });
+  resp
+}
+
+function LLMSumarizeFlights(flights: string) -> string {
+  client CustomSonnet4
+  prompt #"
+    Summarize the following flights as a 1-liner:
+    {{ flights }}
+
+    {{ ctx.output_format }}
+  "#
+}
 
 // **************************************
 // *********** CONTEXT ******************
@@ -90,6 +126,7 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
     {{ ctx.output_format }}
     You are a helpful travel agent. Here is what you already know about
     the customer:
+
     {{ user_ctx }}
 
     Issue commands in the following format to interact with the user and
@@ -100,6 +137,9 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 
     If the conversation history is empty, start with a greeting.
 
+    Try to keep each message friendly but brief. First message,
+    2 or 3 sentences. After that, preferably 1 sentence or question.
+
     Here is the full conversation history:
     {{ history }}
   "#
@@ -107,7 +147,14 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 
 function Main() -> int {
   watch let debug = "";
+  debug = "About to get API key";
+  debug = env.SERP_API_KEY;
+  debug = GoogleSearchFlights("IAD", "AUS", 1, 0, "2025-10-26", "2025-10-26");
   watch let messages: Message[] = [];
+  watch let itinerary = Itinerary {
+    flights: [],
+    activities: []
+  };
   watch let context = TravelAgentContext {
     nAdults: null,
     nChildren: null,
@@ -116,8 +163,13 @@ function Main() -> int {
     dateRange: null
   };
   watch let current_tool_type = "no tool yet";
+  let n = 0;
 
   for (;;) {
+     n += 1;
+     if (n > 10) {
+       break;
+     }
 	 let tools = LLMChooseTool(messages, context);
 	 for (let t in tools) {
 		if (t instanceof RequestInfoFromUser) {
@@ -130,7 +182,15 @@ function Main() -> int {
 
 		} else if (t instanceof UpdateTravelAgentContext) {
           context = t.new_context;
-		} else {
+		} else if (t instanceof SearchFlights) {
+		  let resp = GoogleSearchFlights(t.departure_id, t.arrival_id, t.adults, t.children, t.outbound_date, t.return_date);
+		  debug = resp;
+		  let summary = LLMSumarizeFlights(resp);
+	    messages.push(Message { sender: "agent", content: summary });
+		} else if (t instanceof SetItinerary) {
+      debug = "*******Setting itinerary **********";
+      itinerary = t.itinerary;
+    } else {
 		  debug = "FALLTHROUGH!!!";
 		}
 	 }

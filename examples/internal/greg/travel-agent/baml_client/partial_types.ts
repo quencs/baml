@@ -63,6 +63,12 @@ export namespace partial_types {
     }
     export interface SearchFlights {
       type?: "search_flights" | null
+      departure_id?: string | null
+      arrival_id?: string | null
+      adults?: number | null
+      children?: number | null
+      outbound_date?: string | null
+      return_date?: string | null
     }
     export interface SetItinerary {
       type?: "set_itinerary" | null

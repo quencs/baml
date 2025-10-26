@@ -39,7 +39,7 @@ export default class TypeBuilder {
     
     RequestInfoFromUser: ClassViewer<'RequestInfoFromUser', "type" | "message_to_user">;
     
-    SearchFlights: ClassViewer<'SearchFlights', "type">;
+    SearchFlights: ClassViewer<'SearchFlights', "type" | "departure_id" | "arrival_id" | "adults" | "children" | "outbound_date" | "return_date">;
     
     SetItinerary: ClassViewer<'SetItinerary', "type" | "itinerary">;
     
@@ -85,7 +85,7 @@ export default class TypeBuilder {
         ]);
         
         this.SearchFlights = this.tb.classViewer("SearchFlights", [
-          "type",
+          "type","departure_id","arrival_id","adults","children","outbound_date","return_date",
         ]);
         
         this.SetItinerary = this.tb.classViewer("SetItinerary", [

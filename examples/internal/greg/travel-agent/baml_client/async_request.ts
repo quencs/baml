@@ -66,6 +66,31 @@ env?: Record<string, string | undefined>
       }
       }
       
+  async GoogleSearchFlights(
+  departure_id: string,arrival_id: string,adults: number,children: number,outbound_date: string,return_date: string,
+  __baml_options__?: BamlCallOptions<events.GoogleSearchFlightsEventCollector>
+  ): Promise<HTTPRequest> {
+    try {
+    const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+    const env: Record<string, string> = Object.fromEntries(
+      Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+      "GoogleSearchFlights",
+      {
+      "departure_id": departure_id,"arrival_id": arrival_id,"adults": adults,"children": children,"outbound_date": outbound_date,"return_date": return_date
+      },
+      this.ctxManager.cloneContext(),
+      __baml_options__?.tb?.__tb(),
+      __baml_options__?.clientRegistry,
+      false,
+      env
+      )
+      } catch (error) {
+      throw toBamlError(error);
+      }
+      }
+      
   async Main(
   
   __baml_options__?: BamlCallOptions<events.MainEventCollector>
@@ -135,6 +160,31 @@ env?: Record<string, string | undefined>
           "LLMChooseTool",
           {
           "history": history,"user_ctx": user_ctx
+          },
+          this.ctxManager.cloneContext(),
+          __baml_options__?.tb?.__tb(),
+          __baml_options__?.clientRegistry,
+          true,
+          env
+          )
+          } catch (error) {
+          throw toBamlError(error);
+          }
+          }
+          
+      async GoogleSearchFlights(
+      departure_id: string,arrival_id: string,adults: number,children: number,outbound_date: string,return_date: string,
+      __baml_options__?: BamlCallOptions<events.GoogleSearchFlightsEventCollector>
+      ): Promise<HTTPRequest> {
+        try {
+        const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+        const env: Record<string, string> = Object.fromEntries(
+          Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+          );
+          return await this.runtime.buildRequest(
+          "GoogleSearchFlights",
+          {
+          "departure_id": departure_id,"arrival_id": arrival_id,"adults": adults,"children": children,"outbound_date": outbound_date,"return_date": return_date
           },
           this.ctxManager.cloneContext(),
           __baml_options__?.tb?.__tb(),

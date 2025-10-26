@@ -144,6 +144,54 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             }
             }
             
+        async GoogleSearchFlights(
+        departure_id: string,arrival_id: string,adults: number,children: number,outbound_date: string,return_date: string,
+        __baml_options__?: BamlCallOptions<events.GoogleSearchFlightsEventCollector>
+        ): Promise<string> {
+          try {
+          const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+          const signal = options.signal;
+
+          if (signal?.aborted) {
+          throw new BamlAbortError('Operation was aborted', signal.reason);
+          }
+
+          // Check if onTick is provided - route through streaming if so
+          if (options.onTick) {
+          const stream = this.stream.GoogleSearchFlights(
+          departure_id,arrival_id,adults,children,outbound_date,return_date,
+          __baml_options__
+          );
+
+          return await stream.getFinalResponse();
+          }
+
+          const collector = options.collector ? (Array.isArray(options.collector) ? options.collector :
+          [options.collector]) : [];
+          const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+          const env: Record<string, string> = Object.fromEntries(
+            Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+            );
+            const raw = await this.runtime.callFunction(
+            "GoogleSearchFlights",
+            {
+            "departure_id": departure_id,"arrival_id": arrival_id,"adults": adults,"children": children,"outbound_date": outbound_date,"return_date": return_date
+            },
+            this.ctxManager.cloneContext(),
+            options.tb?.__tb(),
+            options.clientRegistry,
+            collector,
+            options.tags || {},
+            env,
+            signal,
+            options.watchers,
+            )
+            return raw.parsed(false) as string
+            } catch (error) {
+            throw toBamlError(error);
+            }
+            }
+            
         async Main(
         
         __baml_options__?: BamlCallOptions<events.MainEventCollector>
@@ -312,6 +360,72 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                   raw,
                   (a): (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[] => a,
                   (a): (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[] => a,
+                  this.ctxManager.cloneContext(),
+                  options.signal,
+                  )
+                  } catch (error) {
+                  throw toBamlError(error);
+                  }
+                  }
+                  
+            GoogleSearchFlights(
+            departure_id: string,arrival_id: string,adults: number,children: number,outbound_date: string,return_date: string,
+            __baml_options__?: BamlCallOptions<events.GoogleSearchFlightsEventCollector>
+            ): BamlStream<string | null, string>
+              {
+              try {
+              const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+              const signal = options.signal;
+
+              if (signal?.aborted) {
+              throw new BamlAbortError('Operation was aborted', signal.reason);
+              }
+
+              let collector = options.collector ? (Array.isArray(options.collector) ? options.collector :
+              [options.collector]) : [];
+
+              let onTickWrapper: (() => void) | undefined;
+
+              // Create collector and wrap onTick if provided
+              if (options.onTick) {
+              const tickCollector = new Collector("on-tick-collector");
+              collector = [...collector, tickCollector];
+
+              onTickWrapper = () => {
+              const log = tickCollector.last;
+              if (log) {
+              try {
+              options.onTick!("Unknown", log);
+              } catch (error) {
+              console.error("Error in onTick callback for GoogleSearchFlights", error);
+              }
+              }
+              };
+              }
+
+              const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+              const env: Record<string, string> = Object.fromEntries(
+                Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+                );
+                const raw = this.runtime.streamFunction(
+                "GoogleSearchFlights",
+                {
+                "departure_id": departure_id,"arrival_id": arrival_id,"adults": adults,"children": children,"outbound_date": outbound_date,"return_date": return_date
+                },
+                undefined,
+                this.ctxManager.cloneContext(),
+                options.tb?.__tb(),
+                options.clientRegistry,
+                collector,
+                options.tags || {},
+                env,
+                signal,
+                onTickWrapper,
+                )
+                return new BamlStream<string | null, string>(
+                  raw,
+                  (a): string | null => a,
+                  (a): string => a,
                   this.ctxManager.cloneContext(),
                   options.signal,
                   )
