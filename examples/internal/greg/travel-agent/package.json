@@ -11,6 +11,7 @@
   "dependencies": {
     "@boundaryml/baml": "link:/Users/greghale/code/baml/engine/language_client_typescript",
     "@boundaryml/baml-nextjs-plugin": "^0.1.0",
+    "canvas-confetti": "^1.9.4",
     "jotai": "^2.15.0",
     "next": "16.0.0",
     "react": "19.2.0",

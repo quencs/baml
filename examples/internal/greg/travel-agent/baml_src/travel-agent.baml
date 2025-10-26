@@ -84,18 +84,6 @@ function TalkToUser(message: string) -> string {
   resp.message
 }
 
-// class GoogleFlightsResponse {
-//   best_flights ResponseFlights[]
-// }
-// class ResponseFlights {
-//   flights ResponseFlight[]
-// }
-//
-// class ResponseFlight {
-//   departure_airport ResponseAirport
-// }
-//
-
 function GoogleSearchFlights(departure_id: string, arrival_id: string, adults: int, children: int, outbound_date: string, return_date: string) -> string {
   let api_key = env.SERP_API_KEY;
   let resp = baml.fetch_as<string>(baml.HttpRequest {
@@ -117,7 +105,7 @@ function LLMSumarizeFlights(flights: string) -> string {
 }
 
 // **************************************
-// *********** CONTEXT ******************
+// ********* Tool choice ****************
 // **************************************
 
 function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights | SetItinerary)[] {
@@ -139,7 +127,7 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 
     Try to keep each message friendly but brief. First message,
     2 or 3 sentences. After that, preferably 1 sentence or question.
-    
+
     Every set of tool calls should end with a single message to the user.
 
     Here is the full conversation history:
@@ -148,21 +136,12 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 }
 
 function Main() -> int {
+
   watch let debug = "";
-  watch let messages: Message[] = [];
+  let messages: Message[] = [];
   watch let itinerary = Itinerary {
     flights: [],
     activities: []
-  };
-  itinerary = Itinerary {
-    flights: [],
-    activities: [
-      Activity {
-        name: "Visit the Grand Canyon",
-        location: "Grand Canyon",
-        price_dollars: 100
-      }
-    ]
   };
   watch let context = TravelAgentContext {
     nAdults: null,
@@ -172,35 +151,29 @@ function Main() -> int {
     dateRange: null
   };
   watch let current_tool_type = "no tool yet";
-  let n = 0;
 
   for (;;) {
-     n += 1;
-     if (n > 10) {
-       break;
-     }
-	 let tools = LLMChooseTool(messages, context);
-	 for (let t in tools) {
-		if (t instanceof RequestInfoFromUser) {
-		  current_tool_type = t.type;
-		  debug = "Got RequestInfoFromUser";
-		  messages.push(Message { sender: "agent", content: t.message_to_user });
-		  let userResponse = TalkToUser(t.message_to_user);
-		  messages.push(Message { sender: "user", content: userResponse} );
-		} else if (t instanceof UpdateTravelAgentContext) {
-          context = t.new_context;
-		} else if (t instanceof SearchFlights) {
-		  let resp = GoogleSearchFlights(t.departure_id, t.arrival_id, t.adults, t.children, t.outbound_date, t.return_date);
-		  debug = resp;
-		  let summary = LLMSumarizeFlights(resp);
-	    messages.push(Message { sender: "agent", content: summary });
-		} else if (t instanceof SetItinerary) {
-      debug = "*******Setting itinerary **********";
-      itinerary = t.itinerary;
-    } else {
-		  debug = "FALLTHROUGH!!!";
-		}
-	 }
+    let tools = LLMChooseTool(messages, context);
+	for (let t in tools) {
+	  if (t instanceof RequestInfoFromUser) {
+	    current_tool_type = t.type;
+	    messages.push(Message { sender: "agent", content: t.message_to_user });
+	    let userResponse = TalkToUser(t.message_to_user);
+	    messages.push(Message { sender: "user", content: userResponse} );
+	  } else if (t instanceof UpdateTravelAgentContext) {
+        current_tool_type = t.type;
+        context = t.new_context;
+	  } else if (t instanceof SearchFlights) {
+	    current_tool_type = t.type;
+	    let resp = GoogleSearchFlights(t.departure_id, t.arrival_id, t.adults, t.children, t.outbound_date, t.return_date);
+	    debug = resp;
+	    let summary = LLMSumarizeFlights(resp);
+	  messages.push(Message { sender: "agent", content: summary });
+	  } else if (t instanceof SetItinerary) {
+	    current_tool_type = t.type;
+        itinerary = t.itinerary;
+      }
+    }
   }
   debug = "finished for somehow";
 

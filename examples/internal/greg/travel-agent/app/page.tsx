@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import confetti from "canvas-confetti";
 import { ChatPanel } from "./components/ChatPanel";
 import { TravelPlanPanel } from "./components/TravelPlanPanel";
 import { ContextPanel } from "./components/ContextPanel";
@@ -26,6 +27,7 @@ export default function Home() {
   const [, setContext] = useAtom(travelAgentContextAtom);
   const [, setBAMLItinerary] = useAtom(bamlItineraryAtom);
   const [shouldFlash, setShouldFlash] = useState(false);
+  const [hasItinerary, setHasItinerary] = useState(false);
   const resolverRef = useRef<((message: string) => void) | null>(null);
   const pendingUserInputRef = useRef(pendingUserInput);
 
@@ -152,6 +154,51 @@ export default function Home() {
     };
   }, [setBAMLItinerary]);
 
+  // Detect when itinerary gets set and trigger confetti
+  useEffect(() => {
+    const hasContent =
+      bamlItinerary &&
+      (bamlItinerary.flights.length > 0 || bamlItinerary.activities.length > 0);
+
+    if (hasContent && !hasItinerary) {
+      // Itinerary just got set - trigger confetti!
+      setHasItinerary(true);
+
+      // Fire confetti animation
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval: NodeJS.Timeout = setInterval(function () {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        });
+      }, 250);
+    } else if (!hasContent && hasItinerary) {
+      // Itinerary was cleared
+      setHasItinerary(false);
+    }
+  }, [bamlItinerary, hasItinerary]);
+
   // Register message resolver when pending input is active
   useEffect(() => {
     if (pendingUserInput) {
@@ -223,10 +270,12 @@ export default function Home() {
             shouldFlash={shouldFlash}
           />
           <div className="w-96 flex flex-col gap-6 overflow-hidden">
-            <div className="flex-1 min-h-0">
-              <ContextPanel context={context} />
-            </div>
-            <div className="flex-1 min-h-0">
+            {!hasItinerary && (
+              <div className="flex-1 min-h-0">
+                <ContextPanel context={context} />
+              </div>
+            )}
+            <div className={hasItinerary ? "h-full" : "flex-1 min-h-0"}>
               <TravelPlanPanel
                 planItems={itinerary}
                 bamlItinerary={bamlItinerary}
