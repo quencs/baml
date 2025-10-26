@@ -43,3 +43,20 @@ export const clearItineraryAtom = atom(null, (get, set) => {
 
 // Atom to track if there's a pending user message request from the API
 export const pendingUserInputAtom = atom<boolean>(false);
+
+// TravelAgentContext from watch variable
+export interface TravelAgentContext {
+  nAdults: number | null;
+  nChildren: number | null;
+  interests: string[];
+  homeLocation: string | null;
+  dateRange: string | null;
+}
+
+export const travelAgentContextAtom = atom<TravelAgentContext>({
+  nAdults: null,
+  nChildren: null,
+  interests: [],
+  homeLocation: null,
+  dateRange: null,
+});

@@ -109,17 +109,25 @@ export interface EventCollectorInternal {
 
 type MainEventCollectorVarTypes = {
   
+  "context": types.TravelAgentContext,
+  
   "current_tool_type": string,
   
-  "debug": string
+  "debug": string,
+  
+  "messages": types.Message[]
   
 }
 
 type MainEventCollectorStreamTypes = {
   
+  "context": partial_types.TravelAgentContext | null,
+  
   "current_tool_type": string | null,
   
-  "debug": string | null
+  "debug": string | null,
+  
+  "messages": partial_types.Message[]
   
 }
 
@@ -129,9 +137,13 @@ export interface MainEventCollector extends EventCollectorInternal {
   
   on_var<K extends keyof MainEventCollectorVarTypes>(channel: K, handler: (event: VarNotification<MainEventCollectorVarTypes[K]>) => void): void
   
+  on_stream(channel: "context", handler: StreamHandler<partial_types.TravelAgentContext | null, partial_types.TravelAgentContext | null>): void
+  
   on_stream(channel: "current_tool_type", handler: StreamHandler<string | null, string | null>): void
   
   on_stream(channel: "debug", handler: StreamHandler<string | null, string | null>): void
+  
+  on_stream(channel: "messages", handler: StreamHandler<partial_types.Message[], partial_types.Message[]>): void
   
   
   
@@ -141,11 +153,17 @@ export function Main(): MainEventCollector {
   const blockHandlers = new Set<BlockHandler>()
 
   
+  const varHandlers_context = new Set<VarHandler<types.TravelAgentContext>>()
+  const streamHandlers_context = new Set<StreamHandler<partial_types.TravelAgentContext | null, partial_types.TravelAgentContext | null>>()
+  
   const varHandlers_current_tool_type = new Set<VarHandler<string>>()
   const streamHandlers_current_tool_type = new Set<StreamHandler<string | null, string | null>>()
   
   const varHandlers_debug = new Set<VarHandler<string>>()
   const streamHandlers_debug = new Set<StreamHandler<string | null, string | null>>()
+  
+  const varHandlers_messages = new Set<VarHandler<types.Message[]>>()
+  const streamHandlers_messages = new Set<StreamHandler<partial_types.Message[], partial_types.Message[]>>()
   
 
   // Track active streams by stream_id
@@ -190,17 +208,25 @@ export function Main(): MainEventCollector {
   
   const varHandlerMap = {
     
+    "context": varHandlers_context,
+    
     "current_tool_type": varHandlers_current_tool_type,
     
-    "debug": varHandlers_debug
+    "debug": varHandlers_debug,
+    
+    "messages": varHandlers_messages
     
   }
 
   const streamHandlerMap = {
     
+    "context": streamHandlers_context,
+    
     "current_tool_type": streamHandlers_current_tool_type,
     
-    "debug": streamHandlers_debug
+    "debug": streamHandlers_debug,
+    
+    "messages": streamHandlers_messages
     
   }
   

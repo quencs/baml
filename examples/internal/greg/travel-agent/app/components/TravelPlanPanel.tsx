@@ -7,7 +7,7 @@ interface TravelPlanPanelProps {
 
 export function TravelPlanPanel({ planItems, onExport }: TravelPlanPanelProps) {
   return (
-    <div className="w-96 flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div className="flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden h-full">
       {/* Travel Plan Header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4">
         <h2 className="text-xl font-semibold text-white">Travel Plan</h2>

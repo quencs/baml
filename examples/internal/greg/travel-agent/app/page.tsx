@@ -4,20 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ChatPanel } from "./components/ChatPanel";
 import { TravelPlanPanel } from "./components/TravelPlanPanel";
+import { ContextPanel } from "./components/ContextPanel";
 import {
   messagesAtom,
   activeToolAtom,
   itineraryAtom,
   addMessageAtom,
   pendingUserInputAtom,
+  travelAgentContextAtom,
 } from "./store/atoms";
 
 export default function Home() {
   const messages = useAtomValue(messagesAtom);
   const activeTool = useAtomValue(activeToolAtom);
   const itinerary = useAtomValue(itineraryAtom);
+  const context = useAtomValue(travelAgentContextAtom);
   const addMessage = useSetAtom(addMessageAtom);
   const [pendingUserInput, setPendingUserInput] = useAtom(pendingUserInputAtom);
+  const [, setContext] = useAtom(travelAgentContextAtom);
   const [shouldFlash, setShouldFlash] = useState(false);
   const resolverRef = useRef<((message: string) => void) | null>(null);
   const pendingUserInputRef = useRef(pendingUserInput);
@@ -91,6 +95,33 @@ export default function Home() {
     };
   }, [setPendingUserInput, addMessage]); // Added addMessage to deps
 
+  // Poll for context updates
+  useEffect(() => {
+    let isMounted = true;
+
+    const pollContext = async () => {
+      if (!isMounted) return;
+
+      try {
+        const response = await fetch("/api/watch/context");
+        if (response.ok && isMounted) {
+          const contextData = await response.json();
+          setContext(contextData);
+        }
+      } catch (error) {
+        console.error("Context polling error:", error);
+      }
+    };
+
+    const pollInterval = setInterval(pollContext, 500); // Poll every 500ms for context updates
+    pollContext(); // Initial poll
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [setContext]);
+
   // Register message resolver when pending input is active
   useEffect(() => {
     if (pendingUserInput) {
@@ -161,10 +192,17 @@ export default function Home() {
             onSendMessage={handleSendMessage}
             shouldFlash={shouldFlash}
           />
-          <TravelPlanPanel
-            planItems={itinerary}
-            onExport={handleExportItinerary}
-          />
+          <div className="w-96 flex flex-col gap-6 overflow-hidden">
+            <div className="flex-1 min-h-0">
+              <ContextPanel context={context} />
+            </div>
+            <div className="flex-1 min-h-0">
+              <TravelPlanPanel
+                planItems={itinerary}
+                onExport={handleExportItinerary}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

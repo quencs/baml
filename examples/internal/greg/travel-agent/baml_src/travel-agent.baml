@@ -107,9 +107,8 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 
 function Main() -> int {
   watch let debug = "";
-  debug = "Hello";
-  let messages: Message[] = [];
-  let context = TravelAgentContext {
+  watch let messages: Message[] = [];
+  watch let context = TravelAgentContext {
     nAdults: null,
     nChildren: null,
     interests: [],
@@ -125,14 +124,14 @@ function Main() -> int {
 		  current_tool_type = t.type;
 		  debug = "Got RequestInfoFromUser";
 		  messages.push(Message { sender: "agent", content: t.message_to_user });
-		  debug = "Pushed message";
 		  let userResponse = TalkToUser(t.message_to_user);
-		  debug = "Got Response! " + userResponse;
 		  messages.push(Message { sender: "user", content: userResponse} );
-		  debug = "Pushed response";
+		} else if (t instanceof SetItinerary) {
+
+		} else if (t instanceof UpdateTravelAgentContext) {
+          context = t.new_context;
 		} else {
 		  debug = "FALLTHROUGH!!!";
-		  break;
 		}
 	 }
   }
