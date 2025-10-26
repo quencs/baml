@@ -66,6 +66,31 @@ env?: Record<string, string | undefined>
       }
       }
       
+  async LLMSumarizeFlights(
+  flights: string,
+  __baml_options__?: BamlCallOptions<never>
+  ): Promise<HTTPRequest> {
+    try {
+    const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+    const env: Record<string, string> = Object.fromEntries(
+      Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return await this.runtime.buildRequest(
+      "LLMSumarizeFlights",
+      {
+      "flights": flights
+      },
+      this.ctxManager.cloneContext(),
+      __baml_options__?.tb?.__tb(),
+      __baml_options__?.clientRegistry,
+      false,
+      env
+      )
+      } catch (error) {
+      throw toBamlError(error);
+      }
+      }
+      
   async GoogleSearchFlights(
   departure_id: string,arrival_id: string,adults: number,children: number,outbound_date: string,return_date: string,
   __baml_options__?: BamlCallOptions<events.GoogleSearchFlightsEventCollector>
@@ -160,6 +185,31 @@ env?: Record<string, string | undefined>
           "LLMChooseTool",
           {
           "history": history,"user_ctx": user_ctx
+          },
+          this.ctxManager.cloneContext(),
+          __baml_options__?.tb?.__tb(),
+          __baml_options__?.clientRegistry,
+          true,
+          env
+          )
+          } catch (error) {
+          throw toBamlError(error);
+          }
+          }
+          
+      async LLMSumarizeFlights(
+      flights: string,
+      __baml_options__?: BamlCallOptions<never>
+      ): Promise<HTTPRequest> {
+        try {
+        const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+        const env: Record<string, string> = Object.fromEntries(
+          Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+          );
+          return await this.runtime.buildRequest(
+          "LLMSumarizeFlights",
+          {
+          "flights": flights
           },
           this.ctxManager.cloneContext(),
           __baml_options__?.tb?.__tb(),

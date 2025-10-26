@@ -33,7 +33,7 @@ export class LlmResponseParser {
   LLMChooseTool(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, env?: Record<string, string | undefined> }
-  ): (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[] {
+  ): (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[] {
     try {
       const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env: Record<string, string> = Object.fromEntries(
@@ -47,7 +47,30 @@ export class LlmResponseParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]
+      ) as (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[]
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  LLMSumarizeFlights(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, env?: Record<string, string | undefined> }
+  ): string {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.parseLlmResponse(
+        "LLMSumarizeFlights",
+        llmResponse,
+        false,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as string
     } catch (error) {
       throw toBamlError(error);
     }
@@ -131,7 +154,7 @@ export class LlmStreamParser {
   LLMChooseTool(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, env?: Record<string, string | undefined> }
-  ): (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[] {
+  ): (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights | partial_types.SetItinerary)[] {
     try {
       const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
       const env: Record<string, string> = Object.fromEntries(
@@ -145,7 +168,30 @@ export class LlmStreamParser {
         __baml_options__?.tb?.__tb(),
         __baml_options__?.clientRegistry,
         env,
-      ) as (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[]
+      ) as (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights | partial_types.SetItinerary)[]
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  LLMSumarizeFlights(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, env?: Record<string, string | undefined> }
+  ): string {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.parseLlmResponse(
+        "LLMSumarizeFlights",
+        llmResponse,
+        true,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as string
     } catch (error) {
       throw toBamlError(error);
     }

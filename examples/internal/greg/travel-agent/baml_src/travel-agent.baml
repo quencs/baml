@@ -26,7 +26,7 @@ class SetItinerary {
   itinerary Itinerary
 }
 
-type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights
+type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights | SetItinerary
 
 
 // **************************************
@@ -120,7 +120,7 @@ function LLMSumarizeFlights(flights: string) -> string {
 // *********** CONTEXT ******************
 // **************************************
 
-function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights)[] {
+function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights | SetItinerary)[] {
   client CustomSonnet4
   prompt #"
     {{ ctx.output_format }}
@@ -139,6 +139,8 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 
     Try to keep each message friendly but brief. First message,
     2 or 3 sentences. After that, preferably 1 sentence or question.
+    
+    Every set of tool calls should end with a single message to the user.
 
     Here is the full conversation history:
     {{ history }}
@@ -147,13 +149,20 @@ function LLMChooseTool(history: Message[], user_ctx: TravelAgentContext) -> (Req
 
 function Main() -> int {
   watch let debug = "";
-  debug = "About to get API key";
-  debug = env.SERP_API_KEY;
-  debug = GoogleSearchFlights("IAD", "AUS", 1, 0, "2025-10-26", "2025-10-26");
   watch let messages: Message[] = [];
   watch let itinerary = Itinerary {
     flights: [],
     activities: []
+  };
+  itinerary = Itinerary {
+    flights: [],
+    activities: [
+      Activity {
+        name: "Visit the Grand Canyon",
+        location: "Grand Canyon",
+        price_dollars: 100
+      }
+    ]
   };
   watch let context = TravelAgentContext {
     nAdults: null,
@@ -178,8 +187,6 @@ function Main() -> int {
 		  messages.push(Message { sender: "agent", content: t.message_to_user });
 		  let userResponse = TalkToUser(t.message_to_user);
 		  messages.push(Message { sender: "user", content: userResponse} );
-		} else if (t instanceof SetItinerary) {
-
 		} else if (t instanceof UpdateTravelAgentContext) {
           context = t.new_context;
 		} else if (t instanceof SearchFlights) {

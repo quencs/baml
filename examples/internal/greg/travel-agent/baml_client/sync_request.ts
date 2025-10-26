@@ -62,6 +62,31 @@ export class HttpRequest {
     }
   }
   
+  LLMSumarizeFlights(
+      flights: string,
+      __baml_options__?: BamlCallOptions<never>
+  ): HTTPRequest {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.buildRequestSync(
+        "LLMSumarizeFlights",
+        {
+          "flights": flights
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   GoogleSearchFlights(
       departure_id: string,arrival_id: string,adults: number,children: number,outbound_date: string,return_date: string,
       __baml_options__?: BamlCallOptions<events.GoogleSearchFlightsEventCollector>
@@ -156,6 +181,31 @@ export class HttpStreamRequest {
         "LLMChooseTool",
         {
           "history": history,"user_ctx": user_ctx
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  LLMSumarizeFlights(
+      flights: string,
+      __baml_options__?: BamlCallOptions<never>
+  ): HTTPRequest {
+    try {
+      const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      const env: Record<string, string> = Object.fromEntries(
+        Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
+      return this.runtime.buildRequestSync(
+        "LLMSumarizeFlights",
+        {
+          "flights": flights
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

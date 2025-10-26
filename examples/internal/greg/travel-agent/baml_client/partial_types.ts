@@ -85,6 +85,6 @@ export namespace partial_types {
       type?: "update_travel_agent_context" | null
       new_context?: TravelAgentContext | null
     }
-export type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights | null
+export type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights | SetItinerary | null
 
 }

@@ -99,7 +99,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
         async LLMChooseTool(
         history: types.Message[],user_ctx: types.TravelAgentContext,
         __baml_options__?: BamlCallOptions<never>
-        ): Promise<(types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]> {
+        ): Promise<(types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[]> {
           try {
           const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
           const signal = options.signal;
@@ -138,7 +138,55 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             signal,
             options.watchers,
             )
-            return raw.parsed(false) as (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]
+            return raw.parsed(false) as (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[]
+            } catch (error) {
+            throw toBamlError(error);
+            }
+            }
+            
+        async LLMSumarizeFlights(
+        flights: string,
+        __baml_options__?: BamlCallOptions<never>
+        ): Promise<string> {
+          try {
+          const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+          const signal = options.signal;
+
+          if (signal?.aborted) {
+          throw new BamlAbortError('Operation was aborted', signal.reason);
+          }
+
+          // Check if onTick is provided - route through streaming if so
+          if (options.onTick) {
+          const stream = this.stream.LLMSumarizeFlights(
+          flights,
+          __baml_options__
+          );
+
+          return await stream.getFinalResponse();
+          }
+
+          const collector = options.collector ? (Array.isArray(options.collector) ? options.collector :
+          [options.collector]) : [];
+          const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+          const env: Record<string, string> = Object.fromEntries(
+            Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+            );
+            const raw = await this.runtime.callFunction(
+            "LLMSumarizeFlights",
+            {
+            "flights": flights
+            },
+            this.ctxManager.cloneContext(),
+            options.tb?.__tb(),
+            options.clientRegistry,
+            collector,
+            options.tags || {},
+            env,
+            signal,
+            options.watchers,
+            )
+            return raw.parsed(false) as string
             } catch (error) {
             throw toBamlError(error);
             }
@@ -305,7 +353,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             LLMChooseTool(
             history: types.Message[],user_ctx: types.TravelAgentContext,
             __baml_options__?: BamlCallOptions<never>
-            ): BamlStream<(partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[], (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]>
+            ): BamlStream<(partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights | partial_types.SetItinerary)[], (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[]>
               {
               try {
               const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
@@ -356,10 +404,76 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                 signal,
                 onTickWrapper,
                 )
-                return new BamlStream<(partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[], (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[]>(
+                return new BamlStream<(partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights | partial_types.SetItinerary)[], (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[]>(
                   raw,
-                  (a): (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights)[] => a,
-                  (a): (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights)[] => a,
+                  (a): (partial_types.RequestInfoFromUser | partial_types.UpdateTravelAgentContext | partial_types.SearchFlights | partial_types.SetItinerary)[] => a,
+                  (a): (types.RequestInfoFromUser | types.UpdateTravelAgentContext | types.SearchFlights | types.SetItinerary)[] => a,
+                  this.ctxManager.cloneContext(),
+                  options.signal,
+                  )
+                  } catch (error) {
+                  throw toBamlError(error);
+                  }
+                  }
+                  
+            LLMSumarizeFlights(
+            flights: string,
+            __baml_options__?: BamlCallOptions<never>
+            ): BamlStream<string, string>
+              {
+              try {
+              const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+              const signal = options.signal;
+
+              if (signal?.aborted) {
+              throw new BamlAbortError('Operation was aborted', signal.reason);
+              }
+
+              let collector = options.collector ? (Array.isArray(options.collector) ? options.collector :
+              [options.collector]) : [];
+
+              let onTickWrapper: (() => void) | undefined;
+
+              // Create collector and wrap onTick if provided
+              if (options.onTick) {
+              const tickCollector = new Collector("on-tick-collector");
+              collector = [...collector, tickCollector];
+
+              onTickWrapper = () => {
+              const log = tickCollector.last;
+              if (log) {
+              try {
+              options.onTick!("Unknown", log);
+              } catch (error) {
+              console.error("Error in onTick callback for LLMSumarizeFlights", error);
+              }
+              }
+              };
+              }
+
+              const rawEnv = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+              const env: Record<string, string> = Object.fromEntries(
+                Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
+                );
+                const raw = this.runtime.streamFunction(
+                "LLMSumarizeFlights",
+                {
+                "flights": flights
+                },
+                undefined,
+                this.ctxManager.cloneContext(),
+                options.tb?.__tb(),
+                options.clientRegistry,
+                collector,
+                options.tags || {},
+                env,
+                signal,
+                onTickWrapper,
+                )
+                return new BamlStream<string, string>(
+                  raw,
+                  (a): string => a,
+                  (a): string => a,
                   this.ctxManager.cloneContext(),
                   options.signal,
                   )

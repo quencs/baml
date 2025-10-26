@@ -116,4 +116,4 @@ export interface UpdateTravelAgentContext {
   
 }
 
-export type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights
+export type Tool = RequestInfoFromUser | UpdateTravelAgentContext | SearchFlights | SetItinerary

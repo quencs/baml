@@ -12,6 +12,7 @@ import {
   addMessageAtom,
   pendingUserInputAtom,
   travelAgentContextAtom,
+  bamlItineraryAtom,
 } from "./store/atoms";
 
 export default function Home() {
@@ -19,9 +20,11 @@ export default function Home() {
   const activeTool = useAtomValue(activeToolAtom);
   const itinerary = useAtomValue(itineraryAtom);
   const context = useAtomValue(travelAgentContextAtom);
+  const bamlItinerary = useAtomValue(bamlItineraryAtom);
   const addMessage = useSetAtom(addMessageAtom);
   const [pendingUserInput, setPendingUserInput] = useAtom(pendingUserInputAtom);
   const [, setContext] = useAtom(travelAgentContextAtom);
+  const [, setBAMLItinerary] = useAtom(bamlItineraryAtom);
   const [shouldFlash, setShouldFlash] = useState(false);
   const resolverRef = useRef<((message: string) => void) | null>(null);
   const pendingUserInputRef = useRef(pendingUserInput);
@@ -122,6 +125,33 @@ export default function Home() {
     };
   }, [setContext]);
 
+  // Poll for itinerary updates
+  useEffect(() => {
+    let isMounted = true;
+
+    const pollItinerary = async () => {
+      if (!isMounted) return;
+
+      try {
+        const response = await fetch("/api/watch/itinerary");
+        if (response.ok && isMounted) {
+          const itineraryData = await response.json();
+          setBAMLItinerary(itineraryData);
+        }
+      } catch (error) {
+        // Silently fail - polling errors are not critical
+      }
+    };
+
+    const pollInterval = setInterval(pollItinerary, 2000); // Poll every 2s for itinerary updates
+    pollItinerary(); // Initial poll
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [setBAMLItinerary]);
+
   // Register message resolver when pending input is active
   useEffect(() => {
     if (pendingUserInput) {
@@ -199,6 +229,7 @@ export default function Home() {
             <div className="flex-1 min-h-0">
               <TravelPlanPanel
                 planItems={itinerary}
+                bamlItinerary={bamlItinerary}
                 onExport={handleExportItinerary}
               />
             </div>

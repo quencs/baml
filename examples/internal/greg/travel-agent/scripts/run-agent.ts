@@ -12,6 +12,18 @@ async function sendContextUpdate(context: any) {
   }
 }
 
+async function sendItineraryUpdate(itinerary: any) {
+  try {
+    await fetch("http://localhost:3001/api/watch/itinerary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(itinerary),
+    });
+  } catch (error) {
+    console.error("[Agent] Failed to send itinerary update:", error);
+  }
+}
+
 async function runAgent() {
   console.log("[Agent] Starting travel agent...");
 
@@ -21,6 +33,10 @@ async function runAgent() {
     watcher.on_var("context", (ev) => {
       console.log("[Watch context]", ev);
       sendContextUpdate(ev);
+    });
+    watcher.on_var("itinerary", (ev) => {
+      console.log("[Watch itinerary]", ev);
+      sendItineraryUpdate(ev);
     });
     console.log("[Agent] Watchers configured");
     await b.Main({ watchers: watcher });

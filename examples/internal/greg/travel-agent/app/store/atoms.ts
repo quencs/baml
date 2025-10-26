@@ -60,3 +60,26 @@ export const travelAgentContextAtom = atom<TravelAgentContext>({
   homeLocation: null,
   dateRange: null,
 });
+
+// BAML Itinerary from watch variable
+export interface Flight {
+  source: string;
+  dest: string;
+  datetime: string;
+}
+
+export interface Activity {
+  name: string;
+  location: string;
+  price_dollars: number;
+}
+
+export interface BAMLItinerary {
+  flights: Flight[];
+  activities: Activity[];
+}
+
+export const bamlItineraryAtom = atom<BAMLItinerary>({
+  flights: [],
+  activities: [],
+});

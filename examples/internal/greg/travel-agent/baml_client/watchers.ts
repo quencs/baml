@@ -221,6 +221,8 @@ type MainEventCollectorVarTypes = {
   
   "debug": string,
   
+  "itinerary": types.Itinerary,
+  
   "messages": types.Message[]
   
 }
@@ -232,6 +234,8 @@ type MainEventCollectorStreamTypes = {
   "current_tool_type": string | null,
   
   "debug": string | null,
+  
+  "itinerary": partial_types.Itinerary | null,
   
   "messages": partial_types.Message[]
   
@@ -248,6 +252,8 @@ export interface MainEventCollector extends EventCollectorInternal {
   on_stream(channel: "current_tool_type", handler: StreamHandler<string | null, string | null>): void
   
   on_stream(channel: "debug", handler: StreamHandler<string | null, string | null>): void
+  
+  on_stream(channel: "itinerary", handler: StreamHandler<partial_types.Itinerary | null, partial_types.Itinerary | null>): void
   
   on_stream(channel: "messages", handler: StreamHandler<partial_types.Message[], partial_types.Message[]>): void
   
@@ -267,6 +273,9 @@ export function Main(): MainEventCollector {
   
   const varHandlers_debug = new Set<VarHandler<string>>()
   const streamHandlers_debug = new Set<StreamHandler<string | null, string | null>>()
+  
+  const varHandlers_itinerary = new Set<VarHandler<types.Itinerary>>()
+  const streamHandlers_itinerary = new Set<StreamHandler<partial_types.Itinerary | null, partial_types.Itinerary | null>>()
   
   const varHandlers_messages = new Set<VarHandler<types.Message[]>>()
   const streamHandlers_messages = new Set<StreamHandler<partial_types.Message[], partial_types.Message[]>>()
@@ -320,6 +329,8 @@ export function Main(): MainEventCollector {
     
     "debug": varHandlers_debug,
     
+    "itinerary": varHandlers_itinerary,
+    
     "messages": varHandlers_messages
     
   }
@@ -331,6 +342,8 @@ export function Main(): MainEventCollector {
     "current_tool_type": streamHandlers_current_tool_type,
     
     "debug": streamHandlers_debug,
+    
+    "itinerary": streamHandlers_itinerary,
     
     "messages": streamHandlers_messages
     
