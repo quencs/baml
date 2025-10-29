@@ -17,6 +17,7 @@ itertools = { workspace = true }
 log = { workspace = true }
 pretty = { workspace = true }
 reqwest = { workspace = true }
+salsa = "0.24"
 serde_json = { workspace = true }
 
 [dev-dependencies]

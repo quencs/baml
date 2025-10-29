@@ -43,7 +43,7 @@ pub fn compile(ast: &ParserDatabase) -> anyhow::Result<BamlVmProgram> {
 /// Compile HIR to bytecode.
 ///
 /// This function takes an HIR Program and generates the bytecode for the VM.
-fn compile_thir_to_bytecode(
+pub(crate) fn compile_thir_to_bytecode(
     thir: &thir::THir<(Span, Option<TypeIR>)>,
 ) -> anyhow::Result<BamlVmProgram> {
     let mut resolved_globals = BamlMap::new();

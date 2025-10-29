@@ -1,10 +1,14 @@
 pub mod builtin;
 pub mod codegen;
 pub mod hir;
+pub mod salsa_db;
 pub mod thir;
 pub mod watch;
 
 pub use codegen::compile;
+
+// Re-export Salsa API for incremental compilation
+pub use salsa_db::{compile_baml_to_bytecode, CompilationResult, CompilerDatabase, SourceFileSet};
 
 pub mod test {
     use internal_baml_diagnostics::Diagnostics;

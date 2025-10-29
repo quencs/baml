@@ -1008,6 +1008,7 @@ dependencies = [
  "log",
  "pretty",
  "reqwest",
+ "salsa",
  "serde_json",
  "tokio",
 ]
@@ -1612,6 +1613,12 @@ dependencies = [
  "serde_yaml",
  "thiserror 2.0.12",
 ]
+
+[[package]]
+name = "boxcar"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36f64beae40a84da1b4b26ff2761a5b895c12adc41dc25aaee1c4f2bbfe97a6e"
 
 [[package]]
 name = "bstd"
@@ -2512,7 +2519,7 @@ dependencies = [
  "filetime",
  "indexmap 2.9.0",
  "internal-baml-core",
- "pathdiff 0.1.0",
+ "pathdiff 0.2.3",
  "serde_json",
  "sugar_path",
  "walkdir",
@@ -3357,6 +3364,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashlink"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
+dependencies = [
+ "hashbrown 0.15.4",
+]
+
+[[package]]
 name = "hdrhistogram"
 version = "7.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4115,6 +4131,24 @@ dependencies = [
  "serde",
  "serde_json",
  "strum",
+]
+
+[[package]]
+name = "intrusive-collections"
+version = "0.9.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "189d0897e4cbe8c75efedf3502c18c887b05046e59d28404d4d8e46cbc4d1e86"
+dependencies = [
+ "memoffset",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc61209c082fbeb19919bee74b176221b27223e27b65d781eb91af24eb1fb46e"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]
@@ -6564,6 +6598,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
+name = "salsa"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27956164373aeec733ac24ff1736de8541234e3a8e7e6f916b28175b5752af3b"
+dependencies = [
+ "boxcar",
+ "crossbeam-queue",
+ "crossbeam-utils",
+ "hashbrown 0.15.4",
+ "hashlink",
+ "indexmap 2.9.0",
+ "intrusive-collections",
+ "inventory",
+ "parking_lot",
+ "portable-atomic",
+ "rayon",
+ "rustc-hash 2.1.1",
+ "salsa-macro-rules",
+ "salsa-macros",
+ "smallvec",
+ "thin-vec",
+ "tracing",
+]
+
+[[package]]
+name = "salsa-macro-rules"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ca3b9d6e47c08b5de4b218e0c5f7ec910b51bce6314e651c8e7b9d154d174da"
+
+[[package]]
+name = "salsa-macros"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6337b62f2968be6b8afa30017d7564ecbde6832ada47ed2261fb14d0fd402ff4"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+ "synstructure",
+]
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7354,6 +7431,12 @@ dependencies = [
  "unicode-linebreak",
  "unicode-width 0.2.0",
 ]
+
+[[package]]
+name = "thin-vec"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "144f754d318415ac792f9d69fc87abbbfc043ce2ef041c60f16ad828f638717d"
 
 [[package]]
 name = "thiserror"
