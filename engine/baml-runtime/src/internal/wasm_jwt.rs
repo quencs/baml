@@ -23,16 +23,18 @@ use web_sys::{window, CryptoKey, SubtleCrypto};
 
 #[derive(Error, Debug)]
 pub enum JwtError {
-    #[error("JavaScript error: {0:?}")]
+    #[error("Failed to import private key using WebCrypto API. This typically indicates:\n  1. The private key format is invalid (expected PKCS#8, got something else)\n  2. The private key data is corrupted or incomplete\n  3. The key contains embedded newline characters that need escaping in JSON\n\nTroubleshooting:\n  - Verify your GCP service account JSON has a valid 'private_key' field\n  - Ensure the private key starts with '-----BEGIN PRIVATE KEY-----' (not 'RSA PRIVATE KEY')\n  - Check that newlines in the JSON are properly escaped as \\n\n  Original error: {0:?}")]
     JsError(JsValue),
-    #[error("Base64 decode error: {0}")]
+    #[error("Failed to decode private key from base64. The private key in your service account credentials appears to be malformed. Error: {0}")]
     Base64Error(#[from] base64::DecodeError),
-    #[error("JSON error: {0}")]
+    #[error("Failed to serialize JWT claims as JSON: {0}")]
     JsonError(#[from] serde_json::Error),
-    #[error("Missing window object")]
+    #[error("WebCrypto API is not available (missing window object). This code must run in a browser or WASM environment.")]
     NoWindow,
-    #[error("Missing crypto API")]
+    #[error("WebCrypto API is not available (missing crypto API). Your browser may not support the required cryptographic operations.")]
     NoCrypto,
+    #[error("Private key is too short ({0} bytes). Expected at least 100 bytes for a valid RSA private key. This likely indicates the key is invalid, corrupted, or just test data.")]
+    KeyTooShort(usize),
 }
 
 impl From<JsValue> for JwtError {
@@ -62,12 +64,26 @@ pub async fn encode_jwt(
     let signing_input = format!("{header_segment}.{claims_segment}");
 
     // Convert PEM to importable key format
+    // Remove PEM headers/footers and whitespace (newlines, carriage returns, tabs)
+    // Note: Do NOT remove spaces as they may be part of valid base64 content
     let pem = private_key_pem
         .trim()
         .replace("-----BEGIN PRIVATE KEY-----", "")
         .replace("-----END PRIVATE KEY-----", "")
-        .replace('\n', "");
-    let key_data = STANDARD.decode(pem)?;
+        .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+        .replace("-----END RSA PRIVATE KEY-----", "")
+        // Handle both literal \n strings (from JSON) and actual newline characters
+        .replace("\\n", "")
+        .replace('\n', "")
+        .replace('\r', "")
+        .replace('\t', "");
+
+    let key_data = STANDARD.decode(&pem)?;
+
+    // Validate key length before attempting to import
+    if key_data.len() < 100 {
+        return Err(JwtError::KeyTooShort(key_data.len()));
+    }
 
     // Import the key
     let import_params = Object::new();

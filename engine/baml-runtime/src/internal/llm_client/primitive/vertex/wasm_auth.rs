@@ -44,12 +44,21 @@ impl VertexAuth {
                     }
                 };
 
-                log::debug!("Attempting to auth using JsonString strategy");
+                // Check if the string is too short to be valid JSON
+                if str.len() < 50 {
+                    anyhow::bail!(
+                        "Invalid GCP service account credentials: string is too short ({}). \
+                        Expected a JSON object with fields like 'private_key', 'client_email', etc. \
+                        Got: {}",
+                        str.len(),
+                        debug_str
+                    );
+                }
+
                 Self(Some(serde_json::from_str(str).context(format!("Failed to parse 'credentials' as GCP service account creds (are you using JSON format creds?); credentials={debug_str}"))?))
             }
             ResolvedGcpAuthStrategy::JsonObject(json) => {
                 // NB: this should never happen in WASM, there's no way to pass a JSON object in
-                log::debug!("Attempting to auth using JsonObject strategy");
                 Self(Some(serde_json::from_value(
                     serde_json::to_value(json).context("Failed to parse service account credentials as GCP service account creds (issue during serialization)")?).context("Failed to parse service account credentials as GCP service account creds (are you using JSON format creds?)")?))
             }
@@ -144,9 +153,12 @@ impl ServiceAccount {
     async fn get_oauth2_token(&self) -> Result<Token> {
         let claims = Claims::from_service_account(self);
 
-        let jwt = encode_jwt(&serde_json::to_value(claims)?, &self.private_key)
-            .await
-            .map_err(|e| anyhow::anyhow!(format!("{e:?}")))?;
+        let jwt = encode_jwt(
+            &serde_json::to_value(claims).context("Failed to serialize claims as JSON")?,
+            &self.private_key,
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!(format!("JWT encoding error: {e:?}")))?;
 
         // Make the token request
         let client = reqwest::Client::new();

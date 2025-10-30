@@ -78,10 +78,10 @@ export const envKeyValuesAtom = atom(
       | { itemIndex: number; remove: true }
       // Insert key
       | {
-          itemIndex: null;
-          key: string;
-          value?: string;
-        },
+        itemIndex: null;
+        key: string;
+        value?: string;
+      },
   ) => {
     if (update.itemIndex !== null) {
       const keyValues = [...get(envKeyValueStorage)];
@@ -365,13 +365,16 @@ export const deleteApiKeyAtom = atom(
       delete newVars[key];
       return newVars;
     });
-    set(hasLocalChangesAtom, true);
     // Remove from recently added keys if it was there
     set(recentlyAddedKeysAtom, (prev: Set<string>) => {
       const newSet = new Set(prev);
       newSet.delete(key);
       return newSet;
     });
+    // Auto-save the deletion immediately
+    const localApiKeys = get(localApiKeysAtom);
+    set(userApiKeysAtom, localApiKeys);
+    set(hasLocalChangesAtom, false);
   }
 );
 
