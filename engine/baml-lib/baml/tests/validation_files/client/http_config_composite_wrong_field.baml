@@ -10,27 +10,16 @@ client<llm> InvalidCompositeFields {
   options {
     strategy [BaseClient]
     http {
-      request_timeout_ms 5000  // Not allowed for composite
-      connect_timeout_ms 3000  // Not allowed for composite
+      invalid_field_name 5000  // Unrecognized field
     }
   }
 }
 
-// error: Unrecognized field 'request_timeout_ms' in http configuration block. Did you mean 'total_timeout_ms'? Composite clients (fallback/round-robin) only support: total_timeout_ms
+// error: Unrecognized field 'invalid_field_name' in http configuration block. Composite clients (fallback/round-robin) support: connect_timeout_ms, request_timeout_ms, time_to_first_token_timeout_ms, idle_timeout_ms, total_timeout_ms
 //   -->  client/http_config_composite_wrong_field.baml:12
 //    | 
 // 11 |     strategy [BaseClient]
 // 12 |     http {
-// 13 |       request_timeout_ms 5000  // Not allowed for composite
-// 14 |       connect_timeout_ms 3000  // Not allowed for composite
-// 15 |     }
-//    | 
-// error: Unrecognized field 'connect_timeout_ms' in http configuration block. Did you mean 'total_timeout_ms'? Composite clients (fallback/round-robin) only support: total_timeout_ms
-//   -->  client/http_config_composite_wrong_field.baml:12
-//    | 
-// 11 |     strategy [BaseClient]
-// 12 |     http {
-// 13 |       request_timeout_ms 5000  // Not allowed for composite
-// 14 |       connect_timeout_ms 3000  // Not allowed for composite
-// 15 |     }
+// 13 |       invalid_field_name 5000  // Unrecognized field
+// 14 |     }
 //    | 

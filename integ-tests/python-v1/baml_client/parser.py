@@ -924,6 +924,24 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestCaching", llm_response=llm_response, mode="request")
         return typing.cast(str, result)
 
+    def TestCompoundCombinedTimeouts(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestCompoundCombinedTimeouts", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
+    def TestCompoundRequestTimeout(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestCompoundRequestTimeout", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
+    def TestCompoundTotalTimeout(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestCompoundTotalTimeout", llm_response=llm_response, mode="request")
+        return typing.cast(str, result)
+
     def TestFallbackClient(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
@@ -2514,6 +2532,24 @@ class LlmStreamParser:
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
         result = self.__options.merge_options(baml_options).parse_response(function_name="TestCaching", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
+
+    def TestCompoundCombinedTimeouts(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestCompoundCombinedTimeouts", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
+
+    def TestCompoundRequestTimeout(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestCompoundRequestTimeout", llm_response=llm_response, mode="stream")
+        return typing.cast(str, result)
+
+    def TestCompoundTotalTimeout(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="TestCompoundTotalTimeout", llm_response=llm_response, mode="stream")
         return typing.cast(str, result)
 
     def TestFallbackClient(

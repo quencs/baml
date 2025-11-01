@@ -2775,6 +2775,60 @@ export const TestCaching = async (
 };
 
 /**
+ * Executes the "TestCompoundCombinedTimeouts" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestCompoundCombinedTimeouts"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestCompoundCombinedTimeouts = async (
+  input: string,
+): Promise<string> => {
+  return b.TestCompoundCombinedTimeouts(
+    input,
+  );
+};
+
+/**
+ * Executes the "TestCompoundRequestTimeout" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestCompoundRequestTimeout"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestCompoundRequestTimeout = async (
+  input: string,
+): Promise<string> => {
+  return b.TestCompoundRequestTimeout(
+    input,
+  );
+};
+
+/**
+ * Executes the "TestCompoundTotalTimeout" BAML action.
+ *
+ * This server action calls the underlying BAML function "TestCompoundTotalTimeout"
+ * with the specified parameters.
+ *
+ * @param { string } input - Input parameter.
+ *
+ * @returns {Promise<string>} A promise that resolves with the result of the action.
+ */
+export const TestCompoundTotalTimeout = async (
+  input: string,
+): Promise<string> => {
+  return b.TestCompoundTotalTimeout(
+    input,
+  );
+};
+
+/**
  * Executes the "TestFallbackClient" BAML action.
  *
  * This server action calls the underlying BAML function "TestFallbackClient"

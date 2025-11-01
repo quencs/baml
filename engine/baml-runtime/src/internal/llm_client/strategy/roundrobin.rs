@@ -28,6 +28,7 @@ pub struct RoundRobinStrategy {
     // TODO: We can add conditions to each client
     client_specs: Vec<ClientSpec>,
     current_index: AtomicUsize,
+    pub http_config: internal_llm_client::HttpConfig,
 }
 
 fn serialize_atomic<S>(value: &AtomicUsize, serializer: S) -> Result<S::Ok, S::Error>
@@ -53,7 +54,7 @@ fn resolve_strategy(
     provider: &ClientProvider,
     properties: &UnresolvedClientProperty<()>,
     ctx: &RuntimeContext,
-) -> Result<(Vec<ClientSpec>, usize)> {
+) -> Result<(Vec<ClientSpec>, usize, internal_llm_client::HttpConfig)> {
     let properties = properties.resolve(provider, &ctx.eval_ctx(false))?;
     let ResolvedClientProperty::RoundRobin(props) = properties else {
         anyhow::bail!(
@@ -73,7 +74,7 @@ fn resolve_strategy(
             }
         }
     };
-    Ok((props.strategy, start))
+    Ok((props.strategy, start, props.http_config))
 }
 
 impl TryFrom<(&ClientProperty, &RuntimeContext)> for RoundRobinStrategy {
@@ -82,7 +83,7 @@ impl TryFrom<(&ClientProperty, &RuntimeContext)> for RoundRobinStrategy {
     fn try_from(
         (client, ctx): (&ClientProperty, &RuntimeContext),
     ) -> std::result::Result<Self, Self::Error> {
-        let (strategy, start) =
+        let (strategy, start, http_config) =
             resolve_strategy(&client.provider, &client.unresolved_options()?, ctx)?;
 
         Ok(RoundRobinStrategy {
@@ -90,6 +91,7 @@ impl TryFrom<(&ClientProperty, &RuntimeContext)> for RoundRobinStrategy {
             retry_policy: client.retry_policy.clone(),
             client_specs: strategy,
             current_index: AtomicUsize::new(start),
+            http_config,
         })
     }
 }
@@ -98,12 +100,14 @@ impl TryFrom<(&ClientWalker<'_>, &RuntimeContext)> for RoundRobinStrategy {
     type Error = anyhow::Error;
 
     fn try_from((client, ctx): (&ClientWalker, &RuntimeContext)) -> Result<Self> {
-        let (strategy, start) = resolve_strategy(&client.elem().provider, client.options(), ctx)?;
+        let (strategy, start, http_config) =
+            resolve_strategy(&client.elem().provider, client.options(), ctx)?;
         Ok(Self {
             name: client.item.elem.name.clone(),
             retry_policy: client.retry_policy().as_ref().map(String::from),
             client_specs: strategy,
             current_index: AtomicUsize::new(start),
+            http_config,
         })
     }
 }

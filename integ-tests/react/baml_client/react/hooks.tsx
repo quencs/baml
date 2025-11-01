@@ -7876,6 +7876,156 @@ export function useTestCaching(
   }
 }
 /**
+ * A specialized hook for the TestCompoundCombinedTimeouts BAML function that supports both streaming and non‑streaming responses.
+ *
+ * **Input Types:**
+ *
+ * - input: string
+ *
+ *
+ * **Return Type:**
+ * - **Non‑streaming:** string
+ * - **Streaming Partial:** string
+ * - **Streaming Final:** string
+ *
+ * **Usage Patterns:**
+ * 1. **Non‑streaming (Default)**
+ *    - Best for quick responses and simple UI updates.
+ * 2. **Streaming**
+ *    - Ideal for long‑running operations or real‑time feedback.
+ *
+ * **Edge Cases:**
+ * - Ensure robust error handling via `onError`.
+ * - Handle cases where partial data may be incomplete or missing.
+ *
+ * @example
+ * ```tsx
+ * // Basic non‑streaming usage:
+ * const { data, error, isLoading, mutate } = useTestCompoundCombinedTimeouts({ stream: false});
+ *
+ * // Streaming usage:
+ * const { data, streamData, isLoading, error, mutate } = useTestCompoundCombinedTimeouts({
+ *   stream: true | undefined,
+ *   onStreamData: (partial) => console.log('Partial update:', partial),
+ *   onFinalData: (final) => console.log('Final result:', final),
+ *   onError: (err) => console.error('Error:', err),
+ * });
+ * ```
+ */
+export function useTestCompoundCombinedTimeouts(props: HookInput<'TestCompoundCombinedTimeouts', { stream: false }>): HookOutput<'TestCompoundCombinedTimeouts', { stream: false }>
+export function useTestCompoundCombinedTimeouts(props?: HookInput<'TestCompoundCombinedTimeouts', { stream?: true }>): HookOutput<'TestCompoundCombinedTimeouts', { stream: true }>
+export function useTestCompoundCombinedTimeouts(
+  props: HookInput<'TestCompoundCombinedTimeouts', { stream?: boolean }> = {},
+): HookOutput<'TestCompoundCombinedTimeouts', { stream: true }> | HookOutput<'TestCompoundCombinedTimeouts', { stream: false }> {
+  let action: ServerAction = Actions.TestCompoundCombinedTimeouts;
+  if (isStreamingProps(props)) {
+    action = StreamingActions.TestCompoundCombinedTimeouts;
+    return useBamlAction(action, props)
+  } else {
+    return useBamlAction(action, props as HookInput<'TestCompoundCombinedTimeouts', { stream: false }>)
+  }
+}
+/**
+ * A specialized hook for the TestCompoundRequestTimeout BAML function that supports both streaming and non‑streaming responses.
+ *
+ * **Input Types:**
+ *
+ * - input: string
+ *
+ *
+ * **Return Type:**
+ * - **Non‑streaming:** string
+ * - **Streaming Partial:** string
+ * - **Streaming Final:** string
+ *
+ * **Usage Patterns:**
+ * 1. **Non‑streaming (Default)**
+ *    - Best for quick responses and simple UI updates.
+ * 2. **Streaming**
+ *    - Ideal for long‑running operations or real‑time feedback.
+ *
+ * **Edge Cases:**
+ * - Ensure robust error handling via `onError`.
+ * - Handle cases where partial data may be incomplete or missing.
+ *
+ * @example
+ * ```tsx
+ * // Basic non‑streaming usage:
+ * const { data, error, isLoading, mutate } = useTestCompoundRequestTimeout({ stream: false});
+ *
+ * // Streaming usage:
+ * const { data, streamData, isLoading, error, mutate } = useTestCompoundRequestTimeout({
+ *   stream: true | undefined,
+ *   onStreamData: (partial) => console.log('Partial update:', partial),
+ *   onFinalData: (final) => console.log('Final result:', final),
+ *   onError: (err) => console.error('Error:', err),
+ * });
+ * ```
+ */
+export function useTestCompoundRequestTimeout(props: HookInput<'TestCompoundRequestTimeout', { stream: false }>): HookOutput<'TestCompoundRequestTimeout', { stream: false }>
+export function useTestCompoundRequestTimeout(props?: HookInput<'TestCompoundRequestTimeout', { stream?: true }>): HookOutput<'TestCompoundRequestTimeout', { stream: true }>
+export function useTestCompoundRequestTimeout(
+  props: HookInput<'TestCompoundRequestTimeout', { stream?: boolean }> = {},
+): HookOutput<'TestCompoundRequestTimeout', { stream: true }> | HookOutput<'TestCompoundRequestTimeout', { stream: false }> {
+  let action: ServerAction = Actions.TestCompoundRequestTimeout;
+  if (isStreamingProps(props)) {
+    action = StreamingActions.TestCompoundRequestTimeout;
+    return useBamlAction(action, props)
+  } else {
+    return useBamlAction(action, props as HookInput<'TestCompoundRequestTimeout', { stream: false }>)
+  }
+}
+/**
+ * A specialized hook for the TestCompoundTotalTimeout BAML function that supports both streaming and non‑streaming responses.
+ *
+ * **Input Types:**
+ *
+ * - input: string
+ *
+ *
+ * **Return Type:**
+ * - **Non‑streaming:** string
+ * - **Streaming Partial:** string
+ * - **Streaming Final:** string
+ *
+ * **Usage Patterns:**
+ * 1. **Non‑streaming (Default)**
+ *    - Best for quick responses and simple UI updates.
+ * 2. **Streaming**
+ *    - Ideal for long‑running operations or real‑time feedback.
+ *
+ * **Edge Cases:**
+ * - Ensure robust error handling via `onError`.
+ * - Handle cases where partial data may be incomplete or missing.
+ *
+ * @example
+ * ```tsx
+ * // Basic non‑streaming usage:
+ * const { data, error, isLoading, mutate } = useTestCompoundTotalTimeout({ stream: false});
+ *
+ * // Streaming usage:
+ * const { data, streamData, isLoading, error, mutate } = useTestCompoundTotalTimeout({
+ *   stream: true | undefined,
+ *   onStreamData: (partial) => console.log('Partial update:', partial),
+ *   onFinalData: (final) => console.log('Final result:', final),
+ *   onError: (err) => console.error('Error:', err),
+ * });
+ * ```
+ */
+export function useTestCompoundTotalTimeout(props: HookInput<'TestCompoundTotalTimeout', { stream: false }>): HookOutput<'TestCompoundTotalTimeout', { stream: false }>
+export function useTestCompoundTotalTimeout(props?: HookInput<'TestCompoundTotalTimeout', { stream?: true }>): HookOutput<'TestCompoundTotalTimeout', { stream: true }>
+export function useTestCompoundTotalTimeout(
+  props: HookInput<'TestCompoundTotalTimeout', { stream?: boolean }> = {},
+): HookOutput<'TestCompoundTotalTimeout', { stream: true }> | HookOutput<'TestCompoundTotalTimeout', { stream: false }> {
+  let action: ServerAction = Actions.TestCompoundTotalTimeout;
+  if (isStreamingProps(props)) {
+    action = StreamingActions.TestCompoundTotalTimeout;
+    return useBamlAction(action, props)
+  } else {
+    return useBamlAction(action, props as HookInput<'TestCompoundTotalTimeout', { stream: false }>)
+  }
+}
+/**
  * A specialized hook for the TestFallbackClient BAML function that supports both streaming and non‑streaming responses.
  *
  * **Input Types:**

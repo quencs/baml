@@ -37,7 +37,7 @@ client<llm> MyClient {
 
 ## Available Timeout Types
 
-BAML supports four types of timeouts for individual requests, plus a fifth timeout type for composite clients (fallback, round-robin):
+BAML supports multiple timeout types that can be used with both individual clients and composite clients (fallback, round-robin):
 
 ### `connect_timeout_ms`
 
@@ -102,9 +102,9 @@ client<llm> MyClient {
 
 ### `request_timeout_ms`
 
-Maximum total time for the entire request-response cycle.
+Maximum total time for the entire request-response cycle for a single client attempt.
 
-**When to use:** Ensure requests complete within your application's latency requirements.
+**When to use:** Ensure individual requests complete within your application's latency requirements.
 
 ```baml
 client<llm> MyClient {
@@ -114,6 +114,24 @@ client<llm> MyClient {
     api_key env.OPENAI_API_KEY
     http {
       request_timeout_ms 60000  // Complete within 60s total
+    }
+  }
+}
+```
+
+### `total_timeout_ms` (Composite Clients Only)
+
+Maximum total time for the entire fallback/round-robin strategy, including all client attempts. Unlike `request_timeout_ms`, this timeout measures from when the first client starts and does not reset between fallback clients.
+
+**When to use:** Set an overall deadline for your entire composite client strategy.
+
+```baml
+client<llm> ResilientClient {
+  provider fallback
+  options {
+    strategy [Primary, Backup, LastResort]
+    http {
+      total_timeout_ms 120000    // 2 minutes for all attempts combined
     }
   }
 }
@@ -233,20 +251,47 @@ client<llm> ProductionClient {
 For fallback clients with stricter requirements:
 
 ```baml
+client<llm> Primary {
+  provider openai
+  options {
+    model "gpt-4"
+    api_key env.OPENAI_API_KEY
+    http {
+      request_timeout_ms 30000  // 30s per attempt
+    }
+  }
+}
+
+client<llm> Secondary {
+  provider anthropic
+  options {
+    model "claude-3-opus"
+    api_key env.ANTHROPIC_API_KEY
+    http {
+      request_timeout_ms 30000  // 30s per attempt
+    }
+  }
+}
+
 client<llm> FallbackClient {
   provider fallback
   options {
-    strategy [Primary, Secondary, Tertiary]
-
+    strategy [Primary, Secondary]
     http {
-      connect_timeout_ms 5000                 // Faster failover
-      time_to_first_token_timeout_ms 15000
-      idle_timeout_ms 2000
-      request_timeout_ms 120000               // 2 min per attempt
+      // All timeout types can be specified on composite clients
+      connect_timeout_ms 5000                   // Faster failover
+      time_to_first_token_timeout_ms 15000      // Applies to each client
+      idle_timeout_ms 2000                      // Applies to each client
+      request_timeout_ms 30000                  // Per-client timeout
+      total_timeout_ms 90000                    // Overall strategy timeout (90s)
     }
   }
 }
 ```
+
+<Note>
+When a composite client specifies timeout values, those values apply to all clients in the strategy. The `total_timeout_ms` is unique to composite clients and measures the time from when the first client starts, continuing to count even as the strategy moves from one client to the next on failures.
+</Note>
 
 ## Tips and Best Practices
 

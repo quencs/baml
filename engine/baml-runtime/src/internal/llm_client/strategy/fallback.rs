@@ -15,18 +15,20 @@ use crate::{
     RuntimeContext,
 };
 
+#[derive(Debug)]
 pub struct FallbackStrategy {
     pub name: String,
     pub(super) retry_policy: Option<String>,
     // TODO: We can add conditions to each client
     client_specs: Vec<ClientSpec>,
+    pub http_config: internal_llm_client::HttpConfig,
 }
 
 fn resolve_strategy(
     provider: &ClientProvider,
     properties: &UnresolvedClientProperty<()>,
     ctx: &RuntimeContext,
-) -> Result<Vec<ClientSpec>> {
+) -> Result<(Vec<ClientSpec>, internal_llm_client::HttpConfig)> {
     let properties = properties.resolve(provider, &ctx.eval_ctx(false))?;
     let ResolvedClientProperty::Fallback(props) = properties else {
         anyhow::bail!(
@@ -34,7 +36,7 @@ fn resolve_strategy(
             properties.name()
         );
     };
-    Ok(props.strategy)
+    Ok((props.strategy, props.http_config))
 }
 
 impl TryFrom<(&ClientProperty, &RuntimeContext)> for FallbackStrategy {
@@ -43,11 +45,13 @@ impl TryFrom<(&ClientProperty, &RuntimeContext)> for FallbackStrategy {
     fn try_from(
         (client, ctx): (&ClientProperty, &RuntimeContext),
     ) -> std::result::Result<Self, Self::Error> {
-        let strategy = resolve_strategy(&client.provider, &client.unresolved_options()?, ctx)?;
+        let (strategy, http_config) =
+            resolve_strategy(&client.provider, &client.unresolved_options()?, ctx)?;
         Ok(Self {
             name: client.name.clone(),
             retry_policy: client.retry_policy.clone(),
             client_specs: strategy,
+            http_config,
         })
     }
 }
@@ -56,16 +60,18 @@ impl TryFrom<(&ClientWalker<'_>, &RuntimeContext)> for FallbackStrategy {
     type Error = anyhow::Error;
 
     fn try_from((client, ctx): (&ClientWalker, &RuntimeContext)) -> Result<Self> {
-        let strategy = resolve_strategy(&client.elem().provider, client.options(), ctx)?;
+        let (strategy, http_config) =
+            resolve_strategy(&client.elem().provider, client.options(), ctx)?;
         Ok(Self {
             name: client.item.elem.name.clone(),
             retry_policy: client.retry_policy().as_ref().map(String::from),
             client_specs: strategy,
+            http_config,
         })
     }
 }
 
-impl IterOrchestrator for FallbackStrategy {
+impl IterOrchestrator for std::sync::Arc<FallbackStrategy> {
     fn iter_orchestrator<'a>(
         &self,
         state: &mut OrchestrationState,
@@ -83,7 +89,7 @@ impl IterOrchestrator for FallbackStrategy {
                         let client = client.clone();
                         Ok(client.iter_orchestrator(
                             state,
-                            ExecutionScope::Fallback(self.name.clone(), idx).into(),
+                            ExecutionScope::Fallback(self.clone(), idx).into(),
                             ctx,
                             client_lookup,
                         ))

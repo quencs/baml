@@ -62,6 +62,18 @@ pub async fn orchestrate(
     let mut results = Vec::new();
     let mut total_sleep_duration = std::time::Duration::from_secs(0);
 
+    // Extract total_timeout_ms from strategy if present
+    let total_timeout_ms: Option<u64> = iter.first().and_then(|node| {
+        node.scope.scope.iter().find_map(|scope| match scope {
+            super::ExecutionScope::Fallback(strategy, _) => strategy.http_config.total_timeout_ms,
+            super::ExecutionScope::RoundRobin(strategy, _) => strategy.http_config.total_timeout_ms,
+            _ => None,
+        })
+    });
+
+    // Track the start time for total timeout
+    let start_time = web_time::Instant::now();
+
     // Create a future that either waits for cancellation or never completes
     let cancel_future = match cancel_tripwire {
         Some(tripwire) => Box::pin(async move {
@@ -73,8 +85,59 @@ pub async fn orchestrate(
     tokio::pin!(cancel_future);
 
     for node in iter {
+        // Check for total timeout before starting each client
+        if let Some(timeout_ms) = total_timeout_ms {
+            let elapsed = start_time.elapsed();
+            if elapsed.as_millis() >= timeout_ms as u128 {
+                let cancel_scope = node.scope.clone();
+                results.push((
+                    cancel_scope,
+                    LLMResponse::LLMFailure(crate::internal::llm_client::LLMErrorResponse {
+                        client: node.provider.name().to_string(),
+                        model: None,
+                        message: format!("Total timeout of {}ms exceeded", timeout_ms),
+                        code: crate::internal::llm_client::ErrorCode::Timeout,
+                        prompt: internal_baml_jinja::RenderedPrompt::Completion(String::new()),
+                        start_time: web_time::SystemTime::now(),
+                        latency: elapsed,
+                        request_options: Default::default(),
+                    }),
+                    Some(Err(anyhow::anyhow!(
+                        crate::errors::ExposedError::TimeoutError {
+                            client_name: node.provider.name().to_string(),
+                            message: format!(
+                                "Total timeout of {}ms exceeded (elapsed: {}ms)",
+                                timeout_ms,
+                                elapsed.as_millis()
+                            ),
+                        }
+                    ))),
+                ));
+                break;
+            }
+        }
+
         // Check for cancellation at the start of each iteration
         let cancel_scope = node.scope.clone();
+
+        // Clone data needed for timeout error before moving node
+        let client_name_for_timeout = node.provider.name().to_string();
+
+        // Create a timeout future if total_timeout_ms is set
+        let timeout_future = if let Some(timeout_ms) = total_timeout_ms {
+            let remaining_time = timeout_ms.saturating_sub(start_time.elapsed().as_millis() as u64);
+            if remaining_time == 0 {
+                // Already exceeded, will be caught by the check above
+                Box::pin(async_std::task::sleep(std::time::Duration::from_millis(0)))
+                    as std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>
+            } else {
+                Box::pin(async_std::task::sleep(std::time::Duration::from_millis(remaining_time)))
+            }
+        } else {
+            Box::pin(futures::future::pending())
+        };
+        tokio::pin!(timeout_future);
+
         tokio::select! {
             biased;
 
@@ -85,6 +148,34 @@ pub async fn orchestrate(
                     Some(Err(anyhow::anyhow!(
                         crate::errors::ExposedError::AbortError {
                             detailed_message: String::new()
+                        }
+                    ))),
+                ));
+                break;
+            }
+            _ = &mut timeout_future => {
+                // Total timeout exceeded during client execution
+                let elapsed = start_time.elapsed();
+                results.push((
+                    cancel_scope,
+                    LLMResponse::LLMFailure(crate::internal::llm_client::LLMErrorResponse {
+                        client: client_name_for_timeout.clone(),
+                        model: None,
+                        message: format!("Total timeout of {}ms exceeded", total_timeout_ms.unwrap()),
+                        code: crate::internal::llm_client::ErrorCode::Timeout,
+                        prompt: internal_baml_jinja::RenderedPrompt::Completion(String::new()),
+                        start_time: web_time::SystemTime::now(),
+                        latency: elapsed,
+                        request_options: Default::default(),
+                    }),
+                    Some(Err(anyhow::anyhow!(
+                        crate::errors::ExposedError::TimeoutError {
+                            client_name: client_name_for_timeout,
+                            message: format!(
+                                "Total timeout of {}ms exceeded (elapsed: {}ms)",
+                                total_timeout_ms.unwrap(),
+                                elapsed.as_millis()
+                            ),
                         }
                     ))),
                 ));

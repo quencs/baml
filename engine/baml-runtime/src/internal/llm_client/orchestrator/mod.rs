@@ -53,7 +53,7 @@ impl std::fmt::Display for ExecutionScope {
                 write!(f, "RoundRobin({}, {})", strategy.name, index)
             }
             ExecutionScope::Fallback(strategy, index) => {
-                write!(f, "Fallback({strategy}, {index})")
+                write!(f, "Fallback({}, {})", strategy.name, index)
             }
         }
     }
@@ -152,8 +152,8 @@ pub enum ExecutionScope {
     Retry(String, usize, Duration),
     // StrategyName, ClientIndex
     RoundRobin(Arc<RoundRobinStrategy>, usize),
-    // StrategyName, ClientIndex
-    Fallback(String, usize),
+    // Strategy (with http_config), ClientIndex
+    Fallback(Arc<super::strategy::fallback::FallbackStrategy>, usize),
 }
 
 pub type OrchestratorNodeIterator = Vec<OrchestratorNode>;

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-mod fallback;
+pub mod fallback;
 pub mod roundrobin;
 
 use internal_baml_core::ir::ClientWalker;
@@ -20,7 +20,7 @@ use crate::{
 
 pub enum LLMStrategyProvider {
     RoundRobin(Arc<RoundRobinStrategy>),
-    Fallback(FallbackStrategy),
+    Fallback(Arc<FallbackStrategy>),
 }
 
 impl std::fmt::Display for LLMStrategyProvider {
@@ -45,9 +45,9 @@ impl TryFrom<(&ClientWalker<'_>, &RuntimeContext)> for LLMStrategyProvider {
                 StrategyClientProvider::RoundRobin => RoundRobinStrategy::try_from((client, ctx))
                     .map(Arc::new)
                     .map(LLMStrategyProvider::RoundRobin),
-                StrategyClientProvider::Fallback => {
-                    FallbackStrategy::try_from((client, ctx)).map(LLMStrategyProvider::Fallback)
-                }
+                StrategyClientProvider::Fallback => FallbackStrategy::try_from((client, ctx))
+                    .map(Arc::new)
+                    .map(LLMStrategyProvider::Fallback),
             },
             _ => {
                 anyhow::bail!("Unsupported strategy provider: {}", client.elem().provider,)
@@ -65,9 +65,9 @@ impl TryFrom<(&ClientProperty, &RuntimeContext)> for LLMStrategyProvider {
                 StrategyClientProvider::RoundRobin => RoundRobinStrategy::try_from((client, ctx))
                     .map(Arc::new)
                     .map(LLMStrategyProvider::RoundRobin),
-                StrategyClientProvider::Fallback => {
-                    FallbackStrategy::try_from((client, ctx)).map(LLMStrategyProvider::Fallback)
-                }
+                StrategyClientProvider::Fallback => FallbackStrategy::try_from((client, ctx))
+                    .map(Arc::new)
+                    .map(LLMStrategyProvider::Fallback),
             },
             other => {
                 let options = ["round-robin", "fallback"];

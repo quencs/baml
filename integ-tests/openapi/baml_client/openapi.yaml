@@ -2144,6 +2144,45 @@ paths:
                 title: TestCachingResponse
                 type: string
       operationId: TestCaching
+  /call/TestCompoundCombinedTimeouts:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestCompoundCombinedTimeouts'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestCompoundCombinedTimeoutsResponse
+                type: string
+      operationId: TestCompoundCombinedTimeouts
+  /call/TestCompoundRequestTimeout:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestCompoundRequestTimeout'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestCompoundRequestTimeoutResponse
+                type: string
+      operationId: TestCompoundRequestTimeout
+  /call/TestCompoundTotalTimeout:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/TestCompoundTotalTimeout'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                title: TestCompoundTotalTimeoutResponse
+                type: string
+      operationId: TestCompoundTotalTimeout
   /call/TestFallbackClient:
     post:
       requestBody:
@@ -5745,6 +5784,54 @@ components:
             required:
             - input
             - not_cached
+            additionalProperties: false
+    TestCompoundCombinedTimeouts:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestCompoundCombinedTimeoutsRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
+    TestCompoundRequestTimeout:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestCompoundRequestTimeoutRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
+            additionalProperties: false
+    TestCompoundTotalTimeout:
+      required: true
+      content:
+        application/json:
+          schema:
+            title: TestCompoundTotalTimeoutRequest
+            type: object
+            properties:
+              input:
+                type: string
+              __baml_options__:
+                nullable: true
+                $ref: '#/components/schemas/BamlOptions'
+            required:
+            - input
             additionalProperties: false
     TestFallbackClient:
       required: true

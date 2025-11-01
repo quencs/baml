@@ -515,9 +515,18 @@ impl<Meta: Clone> PropertyHandler<Meta> {
                     // Define allowed fields based on provider type
                     let is_composite =
                         provider_type == "fallback" || provider_type == "round-robin";
+                    // All timeouts are now allowed on both regular and composite clients
+                    // Composite clients additionally support total_timeout_ms
                     let allowed_fields: HashSet<&str> = if is_composite {
-                        // Composite clients only support total_timeout_ms
-                        vec!["total_timeout_ms"].into_iter().collect()
+                        vec![
+                            "connect_timeout_ms",
+                            "request_timeout_ms",
+                            "time_to_first_token_timeout_ms",
+                            "idle_timeout_ms",
+                            "total_timeout_ms",
+                        ]
+                        .into_iter()
+                        .collect()
                     } else {
                         // Regular clients support all timeout types except total_timeout_ms
                         vec![
@@ -532,7 +541,7 @@ impl<Meta: Clone> PropertyHandler<Meta> {
 
                     for (key, (_, value)) in config_map {
                         match key.as_str() {
-                            "connect_timeout_ms" if !is_composite => {
+                            "connect_timeout_ms" => {
                                 let value_meta = value.meta().clone();
                                 match value.into_numeric() {
                                     Ok((val_str, _)) => {
@@ -556,7 +565,7 @@ impl<Meta: Clone> PropertyHandler<Meta> {
                                     }
                                 }
                             }
-                            "request_timeout_ms" if !is_composite => {
+                            "request_timeout_ms" => {
                                 let value_meta = value.meta().clone();
                                 match value.into_numeric() {
                                     Ok((val_str, _)) => {
@@ -580,7 +589,7 @@ impl<Meta: Clone> PropertyHandler<Meta> {
                                     }
                                 }
                             }
-                            "time_to_first_token_timeout_ms" if !is_composite => {
+                            "time_to_first_token_timeout_ms" => {
                                 let value_meta = value.meta().clone();
                                 match value.into_numeric() {
                                     Ok((val_str, _)) => {
@@ -603,7 +612,7 @@ impl<Meta: Clone> PropertyHandler<Meta> {
                                     }
                                 }
                             }
-                            "idle_timeout_ms" if !is_composite => {
+                            "idle_timeout_ms" => {
                                 let value_meta = value.meta().clone();
                                 match value.into_numeric() {
                                     Ok((val_str, _)) => {
@@ -665,21 +674,28 @@ impl<Meta: Clone> PropertyHandler<Meta> {
                         // Build error messages with suggestions
                         for unrecognized_field in &unrecognized_fields {
                             let error_msg = if is_composite {
-                                // For composite clients
-                                if unrecognized_field == "total_timeout_ms" {
-                                    // This shouldn't happen as it's in the allowed list for composites
-                                    continue;
-                                } else if let Some(suggestion) =
-                                    find_best_match(unrecognized_field, &["total_timeout_ms"])
+                                // For composite clients - all timeouts are supported
+                                let all_timeout_fields = vec![
+                                    "connect_timeout_ms",
+                                    "request_timeout_ms",
+                                    "time_to_first_token_timeout_ms",
+                                    "idle_timeout_ms",
+                                    "total_timeout_ms",
+                                ];
+
+                                if let Some(suggestion) =
+                                    find_best_match(unrecognized_field, &all_timeout_fields)
                                 {
                                     format!(
                                         "Unrecognized field '{unrecognized_field}' in http configuration block. Did you mean '{suggestion}'? \
-                                        Composite clients (fallback/round-robin) only support: total_timeout_ms"
+                                        Composite clients (fallback/round-robin) support: connect_timeout_ms, request_timeout_ms, \
+                                        time_to_first_token_timeout_ms, idle_timeout_ms, total_timeout_ms"
                                     )
                                 } else {
                                     format!(
                                         "Unrecognized field '{unrecognized_field}' in http configuration block. \
-                                        Composite clients (fallback/round-robin) only support: total_timeout_ms"
+                                        Composite clients (fallback/round-robin) support: connect_timeout_ms, request_timeout_ms, \
+                                        time_to_first_token_timeout_ms, idle_timeout_ms, total_timeout_ms"
                                     )
                                 }
                             } else {
