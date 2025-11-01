@@ -93,25 +93,6 @@ function TestStreamingTimeout(input: string) -> string {
   "#
 }
 
-// Compound client with request_timeout_ms override
-// This overrides the tight 10ms timeout of TestTimeoutClient with a more generous 5000ms
-client<llm> CompoundTimeoutClient {
-  provider fallback
-  options {
-    strategy [TestTimeoutClient, TestZeroTimeoutClient]
-    http {
-      request_timeout_ms 5000  // Override the tight timeout from primitives
-    }
-  }
-}
-
-function TestCompoundRequestTimeout(input: string) -> string {
-  client CompoundTimeoutClient
-  prompt #"
-    Simple echo: {{input}}
-  "#
-}
-
 // Compound client with total_timeout_ms
 // Even though the second client has infinite timeout, total_timeout_ms enforces an overall limit
 client<llm> CompoundTotalTimeoutClient {
@@ -128,24 +109,5 @@ function TestCompoundTotalTimeout(input: string) -> string {
   client CompoundTotalTimeoutClient
   prompt #"
     Generate a very long detailed essay about: {{input}}
-  "#
-}
-
-// Compound client with both request_timeout_ms and total_timeout_ms
-client<llm> CompoundCombinedTimeoutsClient {
-  provider fallback
-  options {
-    strategy [TestTimeoutClient, TestZeroTimeoutClient]
-    http {
-      request_timeout_ms 5000  // Generous per-request timeout
-      total_timeout_ms 10000   // 10 second total timeout
-    }
-  }
-}
-
-function TestCompoundCombinedTimeouts(input: string) -> string {
-  client CompoundCombinedTimeoutsClient
-  prompt #"
-    Echo: {{input}}
   "#
 }

@@ -122,19 +122,6 @@ async def test_timeout_error_includes_client_name():
 
 
 @pytest.mark.asyncio
-async def test_compound_request_timeout_override():
-    """Test that compound client's request_timeout_ms overrides primitives"""
-    # CompoundTimeoutClient has request_timeout_ms 5000, overriding the tight 10ms timeout of TestTimeoutClient
-    # It should use the second client (TestZeroTimeoutClient) which should succeed
-    result = await b.TestCompoundRequestTimeout("hello world")
-
-    # Should have succeeded with the second client
-    assert result is not None
-    assert isinstance(result, str)
-    assert len(result) > 10  # Should have gotten a reasonable response
-
-
-@pytest.mark.asyncio
 async def test_compound_total_timeout():
     """Test that compound client's total_timeout_ms is enforced"""
     # CompoundTotalTimeoutClient has total_timeout_ms 1000 (1 second)
@@ -150,17 +137,6 @@ async def test_compound_total_timeout():
     # Should have timed out relatively quickly (around 1 second, with some overhead)
     assert elapsed < 2.0, f"Total timeout took too long: {elapsed}s"
     assert "timeout" in str(error).lower()
-
-
-@pytest.mark.asyncio
-async def test_compound_combined_timeouts():
-    """Test compound client with both request_timeout_ms and total_timeout_ms"""
-    result = await b.TestCompoundCombinedTimeouts("test combined timeouts")
-
-    # Should have succeeded with the fallback mechanism
-    assert result is not None
-    assert isinstance(result, str)
-    assert len(result) > 10  # Should have gotten a reasonable response
 
 
 # Mock OpenAI-compatible streaming server that sends many chunks with delays

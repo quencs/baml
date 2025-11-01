@@ -205,8 +205,6 @@ export type StreamingServerTypes = {
   TestAzureO3WithMaxCompletionTokens: string,
   TestAzureWithMaxTokens: string,
   TestCaching: string,
-  TestCompoundCombinedTimeouts: string,
-  TestCompoundRequestTimeout: string,
   TestCompoundTotalTimeout: string,
   TestFallbackClient: string,
   TestFallbackStrategy: string,
