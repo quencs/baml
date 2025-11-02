@@ -5,8 +5,8 @@ on:
     branches: [main, canary]
   pull_request:
     paths:
-      - 'baml_language/**'
-      - '.github/workflows/ci.yaml'
+      - "baml_language/**"
+      - ".github/workflows/ci.yaml"
   workflow_dispatch:
 
 concurrency:
@@ -398,7 +398,7 @@ jobs:
       - name: "Check dependencies"
         run: cargo deny check
         working-directory: baml_language
-        continue-on-error: true  # For now, just warn
+        continue-on-error: true # For now, just warn
 
   snapshot-tests:
     name: "snapshot tests"
@@ -449,10 +449,9 @@ jobs:
 
   benchmarks-instrumented:
     name: "benchmarks instrumented (baml)"
-    runs-on: ubuntu-24.04
+    runs-on: codspeed-macro
     needs: determine_changes
     if: |
-      github.repository == 'BoundaryML/baml-2' &&
       (
         github.ref == 'refs/heads/main' ||
         github.ref == 'refs/heads/canary' ||
@@ -484,12 +483,13 @@ jobs:
           tool: cargo-codspeed
 
       - name: "Build benchmarks"
-        run: cargo codspeed build --features "codspeed" -p baml_db
+        run: cargo codspeed build -p baml_tests
         working-directory: baml_language
 
       - name: "Run benchmarks"
         uses: CodSpeedHQ/action@v3
         with:
+          mode: walltime
           run: cd baml_language && cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
 
