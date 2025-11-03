@@ -116,7 +116,6 @@ $RECYCLE.BIN/
 /out/
 engine/language_client_ruby/**/*.bundle
 engine/target/
-Cargo.lock
 Icon
 Network Trash Folder
 Temporary Items
@@ -175,3 +174,4 @@ trace_events_debug.json
 
 result
 
+target/
