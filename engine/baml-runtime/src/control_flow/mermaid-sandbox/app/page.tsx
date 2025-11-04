@@ -1,90 +1,222 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 
 import HeaderFileWatcher from "./components/HeaderFileWatcher";
 import MermaidDiagram from "./components/MermaidDiagram";
 
-type HeaderExample = {
-  baseName: string;
-  mmdFileName: string;
-  mmdContents: string;
-  bamlFileName: string | null;
-  bamlContents: string | null;
+type FunctionSnapshot = {
+  key: string;
+  kind: string;
+  name: string;
+  mermaidFile: string;
+  mermaidContents: string;
 };
 
-const headersDir = path.resolve(process.cwd(), "..");
+type ExampleRow = {
+  baseName: string;
+  baml?: {
+    fileName: string;
+    contents: string;
+    isJson: boolean;
+  };
+  graph?: {
+    fileName: string;
+    json: unknown;
+  };
+  functions: FunctionSnapshot[];
+};
 
-async function loadHeaderExamples(): Promise<HeaderExample[]> {
-  const entries = await fs.readdir(headersDir, { withFileTypes: true });
-  const mmdFiles = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".mmd"))
-    .map((entry) => entry.name)
-    .sort((a, b) => a.localeCompare(b));
+const SANDBOX_ROOT = process.cwd();
+const CONTROL_FLOW_DIR = path.resolve(SANDBOX_ROOT, "..");
+const SNAPSHOT_DIR = path.join(CONTROL_FLOW_DIR, "snapshots");
+const TESTDATA_ROOT = path.join(SANDBOX_ROOT, "app/testdata");
+const BAML_DIR = path.join(TESTDATA_ROOT, "baml");
+const GRAPH_DIR = path.join(TESTDATA_ROOT, "graph");
+const MERMAID_DIR = path.join(TESTDATA_ROOT, "mermaid");
 
-  const examples: HeaderExample[] = [];
+function runDataGenerator() {
+  const generatorPath = path.join(SANDBOX_ROOT, "scripts/generate-data.mjs");
+  try {
+    const result = spawnSync("node", [generatorPath], {
+      stdio: "inherit",
+      cwd: SANDBOX_ROOT,
+    });
 
-  for (const mmdFile of mmdFiles) {
-    const baseName = mmdFile.replace(/\.mmd$/, "");
-    const mmdPath = path.join(headersDir, mmdFile);
-    const mmdContents = await fs.readFile(mmdPath, "utf8");
+    if (result.error) {
+      console.error("Failed to run data generator", result.error);
+    }
+  } catch (error) {
+    console.error("Error spawning data generator", error);
+  }
+}
 
-    const bamlFile = `${baseName}.baml`;
-    const bamlPath = path.join(headersDir, bamlFile);
+async function loadExamples(): Promise<ExampleRow[]> {
+  runDataGenerator();
 
-    let bamlContents: string | null = null;
-    let bamlFileName: string | null = null;
+  await Promise.all([
+    fs.mkdir(BAML_DIR, { recursive: true }),
+    fs.mkdir(GRAPH_DIR, { recursive: true }),
+    fs.mkdir(MERMAID_DIR, { recursive: true }),
+  ]);
 
-    try {
-      bamlContents = await fs.readFile(bamlPath, "utf8");
-      bamlFileName = bamlFile;
-    } catch (error: unknown) {
-      const err = error as NodeJS.ErrnoException;
-      if (err?.code !== "ENOENT") {
-        throw error;
-      }
+  const mermaidFiles = (await fs.readdir(MERMAID_DIR)).filter((file) => file.endsWith(".mmd"));
+  const grouped = new Map<string, FunctionSnapshot[]>();
+
+  for (const file of mermaidFiles) {
+    const match = file.match(/^(?<base>.+?)__(?<kind>[^_]+)_(?<name>.+)\.mmd$/);
+    if (!match?.groups) {
+      continue;
     }
 
-    examples.push({
+    const { base, kind, name } = match.groups;
+    const fullPath = path.join(MERMAID_DIR, file);
+    const mermaidContents = await fs.readFile(fullPath, "utf8");
+
+    const entry: FunctionSnapshot = {
+      key: `${kind}:${name}`,
+      kind,
+      name,
+      mermaidFile: file,
+      mermaidContents,
+    };
+
+    if (!grouped.has(base)) {
+      grouped.set(base, []);
+    }
+
+    grouped.get(base)!.push(entry);
+  }
+
+  const cases = Array.from(grouped.entries())
+    .map(([baseName, functions]): ExampleRow => ({
       baseName,
-      mmdFileName: mmdFile,
-      mmdContents,
-      bamlFileName,
-      bamlContents,
+      functions: functions.sort((a, b) => a.key.localeCompare(b.key)),
+    }))
+    .sort((a, b) => a.baseName.localeCompare(b.baseName));
+
+  const bamlFiles = new Map<string, { fileName: string; contents: string; isJson: boolean }>();
+  const bamlEntries = await fs.readdir(BAML_DIR).catch(() => []);
+  for (const file of bamlEntries) {
+    if (!file.endsWith(".baml") && !file.endsWith(".json")) {
+      continue;
+    }
+    const base = file.replace(/\.(baml|json)$/, "");
+    const contents = await fs.readFile(path.join(BAML_DIR, file), "utf8");
+    bamlFiles.set(base, {
+      fileName: file,
+      contents,
+      isJson: file.endsWith(".json"),
     });
   }
 
-  return examples;
+  const graphFiles = new Map<string, { fileName: string; json: unknown }>();
+  const graphEntries = await fs.readdir(GRAPH_DIR).catch(() => []);
+  for (const file of graphEntries) {
+    if (!file.endsWith(".json")) {
+      continue;
+    }
+    const base = file.replace(/\.json$/, "");
+    const contents = await fs.readFile(path.join(GRAPH_DIR, file), "utf8");
+    try {
+      graphFiles.set(base, {
+        fileName: file,
+        json: JSON.parse(contents),
+      });
+    } catch (error) {
+      graphFiles.set(base, {
+        fileName: file,
+        json: { error: `Failed to parse graph JSON: ${error}` },
+      });
+    }
+  }
+
+  for (const testCase of cases) {
+    const baml = bamlFiles.get(testCase.baseName);
+    if (baml) {
+      testCase.baml = baml;
+    }
+
+    const graph = graphFiles.get(testCase.baseName);
+    if (graph) {
+      testCase.graph = graph;
+    }
+  }
+
+  return cases;
+}
+
+function formatBaml({ contents, isJson }: { contents: string; isJson: boolean }) {
+  if (!isJson) {
+    return contents;
+  }
+  try {
+    return JSON.stringify(JSON.parse(contents), null, 2);
+  } catch {
+    return contents;
+  }
 }
 
 export default async function Home() {
-  const files = await loadHeaderExamples();
+  const examples = await loadExamples();
 
   return (
     <main className="min-h-screen bg-white text-black px-6 py-10">
       <HeaderFileWatcher />
       <h1 className="text-3xl font-semibold mb-6">Mermaid Headers Playground</h1>
 
-      {files.length === 0 ? (
+      {examples.length === 0 ? (
         <p className="text-gray-600">No Mermaid files found in the headers directory.</p>
       ) : (
         <div className="space-y-10">
-          {files.map((file) => (
-            <article key={file.mmdFileName} className="border border-gray-200 rounded-md shadow-sm">
+          {examples.map((example) => (
+            <article key={example.baseName} className="border border-gray-200 rounded-md shadow-sm overflow-hidden">
               <header className="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                <h2 className="text-xl font-medium">{file.baseName}</h2>
+                <h2 className="text-xl font-medium">{example.baseName}</h2>
                 <p className="mt-1 text-sm text-gray-600">
-                  {file.bamlFileName ?? "(missing .baml)"} · {file.mmdFileName}
+                  {example.baml?.fileName ?? "(no source)"}
                 </p>
               </header>
-              <div className="grid gap-0 sm:[grid-template-columns:1fr_2fr]">
-                <pre className="overflow-auto p-4 text-sm bg-white border-b sm:border-b-0 sm:border-r border-gray-200">
-                  <code>
-                    {file.bamlContents ?? "// No matching .baml file found for this diagram."}
-                  </code>
-                </pre>
-                <div className="p-4 flex items-center justify-center bg-white">
-                  <MermaidDiagram chart={file.mmdContents} className="w-full overflow-auto" />
-                </div>
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] p-4">
+                <section className="space-y-2">
+                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">BAML Source</h3>
+                  <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
+                    <code>
+                      {example.baml
+                        ? formatBaml(example.baml)
+                        : "// No matching .baml file found for this diagram."}
+                    </code>
+                  </pre>
+                </section>
+
+                <section className="space-y-4">
+                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Mermaid Diagrams</h3>
+                  {example.functions.length === 0 ? (
+                    <p className="text-sm text-gray-600">No mermaid diagrams found.</p>
+                  ) : (
+                    example.functions.map((fn) => (
+                      <figure key={fn.mermaidFile} className="border border-gray-200 rounded-md overflow-hidden">
+                        <figcaption className="px-3 py-2 text-sm font-medium bg-gray-50 border-b border-gray-200">
+                          {fn.kind.toUpperCase()} · {fn.name}
+                        </figcaption>
+                        <div className="p-4 bg-white">
+                          <MermaidDiagram chart={fn.mermaidContents} className="w-full overflow-auto" />
+                        </div>
+                      </figure>
+                    ))
+                  )}
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Graph Snapshot</h3>
+                  <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
+                    <code>
+                      {example.graph
+                        ? JSON.stringify(example.graph.json, null, 2)
+                        : "// No graph snapshot available."}
+                    </code>
+                  </pre>
+                </section>
               </div>
             </article>
           ))}

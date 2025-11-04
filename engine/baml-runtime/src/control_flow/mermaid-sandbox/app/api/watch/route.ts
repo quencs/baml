@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const headersDir = path.resolve(process.cwd(), "..");
-const watchedExtensions = new Set([".mmd", ".baml"]);
+const watchedExtensions = new Set([".mmd", ".baml", ".json"]);
 
 export const runtime = "nodejs";
 

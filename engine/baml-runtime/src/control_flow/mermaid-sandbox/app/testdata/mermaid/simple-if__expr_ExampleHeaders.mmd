@@ -1,0 +1,22 @@
+flowchart TD
+    NExampleHeaders_c_func_0_99e2((ExampleHeaders))
+    NExampleHeaders_c_func_0_c_arm_0_c_block_0_b637[scope]
+    NExampleHeaders_c_func_0_c_arm_0_c_block_0_h_positive_path_0_eb8c[positive path]
+    NExampleHeaders_c_func_0_c_arm_0_c_block_0_s_1_cfb3[expr]
+    NExampleHeaders_c_func_0_c_arm_1_c_block_0_7f6f[scope]
+    NExampleHeaders_c_func_0_c_arm_1_c_block_0_h_non_positive_path_0_ec67[non-positive path]
+    NExampleHeaders_c_func_0_c_arm_1_c_block_0_s_1_513d[expr]
+    NExampleHeaders_c_func_0_h_branching_0_bb64[branching]
+    NExampleHeaders_c_func_0_h_setup_0_1bc3[setup]
+    NExampleHeaders_c_func_0_s_0_215b[stmt]
+    NExampleHeaders_c_func_0_s_1_3a58{if}
+    NExampleHeaders_c_func_0_99e2 --> NExampleHeaders_c_func_0_h_setup_0_1bc3
+    NExampleHeaders_c_func_0_c_arm_0_c_block_0_b637 --> NExampleHeaders_c_func_0_c_arm_0_c_block_0_h_positive_path_0_eb8c
+    NExampleHeaders_c_func_0_c_arm_0_c_block_0_h_positive_path_0_eb8c --> NExampleHeaders_c_func_0_c_arm_0_c_block_0_s_1_cfb3
+    NExampleHeaders_c_func_0_c_arm_1_c_block_0_7f6f --> NExampleHeaders_c_func_0_c_arm_1_c_block_0_h_non_positive_path_0_ec67
+    NExampleHeaders_c_func_0_c_arm_1_c_block_0_h_non_positive_path_0_ec67 --> NExampleHeaders_c_func_0_c_arm_1_c_block_0_s_1_513d
+    NExampleHeaders_c_func_0_h_branching_0_bb64 --> NExampleHeaders_c_func_0_s_1_3a58
+    NExampleHeaders_c_func_0_h_setup_0_1bc3 --> NExampleHeaders_c_func_0_s_0_215b
+    NExampleHeaders_c_func_0_s_0_215b --> NExampleHeaders_c_func_0_h_branching_0_bb64
+    NExampleHeaders_c_func_0_s_1_3a58 --> NExampleHeaders_c_func_0_c_arm_0_c_block_0_b637
+    NExampleHeaders_c_func_0_s_1_3a58 --> NExampleHeaders_c_func_0_c_arm_1_c_block_0_7f6f
