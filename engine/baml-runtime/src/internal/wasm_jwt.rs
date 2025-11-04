@@ -74,9 +74,7 @@ pub async fn encode_jwt(
         .replace("-----END RSA PRIVATE KEY-----", "")
         // Handle both literal \n strings (from JSON) and actual newline characters
         .replace("\\n", "")
-        .replace('\n', "")
-        .replace('\r', "")
-        .replace('\t', "");
+        .replace(['\n', '\r', '\t'], "");
 
     let key_data = STANDARD.decode(&pem)?;
 
