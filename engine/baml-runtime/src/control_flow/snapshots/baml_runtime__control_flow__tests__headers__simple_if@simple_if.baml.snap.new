@@ -1,6 +1,6 @@
 ---
 source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 119
+assertion_line: 128
 expression: snapshots
 input_file: baml-runtime/src/control_flow/testdata/simple_if.baml
 ---
@@ -124,3 +124,4 @@ input_file: baml-runtime/src/control_flow/testdata/simple_if.baml
         label: ""
       - dst: "ExampleHeaders|c:func:0|c:arm:1|c:block:0"
         label: ""
+"mermaid::expr::ExampleHeaders": "flowchart TD\n    NExampleHeaders_c_func_0_99e2((ExampleHeaders))\n    NExampleHeaders_c_func_0_c_arm_0_c_block_0_b637[scope]\n    NExampleHeaders_c_func_0_c_arm_0_c_block_0_h_positive_path_0_eb8c[positive path]\n    NExampleHeaders_c_func_0_c_arm_0_c_block_0_s_1_cfb3[expr]\n    NExampleHeaders_c_func_0_c_arm_1_c_block_0_7f6f[scope]\n    NExampleHeaders_c_func_0_c_arm_1_c_block_0_h_non_positive_path_0_ec67[non-positive path]\n    NExampleHeaders_c_func_0_c_arm_1_c_block_0_s_1_513d[expr]\n    NExampleHeaders_c_func_0_h_branching_0_bb64[branching]\n    NExampleHeaders_c_func_0_h_setup_0_1bc3[setup]\n    NExampleHeaders_c_func_0_s_0_215b[stmt]\n    NExampleHeaders_c_func_0_s_1_3a58{if}\n    NExampleHeaders_c_func_0_99e2 --> NExampleHeaders_c_func_0_h_setup_0_1bc3\n    NExampleHeaders_c_func_0_c_arm_0_c_block_0_b637 --> NExampleHeaders_c_func_0_c_arm_0_c_block_0_h_positive_path_0_eb8c\n    NExampleHeaders_c_func_0_c_arm_0_c_block_0_h_positive_path_0_eb8c --> NExampleHeaders_c_func_0_c_arm_0_c_block_0_s_1_cfb3\n    NExampleHeaders_c_func_0_c_arm_1_c_block_0_7f6f --> NExampleHeaders_c_func_0_c_arm_1_c_block_0_h_non_positive_path_0_ec67\n    NExampleHeaders_c_func_0_c_arm_1_c_block_0_h_non_positive_path_0_ec67 --> NExampleHeaders_c_func_0_c_arm_1_c_block_0_s_1_513d\n    NExampleHeaders_c_func_0_h_branching_0_bb64 --> NExampleHeaders_c_func_0_s_1_3a58\n    NExampleHeaders_c_func_0_h_setup_0_1bc3 --> NExampleHeaders_c_func_0_s_0_215b\n    NExampleHeaders_c_func_0_s_0_215b --> NExampleHeaders_c_func_0_h_branching_0_bb64\n    NExampleHeaders_c_func_0_s_1_3a58 --> NExampleHeaders_c_func_0_c_arm_0_c_block_0_b637\n    NExampleHeaders_c_func_0_s_1_3a58 --> NExampleHeaders_c_func_0_c_arm_1_c_block_0_7f6f"

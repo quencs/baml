@@ -1,6 +1,6 @@
 ---
 source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 119
+assertion_line: 128
 expression: snapshots
 input_file: baml-runtime/src/control_flow/testdata/nested_scopes.baml
 ---
@@ -70,3 +70,4 @@ input_file: baml-runtime/src/control_flow/testdata/nested_scopes.baml
     "NestedScopes|c:func:0|s:1":
       - dst: "NestedScopes|c:func:0|s:2"
         label: ""
+"mermaid::expr::NestedScopes": "flowchart TD\n    NNestedScopes_c_func_0_50aa((NestedScopes))\n    NNestedScopes_c_func_0_h_first_section_0_a47a[First Section]\n    NNestedScopes_c_func_0_h_top_level_0_22d8[Top Level]\n    NNestedScopes_c_func_0_s_0_d3c5[stmt]\n    NNestedScopes_c_func_0_s_1_6ff1[stmt]\n    NNestedScopes_c_func_0_s_2_c9fa[expr]\n    NNestedScopes_c_func_0_50aa --> NNestedScopes_c_func_0_h_top_level_0_22d8\n    NNestedScopes_c_func_0_h_first_section_0_a47a --> NNestedScopes_c_func_0_s_1_6ff1\n    NNestedScopes_c_func_0_h_top_level_0_22d8 --> NNestedScopes_c_func_0_s_0_d3c5\n    NNestedScopes_c_func_0_s_0_d3c5 --> NNestedScopes_c_func_0_h_first_section_0_a47a\n    NNestedScopes_c_func_0_s_1_6ff1 --> NNestedScopes_c_func_0_s_2_c9fa"

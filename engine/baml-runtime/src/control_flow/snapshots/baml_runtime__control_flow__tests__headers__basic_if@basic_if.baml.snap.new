@@ -1,6 +1,6 @@
 ---
 source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 119
+assertion_line: 128
 expression: snapshots
 input_file: baml-runtime/src/control_flow/testdata/basic_if.baml
 ---

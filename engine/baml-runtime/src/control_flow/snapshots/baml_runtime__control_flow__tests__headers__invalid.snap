@@ -1,6 +1,0 @@
----
-source: baml-runtime/src/control_flow/tests.rs
-expression: snapshots
----
-__info:
-  note: no functions

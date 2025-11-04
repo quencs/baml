@@ -1,6 +1,6 @@
 ---
 source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 119
+assertion_line: 128
 expression: snapshots
 input_file: baml-runtime/src/control_flow/testdata/complex_workflow.baml
 ---
@@ -136,3 +136,6 @@ input_file: baml-runtime/src/control_flow/testdata/complex_workflow.baml
     "SummarizeVideo|c:func:0":
       - dst: "SummarizeVideo|c:func:0|s:0"
         label: ""
+"mermaid::expr::ProcessVideo": "flowchart TD\n    NProcessVideo_c_func_0_9fdd((ProcessVideo))\n    NProcessVideo_c_func_0_h_create_final_output_0_4dc2[Create Final Output]\n    NProcessVideo_c_func_0_h_generate_summary_0_f69f[Generate Summary]\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963[Main Processing Pipeline]\n    NProcessVideo_c_func_0_h_test_1_0718[Test]\n    NProcessVideo_c_func_0_s_0_f6d4[stmt]\n    NProcessVideo_c_func_0_s_1_68f4[stmt]\n    NProcessVideo_c_func_0_s_3_a1d5[expr]\n    NProcessVideo_c_func_0_9fdd --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963\n    NProcessVideo_c_func_0_h_create_final_output_0_4dc2 --> NProcessVideo_c_func_0_s_3_a1d5\n    NProcessVideo_c_func_0_h_generate_summary_0_f69f --> NProcessVideo_c_func_0_s_1_68f4\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963 --> NProcessVideo_c_func_0_h_test_1_0718\n    NProcessVideo_c_func_0_h_test_1_0718 --> NProcessVideo_c_func_0_s_0_f6d4\n    NProcessVideo_c_func_0_s_0_f6d4 --> NProcessVideo_c_func_0_h_generate_summary_0_f69f\n    NProcessVideo_c_func_0_s_1_68f4 --> NProcessVideo_c_func_0_h_create_final_output_0_4dc2"
+"mermaid::llm::GenerateTitle": "flowchart TD\n    NGenerateTitle_c_func_0_a31b((GenerateTitle))\n    NGenerateTitle_c_func_0_s_0_d759([LLM client: GPT4&#92;nllm: GPT4])\n    NGenerateTitle_c_func_0_a31b --> NGenerateTitle_c_func_0_s_0_d759"
+"mermaid::llm::SummarizeVideo": "flowchart TD\n    NSummarizeVideo_c_func_0_221e((SummarizeVideo))\n    NSummarizeVideo_c_func_0_s_0_96ce([LLM client: GPT4&#92;nllm: GPT4])\n    NSummarizeVideo_c_func_0_221e --> NSummarizeVideo_c_func_0_s_0_96ce"

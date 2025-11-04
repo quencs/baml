@@ -1,6 +1,6 @@
 ---
 source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 119
+assertion_line: 128
 expression: snapshots
 input_file: baml-runtime/src/control_flow/testdata/mixed_children_not_flattened.baml
 ---
@@ -94,3 +94,4 @@ input_file: baml-runtime/src/control_flow/testdata/mixed_children_not_flattened.
         label: ""
       - dst: "MixedChildrenNotFlattened|c:func:0|s:2"
         label: ""
+"mermaid::expr::MixedChildrenNotFlattened": "flowchart TD\n    NMixedChildrenNotFlattened_c_func_0_55c5((MixedChildrenNotFlattened))\n    NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_7261[scope]\n    NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_h_loop_child_0_9c47[Loop Child]\n    NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_s_1_d582[expr]\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d[MD Child]\n    NMixedChildrenNotFlattened_c_func_0_s_0_0fe0[stmt]\n    NMixedChildrenNotFlattened_c_func_0_s_1_0d92([for])\n    NMixedChildrenNotFlattened_c_func_0_s_2_eeb3[expr]\n    NMixedChildrenNotFlattened_c_func_0_55c5 --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d\n    NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_7261 --> NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_h_loop_child_0_9c47\n    NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_h_loop_child_0_9c47 --> NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_s_1_d582\n    NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_s_1_d582 -->|repeat| NMixedChildrenNotFlattened_c_func_0_s_1_0d92\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d --> NMixedChildrenNotFlattened_c_func_0_s_0_0fe0\n    NMixedChildrenNotFlattened_c_func_0_s_0_0fe0 --> NMixedChildrenNotFlattened_c_func_0_s_1_0d92\n    NMixedChildrenNotFlattened_c_func_0_s_1_0d92 --> NMixedChildrenNotFlattened_c_func_0_c_loop_0_c_block_0_7261\n    NMixedChildrenNotFlattened_c_func_0_s_1_0d92 --> NMixedChildrenNotFlattened_c_func_0_s_2_eeb3"

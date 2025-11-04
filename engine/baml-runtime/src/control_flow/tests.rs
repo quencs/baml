@@ -11,6 +11,7 @@ use baml_types::ir_type::{type_meta, TypeIR, TypeValue};
 use insta::assert_yaml_snapshot;
 use serde_json::{json, Value};
 
+use super::mermaid::to_mermaid;
 use crate::BamlRuntime;
 use internal_baml_core::feature_flags::FeatureFlags;
 
@@ -94,11 +95,19 @@ fn test_snapshots() {
                     for func in &hir.expr_functions {
                         let viz = build_from_hir(&hir, &func.name).expect("expr function graph");
                         snapshots.insert(format!("expr::{}", func.name), viz_snapshot(&viz));
+                        snapshots.insert(
+                            format!("mermaid::expr::{}", func.name),
+                            json!(to_mermaid(&viz)),
+                        );
                     }
 
                     for func in &hir.llm_functions {
                         let viz = build_from_hir(&hir, &func.name).expect("llm function graph");
                         snapshots.insert(format!("llm::{}", func.name), viz_snapshot(&viz));
+                        snapshots.insert(
+                            format!("mermaid::llm::{}", func.name),
+                            json!(to_mermaid(&viz)),
+                        );
                     }
 
                     if snapshots.is_empty() {
