@@ -1,0 +1,189 @@
+#![cfg(test)]
+
+use super::*;
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs,
+    path::{Path, PathBuf},
+};
+
+use baml_types::ir_type::{type_meta, TypeIR, TypeValue};
+use insta::assert_yaml_snapshot;
+use serde_json::{json, Value};
+
+use crate::BamlRuntime;
+use internal_baml_core::feature_flags::FeatureFlags;
+
+fn simple_function() -> hir::ExprFunction {
+    let span = Span::fake();
+    let let_stmt = hir::Statement::Let {
+        name: "x".into(),
+        value: hir::Expression::NumericValue("1".into(), span.clone()),
+        annotated_type: None,
+        watch: None,
+        span: span.clone(),
+    };
+
+    let return_expr = hir::Expression::Identifier("x".into(), span.clone());
+    let return_stmt = hir::Statement::Return {
+        expr: return_expr,
+        span: span.clone(),
+    };
+
+    hir::ExprFunction {
+        name: "Simple".into(),
+        parameters: Vec::new(),
+        return_type: TypeIR::Primitive(TypeValue::Int, type_meta::IR::default()),
+        body: hir::Block {
+            statements: vec![let_stmt, return_stmt],
+            trailing_expr: None,
+        },
+        span,
+    }
+}
+
+#[test]
+fn builds_simple_expr_function() {
+    let mut hir = hir::Hir::empty();
+    hir.expr_functions.push(simple_function());
+
+    let viz = build_from_hir(&hir, "Simple").expect("graph should build");
+
+    assert!(viz
+        .nodes
+        .values()
+        .any(|node| matches!(node.node_type, NodeType::FunctionRoot)));
+    assert!(viz
+        .nodes
+        .values()
+        .any(|node| matches!(node.node_type, NodeType::ImpliedByStatement)));
+
+    let root = viz
+        .nodes
+        .values()
+        .find(|node| matches!(node.node_type, NodeType::FunctionRoot))
+        .expect("root node");
+    assert!(viz
+        .edges_by_src
+        .get(&root.id)
+        .map(|edges| !edges.is_empty())
+        .unwrap_or(false));
+}
+
+#[test]
+fn missing_function_errors() {
+    let hir = hir::Hir::empty();
+    let err = build_from_hir(&hir, "DoesNotExist").unwrap_err();
+    assert!(format!("{err}").contains("DoesNotExist"));
+}
+
+#[test]
+fn header_snapshots() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/control_flow/headers");
+    let mut fixtures: Vec<PathBuf> = fs::read_dir(&dir)
+        .expect("headers fixture directory")
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("baml"))
+        .collect();
+
+    fixtures.sort();
+    assert!(
+        !fixtures.is_empty(),
+        "no header fixtures found in {:?}",
+        dir
+    );
+
+    for fixture in fixtures {
+        let mut snapshots: BTreeMap<String, Value> = BTreeMap::new();
+
+        match load_runtime_from_fixture(&fixture) {
+            Ok(runtime) => {
+                let hir = hir::Hir::from_ast(&runtime.db.ast);
+
+                for func in &hir.expr_functions {
+                    let viz = build_from_hir(&hir, &func.name).expect("expr function graph");
+                    snapshots.insert(format!("expr::{}", func.name), viz_snapshot(&viz));
+                }
+
+                for func in &hir.llm_functions {
+                    let viz = build_from_hir(&hir, &func.name).expect("llm function graph");
+                    snapshots.insert(format!("llm::{}", func.name), viz_snapshot(&viz));
+                }
+
+                if snapshots.is_empty() {
+                    snapshots.insert("__info".into(), json!({ "note": "no functions" }));
+                }
+            }
+            Err(err) => {
+                snapshots.insert("__error".into(), json!({ "error": format!("{err}") }));
+            }
+        }
+
+        let name = fixture
+            .file_stem()
+            .expect("fixture stem")
+            .to_string_lossy()
+            .replace([' ', '-'], "_");
+
+        assert_yaml_snapshot!(format!("headers__{}", name), snapshots);
+    }
+}
+
+fn load_runtime_from_fixture(path: &Path) -> anyhow::Result<BamlRuntime> {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let relative = path
+        .strip_prefix(&root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .to_string();
+
+    let mut files = HashMap::new();
+    let contents = fs::read_to_string(path)?;
+    files.insert(relative, contents);
+
+    BamlRuntime::from_file_content(
+        root.to_str().expect("manifest dir to str"),
+        &files,
+        HashMap::<String, String>::new(),
+        FeatureFlags::default(),
+    )
+}
+
+fn viz_snapshot(viz: &ControlFlowVisualization) -> Value {
+    let mut nodes = BTreeMap::new();
+    for node in viz.nodes.values() {
+        nodes.insert(
+            node.id.encode(),
+            json!({
+                "label": node.label,
+                "node_type": describe_node_type(&node.node_type),
+                "parent": node.parent_node_id.as_ref().map(|id| id.encode()),
+                "span": {
+                    "file": node.span.file_name(),
+                    "start": node.span.start,
+                    "end": node.span.end,
+                }
+            }),
+        );
+    }
+
+    let mut edges = BTreeMap::new();
+    for (src, list) in &viz.edges_by_src {
+        let mut records: Vec<_> = list
+            .iter()
+            .map(|edge| (edge.dst.encode(), edge.label.clone()))
+            .collect();
+        records.sort();
+        let serialized: Vec<_> = records
+            .into_iter()
+            .map(|(dst, label)| json!({ "dst": dst, "label": label }))
+            .collect();
+        edges.insert(src.encode(), serialized);
+    }
+
+    json!({
+        "nodes": nodes,
+        "edges": edges,
+    })
+}
