@@ -4,6 +4,8 @@ use anyhow::{anyhow, Result};
 use baml_compiler::hir;
 use internal_baml_core::ast::Span;
 
+pub mod mermaid;
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NodeId {
     function: String,
@@ -763,7 +765,17 @@ fn decode_segments(encoded: &str) -> Result<NodeId> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{
+        collections::BTreeMap,
+        fs,
+        path::{Path, PathBuf},
+    };
+
     use baml_types::ir_type::{type_meta, TypeIR, TypeValue};
+    use insta::assert_yaml_snapshot;
+    use internal_baml_ast::parse;
+    use internal_baml_diagnostics::{Diagnostics, SourceFile};
+    use serde_json::{json, Value};
 
     fn simple_function() -> hir::ExprFunction {
         let span = Span::fake();
@@ -828,5 +840,112 @@ mod tests {
         let hir = hir::Hir::empty();
         let err = build_from_hir(&hir, "DoesNotExist").unwrap_err();
         assert!(format!("{err}").contains("DoesNotExist"));
+    }
+
+    #[test]
+    fn header_snapshots() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/control_flow/headers");
+        let mut fixtures: Vec<PathBuf> = fs::read_dir(&dir)
+            .expect("headers fixture directory")
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("baml"))
+            .collect();
+
+        fixtures.sort();
+        assert!(
+            !fixtures.is_empty(),
+            "no header fixtures found in {:?}",
+            dir
+        );
+
+        for fixture in fixtures {
+            let Ok(hir) = parse_hir_from_file(&fixture) else {
+                eprintln!(
+                    "skipping fixture {:?} due to parse or validation errors",
+                    fixture
+                );
+                continue;
+            };
+            let mut snapshots: BTreeMap<String, Value> = BTreeMap::new();
+
+            for func in &hir.expr_functions {
+                let viz = build_from_hir(&hir, &func.name).expect("expr function graph");
+                snapshots.insert(format!("expr::{}", func.name), viz_snapshot(&viz));
+            }
+
+            for func in &hir.llm_functions {
+                let viz = build_from_hir(&hir, &func.name).expect("llm function graph");
+                snapshots.insert(format!("llm::{}", func.name), viz_snapshot(&viz));
+            }
+
+            let name = fixture
+                .file_stem()
+                .expect("fixture stem")
+                .to_string_lossy()
+                .replace([' ', '-'], "_");
+
+            assert_yaml_snapshot!(format!("headers__{}", name), snapshots);
+        }
+    }
+
+    fn parse_hir_from_file(path: &Path) -> Result<hir::Hir, Diagnostics> {
+        let contents = fs::read_to_string(path).expect("read fixture");
+        let leaked: &'static str = Box::leak(contents.into_boxed_str());
+
+        let mut db = crate::ParserDatabase::new();
+        let relative = path
+            .strip_prefix(env!("CARGO_MANIFEST_DIR"))
+            .unwrap_or(path);
+        let source = SourceFile::new_static(relative.to_path_buf(), leaked);
+        let (ast, mut diagnostics) = parse(source.path_buf(), &source)?;
+
+        db.add_ast(ast);
+
+        db.validate(&mut diagnostics)?;
+
+        db.finalize(&mut diagnostics);
+
+        diagnostics.to_result()?;
+
+        Ok(hir::Hir::from_ast(&db.ast))
+    }
+
+    fn viz_snapshot(viz: &ControlFlowVisualization) -> Value {
+        let mut nodes = BTreeMap::new();
+        for node in viz.nodes.values() {
+            nodes.insert(
+                node.id.encode(),
+                json!({
+                    "label": node.label,
+                    "node_type": describe_node_type(&node.node_type),
+                    "parent": node.parent_node_id.as_ref().map(|id| id.encode()),
+                    "span": {
+                        "file": node.span.file_name(),
+                        "start": node.span.start,
+                        "end": node.span.end,
+                    }
+                }),
+            );
+        }
+
+        let mut edges = BTreeMap::new();
+        for (src, list) in &viz.edges_by_src {
+            let mut records: Vec<_> = list
+                .iter()
+                .map(|edge| (edge.dst.encode(), edge.label.clone()))
+                .collect();
+            records.sort();
+            let serialized: Vec<_> = records
+                .into_iter()
+                .map(|(dst, label)| json!({ "dst": dst, "label": label }))
+                .collect();
+            edges.insert(src.encode(), serialized);
+        }
+
+        json!({
+            "nodes": nodes,
+            "edges": edges,
+        })
     }
 }
