@@ -18,6 +18,7 @@ pub mod test_executor;
 
 pub mod async_interpreter_runtime;
 pub mod async_vm_runtime;
+pub mod control_flow;
 mod redaction;
 mod runtime_methods;
 pub mod tracing;
@@ -38,7 +39,7 @@ use anyhow::{Context, Result};
 use async_interpreter_runtime::BamlAsyncInterpreterRuntime as CoreRuntime;
 #[cfg(not(feature = "thir-interpreter"))]
 use async_vm_runtime::BamlAsyncVmRuntime as CoreRuntime;
-use baml_compiler::watch::SharedWatchHandler;
+use baml_compiler::{hir, watch::SharedWatchHandler};
 use baml_ids::{FunctionCallId, HttpRequestId};
 use baml_types::{
     expr::{Expr, ExprMetadata},
@@ -49,6 +50,7 @@ use cfg_if::cfg_if;
 #[cfg(not(target_arch = "wasm32"))]
 pub use cli::RuntimeCliDefaults;
 use client_registry::{ClientProperty, ClientRegistry};
+use control_flow::{build_from_hir, ControlFlowVisualization};
 use futures::{
     channel::mpsc,
     future::{join, join_all},
@@ -2037,6 +2039,16 @@ impl InternalRuntimeInterface for BamlRuntime {
             ast,
         );
         Ok(graph)
+    }
+
+    fn function_graph_v2(
+        &self,
+        function_name: &str,
+        _ctx: &RuntimeContext,
+    ) -> Result<ControlFlowVisualization> {
+        let ast = self.db.ast();
+        let hir = hir::Hir::from_ast(&ast);
+        build_from_hir(&hir, function_name)
     }
 
     fn features(&self) -> internal::ir_features::IrFeatures {

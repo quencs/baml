@@ -939,6 +939,14 @@ impl crate::runtime_interface::InternalRuntimeInterface for BamlAsyncInterpreter
         self.llm_runtime.function_graph(function_name, ctx)
     }
 
+    fn function_graph_v2(
+        &self,
+        function_name: &str,
+        ctx: &crate::runtime_context::RuntimeContext,
+    ) -> Result<crate::control_flow::ControlFlowVisualization> {
+        self.llm_runtime.function_graph_v2(function_name, ctx)
+    }
+
     fn get_function<'ir>(
         &'ir self,
         function_name: &str,

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use baml_compiler::hir;
 use baml_types::{
     tracing::events::{FunctionEnd, FunctionStart, TraceData, TraceEvent},
     BamlMap, BamlValue, Constraint, EvaluationContext,
@@ -34,6 +35,7 @@ use crate::{
         prompt_renderer::PromptRenderer,
     },
     runtime::CachedClient,
+    control_flow::build_from_hir,
     runtime_interface::{InternalClientLookup, RuntimeConstructor},
     tracing::BamlTracer,
     tracingv2::storage::storage::{Collector, BAML_TRACER},
@@ -224,6 +226,16 @@ impl InternalRuntimeInterface for InternalBamlRuntime {
             graph.len()
         );
         Ok(graph)
+    }
+
+    fn function_graph_v2(
+        &self,
+        function_name: &str,
+        _ctx: &RuntimeContext,
+    ) -> Result<crate::control_flow::ControlFlowVisualization> {
+        let ast = self.db.ast();
+        let hir = hir::Hir::from_ast(&ast);
+        build_from_hir(&hir, function_name)
     }
 
     fn features(&self) -> IrFeatures {

@@ -10,6 +10,7 @@ use internal_baml_jinja::RenderedPrompt;
 use internal_llm_client::{AllowedRoleMetadata, ClientSpec};
 
 use crate::{
+    control_flow::ControlFlowVisualization,
     internal::{
         ir_features::IrFeatures,
         llm_client::{
@@ -122,6 +123,13 @@ pub trait InternalRuntimeInterface {
 
     /// send a mermaid graph of the function graph
     fn function_graph(&self, function_name: &str, ctx: &RuntimeContext) -> Result<String>;
+
+    /// build the structured control-flow visualization produced from HIR
+    fn function_graph_v2(
+        &self,
+        function_name: &str,
+        ctx: &RuntimeContext,
+    ) -> Result<ControlFlowVisualization>;
 
     fn get_function<'ir>(&'ir self, function_name: &str) -> Result<FunctionWalker<'ir>>;
     fn get_expr_function<'ir>(
