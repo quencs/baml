@@ -1,0 +1,8 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 119
+expression: snapshots
+input_file: baml-runtime/src/control_flow/testdata/complex_headers_test.baml
+---
+__error:
+  error: "\u001b[1;91merror\u001b[0m: \u001b[1mError validating: Return type mismatch: function return type is string but got int\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/complex_headers_test.baml:44\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m43 | \u001b[0m    //# Return Result\n\u001b[1;94m44 | \u001b[0m    \u001b[1;91mfinal_result\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\n\u001b[1;93mwarning\u001b[0m: \u001b[1mWorkflow functions are experimental, and will break in the future.\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/complex_headers_test.baml:3\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m 2 | \u001b[0m//# Main Function\n\u001b[1;94m 3 | \u001b[0mfunction \u001b[1;93mComplexHeaderTest\u001b[0m() -> string {\n\u001b[1;94m   | \u001b[0m\n\u001b[1;93mwarning\u001b[0m: \u001b[1mWorkflow functions are experimental, and will break in the future.\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/complex_headers_test.baml:48\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m47 | \u001b[0m//# Loop Processing\n\u001b[1;94m48 | \u001b[0mfunction \u001b[1;93mForLoopWithHeaders\u001b[0m() -> int {\n\u001b[1;94m   | \u001b[0m\n\n"

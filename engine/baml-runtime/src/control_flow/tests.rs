@@ -78,56 +78,47 @@ fn missing_function_errors() {
 }
 
 #[test]
-fn header_snapshots() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/control_flow/headers");
-    let mut fixtures: Vec<PathBuf> = fs::read_dir(&dir)
-        .expect("headers fixture directory")
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.path())
-        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("baml"))
-        .collect();
+fn test_snapshots() {
+    insta::glob!(
+        // "baml-runtime/src/control_flow",
+        "testdata",
+        "*.baml",
+        |relative| {
+            let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
+            let mut snapshots: BTreeMap<String, Value> = BTreeMap::new();
 
-    fixtures.sort();
-    assert!(
-        !fixtures.is_empty(),
-        "no header fixtures found in {:?}",
-        dir
-    );
+            match load_runtime_from_fixture(&fixture) {
+                Ok(runtime) => {
+                    let hir = hir::Hir::from_ast(&runtime.db.ast);
 
-    for fixture in fixtures {
-        let mut snapshots: BTreeMap<String, Value> = BTreeMap::new();
+                    for func in &hir.expr_functions {
+                        let viz = build_from_hir(&hir, &func.name).expect("expr function graph");
+                        snapshots.insert(format!("expr::{}", func.name), viz_snapshot(&viz));
+                    }
 
-        match load_runtime_from_fixture(&fixture) {
-            Ok(runtime) => {
-                let hir = hir::Hir::from_ast(&runtime.db.ast);
+                    for func in &hir.llm_functions {
+                        let viz = build_from_hir(&hir, &func.name).expect("llm function graph");
+                        snapshots.insert(format!("llm::{}", func.name), viz_snapshot(&viz));
+                    }
 
-                for func in &hir.expr_functions {
-                    let viz = build_from_hir(&hir, &func.name).expect("expr function graph");
-                    snapshots.insert(format!("expr::{}", func.name), viz_snapshot(&viz));
+                    if snapshots.is_empty() {
+                        snapshots.insert("__info".into(), json!({ "note": "no functions" }));
+                    }
                 }
-
-                for func in &hir.llm_functions {
-                    let viz = build_from_hir(&hir, &func.name).expect("llm function graph");
-                    snapshots.insert(format!("llm::{}", func.name), viz_snapshot(&viz));
-                }
-
-                if snapshots.is_empty() {
-                    snapshots.insert("__info".into(), json!({ "note": "no functions" }));
+                Err(err) => {
+                    snapshots.insert("__error".into(), json!({ "error": format!("{err}") }));
                 }
             }
-            Err(err) => {
-                snapshots.insert("__error".into(), json!({ "error": format!("{err}") }));
-            }
+
+            let name = Path::new(relative)
+                .file_stem()
+                .expect("fixture stem")
+                .to_string_lossy()
+                .replace([' ', '-'], "_");
+
+            assert_yaml_snapshot!(format!("headers__{}", name), snapshots);
         }
-
-        let name = fixture
-            .file_stem()
-            .expect("fixture stem")
-            .to_string_lossy()
-            .replace([' ', '-'], "_");
-
-        assert_yaml_snapshot!(format!("headers__{}", name), snapshots);
-    }
+    );
 }
 
 fn load_runtime_from_fixture(path: &Path) -> anyhow::Result<BamlRuntime> {

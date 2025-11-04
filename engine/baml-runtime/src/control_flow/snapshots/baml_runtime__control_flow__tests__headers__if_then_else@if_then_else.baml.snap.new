@@ -1,0 +1,8 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 119
+expression: snapshots
+input_file: baml-runtime/src/control_flow/testdata/if_then_else.baml
+---
+__error:
+  error: "\u001b[1;91merror\u001b[0m: \u001b[1mError validating: This line is invalid. It does not start with any known Baml schema keyword.\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/if_then_else.baml:22\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m21 | \u001b[0m//# Main Function\n\u001b[1;94m22 | \u001b[0m\u001b[1;91mfunction ComplexHeaderTest(x: int) -> int {\u001b[0m\n\u001b[1;94m23 | \u001b[0m    let z = 5;\n\u001b[1;94m   | \u001b[0m\n\n"

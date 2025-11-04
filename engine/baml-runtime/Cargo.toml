@@ -218,4 +218,4 @@ walkdir = "2.5.0"
 wasm-logger = "0.2.0"
 serial_test = "3.2.0"
 console_error_panic_hook = "0.1.7"
-insta = { version = "1.39.0", features = ["yaml"] }
+insta = { version = "1.43.2", features = ["yaml", "glob"] }
