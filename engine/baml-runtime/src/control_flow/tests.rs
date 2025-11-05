@@ -114,6 +114,7 @@ fn test_snapshots() {
                     } else {
                         match build_from_hir(&hir, &target_name) {
                             Ok(viz) => json!({
+                                "hir": format!("{:#?}", &hir.expr_functions.iter().find(|f| f.name == target_name)),
                                 "expr": viz_snapshot(&viz),
                                 "mermaid": to_mermaid(&viz),
                             }),

@@ -1,9 +1,9 @@
 ---
 source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/GenerateTitle.baml
 ---
+hir: None
 expr:
   nodes:
     "GenerateTitle|c:func:0":
