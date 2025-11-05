@@ -1,0 +1,7 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/NestedIfStatements.baml
+---
+__error: "\u001b[1;91merror\u001b[0m: \u001b[1mError validating: Return type mismatch: function return type is string but got int\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/NestedIfStatements.baml:58\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m57 | \u001b[0m\n\u001b[1;94m58 | \u001b[0m    \u001b[1;91me\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\n\u001b[1;93mwarning\u001b[0m: \u001b[1mWorkflow functions are experimental, and will break in the future.\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/NestedIfStatements.baml:2\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m 1 | \u001b[0m//# Main Function\n\u001b[1;94m 2 | \u001b[0mfunction \u001b[1;93mNestedIfStatements\u001b[0m() -> string {\n\u001b[1;94m   | \u001b[0m\n\n"

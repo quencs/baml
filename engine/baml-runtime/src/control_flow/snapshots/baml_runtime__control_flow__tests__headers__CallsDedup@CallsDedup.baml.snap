@@ -1,0 +1,7 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/CallsDedup.baml
+---
+__error: "error: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:4\n   | \n 3 |     //## Step A\n 4 |     let a = Foo();\n   | \nerror: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:7\n   | \n 6 |     //## Step B\n 7 |     let b = Foo();\n   | \nerror: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:10\n   | \n 9 |     //## Step C\n10 |     let c = Foo();\n   | \nerror: Error validating: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:4\n   | \n 3 |     //## Step A\n 4 |     let a = Foo();\n   | \nerror: Error validating: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:7\n   | \n 6 |     //## Step B\n 7 |     let b = Foo();\n   | \nerror: Error validating: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:10\n   | \n 9 |     //## Step C\n10 |     let c = Foo();\n   | \nerror: Error validating: Return type mismatch: function return type is string but got int\n  -->  src/control_flow/testdata/CallsDedup.baml:12\n   | \n11 | \n12 |     a + b\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/CallsDedup.baml:2\n   | \n 1 | //# Pipeline\n 2 | function CallsDedup() -> string {\n   | \n\n"

@@ -1,0 +1,7 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/Invalid.baml
+---
+__error: "error: Error validating: expected closing parentheses for this opening parentheses\n  -->  src/control_flow/testdata/Invalid.baml:4\n   | \n 3 |     //# Missing closing parenthesis on purpose\n 4 |     let x = if (true {\n   | \n\n"

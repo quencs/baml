@@ -1,0 +1,7 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/IfThenOnlyHeader.baml
+---
+__error: "error: Error validating: Expr function name must be unique\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:33\n   | \n32 | //# Case 3\n33 | function IfThenOnlyHeader2() -> int {\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:2\n   | \n 1 | //# Case 1\n 2 | function IfThenOnlyHeader() -> int {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:15\n   | \n14 | //# Case 2\n15 | function IfThenOnlyHeader2() -> int {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:33\n   | \n32 | //# Case 3\n33 | function IfThenOnlyHeader2() -> int {\n   | \n\n"

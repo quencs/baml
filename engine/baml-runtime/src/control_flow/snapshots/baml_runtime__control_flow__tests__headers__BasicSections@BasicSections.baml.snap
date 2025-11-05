@@ -1,0 +1,128 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/BasicSections.baml
+---
+expr:
+  nodes:
+    "BasicSections|c:func:0":
+      label: BasicSections
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 0
+        end: 300
+    "BasicSections|c:func:0|h:final-output:0":
+      label: Final Output
+      node_type: expr
+      parent: "BasicSections|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "BasicSections|c:func:0|h:generate-summary:0":
+      label: Generate Summary
+      node_type: expr
+      parent: "BasicSections|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "BasicSections|c:func:0|h:main-processing:0":
+      label: Main Processing
+      node_type: expr
+      parent: "BasicSections|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "BasicSections|c:func:0|h:make-space:0":
+      label: Make Space
+      node_type: expr
+      parent: "BasicSections|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "BasicSections|c:func:0|h:prepare-final-output:0":
+      label: Prepare Final Output
+      node_type: expr
+      parent: "BasicSections|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "BasicSections|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 65
+        end: 86
+    "BasicSections|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 117
+        end: 140
+    "BasicSections|c:func:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 165
+        end: 182
+    "BasicSections|c:func:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 218
+        end: 247
+    "BasicSections|c:func:0|s:5":
+      label: expr
+      node_type: expr
+      parent: "BasicSections|c:func:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 275
+        end: 298
+  edges:
+    "BasicSections|c:func:0":
+      - dst: "BasicSections|c:func:0|h:main-processing:0"
+        label: ""
+    "BasicSections|c:func:0|h:final-output:0":
+      - dst: "BasicSections|c:func:0|s:5"
+        label: ""
+    "BasicSections|c:func:0|h:generate-summary:0":
+      - dst: "BasicSections|c:func:0|s:1"
+        label: ""
+    "BasicSections|c:func:0|h:main-processing:0":
+      - dst: "BasicSections|c:func:0|s:0"
+        label: ""
+    "BasicSections|c:func:0|h:make-space:0":
+      - dst: "BasicSections|c:func:0|s:2"
+        label: ""
+    "BasicSections|c:func:0|h:prepare-final-output:0":
+      - dst: "BasicSections|c:func:0|s:3"
+        label: ""
+    "BasicSections|c:func:0|s:0":
+      - dst: "BasicSections|c:func:0|h:generate-summary:0"
+        label: ""
+    "BasicSections|c:func:0|s:1":
+      - dst: "BasicSections|c:func:0|h:make-space:0"
+        label: ""
+    "BasicSections|c:func:0|s:2":
+      - dst: "BasicSections|c:func:0|h:prepare-final-output:0"
+        label: ""
+    "BasicSections|c:func:0|s:3":
+      - dst: "BasicSections|c:func:0|h:final-output:0"
+        label: ""
+mermaid: "flowchart TD\n    NBasicSections_c_func_0_4128((BasicSections))\n    NBasicSections_c_func_0_h_final_output_0_a372[Final Output]\n    NBasicSections_c_func_0_h_generate_summary_0_d762[Generate Summary]\n    NBasicSections_c_func_0_h_main_processing_0_3b16[Main Processing]\n    NBasicSections_c_func_0_h_make_space_0_9d1a[Make Space]\n    NBasicSections_c_func_0_h_prepare_final_output_0_3808[Prepare Final Output]\n    NBasicSections_c_func_0_s_0_bfee[stmt]\n    NBasicSections_c_func_0_s_1_9278[stmt]\n    NBasicSections_c_func_0_s_2_238f[stmt]\n    NBasicSections_c_func_0_s_3_4c77[stmt]\n    NBasicSections_c_func_0_s_5_7cca[expr]\n    NBasicSections_c_func_0_4128 --> NBasicSections_c_func_0_h_main_processing_0_3b16\n    NBasicSections_c_func_0_h_final_output_0_a372 --> NBasicSections_c_func_0_s_5_7cca\n    NBasicSections_c_func_0_h_generate_summary_0_d762 --> NBasicSections_c_func_0_s_1_9278\n    NBasicSections_c_func_0_h_main_processing_0_3b16 --> NBasicSections_c_func_0_s_0_bfee\n    NBasicSections_c_func_0_h_make_space_0_9d1a --> NBasicSections_c_func_0_s_2_238f\n    NBasicSections_c_func_0_h_prepare_final_output_0_3808 --> NBasicSections_c_func_0_s_3_4c77\n    NBasicSections_c_func_0_s_0_bfee --> NBasicSections_c_func_0_h_generate_summary_0_d762\n    NBasicSections_c_func_0_s_1_9278 --> NBasicSections_c_func_0_h_make_space_0_9d1a\n    NBasicSections_c_func_0_s_2_238f --> NBasicSections_c_func_0_h_prepare_final_output_0_3808\n    NBasicSections_c_func_0_s_3_4c77 --> NBasicSections_c_func_0_h_final_output_0_a372"

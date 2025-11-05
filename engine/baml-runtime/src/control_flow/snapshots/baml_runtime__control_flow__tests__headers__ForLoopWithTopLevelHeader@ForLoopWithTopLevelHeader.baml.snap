@@ -1,0 +1,152 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+---
+expr:
+  nodes:
+    "ForLoopWithTopLevelHeader|c:func:0":
+      label: ForLoopWithTopLevelHeader
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 20
+        end: 361
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0":
+      label: scope
+      node_type: scope
+      parent: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 207
+        end: 233
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|h:accumulation:0":
+      label: Accumulation
+      node_type: expr
+      parent: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|h:item-processing:0":
+      label: Item Processing
+      node_type: expr
+      parent: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 207
+        end: 233
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 269
+        end: 303
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:2":
+      label: expr
+      node_type: expr
+      parent: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 312
+        end: 319
+    "ForLoopWithTopLevelHeader|c:func:0|h:final-result:0":
+      label: Final Result
+      node_type: expr
+      parent: "ForLoopWithTopLevelHeader|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0":
+      label: Main Loop
+      node_type: expr
+      parent: "ForLoopWithTopLevelHeader|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ForLoopWithTopLevelHeader|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "ForLoopWithTopLevelHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 70
+        end: 99
+    "ForLoopWithTopLevelHeader|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "ForLoopWithTopLevelHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 103
+        end: 119
+    "ForLoopWithTopLevelHeader|c:func:0|s:2":
+      label: for
+      node_type: loop
+      parent: "ForLoopWithTopLevelHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 143
+        end: 325
+    "ForLoopWithTopLevelHeader|c:func:0|s:4":
+      label: expr
+      node_type: expr
+      parent: "ForLoopWithTopLevelHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
+        start: 353
+        end: 359
+  edges:
+    "ForLoopWithTopLevelHeader|c:func:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:0"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|h:item-processing:0"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|h:accumulation:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:1"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|h:item-processing:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:0"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|h:accumulation:0"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:1":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:2"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0|s:2":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:2"
+        label: repeat
+    "ForLoopWithTopLevelHeader|c:func:0|h:final-result:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:4"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:2"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|s:0":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:1"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|s:1":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0"
+        label: ""
+    "ForLoopWithTopLevelHeader|c:func:0|s:2":
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|c:loop:0|c:block:0"
+        label: ""
+      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:final-result:0"
+        label: ""
+mermaid: "flowchart TD\n    NForLoopWithTopLevelHeader_c_func_0_4006((ForLoopWithTopLevelHeader))\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_83c1[scope]\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_h_accumulation_0_5cab[Accumulation]\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_h_item_processing_0_1579[Item Processing]\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_0_d37f[stmt]\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_1_1698[stmt]\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_2_aa89[expr]\n    NForLoopWithTopLevelHeader_c_func_0_h_final_result_0_38b5[Final Result]\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3[Main Loop]\n    NForLoopWithTopLevelHeader_c_func_0_s_0_6e66[stmt]\n    NForLoopWithTopLevelHeader_c_func_0_s_1_d91a[stmt]\n    NForLoopWithTopLevelHeader_c_func_0_s_2_8373([for])\n    NForLoopWithTopLevelHeader_c_func_0_s_4_824b[expr]\n    NForLoopWithTopLevelHeader_c_func_0_4006 --> NForLoopWithTopLevelHeader_c_func_0_s_0_6e66\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_83c1 --> NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_h_item_processing_0_1579\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_h_accumulation_0_5cab --> NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_1_1698\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_h_item_processing_0_1579 --> NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_0_d37f\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_0_d37f --> NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_h_accumulation_0_5cab\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_1_1698 --> NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_2_aa89\n    NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_s_2_aa89 -->|repeat| NForLoopWithTopLevelHeader_c_func_0_s_2_8373\n    NForLoopWithTopLevelHeader_c_func_0_h_final_result_0_38b5 --> NForLoopWithTopLevelHeader_c_func_0_s_4_824b\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3 --> NForLoopWithTopLevelHeader_c_func_0_s_2_8373\n    NForLoopWithTopLevelHeader_c_func_0_s_0_6e66 --> NForLoopWithTopLevelHeader_c_func_0_s_1_d91a\n    NForLoopWithTopLevelHeader_c_func_0_s_1_d91a --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3\n    NForLoopWithTopLevelHeader_c_func_0_s_2_8373 --> NForLoopWithTopLevelHeader_c_func_0_c_loop_0_c_block_0_83c1\n    NForLoopWithTopLevelHeader_c_func_0_s_2_8373 --> NForLoopWithTopLevelHeader_c_func_0_h_final_result_0_38b5"

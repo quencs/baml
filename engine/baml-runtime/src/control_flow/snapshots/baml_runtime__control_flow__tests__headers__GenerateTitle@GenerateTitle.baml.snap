@@ -1,0 +1,29 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/GenerateTitle.baml
+---
+expr:
+  nodes:
+    "GenerateTitle|c:func:0":
+      label: GenerateTitle
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/GenerateTitle.baml
+        start: 61
+        end: 188
+    "GenerateTitle|c:func:0|s:0":
+      label: "LLM client: GPT4"
+      node_type: llm
+      parent: "GenerateTitle|c:func:0"
+      span:
+        file: src/control_flow/testdata/GenerateTitle.baml
+        start: 61
+        end: 188
+  edges:
+    "GenerateTitle|c:func:0":
+      - dst: "GenerateTitle|c:func:0|s:0"
+        label: ""
+mermaid: "flowchart TD\n    NGenerateTitle_c_func_0_a31b((GenerateTitle))\n    NGenerateTitle_c_func_0_s_0_d759([LLM client: GPT4&#92;nllm: GPT4])\n    NGenerateTitle_c_func_0_a31b --> NGenerateTitle_c_func_0_s_0_d759"

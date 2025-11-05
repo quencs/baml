@@ -86,46 +86,47 @@ fn test_snapshots() {
         "*.baml",
         |relative| {
             let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
-            let mut snapshots: BTreeMap<String, Value> = BTreeMap::new();
-
-            match load_runtime_from_fixture(&fixture) {
-                Ok(runtime) => {
-                    let hir = hir::Hir::from_ast(&runtime.db.ast);
-
-                    for func in &hir.expr_functions {
-                        let viz = build_from_hir(&hir, &func.name).expect("expr function graph");
-                        snapshots.insert(format!("expr::{}", func.name), viz_snapshot(&viz));
-                        snapshots.insert(
-                            format!("mermaid::expr::{}", func.name),
-                            json!(to_mermaid(&viz)),
-                        );
-                    }
-
-                    for func in &hir.llm_functions {
-                        let viz = build_from_hir(&hir, &func.name).expect("llm function graph");
-                        snapshots.insert(format!("llm::{}", func.name), viz_snapshot(&viz));
-                        snapshots.insert(
-                            format!("mermaid::llm::{}", func.name),
-                            json!(to_mermaid(&viz)),
-                        );
-                    }
-
-                    if snapshots.is_empty() {
-                        snapshots.insert("__info".into(), json!({ "note": "no functions" }));
-                    }
-                }
-                Err(err) => {
-                    snapshots.insert("__error".into(), json!({ "error": format!("{err}") }));
-                }
-            }
-
-            let name = Path::new(relative)
+            let target_name = Path::new(relative)
                 .file_stem()
                 .expect("fixture stem")
                 .to_string_lossy()
-                .replace([' ', '-'], "_");
+                .to_string();
 
-            assert_yaml_snapshot!(format!("headers__{}", name), snapshots);
+            let snapshot_value = match load_runtime_from_fixture(&fixture) {
+                Ok(runtime) => {
+                    let hir = hir::Hir::from_ast(&runtime.db.ast);
+                    let has_function = hir
+                        .expr_functions
+                        .iter()
+                        .any(|func| func.name == target_name)
+                        || hir
+                            .llm_functions
+                            .iter()
+                            .any(|func| func.name == target_name);
+
+                    if !has_function {
+                        json!({
+                            "__error": format!(
+                                "function `{}` not found in fixture",
+                                target_name
+                            ),
+                        })
+                    } else {
+                        match build_from_hir(&hir, &target_name) {
+                            Ok(viz) => json!({
+                                "expr": viz_snapshot(&viz),
+                                "mermaid": to_mermaid(&viz),
+                            }),
+                            Err(err) => json!({ "__error": format!("{err}") }),
+                        }
+                    }
+                }
+                Err(err) => json!({ "__error": format!("{err}") }),
+            };
+
+            let snapshot_name = target_name.replace([' ', '-'], "_");
+
+            assert_yaml_snapshot!(format!("headers__{}", snapshot_name), snapshot_value);
         }
     );
 }

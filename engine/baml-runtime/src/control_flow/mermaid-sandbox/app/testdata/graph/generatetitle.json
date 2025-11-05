@@ -1,0 +1,34 @@
+{
+  "expr": {
+    "nodes": {
+      "GenerateTitle|c:func:0": {
+        "label": "GenerateTitle",
+        "node_type": "function",
+        "parent": null,
+        "span": {
+          "file": "src/control_flow/testdata/GenerateTitle.baml",
+          "start": 61,
+          "end": 188
+        }
+      },
+      "GenerateTitle|c:func:0|s:0": {
+        "label": "LLM client: GPT4",
+        "node_type": "llm",
+        "parent": "GenerateTitle|c:func:0",
+        "span": {
+          "file": "src/control_flow/testdata/GenerateTitle.baml",
+          "start": 61,
+          "end": 188
+        }
+      }
+    },
+    "edges": {
+      "GenerateTitle|c:func:0": [
+        {
+          "dst": "GenerateTitle|c:func:0|s:0",
+          "label": ""
+        }
+      ]
+    }
+  }
+}

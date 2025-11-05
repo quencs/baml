@@ -1,0 +1,51 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/SimpleTest.baml
+---
+expr:
+  nodes:
+    "SimpleTest|c:func:0":
+      label: SimpleTest
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/SimpleTest.baml
+        start: 0
+        end: 82
+    "SimpleTest|c:func:0|h:main-header:0":
+      label: Main Header
+      node_type: expr
+      parent: "SimpleTest|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "SimpleTest|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "SimpleTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/SimpleTest.baml
+        start: 58
+        end: 75
+    "SimpleTest|c:func:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "SimpleTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/SimpleTest.baml
+        start: 79
+        end: 80
+  edges:
+    "SimpleTest|c:func:0":
+      - dst: "SimpleTest|c:func:0|h:main-header:0"
+        label: ""
+    "SimpleTest|c:func:0|h:main-header:0":
+      - dst: "SimpleTest|c:func:0|s:0"
+        label: ""
+    "SimpleTest|c:func:0|s:0":
+      - dst: "SimpleTest|c:func:0|s:1"
+        label: ""
+mermaid: "flowchart TD\n    NSimpleTest_c_func_0_c2cb((SimpleTest))\n    NSimpleTest_c_func_0_h_main_header_0_bf1f[Main Header]\n    NSimpleTest_c_func_0_s_0_cf7b[stmt]\n    NSimpleTest_c_func_0_s_1_aa26[expr]\n    NSimpleTest_c_func_0_c2cb --> NSimpleTest_c_func_0_h_main_header_0_bf1f\n    NSimpleTest_c_func_0_h_main_header_0_bf1f --> NSimpleTest_c_func_0_s_0_cf7b\n    NSimpleTest_c_func_0_s_0_cf7b --> NSimpleTest_c_func_0_s_1_aa26"

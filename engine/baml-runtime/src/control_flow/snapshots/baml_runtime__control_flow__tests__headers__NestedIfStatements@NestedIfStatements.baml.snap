@@ -1,0 +1,7 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/NestedIfStatements.baml
+---
+__error: "error: Error validating: Return type mismatch: function return type is string but got int\n  -->  src/control_flow/testdata/NestedIfStatements.baml:58\n   | \n57 | \n58 |     e\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/NestedIfStatements.baml:2\n   | \n 1 | //# Main Function\n 2 | function NestedIfStatements() -> string {\n   | \n\n"

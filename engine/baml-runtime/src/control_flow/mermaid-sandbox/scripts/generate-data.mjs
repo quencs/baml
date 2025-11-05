@@ -45,39 +45,35 @@ for (const snapshotFile of snapshotFiles) {
   const withoutPrefix = snapshotFile.replace(/^baml_runtime__control_flow__tests__headers__/, "");
   const withoutSuffix = withoutPrefix.replace(/\.snap(?:\.new)?$/, "");
   const [snapshotId, sourceHint] = withoutSuffix.split("@");
-  const snapshotBase = snapshotId;
+  const caseName = snapshotId.replace(/^headers__/, "");
 
   const yamlDocs = parseAllDocuments(await fs.readFile(snapshotPath, "utf8"));
   const dataDoc = yamlDocs.at(-1)?.toJSON();
 
-  const functions = [];
-  const graphData = {};
+  let mermaidContents = null;
+  let graphData = null;
+  let errorMessage = null;
 
   if (dataDoc && typeof dataDoc === "object") {
-    for (const [key, value] of Object.entries(dataDoc)) {
-      if (key.startsWith("mermaid::") && typeof value === "string") {
-        const [, kind = "expr", name = "diagram"] = key.split("::");
-        functions.push({
-          kind,
-          name,
-          mermaid: value,
-        });
+    if (typeof dataDoc.__error === "string") {
+      errorMessage = dataDoc.__error;
+    } else {
+      if (typeof dataDoc.mermaid === "string") {
+        mermaidContents = dataDoc.mermaid;
       }
-
-      if ((key.startsWith("expr::") || key.startsWith("llm::")) && typeof value === "object") {
-        graphData[key] = value;
+      if (typeof dataDoc.expr === "object" && dataDoc.expr !== null) {
+        graphData = dataDoc.expr;
       }
     }
   }
 
-  const baseName = toKebab(snapshotBase);
+  const baseName = toKebab(caseName);
 
   const candidateFiles = [];
   if (sourceHint) {
     candidateFiles.push(sourceHint);
   }
-  candidateFiles.push(`${snapshotBase}.baml`);
-  candidateFiles.push(`${snapshotBase.replace(/__/g, "/")}.baml`);
+  candidateFiles.push(`${caseName}.baml`);
 
   let bamlPath = null;
   for (const candidate of candidateFiles) {
@@ -101,13 +97,15 @@ for (const snapshotFile of snapshotFiles) {
     await fs.writeFile(path.join(outBamlDir, `${baseName}.baml`), bamlContents, "utf8");
   }
 
-  for (const fn of functions) {
-    const mermaidFile = path.join(outMermaidDir, `${baseName}__${fn.kind}_${fn.name}.mmd`);
-    await fs.writeFile(mermaidFile, fn.mermaid, "utf8");
+  if (mermaidContents) {
+    await fs.writeFile(path.join(outMermaidDir, `${baseName}.mmd`), mermaidContents, "utf8");
   }
 
   const graphFile = path.join(outGraphDir, `${baseName}.json`);
-  await fs.writeFile(graphFile, JSON.stringify(graphData, null, 2), "utf8");
+  const graphPayload = errorMessage
+    ? { __error: errorMessage }
+    : { expr: graphData ?? null };
+  await fs.writeFile(graphFile, JSON.stringify(graphPayload, null, 2), "utf8");
 }
 
 console.log("Generated data for", snapshotFiles.length, "snapshots");

@@ -1,8 +1,0 @@
----
-source: baml-runtime/src/control_flow/tests.rs
-assertion_line: 128
-expression: snapshots
-input_file: baml-runtime/src/control_flow/testdata/basic_if.baml
----
-__error:
-  error: "\u001b[1;91merror\u001b[0m: \u001b[1mError validating: Return type mismatch: function return type is string but got int\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/basic_if.baml:15\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m14 | \u001b[0m\n\u001b[1;94m15 | \u001b[0m    \u001b[1;91mz\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\n\u001b[1;93mwarning\u001b[0m: \u001b[1mWorkflow functions are experimental, and will break in the future.\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4msrc/control_flow/testdata/basic_if.baml:3\u001b[0m\n\u001b[1;94m   | \u001b[0m\n\u001b[1;94m 2 | \u001b[0m//# Basic test\n\u001b[1;94m 3 | \u001b[0mfunction \u001b[1;93mBasicIf\u001b[0m() -> string {\n\u001b[1;94m   | \u001b[0m\n\n"

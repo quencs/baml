@@ -1,0 +1,40 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/TopLevelNotFlattened.baml
+---
+expr:
+  nodes:
+    "TopLevelNotFlattened|c:func:0":
+      label: TopLevelNotFlattened
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/TopLevelNotFlattened.baml
+        start: 18
+        end: 94
+    "TopLevelNotFlattened|c:func:0|h:only-child:0":
+      label: Only Child
+      node_type: expr
+      parent: "TopLevelNotFlattened|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "TopLevelNotFlattened|c:func:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "TopLevelNotFlattened|c:func:0"
+      span:
+        file: src/control_flow/testdata/TopLevelNotFlattened.baml
+        start: 86
+        end: 92
+  edges:
+    "TopLevelNotFlattened|c:func:0":
+      - dst: "TopLevelNotFlattened|c:func:0|h:only-child:0"
+        label: ""
+    "TopLevelNotFlattened|c:func:0|h:only-child:0":
+      - dst: "TopLevelNotFlattened|c:func:0|s:1"
+        label: ""
+mermaid: "flowchart TD\n    NTopLevelNotFlattened_c_func_0_2389((TopLevelNotFlattened))\n    NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff[Only Child]\n    NTopLevelNotFlattened_c_func_0_s_1_b290[expr]\n    NTopLevelNotFlattened_c_func_0_2389 --> NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff\n    NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff --> NTopLevelNotFlattened_c_func_0_s_1_b290"

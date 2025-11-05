@@ -5,14 +5,6 @@ import { spawnSync } from "node:child_process";
 import HeaderFileWatcher from "./components/HeaderFileWatcher";
 import MermaidDiagram from "./components/MermaidDiagram";
 
-type FunctionSnapshot = {
-  key: string;
-  kind: string;
-  name: string;
-  mermaidFile: string;
-  mermaidContents: string;
-};
-
 type ExampleRow = {
   baseName: string;
   baml?: {
@@ -24,7 +16,11 @@ type ExampleRow = {
     fileName: string;
     json: unknown;
   };
-  functions: FunctionSnapshot[];
+  mermaid?: {
+    fileName: string;
+    contents: string;
+  };
+  error?: string;
 };
 
 const SANDBOX_ROOT = process.cwd();
@@ -60,41 +56,6 @@ async function loadExamples(): Promise<ExampleRow[]> {
     fs.mkdir(MERMAID_DIR, { recursive: true }),
   ]);
 
-  const mermaidFiles = (await fs.readdir(MERMAID_DIR)).filter((file) => file.endsWith(".mmd"));
-  const grouped = new Map<string, FunctionSnapshot[]>();
-
-  for (const file of mermaidFiles) {
-    const match = file.match(/^(?<base>.+?)__(?<kind>[^_]+)_(?<name>.+)\.mmd$/);
-    if (!match?.groups) {
-      continue;
-    }
-
-    const { base, kind, name } = match.groups;
-    const fullPath = path.join(MERMAID_DIR, file);
-    const mermaidContents = await fs.readFile(fullPath, "utf8");
-
-    const entry: FunctionSnapshot = {
-      key: `${kind}:${name}`,
-      kind,
-      name,
-      mermaidFile: file,
-      mermaidContents,
-    };
-
-    if (!grouped.has(base)) {
-      grouped.set(base, []);
-    }
-
-    grouped.get(base)!.push(entry);
-  }
-
-  const cases = Array.from(grouped.entries())
-    .map(([baseName, functions]): ExampleRow => ({
-      baseName,
-      functions: functions.sort((a, b) => a.key.localeCompare(b.key)),
-    }))
-    .sort((a, b) => a.baseName.localeCompare(b.baseName));
-
   const bamlFiles = new Map<string, { fileName: string; contents: string; isJson: boolean }>();
   const bamlEntries = await fs.readdir(BAML_DIR).catch(() => []);
   for (const file of bamlEntries) {
@@ -126,10 +87,39 @@ async function loadExamples(): Promise<ExampleRow[]> {
     } catch (error) {
       graphFiles.set(base, {
         fileName: file,
-        json: { error: `Failed to parse graph JSON: ${error}` },
+        json: { __error: `Failed to parse graph JSON: ${error}` },
       });
     }
   }
+
+  const mermaidFiles = new Map<string, { fileName: string; contents: string }>();
+  const mermaidEntries = await fs.readdir(MERMAID_DIR).catch(() => []);
+  for (const file of mermaidEntries) {
+    if (!file.endsWith(".mmd")) {
+      continue;
+    }
+    const base = file.replace(/\.mmd$/, "");
+    const contents = await fs.readFile(path.join(MERMAID_DIR, file), "utf8");
+    mermaidFiles.set(base, {
+      fileName: file,
+      contents,
+    });
+  }
+
+  const allBases = new Set<string>();
+  for (const key of bamlFiles.keys()) {
+    allBases.add(key);
+  }
+  for (const key of graphFiles.keys()) {
+    allBases.add(key);
+  }
+  for (const key of mermaidFiles.keys()) {
+    allBases.add(key);
+  }
+
+  const cases: ExampleRow[] = Array.from(allBases)
+    .sort((a, b) => a.localeCompare(b))
+    .map((baseName) => ({ baseName }));
 
   for (const testCase of cases) {
     const baml = bamlFiles.get(testCase.baseName);
@@ -140,6 +130,20 @@ async function loadExamples(): Promise<ExampleRow[]> {
     const graph = graphFiles.get(testCase.baseName);
     if (graph) {
       testCase.graph = graph;
+      if (
+        graph.json &&
+        typeof graph.json === "object" &&
+        graph.json !== null &&
+        "__error" in graph.json &&
+        typeof (graph.json as { __error?: unknown }).__error === "string"
+      ) {
+        testCase.error = (graph.json as { __error: string }).__error;
+      }
+    }
+
+    const mermaid = mermaidFiles.get(testCase.baseName);
+    if (mermaid) {
+      testCase.mermaid = mermaid;
     }
   }
 
@@ -190,20 +194,20 @@ export default async function Home() {
                 </section>
 
                 <section className="space-y-4">
-                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Mermaid Diagrams</h3>
-                  {example.functions.length === 0 ? (
-                    <p className="text-sm text-gray-600">No mermaid diagrams found.</p>
+                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Mermaid Diagram</h3>
+                  {example.error ? (
+                    <p className="text-sm text-red-600">{example.error}</p>
+                  ) : example.mermaid ? (
+                    <figure className="border border-gray-200 rounded-md overflow-hidden">
+                      <figcaption className="px-3 py-2 text-sm font-medium bg-gray-50 border-b border-gray-200">
+                        {example.mermaid.fileName}
+                      </figcaption>
+                      <div className="p-4 bg-white">
+                        <MermaidDiagram chart={example.mermaid.contents} className="w-full overflow-auto" />
+                      </div>
+                    </figure>
                   ) : (
-                    example.functions.map((fn) => (
-                      <figure key={fn.mermaidFile} className="border border-gray-200 rounded-md overflow-hidden">
-                        <figcaption className="px-3 py-2 text-sm font-medium bg-gray-50 border-b border-gray-200">
-                          {fn.kind.toUpperCase()} · {fn.name}
-                        </figcaption>
-                        <div className="p-4 bg-white">
-                          <MermaidDiagram chart={fn.mermaidContents} className="w-full overflow-auto" />
-                        </div>
-                      </figure>
-                    ))
+                    <p className="text-sm text-gray-600">No mermaid diagram available.</p>
                   )}
                 </section>
 

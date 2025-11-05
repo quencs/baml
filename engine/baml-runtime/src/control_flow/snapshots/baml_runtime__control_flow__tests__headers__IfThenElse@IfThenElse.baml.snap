@@ -1,0 +1,7 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/IfThenElse.baml
+---
+__error: "error: Error validating: This line is invalid. It does not start with any known Baml schema keyword.\n  -->  src/control_flow/testdata/IfThenElse.baml:22\n   | \n21 | //# Main Function\n22 | function ComplexHeaderTest(x: int) -> int {\n23 |     let z = 5;\n   | \n\n"

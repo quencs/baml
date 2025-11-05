@@ -1,0 +1,128 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+assertion_line: 129
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/MultipleHeaderLevels.baml
+---
+expr:
+  nodes:
+    "MultipleHeaderLevels|c:func:0":
+      label: MultipleHeaderLevels
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/MultipleHeaderLevels.baml
+        start: 0
+        end: 262
+    "MultipleHeaderLevels|c:func:0|h:section-one:0":
+      label: Section One
+      node_type: expr
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "MultipleHeaderLevels|c:func:0|h:section-three:0":
+      label: Section Three
+      node_type: expr
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "MultipleHeaderLevels|c:func:0|h:section-two:0":
+      label: Section Two
+      node_type: expr
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "MultipleHeaderLevels|c:func:0|h:subsection-2-1:0":
+      label: Subsection 2.1
+      node_type: expr
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "MultipleHeaderLevels|c:func:0|h:subsubsection-2-1-1:0":
+      label: Subsubsection 2.1.1
+      node_type: expr
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "MultipleHeaderLevels|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: src/control_flow/testdata/MultipleHeaderLevels.baml
+        start: 68
+        end: 83
+    "MultipleHeaderLevels|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: src/control_flow/testdata/MultipleHeaderLevels.baml
+        start: 108
+        end: 123
+    "MultipleHeaderLevels|c:func:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: src/control_flow/testdata/MultipleHeaderLevels.baml
+        start: 152
+        end: 169
+    "MultipleHeaderLevels|c:func:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: src/control_flow/testdata/MultipleHeaderLevels.baml
+        start: 204
+        end: 220
+    "MultipleHeaderLevels|c:func:0|s:5":
+      label: expr
+      node_type: expr
+      parent: "MultipleHeaderLevels|c:func:0"
+      span:
+        file: src/control_flow/testdata/MultipleHeaderLevels.baml
+        start: 247
+        end: 260
+  edges:
+    "MultipleHeaderLevels|c:func:0":
+      - dst: "MultipleHeaderLevels|c:func:0|h:section-one:0"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|h:section-one:0":
+      - dst: "MultipleHeaderLevels|c:func:0|s:0"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|h:section-three:0":
+      - dst: "MultipleHeaderLevels|c:func:0|s:5"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|h:section-two:0":
+      - dst: "MultipleHeaderLevels|c:func:0|s:1"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|h:subsection-2-1:0":
+      - dst: "MultipleHeaderLevels|c:func:0|s:2"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|h:subsubsection-2-1-1:0":
+      - dst: "MultipleHeaderLevels|c:func:0|s:3"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|s:0":
+      - dst: "MultipleHeaderLevels|c:func:0|h:section-two:0"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|s:1":
+      - dst: "MultipleHeaderLevels|c:func:0|h:subsection-2-1:0"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|s:2":
+      - dst: "MultipleHeaderLevels|c:func:0|h:subsubsection-2-1-1:0"
+        label: ""
+    "MultipleHeaderLevels|c:func:0|s:3":
+      - dst: "MultipleHeaderLevels|c:func:0|h:section-three:0"
+        label: ""
+mermaid: "flowchart TD\n    NMultipleHeaderLevels_c_func_0_85a3((MultipleHeaderLevels))\n    NMultipleHeaderLevels_c_func_0_h_section_one_0_b5c0[Section One]\n    NMultipleHeaderLevels_c_func_0_h_section_three_0_4ee9[Section Three]\n    NMultipleHeaderLevels_c_func_0_h_section_two_0_f498[Section Two]\n    NMultipleHeaderLevels_c_func_0_h_subsection_2_1_0_7b8e[Subsection 2.1]\n    NMultipleHeaderLevels_c_func_0_h_subsubsection_2_1_1_0_cdb4[Subsubsection 2.1.1]\n    NMultipleHeaderLevels_c_func_0_s_0_8cf5[stmt]\n    NMultipleHeaderLevels_c_func_0_s_1_0beb[stmt]\n    NMultipleHeaderLevels_c_func_0_s_2_760f[stmt]\n    NMultipleHeaderLevels_c_func_0_s_3_d7aa[stmt]\n    NMultipleHeaderLevels_c_func_0_s_5_4c78[expr]\n    NMultipleHeaderLevels_c_func_0_85a3 --> NMultipleHeaderLevels_c_func_0_h_section_one_0_b5c0\n    NMultipleHeaderLevels_c_func_0_h_section_one_0_b5c0 --> NMultipleHeaderLevels_c_func_0_s_0_8cf5\n    NMultipleHeaderLevels_c_func_0_h_section_three_0_4ee9 --> NMultipleHeaderLevels_c_func_0_s_5_4c78\n    NMultipleHeaderLevels_c_func_0_h_section_two_0_f498 --> NMultipleHeaderLevels_c_func_0_s_1_0beb\n    NMultipleHeaderLevels_c_func_0_h_subsection_2_1_0_7b8e --> NMultipleHeaderLevels_c_func_0_s_2_760f\n    NMultipleHeaderLevels_c_func_0_h_subsubsection_2_1_1_0_cdb4 --> NMultipleHeaderLevels_c_func_0_s_3_d7aa\n    NMultipleHeaderLevels_c_func_0_s_0_8cf5 --> NMultipleHeaderLevels_c_func_0_h_section_two_0_f498\n    NMultipleHeaderLevels_c_func_0_s_1_0beb --> NMultipleHeaderLevels_c_func_0_h_subsection_2_1_0_7b8e\n    NMultipleHeaderLevels_c_func_0_s_2_760f --> NMultipleHeaderLevels_c_func_0_h_subsubsection_2_1_1_0_cdb4\n    NMultipleHeaderLevels_c_func_0_s_3_d7aa --> NMultipleHeaderLevels_c_func_0_h_section_three_0_4ee9"
