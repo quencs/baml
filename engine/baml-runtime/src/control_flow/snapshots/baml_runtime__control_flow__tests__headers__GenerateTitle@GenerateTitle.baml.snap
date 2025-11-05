@@ -26,4 +26,4 @@ expr:
     "GenerateTitle|c:func:0":
       - dst: "GenerateTitle|c:func:0|s:0"
         label: ""
-mermaid: "flowchart TD\n    NGenerateTitle_c_func_0_a31b((GenerateTitle))\n    NGenerateTitle_c_func_0_s_0_d759([LLM client: GPT4&#92;nllm: GPT4])\n    NGenerateTitle_c_func_0_a31b --> NGenerateTitle_c_func_0_s_0_d759"
+mermaid: "flowchart TD\n    subgraph cluster_NGenerateTitle_c_func_0_a31b[GenerateTitle]\n        NGenerateTitle_c_func_0_a31b((GenerateTitle))\n        NGenerateTitle_c_func_0_s_0_d759([LLM client: GPT4&#92;nllm: GPT4])\n    end\n    NGenerateTitle_c_func_0_a31b --> NGenerateTitle_c_func_0_s_0_d759"

@@ -1,6 +1,6 @@
 
 //# Basic test
-function BasicIf() -> string {
+function BasicIf() -> int {
     let x = 1;
 
     //# This is a named statement

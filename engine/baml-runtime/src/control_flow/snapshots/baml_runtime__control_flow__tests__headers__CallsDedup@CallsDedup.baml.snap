@@ -4,4 +4,92 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/CallsDedup.baml
 ---
-__error: "error: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:4\n   | \n 3 |     //## Step A\n 4 |     let a = Foo();\n   | \nerror: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:7\n   | \n 6 |     //## Step B\n 7 |     let b = Foo();\n   | \nerror: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:10\n   | \n 9 |     //## Step C\n10 |     let c = Foo();\n   | \nerror: Error validating: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:4\n   | \n 3 |     //## Step A\n 4 |     let a = Foo();\n   | \nerror: Error validating: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:7\n   | \n 6 |     //## Step B\n 7 |     let b = Foo();\n   | \nerror: Error validating: Unknown function Foo\n  -->  src/control_flow/testdata/CallsDedup.baml:10\n   | \n 9 |     //## Step C\n10 |     let c = Foo();\n   | \nerror: Error validating: Return type mismatch: function return type is string but got int\n  -->  src/control_flow/testdata/CallsDedup.baml:12\n   | \n11 | \n12 |     a + b\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/CallsDedup.baml:2\n   | \n 1 | //# Pipeline\n 2 | function CallsDedup() -> string {\n   | \n\n"
+expr:
+  nodes:
+    "CallsDedup|c:func:0":
+      label: CallsDedup
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 13
+        end: 163
+    "CallsDedup|c:func:0|h:step-a:0":
+      label: Step A
+      node_type: expr
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "CallsDedup|c:func:0|h:step-b:0":
+      label: Step B
+      node_type: expr
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "CallsDedup|c:func:0|h:step-c:0":
+      label: Step C
+      node_type: expr
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "CallsDedup|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 64
+        end: 79
+    "CallsDedup|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 100
+        end: 115
+    "CallsDedup|c:func:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 136
+        end: 151
+    "CallsDedup|c:func:0|s:3":
+      label: expr
+      node_type: expr
+      parent: "CallsDedup|c:func:0"
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 156
+        end: 161
+  edges:
+    "CallsDedup|c:func:0":
+      - dst: "CallsDedup|c:func:0|h:step-a:0"
+        label: ""
+    "CallsDedup|c:func:0|h:step-a:0":
+      - dst: "CallsDedup|c:func:0|s:0"
+        label: ""
+    "CallsDedup|c:func:0|h:step-b:0":
+      - dst: "CallsDedup|c:func:0|s:1"
+        label: ""
+    "CallsDedup|c:func:0|h:step-c:0":
+      - dst: "CallsDedup|c:func:0|s:2"
+        label: ""
+    "CallsDedup|c:func:0|s:0":
+      - dst: "CallsDedup|c:func:0|h:step-b:0"
+        label: ""
+    "CallsDedup|c:func:0|s:1":
+      - dst: "CallsDedup|c:func:0|h:step-c:0"
+        label: ""
+    "CallsDedup|c:func:0|s:2":
+      - dst: "CallsDedup|c:func:0|s:3"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NCallsDedup_c_func_0_6bfd[CallsDedup]\n        NCallsDedup_c_func_0_6bfd((CallsDedup))\n        NCallsDedup_c_func_0_h_step_a_0_3a34[Step A]\n        NCallsDedup_c_func_0_h_step_b_0_4ad7[Step B]\n        NCallsDedup_c_func_0_h_step_c_0_b1e8[Step C]\n        NCallsDedup_c_func_0_s_0_b4c4[stmt]\n        NCallsDedup_c_func_0_s_1_cead[stmt]\n        NCallsDedup_c_func_0_s_2_cd16[stmt]\n        NCallsDedup_c_func_0_s_3_f036[expr]\n    end\n    NCallsDedup_c_func_0_6bfd --> NCallsDedup_c_func_0_h_step_a_0_3a34\n    NCallsDedup_c_func_0_h_step_a_0_3a34 --> NCallsDedup_c_func_0_s_0_b4c4\n    NCallsDedup_c_func_0_h_step_b_0_4ad7 --> NCallsDedup_c_func_0_s_1_cead\n    NCallsDedup_c_func_0_h_step_c_0_b1e8 --> NCallsDedup_c_func_0_s_2_cd16\n    NCallsDedup_c_func_0_s_0_b4c4 --> NCallsDedup_c_func_0_h_step_b_0_4ad7\n    NCallsDedup_c_func_0_s_1_cead --> NCallsDedup_c_func_0_h_step_c_0_b1e8\n    NCallsDedup_c_func_0_s_2_cd16 --> NCallsDedup_c_func_0_s_3_f036"

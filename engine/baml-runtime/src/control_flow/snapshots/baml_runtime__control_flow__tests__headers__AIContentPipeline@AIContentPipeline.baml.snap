@@ -4,4 +4,292 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/AIContentPipeline.baml
 ---
-__error: "error: Unknown function GetEmails\n  -->  src/control_flow/testdata/AIContentPipeline.baml:6\n   | \n 5 |     //## Retrieve Emails and Posts from Database\n 6 |     let emails = GetEmails();\n   | \nerror: Unknown function GetPosts\n  -->  src/control_flow/testdata/AIContentPipeline.baml:7\n   | \n 6 |     let emails = GetEmails();\n 7 |     let posts = GetPosts();\n   | \nerror: Unknown function ProcessVideo\n  -->  src/control_flow/testdata/AIContentPipeline.baml:10\n   | \n 9 |     //## Process and Load Video\n10 |     let processed = ProcessVideo(video_id, zoom_meeting_id);\n   | \nerror: Error validating: 'video' is a reserved keyword.\n  -->  src/control_flow/testdata/AIContentPipeline.baml:11\n   | \n10 |     let processed = ProcessVideo(video_id, zoom_meeting_id);\n11 |     let video = GetVideo(video_id);\n   | \nerror: Unknown function GetVideo\n  -->  src/control_flow/testdata/AIContentPipeline.baml:11\n   | \n10 |     let processed = ProcessVideo(video_id, zoom_meeting_id);\n11 |     let video = GetVideo(video_id);\n   | \nerror: Unknown function SummarizeVideo\n  -->  src/control_flow/testdata/AIContentPipeline.baml:21\n   | \n20 |         //#### Create Summary Text\n21 |         let s = SummarizeVideo(transcript, title);\n   | \nerror: Unknown function LabelSummaryCategory\n  -->  src/control_flow/testdata/AIContentPipeline.baml:24\n   | \n23 |         //#### Label Summary Category\n24 |         let category = LabelSummaryCategory(s);\n   | \nerror: Unknown function SaveSummary\n  -->  src/control_flow/testdata/AIContentPipeline.baml:27\n   | \n26 |         //### Save Summary\n27 |         let saved_summary = SaveSummary(video_id, s);\n   | \nerror: Unknown function GetStructure\n  -->  src/control_flow/testdata/AIContentPipeline.baml:40\n   | \n39 |         //### Get Content Type and Generate Draft\n40 |         let structure = GetStructure(kind);\n   | \nerror: Unknown function GenerateContent\n  -->  src/control_flow/testdata/AIContentPipeline.baml:41\n   | \n40 |         let structure = GetStructure(kind);\n41 |         let draft = GenerateContent(kind, video_id, summary);\n   | \nerror: Unknown function SaveDraft\n  -->  src/control_flow/testdata/AIContentPipeline.baml:44\n   | \n43 |         //### Save Draft\n44 |         let saved_draft = SaveDraft(video_id, draft);\n   | \nerror: Unknown function CreatePR\n  -->  src/control_flow/testdata/AIContentPipeline.baml:52\n   | \n51 |         //### Create GitHub PR\n52 |         let pr = CreatePR(video_id, summary);\n   | \nerror: Unknown variable pr_status\n  -->  src/control_flow/testdata/AIContentPipeline.baml:53\n   | \n52 |         let pr = CreatePR(video_id, summary);\n53 |         pr_status\n   | \nerror: Error validating: Unknown function GetEmails\n  -->  src/control_flow/testdata/AIContentPipeline.baml:6\n   | \n 5 |     //## Retrieve Emails and Posts from Database\n 6 |     let emails = GetEmails();\n   | \nerror: Error validating: Unknown function GetPosts\n  -->  src/control_flow/testdata/AIContentPipeline.baml:7\n   | \n 6 |     let emails = GetEmails();\n 7 |     let posts = GetPosts();\n   | \nerror: Error validating: Unknown function ProcessVideo\n  -->  src/control_flow/testdata/AIContentPipeline.baml:10\n   | \n 9 |     //## Process and Load Video\n10 |     let processed = ProcessVideo(video_id, zoom_meeting_id);\n   | \nerror: Error validating: Unknown function GetVideo\n  -->  src/control_flow/testdata/AIContentPipeline.baml:11\n   | \n10 |     let processed = ProcessVideo(video_id, zoom_meeting_id);\n11 |     let video = GetVideo(video_id);\n   | \nerror: Error validating: If condition must be boolean\n  -->  src/control_flow/testdata/AIContentPipeline.baml:17\n   | \n16 |     //## Video Summarization\n17 |     let summary = if (transcript) {\n   | \nerror: Error validating: Unknown function SummarizeVideo\n  -->  src/control_flow/testdata/AIContentPipeline.baml:21\n   | \n20 |         //#### Create Summary Text\n21 |         let s = SummarizeVideo(transcript, title);\n   | \nerror: Error validating: Unknown function LabelSummaryCategory\n  -->  src/control_flow/testdata/AIContentPipeline.baml:24\n   | \n23 |         //#### Label Summary Category\n24 |         let category = LabelSummaryCategory(s);\n   | \nerror: Error validating: Unknown function SaveSummary\n  -->  src/control_flow/testdata/AIContentPipeline.baml:27\n   | \n26 |         //### Save Summary\n27 |         let saved_summary = SaveSummary(video_id, s);\n   | \nerror: Error validating: Unknown function GetStructure\n  -->  src/control_flow/testdata/AIContentPipeline.baml:40\n   | \n39 |         //### Get Content Type and Generate Draft\n40 |         let structure = GetStructure(kind);\n   | \nerror: Error validating: Unknown function GenerateContent\n  -->  src/control_flow/testdata/AIContentPipeline.baml:41\n   | \n40 |         let structure = GetStructure(kind);\n41 |         let draft = GenerateContent(kind, video_id, summary);\n   | \nerror: Error validating: Unknown function SaveDraft\n  -->  src/control_flow/testdata/AIContentPipeline.baml:44\n   | \n43 |         //### Save Draft\n44 |         let saved_draft = SaveDraft(video_id, draft);\n   | \nerror: Error validating: If condition must be boolean\n  -->  src/control_flow/testdata/AIContentPipeline.baml:50\n   | \n49 |     //# Prepare Pull Request\n50 |     let pr_status = if (summary) {\n   | \nerror: Error validating: Unknown function CreatePR\n  -->  src/control_flow/testdata/AIContentPipeline.baml:52\n   | \n51 |         //### Create GitHub PR\n52 |         let pr = CreatePR(video_id, summary);\n   | \nerror: Error validating: Unknown variable pr_status\n  -->  src/control_flow/testdata/AIContentPipeline.baml:53\n   | \n52 |         let pr = CreatePR(video_id, summary);\n53 |         pr_status\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/AIContentPipeline.baml:2\n   | \n 1 | //# AI Content Pipeline\n 2 | function AIContentPipeline(video_id: string, zoom_meeting_id: string, transcript: string?, title: string?) -> string {\n   | \n\n"
+expr:
+  nodes:
+    "AIContentPipeline|c:func:0":
+      label: AIContentPipeline
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 24
+        end: 1530
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0":
+      label: scope
+      node_type: scope
+      parent: "AIContentPipeline|c:func:0|c:loop:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1078
+        end: 1114
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|h:get-content-type-and-generate-draft:0":
+      label: Get Content Type and Generate Draft
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|h:save-draft:0":
+      label: Save Draft
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1078
+        end: 1114
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1122
+        end: 1176
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1210
+        end: 1256
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:3":
+      label: expr
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1265
+        end: 1276
+    "AIContentPipeline|c:func:0|h:complete:0":
+      label: Complete
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:fetch-resources:0":
+      label: Fetch Resources
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:generate-content:0":
+      label: Generate Content
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:generate-drafts-for-posts:0":
+      label: Generate Drafts for Posts
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:prepare-pull-request:0":
+      label: Prepare Pull Request
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:process-and-load-video:0":
+      label: Process and Load Video
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:retrieve-emails-and-posts-from-database:1":
+      label: Retrieve Emails and Posts from Database
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|h:video-summarization:1":
+      label: Video Summarization
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "AIContentPipeline|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 219
+        end: 245
+    "AIContentPipeline|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 249
+        end: 273
+    "AIContentPipeline|c:func:0|s:10":
+      label: expr
+      node_type: expr
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1522
+        end: 1528
+    "AIContentPipeline|c:func:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 310
+        end: 367
+    "AIContentPipeline|c:func:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 371
+        end: 410
+    "AIContentPipeline|c:func:0|s:4":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 471
+        end: 510
+    "AIContentPipeline|c:func:0|s:5":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 514
+        end: 893
+    "AIContentPipeline|c:func:0|s:6":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 898
+        end: 946
+    "AIContentPipeline|c:func:0|s:7":
+      label: for
+      node_type: loop
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 986
+        end: 1282
+    "AIContentPipeline|c:func:0|s:8":
+      label: stmt
+      node_type: stmt
+      parent: "AIContentPipeline|c:func:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1317
+        end: 1500
+  edges:
+    "AIContentPipeline|c:func:0":
+      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0|h:get-content-type-and-generate-draft:0"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|h:get-content-type-and-generate-draft:0":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:0"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|h:save-draft:0":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:2"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:0":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:1"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:1":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0|h:save-draft:0"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:2":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:3"
+        label: ""
+    "AIContentPipeline|c:func:0|c:loop:0|c:block:0|s:3":
+      - dst: "AIContentPipeline|c:func:0|s:7"
+        label: repeat
+    "AIContentPipeline|c:func:0|h:complete:0":
+      - dst: "AIContentPipeline|c:func:0|s:10"
+        label: ""
+    "AIContentPipeline|c:func:0|h:fetch-resources:0":
+      - dst: "AIContentPipeline|c:func:0|h:retrieve-emails-and-posts-from-database:1"
+        label: ""
+    "AIContentPipeline|c:func:0|h:generate-content:0":
+      - dst: "AIContentPipeline|c:func:0|h:video-summarization:1"
+        label: ""
+    "AIContentPipeline|c:func:0|h:generate-drafts-for-posts:0":
+      - dst: "AIContentPipeline|c:func:0|s:7"
+        label: ""
+    "AIContentPipeline|c:func:0|h:prepare-pull-request:0":
+      - dst: "AIContentPipeline|c:func:0|s:8"
+        label: ""
+    "AIContentPipeline|c:func:0|h:process-and-load-video:0":
+      - dst: "AIContentPipeline|c:func:0|s:2"
+        label: ""
+    "AIContentPipeline|c:func:0|h:retrieve-emails-and-posts-from-database:1":
+      - dst: "AIContentPipeline|c:func:0|s:0"
+        label: ""
+    "AIContentPipeline|c:func:0|h:video-summarization:1":
+      - dst: "AIContentPipeline|c:func:0|s:4"
+        label: ""
+    "AIContentPipeline|c:func:0|s:0":
+      - dst: "AIContentPipeline|c:func:0|s:1"
+        label: ""
+    "AIContentPipeline|c:func:0|s:1":
+      - dst: "AIContentPipeline|c:func:0|h:process-and-load-video:0"
+        label: ""
+    "AIContentPipeline|c:func:0|s:2":
+      - dst: "AIContentPipeline|c:func:0|s:3"
+        label: ""
+    "AIContentPipeline|c:func:0|s:3":
+      - dst: "AIContentPipeline|c:func:0|h:generate-content:0"
+        label: ""
+    "AIContentPipeline|c:func:0|s:4":
+      - dst: "AIContentPipeline|c:func:0|s:5"
+        label: ""
+    "AIContentPipeline|c:func:0|s:5":
+      - dst: "AIContentPipeline|c:func:0|s:6"
+        label: ""
+    "AIContentPipeline|c:func:0|s:6":
+      - dst: "AIContentPipeline|c:func:0|h:generate-drafts-for-posts:0"
+        label: ""
+    "AIContentPipeline|c:func:0|s:7":
+      - dst: "AIContentPipeline|c:func:0|c:loop:0|c:block:0"
+        label: ""
+      - dst: "AIContentPipeline|c:func:0|h:prepare-pull-request:0"
+        label: ""
+    "AIContentPipeline|c:func:0|s:8":
+      - dst: "AIContentPipeline|c:func:0|h:complete:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NAIContentPipeline_c_func_0_352b[AIContentPipeline]\n        NAIContentPipeline_c_func_0_352b((AIContentPipeline))\n        NAIContentPipeline_c_func_0_h_complete_0_b836[Complete]\n        NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea[Fetch Resources]\n        NAIContentPipeline_c_func_0_h_generate_content_0_45e1[Generate Content]\n        NAIContentPipeline_c_func_0_h_generate_drafts_for_posts_0_2a8a[Generate Drafts for Posts]\n        NAIContentPipeline_c_func_0_h_prepare_pull_request_0_69be[Prepare Pull Request]\n        NAIContentPipeline_c_func_0_h_process_and_load_video_0_e763[Process and Load Video]\n        NAIContentPipeline_c_func_0_h_retrieve_emails_and_posts_from_database_1_3da2[Retrieve Emails and Posts from Database]\n        NAIContentPipeline_c_func_0_h_video_summarization_1_44bd[Video Summarization]\n        NAIContentPipeline_c_func_0_s_0_c8b2[stmt]\n        NAIContentPipeline_c_func_0_s_1_f7fc[stmt]\n        NAIContentPipeline_c_func_0_s_10_e12f[expr]\n        NAIContentPipeline_c_func_0_s_2_2f3f[stmt]\n        NAIContentPipeline_c_func_0_s_3_43c7[stmt]\n        NAIContentPipeline_c_func_0_s_4_dbb3[stmt]\n        NAIContentPipeline_c_func_0_s_5_4ff7[stmt]\n        NAIContentPipeline_c_func_0_s_6_7d6c[stmt]\n        NAIContentPipeline_c_func_0_s_7_7897([for])\n        NAIContentPipeline_c_func_0_s_8_3a4d[stmt]\n    end\n    NAIContentPipeline_c_func_0_352b --> NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_9442 --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_h_get_content_type_and_generate_draft_0_e4b0\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_h_get_content_type_and_generate_draft_0_e4b0 --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_0_3868\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_h_save_draft_0_4d2b --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_2_125a\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_0_3868 --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_1_3b78\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_1_3b78 --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_h_save_draft_0_4d2b\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_2_125a --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_3_4e85\n    NAIContentPipeline_c_func_0_c_loop_0_c_block_0_s_3_4e85 -->|repeat| NAIContentPipeline_c_func_0_s_7_7897\n    NAIContentPipeline_c_func_0_h_complete_0_b836 --> NAIContentPipeline_c_func_0_s_10_e12f\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea --> NAIContentPipeline_c_func_0_h_retrieve_emails_and_posts_from_database_1_3da2\n    NAIContentPipeline_c_func_0_h_generate_content_0_45e1 --> NAIContentPipeline_c_func_0_h_video_summarization_1_44bd\n    NAIContentPipeline_c_func_0_h_generate_drafts_for_posts_0_2a8a --> NAIContentPipeline_c_func_0_s_7_7897\n    NAIContentPipeline_c_func_0_h_prepare_pull_request_0_69be --> NAIContentPipeline_c_func_0_s_8_3a4d\n    NAIContentPipeline_c_func_0_h_process_and_load_video_0_e763 --> NAIContentPipeline_c_func_0_s_2_2f3f\n    NAIContentPipeline_c_func_0_h_retrieve_emails_and_posts_from_database_1_3da2 --> NAIContentPipeline_c_func_0_s_0_c8b2\n    NAIContentPipeline_c_func_0_h_video_summarization_1_44bd --> NAIContentPipeline_c_func_0_s_4_dbb3\n    NAIContentPipeline_c_func_0_s_0_c8b2 --> NAIContentPipeline_c_func_0_s_1_f7fc\n    NAIContentPipeline_c_func_0_s_1_f7fc --> NAIContentPipeline_c_func_0_h_process_and_load_video_0_e763\n    NAIContentPipeline_c_func_0_s_2_2f3f --> NAIContentPipeline_c_func_0_s_3_43c7\n    NAIContentPipeline_c_func_0_s_3_43c7 --> NAIContentPipeline_c_func_0_h_generate_content_0_45e1\n    NAIContentPipeline_c_func_0_s_4_dbb3 --> NAIContentPipeline_c_func_0_s_5_4ff7\n    NAIContentPipeline_c_func_0_s_5_4ff7 --> NAIContentPipeline_c_func_0_s_6_7d6c\n    NAIContentPipeline_c_func_0_s_6_7d6c --> NAIContentPipeline_c_func_0_h_generate_drafts_for_posts_0_2a8a\n    NAIContentPipeline_c_func_0_s_7_7897 --> NAIContentPipeline_c_func_0_c_loop_0_c_block_0_9442\n    NAIContentPipeline_c_func_0_s_7_7897 --> NAIContentPipeline_c_func_0_h_prepare_pull_request_0_69be\n    NAIContentPipeline_c_func_0_s_8_3a4d --> NAIContentPipeline_c_func_0_h_complete_0_b836"

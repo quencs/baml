@@ -4,4 +4,149 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/IfThenElse.baml
 ---
-__error: "error: Error validating: This line is invalid. It does not start with any known Baml schema keyword.\n  -->  src/control_flow/testdata/IfThenElse.baml:22\n   | \n21 | //# Main Function\n22 | function ComplexHeaderTest(x: int) -> int {\n23 |     let z = 5;\n   | \n\n"
+expr:
+  nodes:
+    "IfThenElse|c:func:0":
+      label: IfThenElse
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 11
+        end: 257
+    "IfThenElse|c:func:0|c:arm:0|c:block:0":
+      label: scope
+      node_type: scope
+      parent: "IfThenElse|c:func:0|c:arm:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 168
+        end: 169
+    "IfThenElse|c:func:0|c:arm:0|c:block:0|h:impossible-return-1:0":
+      label: "impossible: return 1"
+      node_type: expr
+      parent: "IfThenElse|c:func:0|c:arm:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenElse|c:func:0|c:arm:0|c:block:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "IfThenElse|c:func:0|c:arm:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 168
+        end: 169
+    "IfThenElse|c:func:0|c:arm:1|c:block:0":
+      label: scope
+      node_type: scope
+      parent: "IfThenElse|c:func:0|c:arm:1"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 223
+        end: 224
+    "IfThenElse|c:func:0|c:arm:1|c:block:0|h:should-always-be-5:0":
+      label: should always be 5
+      node_type: expr
+      parent: "IfThenElse|c:func:0|c:arm:1|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenElse|c:func:0|c:arm:1|c:block:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "IfThenElse|c:func:0|c:arm:1|c:block:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 223
+        end: 224
+    "IfThenElse|c:func:0|h:after:0":
+      label: After
+      node_type: expr
+      parent: "IfThenElse|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenElse|c:func:0|h:before:0":
+      label: Before
+      node_type: expr
+      parent: "IfThenElse|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenElse|c:func:0|h:if-should-always-do-else:1":
+      label: If should always do else
+      node_type: expr
+      parent: "IfThenElse|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenElse|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "IfThenElse|c:func:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 46
+        end: 57
+    "IfThenElse|c:func:0|s:1":
+      label: if
+      node_type: branch
+      parent: "IfThenElse|c:func:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 112
+        end: 230
+    "IfThenElse|c:func:0|s:3":
+      label: expr
+      node_type: expr
+      parent: "IfThenElse|c:func:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 250
+        end: 255
+  edges:
+    "IfThenElse|c:func:0":
+      - dst: "IfThenElse|c:func:0|s:0"
+        label: ""
+    "IfThenElse|c:func:0|c:arm:0|c:block:0":
+      - dst: "IfThenElse|c:func:0|c:arm:0|c:block:0|h:impossible-return-1:0"
+        label: ""
+    "IfThenElse|c:func:0|c:arm:0|c:block:0|h:impossible-return-1:0":
+      - dst: "IfThenElse|c:func:0|c:arm:0|c:block:0|s:1"
+        label: ""
+    "IfThenElse|c:func:0|c:arm:0|c:block:0|s:1":
+      - dst: "IfThenElse|c:func:0|h:after:0"
+        label: ""
+    "IfThenElse|c:func:0|c:arm:1|c:block:0":
+      - dst: "IfThenElse|c:func:0|c:arm:1|c:block:0|h:should-always-be-5:0"
+        label: ""
+    "IfThenElse|c:func:0|c:arm:1|c:block:0|h:should-always-be-5:0":
+      - dst: "IfThenElse|c:func:0|c:arm:1|c:block:0|s:1"
+        label: ""
+    "IfThenElse|c:func:0|c:arm:1|c:block:0|s:1":
+      - dst: "IfThenElse|c:func:0|h:after:0"
+        label: ""
+    "IfThenElse|c:func:0|h:after:0":
+      - dst: "IfThenElse|c:func:0|s:3"
+        label: ""
+    "IfThenElse|c:func:0|h:before:0":
+      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:1"
+        label: ""
+    "IfThenElse|c:func:0|h:if-should-always-do-else:1":
+      - dst: "IfThenElse|c:func:0|s:1"
+        label: ""
+    "IfThenElse|c:func:0|s:0":
+      - dst: "IfThenElse|c:func:0|h:before:0"
+        label: ""
+    "IfThenElse|c:func:0|s:1":
+      - dst: "IfThenElse|c:func:0|c:arm:0|c:block:0"
+        label: ""
+      - dst: "IfThenElse|c:func:0|c:arm:1|c:block:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NIfThenElse_c_func_0_bf97[IfThenElse]\n        NIfThenElse_c_func_0_bf97((IfThenElse))\n        NIfThenElse_c_func_0_h_after_0_9a09[After]\n        NIfThenElse_c_func_0_h_before_0_c74a[Before]\n        NIfThenElse_c_func_0_h_if_should_always_do_else_1_1309[If should always do else]\n        NIfThenElse_c_func_0_s_0_f217[stmt]\n        NIfThenElse_c_func_0_s_1_5bf7{if}\n        NIfThenElse_c_func_0_s_3_648e[expr]\n    end\n    NIfThenElse_c_func_0_bf97 --> NIfThenElse_c_func_0_s_0_f217\n    NIfThenElse_c_func_0_c_arm_0_c_block_0_a286 --> NIfThenElse_c_func_0_c_arm_0_c_block_0_h_impossible_return_1_0_8bd1\n    NIfThenElse_c_func_0_c_arm_0_c_block_0_h_impossible_return_1_0_8bd1 --> NIfThenElse_c_func_0_c_arm_0_c_block_0_s_1_9c6d\n    NIfThenElse_c_func_0_c_arm_0_c_block_0_s_1_9c6d --> NIfThenElse_c_func_0_h_after_0_9a09\n    NIfThenElse_c_func_0_c_arm_1_c_block_0_05d2 --> NIfThenElse_c_func_0_c_arm_1_c_block_0_h_should_always_be_5_0_3edf\n    NIfThenElse_c_func_0_c_arm_1_c_block_0_h_should_always_be_5_0_3edf --> NIfThenElse_c_func_0_c_arm_1_c_block_0_s_1_0ca3\n    NIfThenElse_c_func_0_c_arm_1_c_block_0_s_1_0ca3 --> NIfThenElse_c_func_0_h_after_0_9a09\n    NIfThenElse_c_func_0_h_after_0_9a09 --> NIfThenElse_c_func_0_s_3_648e\n    NIfThenElse_c_func_0_h_before_0_c74a --> NIfThenElse_c_func_0_h_if_should_always_do_else_1_1309\n    NIfThenElse_c_func_0_h_if_should_always_do_else_1_1309 --> NIfThenElse_c_func_0_s_1_5bf7\n    NIfThenElse_c_func_0_s_0_f217 --> NIfThenElse_c_func_0_h_before_0_c74a\n    NIfThenElse_c_func_0_s_1_5bf7 --> NIfThenElse_c_func_0_c_arm_0_c_block_0_a286\n    NIfThenElse_c_func_0_s_1_5bf7 --> NIfThenElse_c_func_0_c_arm_1_c_block_0_05d2"

@@ -37,4 +37,4 @@ expr:
     "TopLevelNotFlattened|c:func:0|h:only-child:0":
       - dst: "TopLevelNotFlattened|c:func:0|s:1"
         label: ""
-mermaid: "flowchart TD\n    NTopLevelNotFlattened_c_func_0_2389((TopLevelNotFlattened))\n    NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff[Only Child]\n    NTopLevelNotFlattened_c_func_0_s_1_b290[expr]\n    NTopLevelNotFlattened_c_func_0_2389 --> NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff\n    NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff --> NTopLevelNotFlattened_c_func_0_s_1_b290"
+mermaid: "flowchart TD\n    subgraph cluster_NTopLevelNotFlattened_c_func_0_2389[TopLevelNotFlattened]\n        NTopLevelNotFlattened_c_func_0_2389((TopLevelNotFlattened))\n        NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff[Only Child]\n        NTopLevelNotFlattened_c_func_0_s_1_b290[expr]\n    end\n    NTopLevelNotFlattened_c_func_0_2389 --> NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff\n    NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff --> NTopLevelNotFlattened_c_func_0_s_1_b290"

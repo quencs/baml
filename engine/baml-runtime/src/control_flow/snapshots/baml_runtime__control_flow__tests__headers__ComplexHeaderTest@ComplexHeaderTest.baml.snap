@@ -4,4 +4,237 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/ComplexHeaderTest.baml
 ---
-__error: "error: Error validating: Return type mismatch: function return type is string but got int\n  -->  src/control_flow/testdata/ComplexHeaderTest.baml:44\n   | \n43 |     //# Return Result\n44 |     final_result\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/ComplexHeaderTest.baml:3\n   | \n 2 | //# Main Function\n 3 | function ComplexHeaderTest() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/ComplexHeaderTest.baml:48\n   | \n47 | //# Loop Processing\n48 | function ForLoopWithHeaders() -> int {\n   | \n\n"
+expr:
+  nodes:
+    "ComplexHeaderTest|c:func:0":
+      label: ComplexHeaderTest
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 19
+        end: 863
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0":
+      label: scope
+      node_type: scope
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 234
+        end: 255
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:item-analysis:0":
+      label: Item Analysis
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:markdown-header-tester:0":
+      label: Markdown Header tester
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:result:0":
+      label: Result
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:validation:0":
+      label: Validation
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:very-useful-header:0":
+      label: very useful header
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 234
+        end: 255
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 292
+        end: 311
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 345
+        end: 662
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 703
+        end: 725
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:5":
+      label: expr
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 755
+        end: 761
+    "ComplexHeaderTest|c:func:0|h:final-processing:0":
+      label: Final Processing
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|h:initialization:0":
+      label: Initialization
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|h:processing-loop:0":
+      label: Processing Loop
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|h:return-result:0":
+      label: Return Result
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "ComplexHeaderTest|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 84
+        end: 113
+    "ComplexHeaderTest|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 117
+        end: 134
+    "ComplexHeaderTest|c:func:0|s:2":
+      label: for
+      node_type: loop
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 164
+        end: 767
+    "ComplexHeaderTest|c:func:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 798
+        end: 822
+    "ComplexHeaderTest|c:func:0|s:5":
+      label: expr
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 849
+        end: 861
+  edges:
+    "ComplexHeaderTest|c:func:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:markdown-header-tester:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:item-analysis:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:1"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:markdown-header-tester:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:result:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:5"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:validation:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:2"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:very-useful-header:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:3"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:0":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:item-analysis:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:1":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:validation:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:2":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:very-useful-header:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:3":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:result:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:5":
+      - dst: "ComplexHeaderTest|c:func:0|s:2"
+        label: repeat
+    "ComplexHeaderTest|c:func:0|h:final-processing:0":
+      - dst: "ComplexHeaderTest|c:func:0|s:3"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0":
+      - dst: "ComplexHeaderTest|c:func:0|s:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:processing-loop:0":
+      - dst: "ComplexHeaderTest|c:func:0|s:2"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:return-result:0":
+      - dst: "ComplexHeaderTest|c:func:0|s:5"
+        label: ""
+    "ComplexHeaderTest|c:func:0|s:0":
+      - dst: "ComplexHeaderTest|c:func:0|s:1"
+        label: ""
+    "ComplexHeaderTest|c:func:0|s:1":
+      - dst: "ComplexHeaderTest|c:func:0|h:processing-loop:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|s:2":
+      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+        label: ""
+      - dst: "ComplexHeaderTest|c:func:0|h:final-processing:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|s:3":
+      - dst: "ComplexHeaderTest|c:func:0|h:return-result:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NComplexHeaderTest_c_func_0_94f9[ComplexHeaderTest]\n        NComplexHeaderTest_c_func_0_94f9((ComplexHeaderTest))\n        NComplexHeaderTest_c_func_0_h_final_processing_0_c812[Final Processing]\n        NComplexHeaderTest_c_func_0_h_initialization_0_0b8c[Initialization]\n        NComplexHeaderTest_c_func_0_h_processing_loop_0_b125[Processing Loop]\n        NComplexHeaderTest_c_func_0_h_return_result_0_d65a[Return Result]\n        NComplexHeaderTest_c_func_0_s_0_01ad[stmt]\n        NComplexHeaderTest_c_func_0_s_1_c506[stmt]\n        NComplexHeaderTest_c_func_0_s_2_13a0([for])\n        NComplexHeaderTest_c_func_0_s_3_b4bf[stmt]\n        NComplexHeaderTest_c_func_0_s_5_b284[expr]\n    end\n    NComplexHeaderTest_c_func_0_94f9 --> NComplexHeaderTest_c_func_0_h_initialization_0_0b8c\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_4907 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_markdown_header_tester_0_55d5\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_item_analysis_0_f581 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_1_3616\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_markdown_header_tester_0_55d5 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_0_5f90\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_result_0_d996 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_5_f7d9\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_validation_0_e919 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_2_6f29\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_very_useful_header_0_e59b --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_3_d0e6\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_0_5f90 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_item_analysis_0_f581\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_1_3616 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_validation_0_e919\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_2_6f29 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_very_useful_header_0_e59b\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_3_d0e6 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_result_0_d996\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_5_f7d9 -->|repeat| NComplexHeaderTest_c_func_0_s_2_13a0\n    NComplexHeaderTest_c_func_0_h_final_processing_0_c812 --> NComplexHeaderTest_c_func_0_s_3_b4bf\n    NComplexHeaderTest_c_func_0_h_initialization_0_0b8c --> NComplexHeaderTest_c_func_0_s_0_01ad\n    NComplexHeaderTest_c_func_0_h_processing_loop_0_b125 --> NComplexHeaderTest_c_func_0_s_2_13a0\n    NComplexHeaderTest_c_func_0_h_return_result_0_d65a --> NComplexHeaderTest_c_func_0_s_5_b284\n    NComplexHeaderTest_c_func_0_s_0_01ad --> NComplexHeaderTest_c_func_0_s_1_c506\n    NComplexHeaderTest_c_func_0_s_1_c506 --> NComplexHeaderTest_c_func_0_h_processing_loop_0_b125\n    NComplexHeaderTest_c_func_0_s_2_13a0 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_4907\n    NComplexHeaderTest_c_func_0_s_2_13a0 --> NComplexHeaderTest_c_func_0_h_final_processing_0_c812\n    NComplexHeaderTest_c_func_0_s_3_b4bf --> NComplexHeaderTest_c_func_0_h_return_result_0_d65a"

@@ -106,7 +106,7 @@ function ConsecutiveHeaders() -> string {
     "multiple consecutive headers"
 }
 
-function HeadersAroundExpressions() -> string {
+function HeadersAroundExpressions() -> int {
     //# Before Let
     let x = 5;
     //## After Let

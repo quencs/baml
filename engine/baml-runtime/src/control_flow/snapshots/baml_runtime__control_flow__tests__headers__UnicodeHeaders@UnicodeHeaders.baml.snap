@@ -4,4 +4,59 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/UnicodeHeaders.baml
 ---
-__error: "error: Error validating: Return type mismatch: function return type is string but got int\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:132\n   | \n131 |     //# Final Section\n132 |     x\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:3\n   | \n 2 | \n 3 | function UnicodeHeaders() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:15\n   | \n14 | \n15 | function HeaderLevels() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:29\n   | \n28 | \n29 | function HeadersWithWhitespace() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:42\n   | \n41 | \n42 | function HeadersAndComments() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:57\n   | \n56 | \n57 | function HeadersInComplexNesting() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:86\n   | \n85 | \n86 | function HeadersWithSpecialChars() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:97\n   | \n96 | \n97 | function ConsecutiveHeaders() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:109\n   | \n108 | \n109 | function HeadersAroundExpressions() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:135\n   | \n134 | \n135 | function VeryLongHeaderTitle() -> string {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/UnicodeHeaders.baml:143\n   | \n142 | \n143 | function HeaderOnlyFunction() -> string {\n   | \n\n"
+expr:
+  nodes:
+    "UnicodeHeaders|c:func:0":
+      label: UnicodeHeaders
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/UnicodeHeaders.baml
+        start: 31
+        end: 222
+    "UnicodeHeaders|c:func:0|h::0":
+      label: 你好世界
+      node_type: expr
+      parent: "UnicodeHeaders|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "UnicodeHeaders|c:func:0|h:mojis:1":
+      label: Émojis 🎉🎊
+      node_type: expr
+      parent: "UnicodeHeaders|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "UnicodeHeaders|c:func:0|h:special-characters:2":
+      label: Special «Characters» ™
+      node_type: expr
+      parent: "UnicodeHeaders|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "UnicodeHeaders|c:func:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "UnicodeHeaders|c:func:0"
+      span:
+        file: src/control_flow/testdata/UnicodeHeaders.baml
+        start: 214
+        end: 220
+  edges:
+    "UnicodeHeaders|c:func:0":
+      - dst: "UnicodeHeaders|c:func:0|h::0"
+        label: ""
+    "UnicodeHeaders|c:func:0|h::0":
+      - dst: "UnicodeHeaders|c:func:0|h:mojis:1"
+        label: ""
+    "UnicodeHeaders|c:func:0|h:mojis:1":
+      - dst: "UnicodeHeaders|c:func:0|h:special-characters:2"
+        label: ""
+    "UnicodeHeaders|c:func:0|h:special-characters:2":
+      - dst: "UnicodeHeaders|c:func:0|s:1"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NUnicodeHeaders_c_func_0_6977[UnicodeHeaders]\n        NUnicodeHeaders_c_func_0_6977((UnicodeHeaders))\n        NUnicodeHeaders_c_func_0_h__0_a60b[你好世界]\n        NUnicodeHeaders_c_func_0_h_mojis_1_890c[Émojis 🎉🎊]\n        NUnicodeHeaders_c_func_0_h_special_characters_2_6197[Special «Characters» ™]\n        NUnicodeHeaders_c_func_0_s_1_09e1[expr]\n    end\n    NUnicodeHeaders_c_func_0_6977 --> NUnicodeHeaders_c_func_0_h__0_a60b\n    NUnicodeHeaders_c_func_0_h__0_a60b --> NUnicodeHeaders_c_func_0_h_mojis_1_890c\n    NUnicodeHeaders_c_func_0_h_mojis_1_890c --> NUnicodeHeaders_c_func_0_h_special_characters_2_6197\n    NUnicodeHeaders_c_func_0_h_special_characters_2_6197 --> NUnicodeHeaders_c_func_0_s_1_09e1"

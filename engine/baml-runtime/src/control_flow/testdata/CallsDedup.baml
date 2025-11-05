@@ -1,5 +1,5 @@
 //# Pipeline
-function CallsDedup() -> string {
+function CallsDedup() -> int {
     //## Step A
     let a = Foo();
 
@@ -10,4 +10,8 @@ function CallsDedup() -> string {
     let c = Foo();
 
     a + b
+}
+
+function Foo() -> int {
+    1
 }

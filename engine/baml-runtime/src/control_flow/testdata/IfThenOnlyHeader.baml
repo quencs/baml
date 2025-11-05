@@ -5,7 +5,7 @@ function IfThenOnlyHeader() -> int {
     //# Before 
 
     //# If
-    let y = if (false) { 1 };
+    let y = if (false) { 1 } else { 0 };
 
     //## After
     y
@@ -22,6 +22,8 @@ function IfThenOnlyHeader2() -> int {
     let y = if (false) { 
         //## Then
         1
+    } else {
+        0
     };
 
     //## After
@@ -30,7 +32,7 @@ function IfThenOnlyHeader2() -> int {
 
 
 //# Case 3
-function IfThenOnlyHeader2() -> int {
+function IfThenOnlyHeader3() -> int {
     let x = 1;
     //### Before
 
@@ -40,6 +42,8 @@ function IfThenOnlyHeader2() -> int {
     let y = if (false) { 
         //## Then
         1
+    } else {
+        0
     };
 
     //## After

@@ -4,4 +4,81 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/IfThenOnlyHeader.baml
 ---
-__error: "error: Error validating: Expr function name must be unique\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:33\n   | \n32 | //# Case 3\n33 | function IfThenOnlyHeader2() -> int {\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:2\n   | \n 1 | //# Case 1\n 2 | function IfThenOnlyHeader() -> int {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:15\n   | \n14 | //# Case 2\n15 | function IfThenOnlyHeader2() -> int {\n   | \nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/IfThenOnlyHeader.baml:33\n   | \n32 | //# Case 3\n33 | function IfThenOnlyHeader2() -> int {\n   | \n\n"
+expr:
+  nodes:
+    "IfThenOnlyHeader|c:func:0":
+      label: IfThenOnlyHeader
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/IfThenOnlyHeader.baml
+        start: 11
+        end: 156
+    "IfThenOnlyHeader|c:func:0|h:after:0":
+      label: After
+      node_type: expr
+      parent: "IfThenOnlyHeader|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenOnlyHeader|c:func:0|h:before:0":
+      label: Before
+      node_type: expr
+      parent: "IfThenOnlyHeader|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenOnlyHeader|c:func:0|h:if:1":
+      label: If
+      node_type: expr
+      parent: "IfThenOnlyHeader|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "IfThenOnlyHeader|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "IfThenOnlyHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/IfThenOnlyHeader.baml
+        start: 52
+        end: 63
+    "IfThenOnlyHeader|c:func:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "IfThenOnlyHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/IfThenOnlyHeader.baml
+        start: 96
+        end: 133
+    "IfThenOnlyHeader|c:func:0|s:3":
+      label: expr
+      node_type: expr
+      parent: "IfThenOnlyHeader|c:func:0"
+      span:
+        file: src/control_flow/testdata/IfThenOnlyHeader.baml
+        start: 153
+        end: 154
+  edges:
+    "IfThenOnlyHeader|c:func:0":
+      - dst: "IfThenOnlyHeader|c:func:0|s:0"
+        label: ""
+    "IfThenOnlyHeader|c:func:0|h:after:0":
+      - dst: "IfThenOnlyHeader|c:func:0|s:3"
+        label: ""
+    "IfThenOnlyHeader|c:func:0|h:before:0":
+      - dst: "IfThenOnlyHeader|c:func:0|h:if:1"
+        label: ""
+    "IfThenOnlyHeader|c:func:0|h:if:1":
+      - dst: "IfThenOnlyHeader|c:func:0|s:1"
+        label: ""
+    "IfThenOnlyHeader|c:func:0|s:0":
+      - dst: "IfThenOnlyHeader|c:func:0|h:before:0"
+        label: ""
+    "IfThenOnlyHeader|c:func:0|s:1":
+      - dst: "IfThenOnlyHeader|c:func:0|h:after:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NIfThenOnlyHeader_c_func_0_80c2[IfThenOnlyHeader]\n        NIfThenOnlyHeader_c_func_0_80c2((IfThenOnlyHeader))\n        NIfThenOnlyHeader_c_func_0_h_after_0_a73b[After]\n        NIfThenOnlyHeader_c_func_0_h_before_0_877b[Before]\n        NIfThenOnlyHeader_c_func_0_h_if_1_48ad[If]\n        NIfThenOnlyHeader_c_func_0_s_0_9efa[stmt]\n        NIfThenOnlyHeader_c_func_0_s_1_2c29[stmt]\n        NIfThenOnlyHeader_c_func_0_s_3_e943[expr]\n    end\n    NIfThenOnlyHeader_c_func_0_80c2 --> NIfThenOnlyHeader_c_func_0_s_0_9efa\n    NIfThenOnlyHeader_c_func_0_h_after_0_a73b --> NIfThenOnlyHeader_c_func_0_s_3_e943\n    NIfThenOnlyHeader_c_func_0_h_before_0_877b --> NIfThenOnlyHeader_c_func_0_h_if_1_48ad\n    NIfThenOnlyHeader_c_func_0_h_if_1_48ad --> NIfThenOnlyHeader_c_func_0_s_1_2c29\n    NIfThenOnlyHeader_c_func_0_s_0_9efa --> NIfThenOnlyHeader_c_func_0_h_before_0_877b\n    NIfThenOnlyHeader_c_func_0_s_1_2c29 --> NIfThenOnlyHeader_c_func_0_h_after_0_a73b"

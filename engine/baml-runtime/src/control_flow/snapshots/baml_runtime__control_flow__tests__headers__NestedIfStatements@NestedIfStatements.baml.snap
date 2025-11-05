@@ -4,4 +4,48 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/NestedIfStatements.baml
 ---
-__error: "error: Error validating: Return type mismatch: function return type is string but got int\n  -->  src/control_flow/testdata/NestedIfStatements.baml:58\n   | \n57 | \n58 |     e\n   | \n\nwarning: Workflow functions are experimental, and will break in the future.\n  -->  src/control_flow/testdata/NestedIfStatements.baml:2\n   | \n 1 | //# Main Function\n 2 | function NestedIfStatements() -> string {\n   | \n\n"
+expr:
+  nodes:
+    "NestedIfStatements|c:func:0":
+      label: NestedIfStatements
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/NestedIfStatements.baml
+        start: 18
+        end: 1202
+    "NestedIfStatements|c:func:0|h:if-statement-1:0":
+      label: If statement 1
+      node_type: expr
+      parent: "NestedIfStatements|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "NestedIfStatements|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "NestedIfStatements|c:func:0"
+      span:
+        file: src/control_flow/testdata/NestedIfStatements.baml
+        start: 85
+        end: 1194
+    "NestedIfStatements|c:func:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "NestedIfStatements|c:func:0"
+      span:
+        file: src/control_flow/testdata/NestedIfStatements.baml
+        start: 1199
+        end: 1200
+  edges:
+    "NestedIfStatements|c:func:0":
+      - dst: "NestedIfStatements|c:func:0|h:if-statement-1:0"
+        label: ""
+    "NestedIfStatements|c:func:0|h:if-statement-1:0":
+      - dst: "NestedIfStatements|c:func:0|s:0"
+        label: ""
+    "NestedIfStatements|c:func:0|s:0":
+      - dst: "NestedIfStatements|c:func:0|s:1"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NNestedIfStatements_c_func_0_46c9[NestedIfStatements]\n        NNestedIfStatements_c_func_0_46c9((NestedIfStatements))\n        NNestedIfStatements_c_func_0_h_if_statement_1_0_903a[If statement 1]\n        NNestedIfStatements_c_func_0_s_0_ee1e[stmt]\n        NNestedIfStatements_c_func_0_s_1_765f[expr]\n    end\n    NNestedIfStatements_c_func_0_46c9 --> NNestedIfStatements_c_func_0_h_if_statement_1_0_903a\n    NNestedIfStatements_c_func_0_h_if_statement_1_0_903a --> NNestedIfStatements_c_func_0_s_0_ee1e\n    NNestedIfStatements_c_func_0_s_0_ee1e --> NNestedIfStatements_c_func_0_s_1_765f"

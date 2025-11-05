@@ -48,4 +48,4 @@ expr:
     "SimpleTest|c:func:0|s:0":
       - dst: "SimpleTest|c:func:0|s:1"
         label: ""
-mermaid: "flowchart TD\n    NSimpleTest_c_func_0_c2cb((SimpleTest))\n    NSimpleTest_c_func_0_h_main_header_0_bf1f[Main Header]\n    NSimpleTest_c_func_0_s_0_cf7b[stmt]\n    NSimpleTest_c_func_0_s_1_aa26[expr]\n    NSimpleTest_c_func_0_c2cb --> NSimpleTest_c_func_0_h_main_header_0_bf1f\n    NSimpleTest_c_func_0_h_main_header_0_bf1f --> NSimpleTest_c_func_0_s_0_cf7b\n    NSimpleTest_c_func_0_s_0_cf7b --> NSimpleTest_c_func_0_s_1_aa26"
+mermaid: "flowchart TD\n    subgraph cluster_NSimpleTest_c_func_0_c2cb[SimpleTest]\n        NSimpleTest_c_func_0_c2cb((SimpleTest))\n        NSimpleTest_c_func_0_h_main_header_0_bf1f[Main Header]\n        NSimpleTest_c_func_0_s_0_cf7b[stmt]\n        NSimpleTest_c_func_0_s_1_aa26[expr]\n    end\n    NSimpleTest_c_func_0_c2cb --> NSimpleTest_c_func_0_h_main_header_0_bf1f\n    NSimpleTest_c_func_0_h_main_header_0_bf1f --> NSimpleTest_c_func_0_s_0_cf7b\n    NSimpleTest_c_func_0_s_0_cf7b --> NSimpleTest_c_func_0_s_1_aa26"

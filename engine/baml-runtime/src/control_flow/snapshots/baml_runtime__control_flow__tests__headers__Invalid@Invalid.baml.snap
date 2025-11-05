@@ -4,4 +4,48 @@ assertion_line: 129
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/Invalid.baml
 ---
-__error: "error: Error validating: expected closing parentheses for this opening parentheses\n  -->  src/control_flow/testdata/Invalid.baml:4\n   | \n 3 |     //# Missing closing parenthesis on purpose\n 4 |     let x = if (true {\n   | \n\n"
+expr:
+  nodes:
+    "Invalid|c:func:0":
+      label: Invalid
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/Invalid.baml
+        start: 78
+        end: 237
+    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0":
+      label: Previously missing a closing parenthesis
+      node_type: expr
+      parent: "Invalid|c:func:0"
+      span:
+        file: fake-file.baml
+        start: 0
+        end: 0
+    "Invalid|c:func:0|s:0":
+      label: stmt
+      node_type: stmt
+      parent: "Invalid|c:func:0"
+      span:
+        file: src/control_flow/testdata/Invalid.baml
+        start: 162
+        end: 229
+    "Invalid|c:func:0|s:1":
+      label: expr
+      node_type: expr
+      parent: "Invalid|c:func:0"
+      span:
+        file: src/control_flow/testdata/Invalid.baml
+        start: 234
+        end: 235
+  edges:
+    "Invalid|c:func:0":
+      - dst: "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0"
+        label: ""
+    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0":
+      - dst: "Invalid|c:func:0|s:0"
+        label: ""
+    "Invalid|c:func:0|s:0":
+      - dst: "Invalid|c:func:0|s:1"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NInvalid_c_func_0_953f[Invalid]\n        NInvalid_c_func_0_953f((Invalid))\n        NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933[Previously missing a closing parenthesis]\n        NInvalid_c_func_0_s_0_bcd5[stmt]\n        NInvalid_c_func_0_s_1_e881[expr]\n    end\n    NInvalid_c_func_0_953f --> NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933\n    NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933 --> NInvalid_c_func_0_s_0_bcd5\n    NInvalid_c_func_0_s_0_bcd5 --> NInvalid_c_func_0_s_1_e881"

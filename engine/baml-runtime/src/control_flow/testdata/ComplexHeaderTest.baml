@@ -1,6 +1,6 @@
 
 //# Main Function
-function ComplexHeaderTest() -> string {
+function ComplexHeaderTest() -> int {
     //# Initialization
     let items = ["a", "b", "c"];
     let result = "";

@@ -1,5 +1,5 @@
 //# Main Function
-function NestedIfStatements() -> string {
+function NestedIfStatements() -> int {
     //## If statement 1
     let e = if (true) {
 
