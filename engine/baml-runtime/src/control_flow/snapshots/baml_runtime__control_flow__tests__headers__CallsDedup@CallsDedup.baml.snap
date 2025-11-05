@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/CallsDedup.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            AnnotatedStatement {\n                headers: [\n                    \"Step A\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"a\",\n                        value: Call {\n                            function: Identifier(\n                                \"Foo\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                                    start: 72,\n                                    end: 75,\n                                },\n                            ),\n                            type_args: [],\n                            args: [],\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                                start: 72,\n                                end: 77,\n                            },\n                        },\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                            start: 64,\n                            end: 79,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Step B\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"b\",\n                        value: Call {\n                            function: Identifier(\n                                \"Foo\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                                    start: 108,\n                                    end: 111,\n                                },\n                            ),\n                            type_args: [],\n                            args: [],\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                                start: 108,\n                                end: 113,\n                            },\n                        },\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                            start: 100,\n                            end: 115,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Step C\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"c\",\n                        value: Call {\n                            function: Identifier(\n                                \"Foo\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                                    start: 144,\n                                    end: 147,\n                                },\n                            ),\n                            type_args: [],\n                            args: [],\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                                start: 144,\n                                end: 149,\n                            },\n                        },\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                            start: 136,\n                            end: 151,\n                        },\n                    },\n                ),\n            },\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: Identifier(\n                    \"a\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 156,\n                        end: 157,\n                    },\n                ),\n                operator: Add,\n                right: Identifier(\n                    \"b\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 160,\n                        end: 161,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                    start: 156,\n                    end: 161,\n                },\n            },\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Step A\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 48,\n                        end: 59,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"a\",\n                value: Call {\n                    function: Identifier(\n                        \"Foo\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                            start: 72,\n                            end: 75,\n                        },\n                    ),\n                    type_args: [],\n                    args: [],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 72,\n                        end: 77,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                    start: 64,\n                    end: 79,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Step B\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 84,\n                        end: 95,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"b\",\n                value: Call {\n                    function: Identifier(\n                        \"Foo\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                            start: 108,\n                            end: 111,\n                        },\n                    ),\n                    type_args: [],\n                    args: [],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 108,\n                        end: 113,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                    start: 100,\n                    end: 115,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Step C\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 120,\n                        end: 131,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"c\",\n                value: Call {\n                    function: Identifier(\n                        \"Foo\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                            start: 144,\n                            end: 147,\n                        },\n                    ),\n                    type_args: [],\n                    args: [],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 144,\n                        end: 149,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                    start: 136,\n                    end: 151,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: Identifier(\n                    \"a\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 156,\n                        end: 157,\n                    },\n                ),\n                operator: Add,\n                right: Identifier(\n                    \"b\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                        start: 160,\n                        end: 161,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/CallsDedup.baml\", contents: ... },\n                    start: 156,\n                    end: 161,\n                },\n            },\n        ),\n    },\n)"
 expr:
   nodes:
     "CallsDedup|c:func:0":
@@ -19,53 +19,53 @@ expr:
       node_type: expr
       parent: "CallsDedup|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 48
+        end: 59
+    "CallsDedup|c:func:0|h:step-a:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "CallsDedup|c:func:0|h:step-a:0"
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 64
+        end: 79
     "CallsDedup|c:func:0|h:step-b:0":
       label: Step B
       node_type: expr
       parent: "CallsDedup|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 84
+        end: 95
+    "CallsDedup|c:func:0|h:step-b:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "CallsDedup|c:func:0|h:step-b:0"
+      span:
+        file: src/control_flow/testdata/CallsDedup.baml
+        start: 100
+        end: 115
     "CallsDedup|c:func:0|h:step-c:0":
       label: Step C
       node_type: expr
       parent: "CallsDedup|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "CallsDedup|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "CallsDedup|c:func:0"
-      span:
         file: src/control_flow/testdata/CallsDedup.baml
-        start: 64
-        end: 79
-    "CallsDedup|c:func:0|s:1":
+        start: 120
+        end: 131
+    "CallsDedup|c:func:0|h:step-c:0|s:5":
       label: stmt
       node_type: stmt
-      parent: "CallsDedup|c:func:0"
-      span:
-        file: src/control_flow/testdata/CallsDedup.baml
-        start: 100
-        end: 115
-    "CallsDedup|c:func:0|s:2":
-      label: stmt
-      node_type: stmt
-      parent: "CallsDedup|c:func:0"
+      parent: "CallsDedup|c:func:0|h:step-c:0"
       span:
         file: src/control_flow/testdata/CallsDedup.baml
         start: 136
         end: 151
-    "CallsDedup|c:func:0|s:3":
+    "CallsDedup|c:func:0|h:step-c:0|s:6":
       label: expr
       node_type: expr
-      parent: "CallsDedup|c:func:0"
+      parent: "CallsDedup|c:func:0|h:step-c:0"
       span:
         file: src/control_flow/testdata/CallsDedup.baml
         start: 156
@@ -75,21 +75,21 @@ expr:
       - dst: "CallsDedup|c:func:0|h:step-a:0"
         label: ""
     "CallsDedup|c:func:0|h:step-a:0":
-      - dst: "CallsDedup|c:func:0|s:0"
+      - dst: "CallsDedup|c:func:0|h:step-a:0|s:1"
         label: ""
-    "CallsDedup|c:func:0|h:step-b:0":
-      - dst: "CallsDedup|c:func:0|s:1"
-        label: ""
-    "CallsDedup|c:func:0|h:step-c:0":
-      - dst: "CallsDedup|c:func:0|s:2"
-        label: ""
-    "CallsDedup|c:func:0|s:0":
+    "CallsDedup|c:func:0|h:step-a:0|s:1":
       - dst: "CallsDedup|c:func:0|h:step-b:0"
         label: ""
-    "CallsDedup|c:func:0|s:1":
+    "CallsDedup|c:func:0|h:step-b:0":
+      - dst: "CallsDedup|c:func:0|h:step-b:0|s:3"
+        label: ""
+    "CallsDedup|c:func:0|h:step-b:0|s:3":
       - dst: "CallsDedup|c:func:0|h:step-c:0"
         label: ""
-    "CallsDedup|c:func:0|s:2":
-      - dst: "CallsDedup|c:func:0|s:3"
+    "CallsDedup|c:func:0|h:step-c:0":
+      - dst: "CallsDedup|c:func:0|h:step-c:0|s:5"
         label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NCallsDedup_c_func_0_6bfd[CallsDedup]\n        NCallsDedup_c_func_0_6bfd((CallsDedup))\n        NCallsDedup_c_func_0_h_step_a_0_3a34[Step A]\n        NCallsDedup_c_func_0_h_step_b_0_4ad7[Step B]\n        NCallsDedup_c_func_0_h_step_c_0_b1e8[Step C]\n        NCallsDedup_c_func_0_s_0_b4c4[stmt]\n        NCallsDedup_c_func_0_s_1_cead[stmt]\n        NCallsDedup_c_func_0_s_2_cd16[stmt]\n        NCallsDedup_c_func_0_s_3_f036[expr]\n    end\n    NCallsDedup_c_func_0_6bfd --> NCallsDedup_c_func_0_h_step_a_0_3a34\n    NCallsDedup_c_func_0_h_step_a_0_3a34 --> NCallsDedup_c_func_0_s_0_b4c4\n    NCallsDedup_c_func_0_h_step_b_0_4ad7 --> NCallsDedup_c_func_0_s_1_cead\n    NCallsDedup_c_func_0_h_step_c_0_b1e8 --> NCallsDedup_c_func_0_s_2_cd16\n    NCallsDedup_c_func_0_s_0_b4c4 --> NCallsDedup_c_func_0_h_step_b_0_4ad7\n    NCallsDedup_c_func_0_s_1_cead --> NCallsDedup_c_func_0_h_step_c_0_b1e8\n    NCallsDedup_c_func_0_s_2_cd16 --> NCallsDedup_c_func_0_s_3_f036"
+    "CallsDedup|c:func:0|h:step-c:0|s:5":
+      - dst: "CallsDedup|c:func:0|h:step-c:0|s:6"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NCallsDedup_c_func_0_6bfd[CallsDedup]\n        NCallsDedup_c_func_0_6bfd((CallsDedup))\n        subgraph cluster_NCallsDedup_c_func_0_h_step_a_0_3a34[Step A]\n            NCallsDedup_c_func_0_h_step_a_0_3a34[Step A]\n            NCallsDedup_c_func_0_h_step_a_0_s_1_ca10[stmt]\n        end\n        subgraph cluster_NCallsDedup_c_func_0_h_step_b_0_4ad7[Step B]\n            NCallsDedup_c_func_0_h_step_b_0_4ad7[Step B]\n            NCallsDedup_c_func_0_h_step_b_0_s_3_6205[stmt]\n        end\n        subgraph cluster_NCallsDedup_c_func_0_h_step_c_0_b1e8[Step C]\n            NCallsDedup_c_func_0_h_step_c_0_b1e8[Step C]\n            NCallsDedup_c_func_0_h_step_c_0_s_5_642b[stmt]\n            NCallsDedup_c_func_0_h_step_c_0_s_6_52b7[expr]\n        end\n    end\n    NCallsDedup_c_func_0_6bfd --> NCallsDedup_c_func_0_h_step_a_0_3a34\n    NCallsDedup_c_func_0_h_step_a_0_3a34 --> NCallsDedup_c_func_0_h_step_a_0_s_1_ca10\n    NCallsDedup_c_func_0_h_step_a_0_s_1_ca10 --> NCallsDedup_c_func_0_h_step_b_0_4ad7\n    NCallsDedup_c_func_0_h_step_b_0_4ad7 --> NCallsDedup_c_func_0_h_step_b_0_s_3_6205\n    NCallsDedup_c_func_0_h_step_b_0_s_3_6205 --> NCallsDedup_c_func_0_h_step_c_0_b1e8\n    NCallsDedup_c_func_0_h_step_c_0_b1e8 --> NCallsDedup_c_func_0_h_step_c_0_s_5_642b\n    NCallsDedup_c_func_0_h_step_c_0_s_5_642b --> NCallsDedup_c_func_0_h_step_c_0_s_6_52b7"

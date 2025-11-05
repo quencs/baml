@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/BasicIf.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            DeclareAndAssign {\n                name: \"x\",\n                value: NumericValue(\n                    \"1\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                        start: 56,\n                        end: 57,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                    start: 48,\n                    end: 59,\n                },\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"This is a named statement\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"z\",\n                        value: If {\n                            condition: BoolValue(\n                                true,\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                    start: 110,\n                                    end: 114,\n                                },\n                            ),\n                            if_branch: Block(\n                                Block {\n                                    statements: [\n                                        AnnotatedStatement {\n                                            headers: [\n                                                \"Then Statement\",\n                                            ],\n                                            statement: None,\n                                        },\n                                    ],\n                                    trailing_expr: Some(\n                                        NumericValue(\n                                            \"12\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                                start: 153,\n                                                end: 155,\n                                            },\n                                        ),\n                                    ),\n                                },\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                    start: 116,\n                                    end: 161,\n                                },\n                            ),\n                            else_branch: Some(\n                                Block(\n                                    Block {\n                                        statements: [\n                                            AnnotatedStatement {\n                                                headers: [\n                                                    \"Else Statement\",\n                                                ],\n                                                statement: None,\n                                            },\n                                        ],\n                                        trailing_expr: Some(\n                                            NumericValue(\n                                                \"13\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                                    start: 204,\n                                                    end: 206,\n                                                },\n                                            ),\n                                        ),\n                                    },\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                        start: 167,\n                                        end: 212,\n                                    },\n                                ),\n                            ),\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                start: 106,\n                                end: 212,\n                            },\n                        },\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                            start: 98,\n                            end: 214,\n                        },\n                    },\n                ),\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"z\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                    start: 219,\n                    end: 220,\n                },\n            ),\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            DeclareAndAssign {\n                name: \"x\",\n                value: NumericValue(\n                    \"1\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                        start: 56,\n                        end: 57,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                    start: 48,\n                    end: 59,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"This is a named statement\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                        start: 64,\n                        end: 93,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"z\",\n                value: If {\n                    condition: BoolValue(\n                        true,\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                            start: 110,\n                            end: 114,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextStart(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"Then Statement\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                            start: 126,\n                                            end: 144,\n                                        },\n                                    },\n                                ),\n                            ],\n                            trailing_expr: Some(\n                                NumericValue(\n                                    \"12\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                        start: 153,\n                                        end: 155,\n                                    },\n                                ),\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                            start: 116,\n                            end: 161,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [\n                                    HeaderContextStart(\n                                        HeaderContext {\n                                            level: 1,\n                                            title: \"Else Statement\",\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                                start: 177,\n                                                end: 195,\n                                            },\n                                        },\n                                    ),\n                                ],\n                                trailing_expr: Some(\n                                    NumericValue(\n                                        \"13\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                            start: 204,\n                                            end: 206,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                                start: 167,\n                                end: 212,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                        start: 106,\n                        end: 212,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                    start: 98,\n                    end: 214,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"z\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicIf.baml\", contents: ... },\n                    start: 219,\n                    end: 220,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
     "BasicIf|c:func:0":
@@ -19,9 +19,25 @@ expr:
       node_type: expr
       parent: "BasicIf|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
+        file: src/control_flow/testdata/BasicIf.baml
+        start: 64
+        end: 93
+    "BasicIf|c:func:0|h:this-is-a-named-statement:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "BasicIf|c:func:0|h:this-is-a-named-statement:0"
+      span:
+        file: src/control_flow/testdata/BasicIf.baml
+        start: 98
+        end: 214
+    "BasicIf|c:func:0|h:this-is-a-named-statement:0|s:3":
+      label: expr
+      node_type: expr
+      parent: "BasicIf|c:func:0|h:this-is-a-named-statement:0"
+      span:
+        file: src/control_flow/testdata/BasicIf.baml
+        start: 219
+        end: 220
     "BasicIf|c:func:0|s:0":
       label: stmt
       node_type: stmt
@@ -30,33 +46,17 @@ expr:
         file: src/control_flow/testdata/BasicIf.baml
         start: 48
         end: 59
-    "BasicIf|c:func:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "BasicIf|c:func:0"
-      span:
-        file: src/control_flow/testdata/BasicIf.baml
-        start: 98
-        end: 214
-    "BasicIf|c:func:0|s:2":
-      label: expr
-      node_type: expr
-      parent: "BasicIf|c:func:0"
-      span:
-        file: src/control_flow/testdata/BasicIf.baml
-        start: 219
-        end: 220
   edges:
     "BasicIf|c:func:0":
       - dst: "BasicIf|c:func:0|s:0"
         label: ""
     "BasicIf|c:func:0|h:this-is-a-named-statement:0":
-      - dst: "BasicIf|c:func:0|s:1"
+      - dst: "BasicIf|c:func:0|h:this-is-a-named-statement:0|s:2"
+        label: ""
+    "BasicIf|c:func:0|h:this-is-a-named-statement:0|s:2":
+      - dst: "BasicIf|c:func:0|h:this-is-a-named-statement:0|s:3"
         label: ""
     "BasicIf|c:func:0|s:0":
       - dst: "BasicIf|c:func:0|h:this-is-a-named-statement:0"
         label: ""
-    "BasicIf|c:func:0|s:1":
-      - dst: "BasicIf|c:func:0|s:2"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NBasicIf_c_func_0_e4f8[BasicIf]\n        NBasicIf_c_func_0_e4f8((BasicIf))\n        NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b[This is a named statement]\n        NBasicIf_c_func_0_s_0_d0c2[stmt]\n        NBasicIf_c_func_0_s_1_00bd[stmt]\n        NBasicIf_c_func_0_s_2_39da[expr]\n    end\n    NBasicIf_c_func_0_e4f8 --> NBasicIf_c_func_0_s_0_d0c2\n    NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b --> NBasicIf_c_func_0_s_1_00bd\n    NBasicIf_c_func_0_s_0_d0c2 --> NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b\n    NBasicIf_c_func_0_s_1_00bd --> NBasicIf_c_func_0_s_2_39da"
+mermaid: "flowchart TD\n    subgraph cluster_NBasicIf_c_func_0_e4f8[BasicIf]\n        NBasicIf_c_func_0_e4f8((BasicIf))\n        subgraph cluster_NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b[This is a named statement]\n            NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b[This is a named statement]\n            NBasicIf_c_func_0_h_this_is_a_named_statement_0_s_2_9045[stmt]\n            NBasicIf_c_func_0_h_this_is_a_named_statement_0_s_3_db36[expr]\n        end\n        NBasicIf_c_func_0_s_0_d0c2[stmt]\n    end\n    NBasicIf_c_func_0_e4f8 --> NBasicIf_c_func_0_s_0_d0c2\n    NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b --> NBasicIf_c_func_0_h_this_is_a_named_statement_0_s_2_9045\n    NBasicIf_c_func_0_h_this_is_a_named_statement_0_s_2_9045 --> NBasicIf_c_func_0_h_this_is_a_named_statement_0_s_3_db36\n    NBasicIf_c_func_0_s_0_d0c2 --> NBasicIf_c_func_0_h_this_is_a_named_statement_0_bf1b"

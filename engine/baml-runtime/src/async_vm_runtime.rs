@@ -390,9 +390,14 @@ impl BamlAsyncVmRuntime {
                         baml_vm::vm::WatchNotification::Block(notification) => {
                             if let Some(handler) = watch_handler.as_ref() {
                                 if let Ok(mut handler) = handler.lock() {
+                                    let header = baml_compiler::hir::HeaderContext {
+                                        level: notification.level as u8,
+                                        title: notification.block_name.clone(),
+                                        span: internal_baml_core::ast::Span::fake(),
+                                    };
                                     handler.notify(watch::WatchNotification::new_block(
-                                        notification.block_name.as_str().to_string(),
-                                        notification.function_name.as_str().to_string(),
+                                        header,
+                                        notification.function_name.clone(),
                                     ));
                                 }
                             }

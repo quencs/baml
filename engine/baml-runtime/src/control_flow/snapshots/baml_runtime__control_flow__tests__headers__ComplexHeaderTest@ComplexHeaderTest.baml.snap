@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/ComplexHeaderTest.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            AnnotatedStatement {\n                headers: [\n                    \"Initialization\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"items\",\n                        value: Array(\n                            [\n                                StringValue(\n                                    \"a\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                        start: 97,\n                                        end: 100,\n                                    },\n                                ),\n                                StringValue(\n                                    \"b\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                        start: 102,\n                                        end: 105,\n                                    },\n                                ),\n                                StringValue(\n                                    \"c\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                        start: 107,\n                                        end: 110,\n                                    },\n                                ),\n                            ],\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 96,\n                                end: 111,\n                            },\n                        ),\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                            start: 84,\n                            end: 113,\n                        },\n                    },\n                ),\n            },\n            DeclareAndAssign {\n                name: \"result\",\n                value: StringValue(\n                    \"\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 130,\n                        end: 132,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 117,\n                    end: 134,\n                },\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Processing Loop\",\n                ],\n                statement: Some(\n                    ForLoop {\n                        identifier: \"item\",\n                        iterator: Identifier(\n                            \"items\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 181,\n                                end: 186,\n                            },\n                        ),\n                        block: Block {\n                            statements: [\n                                AnnotatedStatement {\n                                    headers: [\n                                        \"Markdown Header tester\",\n                                    ],\n                                    statement: Some(\n                                        DeclareAndAssign {\n                                            name: \"hello\",\n                                            value: StringValue(\n                                                \"Hello\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 246,\n                                                    end: 253,\n                                                },\n                                            ),\n                                            annotated_type: None,\n                                            watch: None,\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                start: 234,\n                                                end: 255,\n                                            },\n                                        },\n                                    ),\n                                },\n                                AnnotatedStatement {\n                                    headers: [\n                                        \"Item Analysis\",\n                                    ],\n                                    statement: Some(\n                                        DeclareAndAssign {\n                                            name: \"processed\",\n                                            value: NumericValue(\n                                                \"2\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 308,\n                                                    end: 309,\n                                                },\n                                            ),\n                                            annotated_type: None,\n                                            watch: None,\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                start: 292,\n                                                end: 311,\n                                            },\n                                        },\n                                    ),\n                                },\n                                AnnotatedStatement {\n                                    headers: [\n                                        \"Validation\",\n                                    ],\n                                    statement: Some(\n                                        DeclareAndAssign {\n                                            name: \"z\",\n                                            value: If {\n                                                condition: BoolValue(\n                                                    true,\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 357,\n                                                        end: 361,\n                                                    },\n                                                ),\n                                                if_branch: Block(\n                                                    Block {\n                                                        statements: [\n                                                            AnnotatedStatement {\n                                                                headers: [\n                                                                    \"Markdown Header tester in statement\",\n                                                                ],\n                                                                statement: Some(\n                                                                    DeclareAndAssign {\n                                                                        name: \"hello\",\n                                                                        value: StringValue(\n                                                                            \"Hello\",\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                                                start: 442,\n                                                                                end: 449,\n                                                                            },\n                                                                        ),\n                                                                        annotated_type: None,\n                                                                        watch: None,\n                                                                        span: Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                                            start: 430,\n                                                                            end: 451,\n                                                                        },\n                                                                    },\n                                                                ),\n                                                            },\n                                                            AnnotatedStatement {\n                                                                headers: [\n                                                                    \"another header in the statement\",\n                                                                ],\n                                                                statement: Some(\n                                                                    DeclareAndAssign {\n                                                                        name: \"hello\",\n                                                                        value: StringValue(\n                                                                            \"Hello\",\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                                                start: 526,\n                                                                                end: 533,\n                                                                            },\n                                                                        ),\n                                                                        annotated_type: None,\n                                                                        watch: None,\n                                                                        span: Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                                            start: 514,\n                                                                            end: 535,\n                                                                        },\n                                                                    },\n                                                                ),\n                                                            },\n                                                            AnnotatedStatement {\n                                                                headers: [\n                                                                    \"True totally\",\n                                                                ],\n                                                                statement: None,\n                                                            },\n                                                        ],\n                                                        trailing_expr: Some(\n                                                            NumericValue(\n                                                                \"12\",\n                                                                Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                                    start: 579,\n                                                                    end: 581,\n                                                                },\n                                                            ),\n                                                        ),\n                                                    },\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 363,\n                                                        end: 591,\n                                                    },\n                                                ),\n                                                else_branch: Some(\n                                                    Block(\n                                                        Block {\n                                                            statements: [\n                                                                AnnotatedStatement {\n                                                                    headers: [\n                                                                        \"False other branch\",\n                                                                    ],\n                                                                    statement: None,\n                                                                },\n                                                            ],\n                                                            trailing_expr: Some(\n                                                                NumericValue(\n                                                                    \"13\",\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                                        start: 648,\n                                                                        end: 650,\n                                                                    },\n                                                                ),\n                                                            ),\n                                                        },\n                                                        Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                            start: 597,\n                                                            end: 660,\n                                                        },\n                                                    ),\n                                                ),\n                                                span: Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 353,\n                                                    end: 660,\n                                                },\n                                            },\n                                            annotated_type: None,\n                                            watch: None,\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                start: 345,\n                                                end: 662,\n                                            },\n                                        },\n                                    ),\n                                },\n                                AnnotatedStatement {\n                                    headers: [\n                                        \"very useful header\",\n                                    ],\n                                    statement: Some(\n                                        DeclareAndAssign {\n                                            name: \"hello2\",\n                                            value: StringValue(\n                                                \"Hello\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 716,\n                                                    end: 723,\n                                                },\n                                            ),\n                                            annotated_type: None,\n                                            watch: None,\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                start: 703,\n                                                end: 725,\n                                            },\n                                        },\n                                    ),\n                                },\n                                AnnotatedStatement {\n                                    headers: [\n                                        \"Result\",\n                                    ],\n                                    statement: None,\n                                },\n                            ],\n                            trailing_expr: Some(\n                                Identifier(\n                                    \"result\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                        start: 755,\n                                        end: 761,\n                                    },\n                                ),\n                            ),\n                        },\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                            start: 164,\n                            end: 767,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Final Processing\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"final_result\",\n                        value: NumericValue(\n                            \"213\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 817,\n                                end: 820,\n                            },\n                        ),\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                            start: 798,\n                            end: 822,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Return Result\",\n                ],\n                statement: None,\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"final_result\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 849,\n                    end: 861,\n                },\n            ),\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Initialization\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 61,\n                        end: 79,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"items\",\n                value: Array(\n                    [\n                        StringValue(\n                            \"a\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 97,\n                                end: 100,\n                            },\n                        ),\n                        StringValue(\n                            \"b\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 102,\n                                end: 105,\n                            },\n                        ),\n                        StringValue(\n                            \"c\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 107,\n                                end: 110,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 96,\n                        end: 111,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 84,\n                    end: 113,\n                },\n            },\n            DeclareAndAssign {\n                name: \"result\",\n                value: StringValue(\n                    \"\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 130,\n                        end: 132,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 117,\n                    end: 134,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Processing Loop\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 139,\n                        end: 159,\n                    },\n                },\n            ),\n            ForLoop {\n                identifier: \"item\",\n                iterator: Identifier(\n                    \"items\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 181,\n                        end: 186,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextStart(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Markdown Header tester\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 199,\n                                    end: 225,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"hello\",\n                            value: StringValue(\n                                \"Hello\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 246,\n                                    end: 253,\n                                },\n                            ),\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 234,\n                                end: 255,\n                            },\n                        },\n                        HeaderContextStart(\n                            HeaderContext {\n                                level: 3,\n                                title: \"Item Analysis\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 264,\n                                    end: 283,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"processed\",\n                            value: NumericValue(\n                                \"2\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 308,\n                                    end: 309,\n                                },\n                            ),\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 292,\n                                end: 311,\n                            },\n                        },\n                        HeaderContextStart(\n                            HeaderContext {\n                                level: 3,\n                                title: \"Validation\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 320,\n                                    end: 336,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"z\",\n                            value: If {\n                                condition: BoolValue(\n                                    true,\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                        start: 357,\n                                        end: 361,\n                                    },\n                                ),\n                                if_branch: Block(\n                                    Block {\n                                        statements: [\n                                            HeaderContextStart(\n                                                HeaderContext {\n                                                    level: 1,\n                                                    title: \"Markdown Header tester in statement\",\n                                                    span: Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 378,\n                                                        end: 417,\n                                                    },\n                                                },\n                                            ),\n                                            DeclareAndAssign {\n                                                name: \"hello\",\n                                                value: StringValue(\n                                                    \"Hello\",\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 442,\n                                                        end: 449,\n                                                    },\n                                                ),\n                                                annotated_type: None,\n                                                watch: None,\n                                                span: Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 430,\n                                                    end: 451,\n                                                },\n                                            },\n                                            HeaderContextStart(\n                                                HeaderContext {\n                                                    level: 3,\n                                                    title: \"another header in the statement\",\n                                                    span: Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 464,\n                                                        end: 501,\n                                                    },\n                                                },\n                                            ),\n                                            DeclareAndAssign {\n                                                name: \"hello\",\n                                                value: StringValue(\n                                                    \"Hello\",\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 526,\n                                                        end: 533,\n                                                    },\n                                                ),\n                                                annotated_type: None,\n                                                watch: None,\n                                                span: Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 514,\n                                                    end: 535,\n                                                },\n                                            },\n                                            HeaderContextStart(\n                                                HeaderContext {\n                                                    level: 3,\n                                                    title: \"True totally\",\n                                                    span: Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 548,\n                                                        end: 566,\n                                                    },\n                                                },\n                                            ),\n                                        ],\n                                        trailing_expr: Some(\n                                            NumericValue(\n                                                \"12\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                    start: 579,\n                                                    end: 581,\n                                                },\n                                            ),\n                                        ),\n                                    },\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                        start: 363,\n                                        end: 591,\n                                    },\n                                ),\n                                else_branch: Some(\n                                    Block(\n                                        Block {\n                                            statements: [\n                                                HeaderContextStart(\n                                                    HeaderContext {\n                                                        level: 1,\n                                                        title: \"False other branch\",\n                                                        span: Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                            start: 611,\n                                                            end: 635,\n                                                        },\n                                                    },\n                                                ),\n                                            ],\n                                            trailing_expr: Some(\n                                                NumericValue(\n                                                    \"13\",\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                                        start: 648,\n                                                        end: 650,\n                                                    },\n                                                ),\n                                            ),\n                                        },\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                            start: 597,\n                                            end: 660,\n                                        },\n                                    ),\n                                ),\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 353,\n                                    end: 660,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 345,\n                                end: 662,\n                            },\n                        },\n                        HeaderContextStart(\n                            HeaderContext {\n                                level: 2,\n                                title: \"very useful header\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 671,\n                                    end: 694,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"hello2\",\n                            value: StringValue(\n                                \"Hello\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 716,\n                                    end: 723,\n                                },\n                            ),\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 703,\n                                end: 725,\n                            },\n                        },\n                        HeaderContextStart(\n                            HeaderContext {\n                                level: 3,\n                                title: \"Result\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                    start: 734,\n                                    end: 746,\n                                },\n                            },\n                        ),\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"result\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                                start: 755,\n                                end: 761,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 164,\n                    end: 767,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Final Processing\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 773,\n                        end: 793,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"final_result\",\n                value: NumericValue(\n                    \"213\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 817,\n                        end: 820,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 798,\n                    end: 822,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Return Result\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                        start: 827,\n                        end: 844,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"final_result\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ComplexHeaderTest.baml\", contents: ... },\n                    start: 849,\n                    end: 861,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
     "ComplexHeaderTest|c:func:0":
@@ -14,227 +14,227 @@ expr:
         file: src/control_flow/testdata/ComplexHeaderTest.baml
         start: 19
         end: 863
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 234
-        end: 255
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:item-analysis:0":
-      label: Item Analysis
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:markdown-header-tester:0":
-      label: Markdown Header tester
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:result:0":
-      label: Result
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:validation:0":
-      label: Validation
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:very-useful-header:0":
-      label: very useful header
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 234
-        end: 255
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 292
-        end: 311
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:2":
-      label: stmt
-      node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 345
-        end: 662
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:3":
-      label: stmt
-      node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 703
-        end: 725
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:5":
-      label: expr
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 755
-        end: 761
-    "ComplexHeaderTest|c:func:0|h:final-processing:0":
-      label: Final Processing
-      node_type: expr
-      parent: "ComplexHeaderTest|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
     "ComplexHeaderTest|c:func:0|h:initialization:0":
       label: Initialization
       node_type: expr
       parent: "ComplexHeaderTest|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|h:processing-loop:0":
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 61
+        end: 79
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0":
       label: Processing Loop
       node_type: expr
-      parent: "ComplexHeaderTest|c:func:0"
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|h:return-result:0":
-      label: Return Result
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 139
+        end: 159
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|c:loop:0|c:block:0":
+      label: scope
+      node_type: scope
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|c:loop:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 199
+        end: 225
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0":
+      label: Final Processing
       node_type: expr
-      parent: "ComplexHeaderTest|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ComplexHeaderTest|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0"
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0"
       span:
         file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 84
-        end: 113
-    "ComplexHeaderTest|c:func:0|s:1":
+        start: 773
+        end: 793
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0|s:6":
       label: stmt
       node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 117
-        end: 134
-    "ComplexHeaderTest|c:func:0|s:2":
-      label: for
-      node_type: loop
-      parent: "ComplexHeaderTest|c:func:0"
-      span:
-        file: src/control_flow/testdata/ComplexHeaderTest.baml
-        start: 164
-        end: 767
-    "ComplexHeaderTest|c:func:0|s:3":
-      label: stmt
-      node_type: stmt
-      parent: "ComplexHeaderTest|c:func:0"
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0"
       span:
         file: src/control_flow/testdata/ComplexHeaderTest.baml
         start: 798
         end: 822
-    "ComplexHeaderTest|c:func:0|s:5":
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0":
+      label: Markdown Header tester
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 199
+        end: 225
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0":
+      label: Item Analysis
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 264
+        end: 283
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0":
+      label: Validation
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 320
+        end: 336
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0|s:5":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 345
+        end: 662
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|s:3":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 292
+        end: 311
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0":
+      label: very useful header
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 671
+        end: 694
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0":
+      label: Result
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 734
+        end: 746
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0|s:9":
       label: expr
       node_type: expr
-      parent: "ComplexHeaderTest|c:func:0"
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 755
+        end: 761
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|s:7":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 703
+        end: 725
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 234
+        end: 255
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:return-result:0":
+      label: Return Result
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 827
+        end: 844
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:return-result:0|s:8":
+      label: expr
+      node_type: expr
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:return-result:0"
       span:
         file: src/control_flow/testdata/ComplexHeaderTest.baml
         start: 849
         end: 861
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|s:4":
+      label: for
+      node_type: loop
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 164
+        end: 767
+    "ComplexHeaderTest|c:func:0|h:initialization:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 84
+        end: 113
+    "ComplexHeaderTest|c:func:0|h:initialization:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "ComplexHeaderTest|c:func:0|h:initialization:0"
+      span:
+        file: src/control_flow/testdata/ComplexHeaderTest.baml
+        start: 117
+        end: 134
   edges:
     "ComplexHeaderTest|c:func:0":
       - dst: "ComplexHeaderTest|c:func:0|h:initialization:0"
         label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:markdown-header-tester:0"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:item-analysis:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:1"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:markdown-header-tester:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:0"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:result:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:5"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:validation:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:2"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:very-useful-header:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:3"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:0":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:item-analysis:0"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:1":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:validation:0"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:2":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:very-useful-header:0"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:3":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|h:result:0"
-        label: ""
-    "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0|s:5":
-      - dst: "ComplexHeaderTest|c:func:0|s:2"
-        label: repeat
-    "ComplexHeaderTest|c:func:0|h:final-processing:0":
-      - dst: "ComplexHeaderTest|c:func:0|s:3"
-        label: ""
     "ComplexHeaderTest|c:func:0|h:initialization:0":
-      - dst: "ComplexHeaderTest|c:func:0|s:0"
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|s:1"
         label: ""
-    "ComplexHeaderTest|c:func:0|h:processing-loop:0":
-      - dst: "ComplexHeaderTest|c:func:0|s:2"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|s:4"
         label: ""
-    "ComplexHeaderTest|c:func:0|h:return-result:0":
-      - dst: "ComplexHeaderTest|c:func:0|s:5"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|c:loop:0|c:block:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0"
         label: ""
-    "ComplexHeaderTest|c:func:0|s:0":
-      - dst: "ComplexHeaderTest|c:func:0|s:1"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0|s:6"
         label: ""
-    "ComplexHeaderTest|c:func:0|s:1":
-      - dst: "ComplexHeaderTest|c:func:0|h:processing-loop:0"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0|s:6":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:return-result:0"
         label: ""
-    "ComplexHeaderTest|c:func:0|s:2":
-      - dst: "ComplexHeaderTest|c:func:0|c:loop:0|c:block:0"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|s:1"
         label: ""
-      - dst: "ComplexHeaderTest|c:func:0|h:final-processing:0"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|s:3"
         label: ""
-    "ComplexHeaderTest|c:func:0|s:3":
-      - dst: "ComplexHeaderTest|c:func:0|h:return-result:0"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0|s:5"
         label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NComplexHeaderTest_c_func_0_94f9[ComplexHeaderTest]\n        NComplexHeaderTest_c_func_0_94f9((ComplexHeaderTest))\n        NComplexHeaderTest_c_func_0_h_final_processing_0_c812[Final Processing]\n        NComplexHeaderTest_c_func_0_h_initialization_0_0b8c[Initialization]\n        NComplexHeaderTest_c_func_0_h_processing_loop_0_b125[Processing Loop]\n        NComplexHeaderTest_c_func_0_h_return_result_0_d65a[Return Result]\n        NComplexHeaderTest_c_func_0_s_0_01ad[stmt]\n        NComplexHeaderTest_c_func_0_s_1_c506[stmt]\n        NComplexHeaderTest_c_func_0_s_2_13a0([for])\n        NComplexHeaderTest_c_func_0_s_3_b4bf[stmt]\n        NComplexHeaderTest_c_func_0_s_5_b284[expr]\n    end\n    NComplexHeaderTest_c_func_0_94f9 --> NComplexHeaderTest_c_func_0_h_initialization_0_0b8c\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_4907 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_markdown_header_tester_0_55d5\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_item_analysis_0_f581 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_1_3616\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_markdown_header_tester_0_55d5 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_0_5f90\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_result_0_d996 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_5_f7d9\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_validation_0_e919 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_2_6f29\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_very_useful_header_0_e59b --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_3_d0e6\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_0_5f90 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_item_analysis_0_f581\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_1_3616 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_validation_0_e919\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_2_6f29 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_very_useful_header_0_e59b\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_3_d0e6 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_h_result_0_d996\n    NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_s_5_f7d9 -->|repeat| NComplexHeaderTest_c_func_0_s_2_13a0\n    NComplexHeaderTest_c_func_0_h_final_processing_0_c812 --> NComplexHeaderTest_c_func_0_s_3_b4bf\n    NComplexHeaderTest_c_func_0_h_initialization_0_0b8c --> NComplexHeaderTest_c_func_0_s_0_01ad\n    NComplexHeaderTest_c_func_0_h_processing_loop_0_b125 --> NComplexHeaderTest_c_func_0_s_2_13a0\n    NComplexHeaderTest_c_func_0_h_return_result_0_d65a --> NComplexHeaderTest_c_func_0_s_5_b284\n    NComplexHeaderTest_c_func_0_s_0_01ad --> NComplexHeaderTest_c_func_0_s_1_c506\n    NComplexHeaderTest_c_func_0_s_1_c506 --> NComplexHeaderTest_c_func_0_h_processing_loop_0_b125\n    NComplexHeaderTest_c_func_0_s_2_13a0 --> NComplexHeaderTest_c_func_0_c_loop_0_c_block_0_4907\n    NComplexHeaderTest_c_func_0_s_2_13a0 --> NComplexHeaderTest_c_func_0_h_final_processing_0_c812\n    NComplexHeaderTest_c_func_0_s_3_b4bf --> NComplexHeaderTest_c_func_0_h_return_result_0_d65a"
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0|s:5":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|s:3":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0|h:validation:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|s:7"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0|s:9"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0|s:9":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|s:4"
+        label: repeat
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|s:7":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:very-useful-header:0|h:result:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|s:1":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:markdown-header-tester:0|h:item-analysis:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:return-result:0":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:return-result:0|s:8"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|s:4":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|c:loop:0|c:block:0"
+        label: ""
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0|h:final-processing:0"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|s:1":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|s:2"
+        label: ""
+    "ComplexHeaderTest|c:func:0|h:initialization:0|s:2":
+      - dst: "ComplexHeaderTest|c:func:0|h:initialization:0|h:processing-loop:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NComplexHeaderTest_c_func_0_94f9[ComplexHeaderTest]\n        NComplexHeaderTest_c_func_0_94f9((ComplexHeaderTest))\n        subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_0b8c[Initialization]\n            NComplexHeaderTest_c_func_0_h_initialization_0_0b8c[Initialization]\n            subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_e288[Processing Loop]\n                NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_e288[Processing Loop]\n                subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_462a[Final Processing]\n                    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_462a[Final Processing]\n                    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_s_6_2d98[stmt]\n                end\n                subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_e1d9[Markdown Header tester]\n                    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_e1d9[Markdown Header tester]\n                    subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_a2ad[Item Analysis]\n                        NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_a2ad[Item Analysis]\n                        subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_3dd0[Validation]\n                            NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_3dd0[Validation]\n                            NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_s_5_d32e[stmt]\n                        end\n                        NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_s_3_b5aa[stmt]\n                    end\n                    subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_7075[very useful header]\n                        NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_7075[very useful header]\n                        subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_8863[Result]\n                            NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_8863[Result]\n                            NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_s_9_5649[expr]\n                        end\n                        NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_s_7_f07a[stmt]\n                    end\n                    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_s_1_bfd2[stmt]\n                end\n                subgraph cluster_NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_return_result_0_28e9[Return Result]\n                    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_return_result_0_28e9[Return Result]\n                    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_return_result_0_s_8_0710[expr]\n                end\n                NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_s_4_68f5([for])\n            end\n            NComplexHeaderTest_c_func_0_h_initialization_0_s_1_be6f[stmt]\n            NComplexHeaderTest_c_func_0_h_initialization_0_s_2_9c5c[stmt]\n        end\n    end\n    NComplexHeaderTest_c_func_0_94f9 --> NComplexHeaderTest_c_func_0_h_initialization_0_0b8c\n    NComplexHeaderTest_c_func_0_h_initialization_0_0b8c --> NComplexHeaderTest_c_func_0_h_initialization_0_s_1_be6f\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_e288 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_s_4_68f5\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_c_loop_0_c_block_0_63fc --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_e1d9\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_462a --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_s_6_2d98\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_s_6_2d98 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_return_result_0_28e9\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_e1d9 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_s_1_bfd2\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_a2ad --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_s_3_b5aa\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_3dd0 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_s_5_d32e\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_s_5_d32e --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_7075\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_s_3_b5aa --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_h_validation_0_3dd0\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_7075 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_s_7_f07a\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_8863 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_s_9_5649\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_s_9_5649 -->|repeat| NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_s_4_68f5\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_s_7_f07a --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_very_useful_header_0_h_result_0_8863\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_s_1_bfd2 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_markdown_header_tester_0_h_item_analysis_0_a2ad\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_return_result_0_28e9 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_return_result_0_s_8_0710\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_s_4_68f5 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_c_loop_0_c_block_0_63fc\n    NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_s_4_68f5 --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_h_final_processing_0_462a\n    NComplexHeaderTest_c_func_0_h_initialization_0_s_1_be6f --> NComplexHeaderTest_c_func_0_h_initialization_0_s_2_9c5c\n    NComplexHeaderTest_c_func_0_h_initialization_0_s_2_9c5c --> NComplexHeaderTest_c_func_0_h_initialization_0_h_processing_loop_0_e288"

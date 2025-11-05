@@ -42,13 +42,7 @@ pub fn to_mermaid(viz: &ControlFlowVisualization) -> String {
         list.sort_by(|a, b| a.0.cmp(&b.0));
     }
 
-    render_subgraphs(
-        ROOT_PARENT_KEY,
-        4,
-        &children_map,
-        &id_lookup,
-        &mut lines,
-    );
+    render_subgraphs(ROOT_PARENT_KEY, 4, &children_map, &id_lookup, &mut lines);
 
     let mut edges: Vec<(String, String, String)> = viz
         .edges_by_src
@@ -94,14 +88,7 @@ fn render_subgraphs(
     };
 
     for (encoded_id, node) in children {
-        render_node_with_children(
-            encoded_id,
-            node,
-            indent,
-            children_map,
-            id_lookup,
-            lines,
-        );
+        render_node_with_children(encoded_id, node, indent, children_map, id_lookup, lines);
     }
 }
 
@@ -125,7 +112,10 @@ fn render_node_with_children(
 
     if let Some(children) = children_map.get(encoded_id) {
         let subgraph_id = format!("cluster_{}", mermaid_id);
-        lines.push(format!("{}subgraph {}[{}]", indent_str, subgraph_id, escaped_label));
+        lines.push(format!(
+            "{}subgraph {}[{}]",
+            indent_str, subgraph_id, escaped_label
+        ));
         lines.push(format!("{}    {}", indent_str, definition));
         render_subgraphs(encoded_id, indent + 4, children_map, id_lookup, lines);
         lines.push(format!("{}end", indent_str));

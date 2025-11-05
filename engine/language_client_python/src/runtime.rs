@@ -364,12 +364,13 @@ impl BamlRuntime {
                 if let Some(ref callbacks) = notification_callbacks {
                     Python::with_gil(|py| {
                         match notification.value {
-                            baml_compiler::watch::WatchBamlValue::Block(block_label) => {
-                                // Fire block events to all registered block handlers
+                            baml_compiler::watch::WatchBamlValue::Header(header) => {
+                                // Fire header events to all registered block handlers
                                 for handler in &callbacks.block_handlers {
                                     let block_event_dict = PyDict::new(py);
                                     let _ = block_event_dict
-                                        .set_item("block_label", block_label.clone());
+                                        .set_item("block_label", header.title.clone());
+                                    let _ = block_event_dict.set_item("header_level", header.level);
                                     let _ = block_event_dict.set_item("event_type", "enter");
                                     let _ = handler.call1(py, (block_event_dict,));
                                 }
@@ -574,12 +575,13 @@ impl BamlRuntime {
                 if let Some(ref callbacks) = notification_callbacks {
                     Python::with_gil(|py| {
                         match event.value {
-                            baml_compiler::watch::WatchBamlValue::Block(block_label) => {
-                                // Fire block events to all registered block handlers
+                            baml_compiler::watch::WatchBamlValue::Header(header) => {
+                                // Fire header events to all registered block handlers
                                 for handler in &callbacks.block_handlers {
                                     let block_event_dict = PyDict::new(py);
                                     let _ = block_event_dict
-                                        .set_item("block_label", block_label.clone());
+                                        .set_item("block_label", header.title.clone());
+                                    let _ = block_event_dict.set_item("header_level", header.level);
                                     let _ = block_event_dict.set_item("event_type", "enter");
                                     let _ = handler.call1(py, (block_event_dict,));
                                 }

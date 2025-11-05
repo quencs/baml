@@ -293,6 +293,8 @@ struct HirTraversalContext {
     cursor: NodePathCursor,
     scope_stack: Vec<ScopeFrame>,
     flow_frontier: Vec<NodeId>,
+    header_stack: Vec<u8>,
+    header_ordinals: Vec<u16>,
 }
 
 impl HirTraversalContext {
@@ -308,6 +310,8 @@ impl HirTraversalContext {
             cursor,
             scope_stack: vec![ScopeFrame::new(ScopeKind::FunctionRoot)],
             flow_frontier: vec![root_id],
+            header_stack: Vec::new(),
+            header_ordinals: Vec::new(),
         }
     }
 
@@ -320,6 +324,7 @@ impl HirTraversalContext {
             self.scope_stack.last().map(|f| f.kind),
             Some(ScopeKind::FunctionRoot)
         );
+        let header_depth = self.header_stack.len();
         if !is_root {
             let ordinal = self
                 .scope_stack
@@ -356,6 +361,7 @@ impl HirTraversalContext {
         }
 
         self.scope_stack.pop();
+        self.pop_headers_to_depth(header_depth);
 
         if !is_root {
             self.cursor.pop_scope(ScopeKind::Block);
@@ -364,13 +370,8 @@ impl HirTraversalContext {
 
     fn visit_statement(&mut self, stmt: &hir::Statement) {
         match stmt {
-            hir::Statement::AnnotatedStatement { headers, statement } => {
-                if !headers.is_empty() {
-                    self.emit_header_nodes(headers);
-                }
-                if let Some(inner) = statement.as_deref() {
-                    self.visit_statement(inner);
-                }
+            hir::Statement::HeaderContextStart(header) => {
+                self.enter_header(header);
             }
             hir::Statement::Let { span, .. }
             | hir::Statement::Assign { span, .. }
@@ -422,18 +423,37 @@ impl HirTraversalContext {
         }
     }
 
-    fn emit_header_nodes(&mut self, headers: &[String]) {
-        for (idx, header) in headers.iter().enumerate() {
-            let slug = slugify(header);
-            let node_id = self.cursor.push_header(&slug, idx as u16);
-            let node = Node::new(
-                node_id.clone(),
-                header.clone(),
-                Span::fake(),
-                NodeType::ExprBlock,
-            );
-            self.emit_node(node, None);
+    fn enter_header(&mut self, header: &hir::HeaderContext) {
+        let level = usize::from(header.level.max(1));
+        self.pop_headers_to_depth(level.saturating_sub(1));
+
+        if self.header_ordinals.len() < level {
+            self.header_ordinals.resize(level, 0);
+        }
+
+        self.header_ordinals[level - 1] += 1;
+        let ordinal = (self.header_ordinals[level - 1] - 1) as u16;
+
+        let slug = slugify(&header.title);
+        self.cursor.push_header(&slug, ordinal);
+        let node_id = self.cursor.current_id();
+        let node = Node::new(
+            node_id.clone(),
+            header.title.clone(),
+            header.span.clone(),
+            NodeType::ExprBlock,
+        );
+        self.emit_node(node, None);
+        self.header_stack.push(header.level.max(1));
+    }
+
+    fn pop_headers_to_depth(&mut self, depth: usize) {
+        while self.header_stack.len() > depth {
+            self.header_stack.pop();
             self.cursor.pop();
+        }
+        if self.header_ordinals.len() > depth {
+            self.header_ordinals.truncate(depth);
         }
     }
 
@@ -629,9 +649,7 @@ fn statement_primary_span(stmt: &hir::Statement) -> Option<Span> {
         | hir::Statement::While { span, .. }
         | hir::Statement::ForLoop { span, .. } => Some(span.clone()),
         hir::Statement::Expression { span, .. } => Some(span.clone()),
-        hir::Statement::AnnotatedStatement { statement, .. } => {
-            statement.as_deref().and_then(statement_primary_span)
-        }
+        hir::Statement::HeaderContextStart(header) => Some(header.span.clone()),
         hir::Statement::CForLoop { .. } => None,
     }
 }

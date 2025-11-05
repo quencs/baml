@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/BasicSections.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            AnnotatedStatement {\n                headers: [\n                    \"Main Processing\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"title\",\n                        value: StringValue(\n                            \"hello\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                                start: 77,\n                                end: 84,\n                            },\n                        ),\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 65,\n                            end: 86,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Generate Summary\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"summary\",\n                        value: StringValue(\n                            \"world\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                                start: 131,\n                                end: 138,\n                            },\n                        ),\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 117,\n                            end: 140,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Make Space\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"space\",\n                        value: StringValue(\n                            \" \",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                                start: 177,\n                                end: 180,\n                            },\n                        ),\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 165,\n                            end: 182,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Prepare Final Output\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"something\",\n                        value: StringValue(\n                            \"something\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                                start: 234,\n                                end: 245,\n                            },\n                        ),\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 218,\n                            end: 247,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Final Output\",\n                ],\n                statement: None,\n            },\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: BinaryOperation {\n                    left: Identifier(\n                        \"title\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 275,\n                            end: 280,\n                        },\n                    ),\n                    operator: Add,\n                    right: Identifier(\n                        \"space\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 283,\n                            end: 288,\n                        },\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 275,\n                        end: 298,\n                    },\n                },\n                operator: Add,\n                right: Identifier(\n                    \"summary\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 291,\n                        end: 298,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                    start: 275,\n                    end: 298,\n                },\n            },\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Main Processing\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 41,\n                        end: 60,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"title\",\n                value: StringValue(\n                    \"hello\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 77,\n                        end: 84,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                    start: 65,\n                    end: 86,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Generate Summary\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 91,\n                        end: 112,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"summary\",\n                value: StringValue(\n                    \"world\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 131,\n                        end: 138,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                    start: 117,\n                    end: 140,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Make Space\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 145,\n                        end: 160,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"space\",\n                value: StringValue(\n                    \" \",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 177,\n                        end: 180,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                    start: 165,\n                    end: 182,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 3,\n                    title: \"Prepare Final Output\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 187,\n                        end: 213,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"something\",\n                value: StringValue(\n                    \"something\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 234,\n                        end: 245,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                    start: 218,\n                    end: 247,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 3,\n                    title: \"Final Output\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 252,\n                        end: 270,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: BinaryOperation {\n                    left: Identifier(\n                        \"title\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 275,\n                            end: 280,\n                        },\n                    ),\n                    operator: Add,\n                    right: Identifier(\n                        \"space\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                            start: 283,\n                            end: 288,\n                        },\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 275,\n                        end: 298,\n                    },\n                },\n                operator: Add,\n                right: Identifier(\n                    \"summary\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                        start: 291,\n                        end: 298,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/BasicSections.baml\", contents: ... },\n                    start: 275,\n                    end: 298,\n                },\n            },\n        ),\n    },\n)"
 expr:
   nodes:
     "BasicSections|c:func:0":
@@ -14,115 +14,115 @@ expr:
         file: src/control_flow/testdata/BasicSections.baml
         start: 0
         end: 300
-    "BasicSections|c:func:0|h:final-output:0":
-      label: Final Output
-      node_type: expr
-      parent: "BasicSections|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "BasicSections|c:func:0|h:generate-summary:0":
-      label: Generate Summary
-      node_type: expr
-      parent: "BasicSections|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
     "BasicSections|c:func:0|h:main-processing:0":
       label: Main Processing
       node_type: expr
       parent: "BasicSections|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "BasicSections|c:func:0|h:make-space:0":
-      label: Make Space
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 41
+        end: 60
+    "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0":
+      label: Generate Summary
       node_type: expr
-      parent: "BasicSections|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "BasicSections|c:func:0|h:prepare-final-output:0":
-      label: Prepare Final Output
-      node_type: expr
-      parent: "BasicSections|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "BasicSections|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "BasicSections|c:func:0"
+      parent: "BasicSections|c:func:0|h:main-processing:0"
       span:
         file: src/control_flow/testdata/BasicSections.baml
-        start: 65
-        end: 86
-    "BasicSections|c:func:0|s:1":
+        start: 91
+        end: 112
+    "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0|s:3":
       label: stmt
       node_type: stmt
-      parent: "BasicSections|c:func:0"
+      parent: "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0"
       span:
         file: src/control_flow/testdata/BasicSections.baml
         start: 117
         end: 140
-    "BasicSections|c:func:0|s:2":
-      label: stmt
-      node_type: stmt
-      parent: "BasicSections|c:func:0"
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0":
+      label: Make Space
+      node_type: expr
+      parent: "BasicSections|c:func:0|h:main-processing:0"
       span:
         file: src/control_flow/testdata/BasicSections.baml
-        start: 165
-        end: 182
-    "BasicSections|c:func:0|s:3":
-      label: stmt
-      node_type: stmt
-      parent: "BasicSections|c:func:0"
+        start: 145
+        end: 160
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:final-output:0":
+      label: Final Output
+      node_type: expr
+      parent: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0"
       span:
         file: src/control_flow/testdata/BasicSections.baml
-        start: 218
-        end: 247
-    "BasicSections|c:func:0|s:5":
+        start: 252
+        end: 270
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:final-output:0|s:9":
       label: expr
       node_type: expr
-      parent: "BasicSections|c:func:0"
+      parent: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:final-output:0"
       span:
         file: src/control_flow/testdata/BasicSections.baml
         start: 275
         end: 298
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0":
+      label: Prepare Final Output
+      node_type: expr
+      parent: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 187
+        end: 213
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0|s:7":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 218
+        end: 247
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|s:5":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 165
+        end: 182
+    "BasicSections|c:func:0|h:main-processing:0|s:1":
+      label: stmt
+      node_type: stmt
+      parent: "BasicSections|c:func:0|h:main-processing:0"
+      span:
+        file: src/control_flow/testdata/BasicSections.baml
+        start: 65
+        end: 86
   edges:
     "BasicSections|c:func:0":
       - dst: "BasicSections|c:func:0|h:main-processing:0"
         label: ""
-    "BasicSections|c:func:0|h:final-output:0":
-      - dst: "BasicSections|c:func:0|s:5"
-        label: ""
-    "BasicSections|c:func:0|h:generate-summary:0":
-      - dst: "BasicSections|c:func:0|s:1"
-        label: ""
     "BasicSections|c:func:0|h:main-processing:0":
-      - dst: "BasicSections|c:func:0|s:0"
+      - dst: "BasicSections|c:func:0|h:main-processing:0|s:1"
         label: ""
-    "BasicSections|c:func:0|h:make-space:0":
-      - dst: "BasicSections|c:func:0|s:2"
+    "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0|s:3"
         label: ""
-    "BasicSections|c:func:0|h:prepare-final-output:0":
-      - dst: "BasicSections|c:func:0|s:3"
+    "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0|s:3":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0"
         label: ""
-    "BasicSections|c:func:0|s:0":
-      - dst: "BasicSections|c:func:0|h:generate-summary:0"
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|s:5"
         label: ""
-    "BasicSections|c:func:0|s:1":
-      - dst: "BasicSections|c:func:0|h:make-space:0"
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:final-output:0":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:final-output:0|s:9"
         label: ""
-    "BasicSections|c:func:0|s:2":
-      - dst: "BasicSections|c:func:0|h:prepare-final-output:0"
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0|s:7"
         label: ""
-    "BasicSections|c:func:0|s:3":
-      - dst: "BasicSections|c:func:0|h:final-output:0"
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0|s:7":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:final-output:0"
         label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NBasicSections_c_func_0_4128[BasicSections]\n        NBasicSections_c_func_0_4128((BasicSections))\n        NBasicSections_c_func_0_h_final_output_0_a372[Final Output]\n        NBasicSections_c_func_0_h_generate_summary_0_d762[Generate Summary]\n        NBasicSections_c_func_0_h_main_processing_0_3b16[Main Processing]\n        NBasicSections_c_func_0_h_make_space_0_9d1a[Make Space]\n        NBasicSections_c_func_0_h_prepare_final_output_0_3808[Prepare Final Output]\n        NBasicSections_c_func_0_s_0_bfee[stmt]\n        NBasicSections_c_func_0_s_1_9278[stmt]\n        NBasicSections_c_func_0_s_2_238f[stmt]\n        NBasicSections_c_func_0_s_3_4c77[stmt]\n        NBasicSections_c_func_0_s_5_7cca[expr]\n    end\n    NBasicSections_c_func_0_4128 --> NBasicSections_c_func_0_h_main_processing_0_3b16\n    NBasicSections_c_func_0_h_final_output_0_a372 --> NBasicSections_c_func_0_s_5_7cca\n    NBasicSections_c_func_0_h_generate_summary_0_d762 --> NBasicSections_c_func_0_s_1_9278\n    NBasicSections_c_func_0_h_main_processing_0_3b16 --> NBasicSections_c_func_0_s_0_bfee\n    NBasicSections_c_func_0_h_make_space_0_9d1a --> NBasicSections_c_func_0_s_2_238f\n    NBasicSections_c_func_0_h_prepare_final_output_0_3808 --> NBasicSections_c_func_0_s_3_4c77\n    NBasicSections_c_func_0_s_0_bfee --> NBasicSections_c_func_0_h_generate_summary_0_d762\n    NBasicSections_c_func_0_s_1_9278 --> NBasicSections_c_func_0_h_make_space_0_9d1a\n    NBasicSections_c_func_0_s_2_238f --> NBasicSections_c_func_0_h_prepare_final_output_0_3808\n    NBasicSections_c_func_0_s_3_4c77 --> NBasicSections_c_func_0_h_final_output_0_a372"
+    "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|s:5":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:make-space:0|h:prepare-final-output:0"
+        label: ""
+    "BasicSections|c:func:0|h:main-processing:0|s:1":
+      - dst: "BasicSections|c:func:0|h:main-processing:0|h:generate-summary:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NBasicSections_c_func_0_4128[BasicSections]\n        NBasicSections_c_func_0_4128((BasicSections))\n        subgraph cluster_NBasicSections_c_func_0_h_main_processing_0_3b16[Main Processing]\n            NBasicSections_c_func_0_h_main_processing_0_3b16[Main Processing]\n            subgraph cluster_NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_fae4[Generate Summary]\n                NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_fae4[Generate Summary]\n                NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_s_3_d49a[stmt]\n            end\n            subgraph cluster_NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_6885[Make Space]\n                NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_6885[Make Space]\n                subgraph cluster_NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_final_output_0_cf8b[Final Output]\n                    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_final_output_0_cf8b[Final Output]\n                    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_final_output_0_s_9_a068[expr]\n                end\n                subgraph cluster_NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_ccc7[Prepare Final Output]\n                    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_ccc7[Prepare Final Output]\n                    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_s_7_a7d8[stmt]\n                end\n                NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_s_5_e115[stmt]\n            end\n            NBasicSections_c_func_0_h_main_processing_0_s_1_4e19[stmt]\n        end\n    end\n    NBasicSections_c_func_0_4128 --> NBasicSections_c_func_0_h_main_processing_0_3b16\n    NBasicSections_c_func_0_h_main_processing_0_3b16 --> NBasicSections_c_func_0_h_main_processing_0_s_1_4e19\n    NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_fae4 --> NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_s_3_d49a\n    NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_s_3_d49a --> NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_6885\n    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_6885 --> NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_s_5_e115\n    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_final_output_0_cf8b --> NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_final_output_0_s_9_a068\n    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_ccc7 --> NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_s_7_a7d8\n    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_s_7_a7d8 --> NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_final_output_0_cf8b\n    NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_s_5_e115 --> NBasicSections_c_func_0_h_main_processing_0_h_make_space_0_h_prepare_final_output_0_ccc7\n    NBasicSections_c_func_0_h_main_processing_0_s_1_4e19 --> NBasicSections_c_func_0_h_main_processing_0_h_generate_summary_0_fae4"

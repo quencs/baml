@@ -133,18 +133,10 @@ impl TypeDocumentRender for TypeIR {
 impl Statement {
     pub fn to_doc(&self) -> RcDoc<'static, ()> {
         match self {
-            Statement::AnnotatedStatement { headers, statement } => {
-                let mut doc = RcDoc::text("//#")
-                    .append(RcDoc::intersperse(
-                        headers.iter().map(|h| RcDoc::text(h.clone())),
-                        RcDoc::text(" "),
-                    ))
-                    .append(RcDoc::text("#//"));
-                if let Some(statement) = statement {
-                    doc = doc.append(statement.to_doc().nest(2));
-                }
-                doc
-            }
+            Statement::HeaderContextStart(header) => RcDoc::text("//")
+                .append(RcDoc::text("#".repeat(header.level as usize)))
+                .append(RcDoc::space())
+                .append(RcDoc::text(header.title.clone())),
             Statement::Let {
                 name,
                 value,
@@ -304,7 +296,7 @@ impl Statement {
                     );
                 }
                 if let Some(w) = when {
-                    parts.push(RcDoc::text("when: ").append(RcDoc::text("when")));
+                    parts.push(RcDoc::text("when: ").append(RcDoc::text(format!("{:?}", w))));
                 }
 
                 doc = doc.append(RcDoc::intersperse(parts, RcDoc::text(", ")));

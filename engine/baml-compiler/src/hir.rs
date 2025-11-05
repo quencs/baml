@@ -110,9 +110,17 @@ pub struct Block {
     pub trailing_expr: Option<Box<Expression>>,
 }
 
+#[derive(Clone, Debug)]
+pub struct HeaderContext {
+    pub level: u8,
+    pub title: String,
+    pub span: Span,
+}
+
 /// A single unit of execution within a block.
 #[derive(Clone, Debug)]
 pub enum Statement {
+    HeaderContextStart(HeaderContext),
     /// Assign an immutable variable.
     Let {
         name: String,
@@ -200,12 +208,6 @@ pub enum Statement {
     WatchNotify {
         variable: String,
         span: Span,
-    },
-
-    /// Annotations that apply to the statement.
-    AnnotatedStatement {
-        headers: Vec<String>,
-        statement: Option<Box<Statement>>,
     },
 }
 

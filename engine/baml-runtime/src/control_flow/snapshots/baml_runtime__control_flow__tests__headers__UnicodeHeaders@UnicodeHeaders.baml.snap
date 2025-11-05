@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/UnicodeHeaders.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            AnnotatedStatement {\n                headers: [\n                    \"你好世界\",\n                    \"Émojis 🎉🎊\",\n                    \"Special «Characters» ™\",\n                ],\n                statement: None,\n            },\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"test\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/UnicodeHeaders.baml\", contents: ... },\n                    start: 214,\n                    end: 220,\n                },\n            ),\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"你好世界\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/UnicodeHeaders.baml\", contents: ... },\n                        start: 73,\n                        end: 89,\n                    },\n                },\n            ),\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Émojis 🎉🎊\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/UnicodeHeaders.baml\", contents: ... },\n                        start: 122,\n                        end: 143,\n                    },\n                },\n            ),\n            HeaderContextStart(\n                HeaderContext {\n                    level: 3,\n                    title: \"Special «Characters» ™\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/UnicodeHeaders.baml\", contents: ... },\n                        start: 176,\n                        end: 208,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"test\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/UnicodeHeaders.baml\", contents: ... },\n                    start: 214,\n                    end: 220,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
     "UnicodeHeaders|c:func:0":
@@ -19,29 +19,29 @@ expr:
       node_type: expr
       parent: "UnicodeHeaders|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "UnicodeHeaders|c:func:0|h:mojis:1":
+        file: src/control_flow/testdata/UnicodeHeaders.baml
+        start: 73
+        end: 89
+    "UnicodeHeaders|c:func:0|h::0|h:mojis:0":
       label: Émojis 🎉🎊
       node_type: expr
-      parent: "UnicodeHeaders|c:func:0"
+      parent: "UnicodeHeaders|c:func:0|h::0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "UnicodeHeaders|c:func:0|h:special-characters:2":
+        file: src/control_flow/testdata/UnicodeHeaders.baml
+        start: 122
+        end: 143
+    "UnicodeHeaders|c:func:0|h::0|h:mojis:0|h:special-characters:0":
       label: Special «Characters» ™
       node_type: expr
-      parent: "UnicodeHeaders|c:func:0"
+      parent: "UnicodeHeaders|c:func:0|h::0|h:mojis:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "UnicodeHeaders|c:func:0|s:1":
+        file: src/control_flow/testdata/UnicodeHeaders.baml
+        start: 176
+        end: 208
+    "UnicodeHeaders|c:func:0|h::0|h:mojis:0|h:special-characters:0|s:3":
       label: expr
       node_type: expr
-      parent: "UnicodeHeaders|c:func:0"
+      parent: "UnicodeHeaders|c:func:0|h::0|h:mojis:0|h:special-characters:0"
       span:
         file: src/control_flow/testdata/UnicodeHeaders.baml
         start: 214
@@ -51,12 +51,12 @@ expr:
       - dst: "UnicodeHeaders|c:func:0|h::0"
         label: ""
     "UnicodeHeaders|c:func:0|h::0":
-      - dst: "UnicodeHeaders|c:func:0|h:mojis:1"
+      - dst: "UnicodeHeaders|c:func:0|h::0|h:mojis:0"
         label: ""
-    "UnicodeHeaders|c:func:0|h:mojis:1":
-      - dst: "UnicodeHeaders|c:func:0|h:special-characters:2"
+    "UnicodeHeaders|c:func:0|h::0|h:mojis:0":
+      - dst: "UnicodeHeaders|c:func:0|h::0|h:mojis:0|h:special-characters:0"
         label: ""
-    "UnicodeHeaders|c:func:0|h:special-characters:2":
-      - dst: "UnicodeHeaders|c:func:0|s:1"
+    "UnicodeHeaders|c:func:0|h::0|h:mojis:0|h:special-characters:0":
+      - dst: "UnicodeHeaders|c:func:0|h::0|h:mojis:0|h:special-characters:0|s:3"
         label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NUnicodeHeaders_c_func_0_6977[UnicodeHeaders]\n        NUnicodeHeaders_c_func_0_6977((UnicodeHeaders))\n        NUnicodeHeaders_c_func_0_h__0_a60b[你好世界]\n        NUnicodeHeaders_c_func_0_h_mojis_1_890c[Émojis 🎉🎊]\n        NUnicodeHeaders_c_func_0_h_special_characters_2_6197[Special «Characters» ™]\n        NUnicodeHeaders_c_func_0_s_1_09e1[expr]\n    end\n    NUnicodeHeaders_c_func_0_6977 --> NUnicodeHeaders_c_func_0_h__0_a60b\n    NUnicodeHeaders_c_func_0_h__0_a60b --> NUnicodeHeaders_c_func_0_h_mojis_1_890c\n    NUnicodeHeaders_c_func_0_h_mojis_1_890c --> NUnicodeHeaders_c_func_0_h_special_characters_2_6197\n    NUnicodeHeaders_c_func_0_h_special_characters_2_6197 --> NUnicodeHeaders_c_func_0_s_1_09e1"
+mermaid: "flowchart TD\n    subgraph cluster_NUnicodeHeaders_c_func_0_6977[UnicodeHeaders]\n        NUnicodeHeaders_c_func_0_6977((UnicodeHeaders))\n        subgraph cluster_NUnicodeHeaders_c_func_0_h__0_a60b[你好世界]\n            NUnicodeHeaders_c_func_0_h__0_a60b[你好世界]\n            subgraph cluster_NUnicodeHeaders_c_func_0_h__0_h_mojis_0_7971[Émojis 🎉🎊]\n                NUnicodeHeaders_c_func_0_h__0_h_mojis_0_7971[Émojis 🎉🎊]\n                subgraph cluster_NUnicodeHeaders_c_func_0_h__0_h_mojis_0_h_special_characters_0_d6f7[Special «Characters» ™]\n                    NUnicodeHeaders_c_func_0_h__0_h_mojis_0_h_special_characters_0_d6f7[Special «Characters» ™]\n                    NUnicodeHeaders_c_func_0_h__0_h_mojis_0_h_special_characters_0_s_3_578f[expr]\n                end\n            end\n        end\n    end\n    NUnicodeHeaders_c_func_0_6977 --> NUnicodeHeaders_c_func_0_h__0_a60b\n    NUnicodeHeaders_c_func_0_h__0_a60b --> NUnicodeHeaders_c_func_0_h__0_h_mojis_0_7971\n    NUnicodeHeaders_c_func_0_h__0_h_mojis_0_7971 --> NUnicodeHeaders_c_func_0_h__0_h_mojis_0_h_special_characters_0_d6f7\n    NUnicodeHeaders_c_func_0_h__0_h_mojis_0_h_special_characters_0_d6f7 --> NUnicodeHeaders_c_func_0_h__0_h_mojis_0_h_special_characters_0_s_3_578f"

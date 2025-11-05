@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/ProcessVideo.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            AnnotatedStatement {\n                headers: [\n                    \"Main Processing Pipeline\",\n                    \"Test\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"computed_title\",\n                        value: If {\n                            condition: UnaryOperation {\n                                operator: Not,\n                                expr: Identifier(\n                                    \"title\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                        start: 204,\n                                        end: 209,\n                                    },\n                                ),\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                    start: 203,\n                                    end: 209,\n                                },\n                            },\n                            if_branch: Block(\n                                Block {\n                                    statements: [\n                                        AnnotatedStatement {\n                                            headers: [\n                                                \"Generate Title\",\n                                            ],\n                                            statement: None,\n                                        },\n                                    ],\n                                    trailing_expr: Some(\n                                        Call {\n                                            function: Identifier(\n                                                \"GenerateTitle\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                                    start: 249,\n                                                    end: 262,\n                                                },\n                                            ),\n                                            type_args: [],\n                                            args: [\n                                                Identifier(\n                                                    \"transcript\",\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                                        start: 263,\n                                                        end: 273,\n                                                    },\n                                                ),\n                                            ],\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                                start: 249,\n                                                end: 274,\n                                            },\n                                        },\n                                    ),\n                                },\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                    start: 211,\n                                    end: 280,\n                                },\n                            ),\n                            else_branch: Some(\n                                Block(\n                                    Block {\n                                        statements: [],\n                                        trailing_expr: Some(\n                                            Identifier(\n                                                \"title\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                                    start: 296,\n                                                    end: 301,\n                                                },\n                                            ),\n                                        ),\n                                    },\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                        start: 286,\n                                        end: 307,\n                                    },\n                                ),\n                            ),\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                start: 199,\n                                end: 307,\n                            },\n                        },\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 178,\n                            end: 309,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Generate Summary\",\n                ],\n                statement: Some(\n                    DeclareAndAssign {\n                        name: \"summary\",\n                        value: Call {\n                            function: Identifier(\n                                \"SummarizeVideo\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                    start: 354,\n                                    end: 368,\n                                },\n                            ),\n                            type_args: [],\n                            args: [\n                                Identifier(\n                                    \"transcript\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                        start: 369,\n                                        end: 379,\n                                    },\n                                ),\n                            ],\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                start: 354,\n                                end: 380,\n                            },\n                        },\n                        annotated_type: None,\n                        watch: None,\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 340,\n                            end: 382,\n                        },\n                    },\n                ),\n            },\n            AnnotatedStatement {\n                headers: [\n                    \"Create Final Output\",\n                ],\n                statement: None,\n            },\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: BinaryOperation {\n                    left: Identifier(\n                        \"computed_title\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 416,\n                            end: 430,\n                        },\n                    ),\n                    operator: Add,\n                    right: StringValue(\n                        \": \",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 433,\n                            end: 437,\n                        },\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 416,\n                        end: 447,\n                    },\n                },\n                operator: Add,\n                right: Identifier(\n                    \"summary\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 440,\n                        end: 447,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                    start: 416,\n                    end: 447,\n                },\n            },\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextStart(\n                HeaderContext {\n                    level: 1,\n                    title: \"Main Processing Pipeline\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 130,\n                        end: 158,\n                    },\n                },\n            ),\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Test\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 164,\n                        end: 173,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"computed_title\",\n                value: If {\n                    condition: UnaryOperation {\n                        operator: Not,\n                        expr: Identifier(\n                            \"title\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                start: 204,\n                                end: 209,\n                            },\n                        ),\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 203,\n                            end: 209,\n                        },\n                    },\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextStart(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"Generate Title\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                            start: 221,\n                                            end: 240,\n                                        },\n                                    },\n                                ),\n                            ],\n                            trailing_expr: Some(\n                                Call {\n                                    function: Identifier(\n                                        \"GenerateTitle\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                            start: 249,\n                                            end: 262,\n                                        },\n                                    ),\n                                    type_args: [],\n                                    args: [\n                                        Identifier(\n                                            \"transcript\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                                start: 263,\n                                                end: 273,\n                                            },\n                                        ),\n                                    ],\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                        start: 249,\n                                        end: 274,\n                                    },\n                                },\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 211,\n                            end: 280,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [],\n                                trailing_expr: Some(\n                                    Identifier(\n                                        \"title\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                            start: 296,\n                                            end: 301,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                start: 286,\n                                end: 307,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 199,\n                        end: 307,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                    start: 178,\n                    end: 309,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Generate Summary\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 314,\n                        end: 335,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"summary\",\n                value: Call {\n                    function: Identifier(\n                        \"SummarizeVideo\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 354,\n                            end: 368,\n                        },\n                    ),\n                    type_args: [],\n                    args: [\n                        Identifier(\n                            \"transcript\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                                start: 369,\n                                end: 379,\n                            },\n                        ),\n                    ],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 354,\n                        end: 380,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                    start: 340,\n                    end: 382,\n                },\n            },\n            HeaderContextStart(\n                HeaderContext {\n                    level: 2,\n                    title: \"Create Final Output\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 387,\n                        end: 411,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: BinaryOperation {\n                    left: Identifier(\n                        \"computed_title\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 416,\n                            end: 430,\n                        },\n                    ),\n                    operator: Add,\n                    right: StringValue(\n                        \": \",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                            start: 433,\n                            end: 437,\n                        },\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 416,\n                        end: 447,\n                    },\n                },\n                operator: Add,\n                right: Identifier(\n                    \"summary\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                        start: 440,\n                        end: 447,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ProcessVideo.baml\", contents: ... },\n                    start: 416,\n                    end: 447,\n                },\n            },\n        ),\n    },\n)"
 expr:
   nodes:
     "ProcessVideo|c:func:0":
@@ -14,82 +14,82 @@ expr:
         file: src/control_flow/testdata/ProcessVideo.baml
         start: 56
         end: 449
-    "ProcessVideo|c:func:0|h:create-final-output:0":
-      label: Create Final Output
-      node_type: expr
-      parent: "ProcessVideo|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ProcessVideo|c:func:0|h:generate-summary:0":
-      label: Generate Summary
-      node_type: expr
-      parent: "ProcessVideo|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
     "ProcessVideo|c:func:0|h:main-processing-pipeline:0":
       label: Main Processing Pipeline
       node_type: expr
       parent: "ProcessVideo|c:func:0"
       span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ProcessVideo|c:func:0|h:test:1":
-      label: Test
+        file: src/control_flow/testdata/ProcessVideo.baml
+        start: 130
+        end: 158
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:create-final-output:0":
+      label: Create Final Output
       node_type: expr
-      parent: "ProcessVideo|c:func:0"
-      span:
-        file: fake-file.baml
-        start: 0
-        end: 0
-    "ProcessVideo|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "ProcessVideo|c:func:0"
+      parent: "ProcessVideo|c:func:0|h:main-processing-pipeline:0"
       span:
         file: src/control_flow/testdata/ProcessVideo.baml
-        start: 178
-        end: 309
-    "ProcessVideo|c:func:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "ProcessVideo|c:func:0"
-      span:
-        file: src/control_flow/testdata/ProcessVideo.baml
-        start: 340
-        end: 382
-    "ProcessVideo|c:func:0|s:3":
+        start: 387
+        end: 411
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:create-final-output:0|s:6":
       label: expr
       node_type: expr
-      parent: "ProcessVideo|c:func:0"
+      parent: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:create-final-output:0"
       span:
         file: src/control_flow/testdata/ProcessVideo.baml
         start: 416
         end: 447
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0":
+      label: Generate Summary
+      node_type: expr
+      parent: "ProcessVideo|c:func:0|h:main-processing-pipeline:0"
+      span:
+        file: src/control_flow/testdata/ProcessVideo.baml
+        start: 314
+        end: 335
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0|s:4":
+      label: stmt
+      node_type: stmt
+      parent: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0"
+      span:
+        file: src/control_flow/testdata/ProcessVideo.baml
+        start: 340
+        end: 382
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0":
+      label: Test
+      node_type: expr
+      parent: "ProcessVideo|c:func:0|h:main-processing-pipeline:0"
+      span:
+        file: src/control_flow/testdata/ProcessVideo.baml
+        start: 164
+        end: 173
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0|s:2":
+      label: stmt
+      node_type: stmt
+      parent: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0"
+      span:
+        file: src/control_flow/testdata/ProcessVideo.baml
+        start: 178
+        end: 309
   edges:
     "ProcessVideo|c:func:0":
       - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0"
         label: ""
-    "ProcessVideo|c:func:0|h:create-final-output:0":
-      - dst: "ProcessVideo|c:func:0|s:3"
-        label: ""
-    "ProcessVideo|c:func:0|h:generate-summary:0":
-      - dst: "ProcessVideo|c:func:0|s:1"
-        label: ""
     "ProcessVideo|c:func:0|h:main-processing-pipeline:0":
-      - dst: "ProcessVideo|c:func:0|h:test:1"
+      - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0"
         label: ""
-    "ProcessVideo|c:func:0|h:test:1":
-      - dst: "ProcessVideo|c:func:0|s:0"
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:create-final-output:0":
+      - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:create-final-output:0|s:6"
         label: ""
-    "ProcessVideo|c:func:0|s:0":
-      - dst: "ProcessVideo|c:func:0|h:generate-summary:0"
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0":
+      - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0|s:4"
         label: ""
-    "ProcessVideo|c:func:0|s:1":
-      - dst: "ProcessVideo|c:func:0|h:create-final-output:0"
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0|s:4":
+      - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:create-final-output:0"
         label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NProcessVideo_c_func_0_9fdd[ProcessVideo]\n        NProcessVideo_c_func_0_9fdd((ProcessVideo))\n        NProcessVideo_c_func_0_h_create_final_output_0_4dc2[Create Final Output]\n        NProcessVideo_c_func_0_h_generate_summary_0_f69f[Generate Summary]\n        NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963[Main Processing Pipeline]\n        NProcessVideo_c_func_0_h_test_1_0718[Test]\n        NProcessVideo_c_func_0_s_0_f6d4[stmt]\n        NProcessVideo_c_func_0_s_1_68f4[stmt]\n        NProcessVideo_c_func_0_s_3_a1d5[expr]\n    end\n    NProcessVideo_c_func_0_9fdd --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963\n    NProcessVideo_c_func_0_h_create_final_output_0_4dc2 --> NProcessVideo_c_func_0_s_3_a1d5\n    NProcessVideo_c_func_0_h_generate_summary_0_f69f --> NProcessVideo_c_func_0_s_1_68f4\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963 --> NProcessVideo_c_func_0_h_test_1_0718\n    NProcessVideo_c_func_0_h_test_1_0718 --> NProcessVideo_c_func_0_s_0_f6d4\n    NProcessVideo_c_func_0_s_0_f6d4 --> NProcessVideo_c_func_0_h_generate_summary_0_f69f\n    NProcessVideo_c_func_0_s_1_68f4 --> NProcessVideo_c_func_0_h_create_final_output_0_4dc2"
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0":
+      - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0|s:2"
+        label: ""
+    "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:test:0|s:2":
+      - dst: "ProcessVideo|c:func:0|h:main-processing-pipeline:0|h:generate-summary:0"
+        label: ""
+mermaid: "flowchart TD\n    subgraph cluster_NProcessVideo_c_func_0_9fdd[ProcessVideo]\n        NProcessVideo_c_func_0_9fdd((ProcessVideo))\n        subgraph cluster_NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963[Main Processing Pipeline]\n            NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963[Main Processing Pipeline]\n            subgraph cluster_NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_create_final_output_0_3ce0[Create Final Output]\n                NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_create_final_output_0_3ce0[Create Final Output]\n                NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_create_final_output_0_s_6_679a[expr]\n            end\n            subgraph cluster_NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_24a5[Generate Summary]\n                NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_24a5[Generate Summary]\n                NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_s_4_aac1[stmt]\n            end\n            subgraph cluster_NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_377e[Test]\n                NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_377e[Test]\n                NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_s_2_eafd[stmt]\n            end\n        end\n    end\n    NProcessVideo_c_func_0_9fdd --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_c963 --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_377e\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_create_final_output_0_3ce0 --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_create_final_output_0_s_6_679a\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_24a5 --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_s_4_aac1\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_s_4_aac1 --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_create_final_output_0_3ce0\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_377e --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_s_2_eafd\n    NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_test_0_s_2_eafd --> NProcessVideo_c_func_0_h_main_processing_pipeline_0_h_generate_summary_0_24a5"

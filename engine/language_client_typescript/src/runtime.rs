@@ -394,11 +394,11 @@ impl BamlRuntime {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = emit_callbacks {
                     match notification.value {
-                        baml_compiler::watch::WatchBamlValue::Block(block_label) => {
+                        baml_compiler::watch::WatchBamlValue::Header(header) => {
                             // Fire block events to all registered block handlers
                             for handler in &callbacks.block_handlers {
                                 let block_event = BlockEvent {
-                                    block_label: block_label.clone(),
+                                    block_label: header.title.clone(),
                                     event_type: "enter".to_string(), // TODO: track enter/exit
                                 };
                                 let _ = handler
@@ -584,11 +584,11 @@ impl BamlRuntime {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = emit_callbacks {
                     match notification.value {
-                        baml_compiler::watch::WatchBamlValue::Block(block_label) => {
+                        baml_compiler::watch::WatchBamlValue::Header(header) => {
                             // Fire block events to all registered block handlers
                             for handler in &callbacks.block_handlers {
                                 let block_event = BlockEvent {
-                                    block_label: block_label.clone(),
+                                    block_label: header.title.clone(),
                                     event_type: "enter".to_string(),
                                 };
                                 let _ = handler.call(

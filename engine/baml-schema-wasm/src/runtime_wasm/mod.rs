@@ -1898,8 +1898,13 @@ impl WasmRuntime {
                                 serde_json::to_string(&value)
                                     .unwrap_or_else(|_| format!("{value:?}"))
                             }
-                            baml_compiler::watch::WatchBamlValue::Block(s) => {
-                                serde_json::json!({ "type": "block", "label": s }).to_string()
+                            baml_compiler::watch::WatchBamlValue::Header(header) => {
+                                serde_json::json!({
+                                    "type": "header",
+                                    "label": header.title,
+                                    "level": header.level,
+                                })
+                                .to_string()
                             }
                             baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
                                 serde_json::json!({ "type": "stream_start", "id": id }).to_string()
@@ -2336,9 +2341,12 @@ impl WasmFunction {
                     let value: BamlValue = v.clone().into();
                     serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"))
                 }
-                baml_compiler::watch::WatchBamlValue::Block(s) => {
-                    serde_json::json!({ "type": "block", "label": s }).to_string()
-                }
+                baml_compiler::watch::WatchBamlValue::Header(header) => serde_json::json!({
+                    "type": "header",
+                    "label": header.title,
+                    "level": header.level,
+                })
+                .to_string(),
                 baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
                     serde_json::json!({ "type": "stream_start", "id": id }).to_string()
                 }
@@ -2521,9 +2529,12 @@ impl WasmFunction {
                     let value: BamlValue = v.clone().into();
                     serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"))
                 }
-                baml_compiler::watch::WatchBamlValue::Block(s) => {
-                    serde_json::json!({ "type": "block", "label": s }).to_string()
-                }
+                baml_compiler::watch::WatchBamlValue::Header(header) => serde_json::json!({
+                    "type": "header",
+                    "label": header.title,
+                    "level": header.level,
+                })
+                .to_string(),
                 baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
                     serde_json::json!({ "type": "stream_start", "id": id }).to_string()
                 }
