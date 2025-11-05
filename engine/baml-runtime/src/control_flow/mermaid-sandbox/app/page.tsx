@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { spawnSync } from "node:child_process";
+import { parseAllDocuments } from "yaml";
 
 import HeaderFileWatcher from "./components/HeaderFileWatcher";
 import MermaidDiagram from "./components/MermaidDiagram";
@@ -10,14 +10,13 @@ type ExampleRow = {
   baml?: {
     fileName: string;
     contents: string;
-    isJson: boolean;
   };
   graph?: {
-    fileName: string;
+    source: string;
     json: unknown;
   };
   mermaid?: {
-    fileName: string;
+    source: string;
     contents: string;
   };
   error?: string;
@@ -26,139 +25,98 @@ type ExampleRow = {
 const SANDBOX_ROOT = process.cwd();
 const CONTROL_FLOW_DIR = path.resolve(SANDBOX_ROOT, "..");
 const SNAPSHOT_DIR = path.join(CONTROL_FLOW_DIR, "snapshots");
-const TESTDATA_ROOT = path.join(SANDBOX_ROOT, "app/testdata");
-const BAML_DIR = path.join(TESTDATA_ROOT, "baml");
-const GRAPH_DIR = path.join(TESTDATA_ROOT, "graph");
-const MERMAID_DIR = path.join(TESTDATA_ROOT, "mermaid");
-
-function runDataGenerator() {
-  const generatorPath = path.join(SANDBOX_ROOT, "scripts/generate-data.mjs");
-  try {
-    const result = spawnSync("node", [generatorPath], {
-      stdio: "inherit",
-      cwd: SANDBOX_ROOT,
-    });
-
-    if (result.error) {
-      console.error("Failed to run data generator", result.error);
-    }
-  } catch (error) {
-    console.error("Error spawning data generator", error);
-  }
-}
+const TESTDATA_DIR = path.join(CONTROL_FLOW_DIR, "testdata");
+const SNAPSHOT_PREFIX = "baml_runtime__control_flow__tests__headers__";
 
 async function loadExamples(): Promise<ExampleRow[]> {
-  runDataGenerator();
+  const snapshotFiles = (await fs.readdir(SNAPSHOT_DIR).catch(() => []))
+    .filter((file) => file.startsWith(SNAPSHOT_PREFIX) && file.endsWith(".snap"))
+    .sort();
 
-  await Promise.all([
-    fs.mkdir(BAML_DIR, { recursive: true }),
-    fs.mkdir(GRAPH_DIR, { recursive: true }),
-    fs.mkdir(MERMAID_DIR, { recursive: true }),
-  ]);
+  const cases = new Map<string, ExampleRow>();
 
-  const bamlFiles = new Map<string, { fileName: string; contents: string; isJson: boolean }>();
-  const bamlEntries = await fs.readdir(BAML_DIR).catch(() => []);
-  for (const file of bamlEntries) {
-    if (!file.endsWith(".baml") && !file.endsWith(".json")) {
-      continue;
-    }
-    const base = file.replace(/\.(baml|json)$/, "");
-    const contents = await fs.readFile(path.join(BAML_DIR, file), "utf8");
-    bamlFiles.set(base, {
-      fileName: file,
-      contents,
-      isJson: file.endsWith(".json"),
-    });
-  }
+  for (const snapshotFile of snapshotFiles) {
+    const snapshotPath = path.join(SNAPSHOT_DIR, snapshotFile);
+    const withoutPrefix = snapshotFile.replace(SNAPSHOT_PREFIX, "");
+    const withoutSuffix = withoutPrefix.replace(/\.snap$/, "");
+    const [snapshotId, sourceHint] = withoutSuffix.split("@");
+    const caseName = snapshotId.replace(/^headers__/, "");
 
-  const graphFiles = new Map<string, { fileName: string; json: unknown }>();
-  const graphEntries = await fs.readdir(GRAPH_DIR).catch(() => []);
-  for (const file of graphEntries) {
-    if (!file.endsWith(".json")) {
-      continue;
-    }
-    const base = file.replace(/\.json$/, "");
-    const contents = await fs.readFile(path.join(GRAPH_DIR, file), "utf8");
-    try {
-      graphFiles.set(base, {
-        fileName: file,
-        json: JSON.parse(contents),
-      });
-    } catch (error) {
-      graphFiles.set(base, {
-        fileName: file,
-        json: { __error: `Failed to parse graph JSON: ${error}` },
-      });
-    }
-  }
-
-  const mermaidFiles = new Map<string, { fileName: string; contents: string }>();
-  const mermaidEntries = await fs.readdir(MERMAID_DIR).catch(() => []);
-  for (const file of mermaidEntries) {
-    if (!file.endsWith(".mmd")) {
-      continue;
-    }
-    const base = file.replace(/\.mmd$/, "");
-    const contents = await fs.readFile(path.join(MERMAID_DIR, file), "utf8");
-    mermaidFiles.set(base, {
-      fileName: file,
-      contents,
-    });
-  }
-
-  const allBases = new Set<string>();
-  for (const key of bamlFiles.keys()) {
-    allBases.add(key);
-  }
-  for (const key of graphFiles.keys()) {
-    allBases.add(key);
-  }
-  for (const key of mermaidFiles.keys()) {
-    allBases.add(key);
-  }
-
-  const cases: ExampleRow[] = Array.from(allBases)
-    .sort((a, b) => a.localeCompare(b))
-    .map((baseName) => ({ baseName }));
-
-  for (const testCase of cases) {
-    const baml = bamlFiles.get(testCase.baseName);
-    if (baml) {
-      testCase.baml = baml;
+    let entry = cases.get(caseName);
+    if (!entry) {
+      entry = { baseName: caseName };
+      cases.set(caseName, entry);
     }
 
-    const graph = graphFiles.get(testCase.baseName);
-    if (graph) {
-      testCase.graph = graph;
-      if (
-        graph.json &&
-        typeof graph.json === "object" &&
-        graph.json !== null &&
-        "__error" in graph.json &&
-        typeof (graph.json as { __error?: unknown }).__error === "string"
-      ) {
-        testCase.error = (graph.json as { __error: string }).__error;
+    if (!entry.baml) {
+      const candidates = Array.from(
+        new Set(
+          [sourceHint, `${caseName}.baml`]
+            .filter((candidate): candidate is string => Boolean(candidate && candidate.length > 0)),
+        ),
+      );
+
+      let foundPath: string | null = null;
+      for (const candidate of candidates) {
+        const candidatePath = path.join(TESTDATA_DIR, candidate);
+        try {
+          const stat = await fs.stat(candidatePath);
+          if (stat.isFile()) {
+            foundPath = candidatePath;
+            break;
+          }
+        } catch {
+          // Missing candidate; try the next option.
+        }
+      }
+
+      if (foundPath) {
+        const contents = await fs.readFile(foundPath, "utf8");
+        entry.baml = {
+          fileName: path.relative(CONTROL_FLOW_DIR, foundPath),
+          contents,
+        };
       }
     }
 
-    const mermaid = mermaidFiles.get(testCase.baseName);
-    if (mermaid) {
-      testCase.mermaid = mermaid;
+    const rawSnapshot = await fs.readFile(snapshotPath, "utf8");
+    const yamlDocs = parseAllDocuments(rawSnapshot);
+    const dataDoc = yamlDocs.at(-1)?.toJSON();
+
+    if (!dataDoc || typeof dataDoc !== "object" || dataDoc === null) {
+      entry.error ??= `Snapshot ${snapshotFile} is missing data.`;
+      continue;
+    }
+
+    const errorValue = (dataDoc as { __error?: unknown }).__error;
+    if (typeof errorValue === "string") {
+      entry.error = errorValue;
+      entry.graph = {
+        source: snapshotFile,
+        json: { __error: errorValue },
+      };
+      entry.mermaid = undefined;
+      continue;
+    }
+
+    const mermaidValue = (dataDoc as { mermaid?: unknown }).mermaid;
+    if (typeof mermaidValue === "string") {
+      entry.mermaid = {
+        source: snapshotFile,
+        contents: mermaidValue,
+      };
+    }
+
+    const exprValue = (dataDoc as { expr?: unknown }).expr;
+    if (exprValue && typeof exprValue === "object") {
+      entry.graph = {
+        source: snapshotFile,
+        json: exprValue,
+      };
     }
   }
 
-  return cases;
-}
-
-function formatBaml({ contents, isJson }: { contents: string; isJson: boolean }) {
-  if (!isJson) {
-    return contents;
-  }
-  try {
-    return JSON.stringify(JSON.parse(contents), null, 2);
-  } catch {
-    return contents;
-  }
+  return Array.from(cases.values()).sort((a, b) => a.baseName.localeCompare(b.baseName));
 }
 
 export default async function Home() {
@@ -170,7 +128,7 @@ export default async function Home() {
       <h1 className="text-3xl font-semibold mb-6">Mermaid Headers Playground</h1>
 
       {examples.length === 0 ? (
-        <p className="text-gray-600">No Mermaid files found in the headers directory.</p>
+        <p className="text-gray-600">No control-flow snapshots detected.</p>
       ) : (
         <div className="space-y-10">
           {examples.map((example) => (
@@ -187,7 +145,7 @@ export default async function Home() {
                   <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
                     <code>
                       {example.baml
-                        ? formatBaml(example.baml)
+                        ? example.baml.contents
                         : "// No matching .baml file found for this diagram."}
                     </code>
                   </pre>
@@ -200,7 +158,7 @@ export default async function Home() {
                   ) : example.mermaid ? (
                     <figure className="border border-gray-200 rounded-md overflow-hidden">
                       <figcaption className="px-3 py-2 text-sm font-medium bg-gray-50 border-b border-gray-200">
-                        {example.mermaid.fileName}
+                        {example.mermaid.source}
                       </figcaption>
                       <div className="p-4 bg-white">
                         <MermaidDiagram chart={example.mermaid.contents} className="w-full overflow-auto" />

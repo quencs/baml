@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "generate:data": "node scripts/generate-data.mjs"
+    "start": "next start"
   },
   "dependencies": {
     "mermaid": "^11.4.1",

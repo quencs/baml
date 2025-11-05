@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const headersDir = path.resolve(process.cwd(), "..");
-const watchedExtensions = new Set([".mmd", ".baml", ".json"]);
+const watchedExtensions = new Set([".baml", ".snap"]);
+const watchedSuffixes = [".snap.new"];
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,9 @@ export async function GET() {
         }
 
         const ext = path.extname(filename);
-        if (!watchedExtensions.has(ext)) {
+        const matchesExtension = watchedExtensions.has(ext);
+        const matchesSuffix = watchedSuffixes.some((suffix) => filename.endsWith(suffix));
+        if (!matchesExtension && !matchesSuffix) {
           return;
         }
 
