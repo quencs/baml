@@ -7,6 +7,10 @@ import MermaidDiagram from "./components/MermaidDiagram";
 
 type ExampleRow = {
   baseName: string;
+  hir?: {
+    source: string;
+    contents: string;
+  };
   baml?: {
     fileName: string;
     contents: string;
@@ -107,6 +111,14 @@ async function loadExamples(): Promise<ExampleRow[]> {
       };
     }
 
+    const hirValue = (dataDoc as { hir?: unknown }).hir;
+    if (typeof hirValue === "string") {
+      entry.hir = {
+        source: snapshotFile,
+        contents: hirValue,
+      };
+    }
+
     const exprValue = (dataDoc as { expr?: unknown }).expr;
     if (exprValue && typeof exprValue === "object") {
       entry.graph = {
@@ -139,7 +151,18 @@ export default async function Home() {
                   {example.baml?.fileName ?? "(no source)"}
                 </p>
               </header>
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] p-4">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] p-4">
+                <section className="space-y-2">
+                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">HIR</h3>
+                  <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
+                    <code>
+                      {example.hir
+                        ? example.hir.contents
+                        : "// No HIR snapshot available."}
+                    </code>
+                  </pre>
+                </section>
+
                 <section className="space-y-2">
                   <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">BAML Source</h3>
                   <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
