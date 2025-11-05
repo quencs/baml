@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const headersDir = path.resolve(__dirname, "..");
 
-const watchedExtensions = new Set([".mmd", ".baml"]);
+const watchedExtensions = new Set([".mmd", ".baml", ".snap"]);
 
 const collectWatchedFiles = (dir: string): string[] => {
   const files: string[] = [];
@@ -16,11 +16,17 @@ const collectWatchedFiles = (dir: string): string[] => {
   }
 
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "mermaid-sandbox") {
+    if (entry.name === "mermaid-sandbox" || entry.name === "node_modules") {
       continue;
     }
 
     const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...collectWatchedFiles(fullPath));
+      continue;
+    }
+
     if (entry.isFile() && watchedExtensions.has(path.extname(entry.name))) {
       files.push(fullPath);
     }

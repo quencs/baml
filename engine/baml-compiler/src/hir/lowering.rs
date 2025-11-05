@@ -429,7 +429,7 @@ fn header_context_statements(headers: &[std::sync::Arc<ast::Header>]) -> Vec<Sta
     headers
         .iter()
         .map(|header| {
-            Statement::HeaderContextStart(HeaderContext {
+            Statement::HeaderContextEnter(HeaderContext {
                 level: header.level,
                 title: header.title.clone(),
                 span: header.span.clone(),

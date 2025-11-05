@@ -120,7 +120,7 @@ pub struct HeaderContext {
 /// A single unit of execution within a block.
 #[derive(Clone, Debug)]
 pub enum Statement {
-    HeaderContextStart(HeaderContext),
+    HeaderContextEnter(HeaderContext),
     /// Assign an immutable variable.
     Let {
         name: String,

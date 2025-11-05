@@ -544,7 +544,7 @@ where
         {
             Box::pin(async move {
                 match stmt {
-                    Statement::HeaderContextStart(header) => {
+                    Statement::HeaderContextEnter(header) => {
                         watch_handler
                             .lock()
                             .unwrap()

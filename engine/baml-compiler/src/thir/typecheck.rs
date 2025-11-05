@@ -929,8 +929,8 @@ fn typecheck_statement(
     diagnostics: &mut Diagnostics,
 ) -> Option<thir::Statement<ExprMetadata>> {
     match stmt {
-        hir::Statement::HeaderContextStart(header) => {
-            Some(thir::Statement::HeaderContextStart(header.clone()))
+        hir::Statement::HeaderContextEnter(header) => {
+            Some(thir::Statement::HeaderContextEnter(header.clone()))
         }
         hir::Statement::Let {
             name,

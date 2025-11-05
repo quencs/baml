@@ -720,7 +720,7 @@ pub enum Statement<T> {
         variable: String,
         span: Span,
     },
-    HeaderContextStart(HeaderContext),
+    HeaderContextEnter(HeaderContext),
 }
 
 impl<T: Clone> Statement<T> {
@@ -729,7 +729,7 @@ impl<T: Clone> Statement<T> {
         T: std::fmt::Debug,
     {
         match self {
-            Statement::HeaderContextStart(header) => {
+            Statement::HeaderContextEnter(header) => {
                 format!("//{} {}", "#".repeat(header.level as usize), header.title)
             }
             Statement::Let {
@@ -842,7 +842,7 @@ impl<T: Clone> Statement<T> {
         T: Clone,
     {
         match self {
-            Statement::HeaderContextStart(_) => HashSet::new(),
+            Statement::HeaderContextEnter(_) => HashSet::new(),
             Statement::Declare { .. } | Statement::Break(_) | Statement::Continue(_) => {
                 HashSet::new()
             }

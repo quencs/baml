@@ -133,7 +133,7 @@ impl TypeDocumentRender for TypeIR {
 impl Statement {
     pub fn to_doc(&self) -> RcDoc<'static, ()> {
         match self {
-            Statement::HeaderContextStart(header) => RcDoc::text("//")
+            Statement::HeaderContextEnter(header) => RcDoc::text("//")
                 .append(RcDoc::text("#".repeat(header.level as usize)))
                 .append(RcDoc::space())
                 .append(RcDoc::text(header.title.clone())),

@@ -249,7 +249,7 @@ impl FunctionMetadata {
         diagnostics: &mut Diagnostics,
     ) {
         match statement {
-            thir::Statement::HeaderContextStart(header) => {
+            thir::Statement::HeaderContextEnter(header) => {
                 self.markdown_headers.insert(header.title.clone());
             }
             thir::Statement::Let {

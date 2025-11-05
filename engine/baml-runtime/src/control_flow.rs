@@ -370,7 +370,7 @@ impl HirTraversalContext {
 
     fn visit_statement(&mut self, stmt: &hir::Statement) {
         match stmt {
-            hir::Statement::HeaderContextStart(header) => {
+            hir::Statement::HeaderContextEnter(header) => {
                 self.enter_header(header);
             }
             hir::Statement::Let { span, .. }
@@ -649,7 +649,7 @@ fn statement_primary_span(stmt: &hir::Statement) -> Option<Span> {
         | hir::Statement::While { span, .. }
         | hir::Statement::ForLoop { span, .. } => Some(span.clone()),
         hir::Statement::Expression { span, .. } => Some(span.clone()),
-        hir::Statement::HeaderContextStart(header) => Some(header.span.clone()),
+        hir::Statement::HeaderContextEnter(header) => Some(header.span.clone()),
         hir::Statement::CForLoop { .. } => None,
     }
 }
