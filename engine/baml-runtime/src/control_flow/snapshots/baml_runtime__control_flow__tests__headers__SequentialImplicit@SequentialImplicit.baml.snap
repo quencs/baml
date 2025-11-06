@@ -1,0 +1,108 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/SequentialImplicit.baml
+---
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Setup context\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 41,\n                        end: 58,\n                    },\n                },\n            ),\n            Expression {\n                expr: Block(\n                    Block {\n                        statements: [\n                            DeclareAndAssign {\n                                name: \"initialize\",\n                                value: NumericValue(\n                                    \"5\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 84,\n                                        end: 85,\n                                    },\n                                ),\n                                annotated_type: None,\n                                watch: None,\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                    start: 67,\n                                    end: 87,\n                                },\n                            },\n                            HeaderContextEnter(\n                                HeaderContext {\n                                    level: 1,\n                                    title: \"In-scope configuration\",\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 91,\n                                        end: 117,\n                                    },\n                                },\n                            ),\n                            DeclareAndAssign {\n                                name: \"configure\",\n                                value: NumericValue(\n                                    \"10\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 138,\n                                        end: 140,\n                                    },\n                                ),\n                                annotated_type: None,\n                                watch: None,\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                    start: 122,\n                                    end: 142,\n                                },\n                            },\n                        ],\n                        trailing_expr: None,\n                    },\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 61,\n                        end: 146,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                    start: 61,\n                    end: 146,\n                },\n            },\n            While {\n                condition: BoolValue(\n                    true,\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 155,\n                        end: 159,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"wait for feature flags\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                    start: 167,\n                                    end: 193,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"featureFlags\",\n                            value: NumericValue(\n                                \"15\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                    start: 217,\n                                    end: 219,\n                                },\n                            ),\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                start: 198,\n                                end: 221,\n                            },\n                        },\n                    ],\n                    trailing_expr: None,\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                    start: 148,\n                    end: 224,\n                },\n            },\n            Expression {\n                expr: Block(\n                    Block {\n                        statements: [\n                            DeclareAndAssign {\n                                name: \"startDatabase\",\n                                value: NumericValue(\n                                    \"20\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 253,\n                                        end: 255,\n                                    },\n                                ),\n                                annotated_type: None,\n                                watch: None,\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                    start: 233,\n                                    end: 257,\n                                },\n                            },\n                            HeaderContextEnter(\n                                HeaderContext {\n                                    level: 1,\n                                    title: \"Boostrap schemas\",\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 261,\n                                        end: 281,\n                                    },\n                                },\n                            ),\n                            DeclareAndAssign {\n                                name: \"bootstrapSchemas\",\n                                value: NumericValue(\n                                    \"25\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 309,\n                                        end: 311,\n                                    },\n                                ),\n                                annotated_type: None,\n                                watch: None,\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                    start: 286,\n                                    end: 313,\n                                },\n                            },\n                        ],\n                        trailing_expr: None,\n                    },\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 227,\n                        end: 317,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                    start: 227,\n                    end: 317,\n                },\n            },\n            Expression {\n                expr: If {\n                    condition: BoolValue(\n                        false,\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                            start: 323,\n                            end: 328,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"listen to SQS\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                            start: 336,\n                                            end: 353,\n                                        },\n                                    },\n                                ),\n                                DeclareAndAssign {\n                                    name: \"listenToSqs\",\n                                    value: NumericValue(\n                                        \"30\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                            start: 376,\n                                            end: 378,\n                                        },\n                                    ),\n                                    annotated_type: None,\n                                    watch: None,\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                                        start: 358,\n                                        end: 380,\n                                    },\n                                },\n                            ],\n                            trailing_expr: None,\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                            start: 330,\n                            end: 383,\n                        },\n                    ),\n                    else_branch: None,\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 319,\n                        end: 383,\n                    },\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                    start: 319,\n                    end: 384,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Done\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 386,\n                        end: 394,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"finish\",\n                value: NumericValue(\n                    \"35\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                        start: 410,\n                        end: 412,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                    start: 397,\n                    end: 414,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"finish\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SequentialImplicit.baml\", contents: ... },\n                    start: 416,\n                    end: 422,\n                },\n            ),\n        ),\n    },\n)"
+expr:
+  nodes:
+    "SequentialImplicit|root:0":
+      label: SequentialImplicit
+      node_type: function
+      parent: ~
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 0
+        end: 424
+    "SequentialImplicit|root:0|hdr:done:1":
+      label: Done
+      node_type: header
+      parent: "SequentialImplicit|root:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 386
+        end: 394
+    "SequentialImplicit|root:0|hdr:setup-context:0":
+      label: Setup context
+      node_type: header
+      parent: "SequentialImplicit|root:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 41
+        end: 58
+    "SequentialImplicit|root:0|hdr:setup-context:0|bg:if-false:0":
+      label: if (false)
+      node_type: branch-group
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 319
+        end: 383
+    "SequentialImplicit|root:0|hdr:setup-context:0|bg:if-false:0|arm:if-false:0":
+      label: if (false)
+      node_type: branch-arm
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0|bg:if-false:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 330
+        end: 383
+    "SequentialImplicit|root:0|hdr:setup-context:0|bg:if-false:0|arm:if-false:0|hdr:listen-to-sqs:0":
+      label: listen to SQS
+      node_type: header
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0|bg:if-false:0|arm:if-false:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 336
+        end: 353
+    "SequentialImplicit|root:0|hdr:setup-context:0|loop:while-true:0":
+      label: while (true)
+      node_type: loop
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 148
+        end: 224
+    "SequentialImplicit|root:0|hdr:setup-context:0|loop:while-true:0|hdr:wait-for-feature-flags:0":
+      label: wait for feature flags
+      node_type: header
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0|loop:while-true:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 167
+        end: 193
+    "SequentialImplicit|root:0|hdr:setup-context:0|scope:other-scope-0:0":
+      label: ""
+      node_type: other-scope
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 61
+        end: 146
+    "SequentialImplicit|root:0|hdr:setup-context:0|scope:other-scope-0:0|hdr:in-scope-configuration:0":
+      label: In-scope configuration
+      node_type: header
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0|scope:other-scope-0:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 91
+        end: 117
+    "SequentialImplicit|root:0|hdr:setup-context:0|scope:other-scope-1:1":
+      label: ""
+      node_type: other-scope
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 227
+        end: 317
+    "SequentialImplicit|root:0|hdr:setup-context:0|scope:other-scope-1:1|hdr:boostrap-schemas:0":
+      label: Boostrap schemas
+      node_type: header
+      parent: "SequentialImplicit|root:0|hdr:setup-context:0|scope:other-scope-1:1"
+      span:
+        file: src/control_flow/testdata/SequentialImplicit.baml
+        start: 261
+        end: 281
+  edges:
+    "SequentialImplicit|root:0|hdr:setup-context:0":
+      - "SequentialImplicit|root:0|hdr:done:1"
+mermaid: "flowchart TD\n    subgraph cluster_NSequentialImplicit_root_0_da5a[\"SequentialImplicit\"]\n        NSequentialImplicit_root_0_da5a((\"SequentialImplicit\"))\n        NSequentialImplicit_root_0_hdr_done_1_88a7[\"Done\"]\n        subgraph cluster_NSequentialImplicit_root_0_hdr_setup_context_0_982b[\"Setup context\"]\n            NSequentialImplicit_root_0_hdr_setup_context_0_982b[\"Setup context\"]\n            subgraph cluster_NSequentialImplicit_root_0_hdr_setup_context_0_bg_if_false_0_a3c0[\"if (false)\"]\n                NSequentialImplicit_root_0_hdr_setup_context_0_bg_if_false_0_a3c0{\"if (false)\"}\n                subgraph cluster_NSequentialImplicit_root_0_hdr_setup_context_0_bg_if_false_0_arm_if_false_0_0924[\"if (false)\"]\n                    NSequentialImplicit_root_0_hdr_setup_context_0_bg_if_false_0_arm_if_false_0_0924[\"if (false)\"]\n                    NSequentialImplicit_root_0_hdr_setup_context_0_bg_if_false_0_arm_if_false_0_hdr_listen_to_sqs_0_bf5a[\"listen to SQS\"]\n                end\n            end\n            subgraph cluster_NSequentialImplicit_root_0_hdr_setup_context_0_loop_while_true_0_5fa3[\"while (true)\"]\n                NSequentialImplicit_root_0_hdr_setup_context_0_loop_while_true_0_5fa3([\"while (true)\"])\n                NSequentialImplicit_root_0_hdr_setup_context_0_loop_while_true_0_hdr_wait_for_feature_flags_0_4f43[\"wait for feature flags\"]\n            end\n            subgraph cluster_NSequentialImplicit_root_0_hdr_setup_context_0_scope_other_scope_0_0_e7bd[\"scope\"]\n                NSequentialImplicit_root_0_hdr_setup_context_0_scope_other_scope_0_0_e7bd[\"scope\"]\n                NSequentialImplicit_root_0_hdr_setup_context_0_scope_other_scope_0_0_hdr_in_scope_configuration_0_1612[\"In-scope configuration\"]\n            end\n            subgraph cluster_NSequentialImplicit_root_0_hdr_setup_context_0_scope_other_scope_1_1_8941[\"scope\"]\n                NSequentialImplicit_root_0_hdr_setup_context_0_scope_other_scope_1_1_8941[\"scope\"]\n                NSequentialImplicit_root_0_hdr_setup_context_0_scope_other_scope_1_1_hdr_boostrap_schemas_0_4b34[\"Boostrap schemas\"]\n            end\n        end\n    end\n    NSequentialImplicit_root_0_hdr_setup_context_0_982b --> NSequentialImplicit_root_0_hdr_done_1_88a7"
