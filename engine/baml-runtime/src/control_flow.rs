@@ -1,7 +1,8 @@
-use std::{collections::HashMap, fmt, io::Write, str::FromStr};
+use std::{fmt, io::Write, str::FromStr};
 
 use anyhow::{anyhow, Result};
 use baml_compiler::hir;
+use indexmap::IndexMap;
 use internal_baml_core::ast::Span;
 use pretty::RcDoc;
 
@@ -110,13 +111,13 @@ pub struct Edge {
 
 #[derive(Clone, Debug, Default)]
 pub struct ControlFlowVisualization {
-    pub nodes: HashMap<NodeId, Node>,
-    pub edges_by_src: HashMap<NodeId, Vec<Edge>>,
+    pub nodes: IndexMap<NodeId, Node>,
+    pub edges_by_src: IndexMap<NodeId, Vec<Edge>>,
 }
 
 #[derive(Default)]
 struct ControlFlowVizBuilder {
-    nodes: HashMap<NodeId, Node>,
+    nodes: IndexMap<NodeId, Node>,
     edges: Vec<Edge>,
 }
 
@@ -130,7 +131,7 @@ impl ControlFlowVizBuilder {
     }
 
     fn finish(self) -> ControlFlowVisualization {
-        let mut edges_by_src: HashMap<NodeId, Vec<Edge>> = HashMap::new();
+        let mut edges_by_src: IndexMap<NodeId, Vec<Edge>> = IndexMap::new();
         for edge in self.edges {
             edges_by_src.entry(edge.src.clone()).or_default().push(edge);
         }

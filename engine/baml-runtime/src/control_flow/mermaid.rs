@@ -109,7 +109,7 @@ fn render_node_with_children(
     if let Some(children) = children_map.get(encoded_id) {
         let subgraph_id = format!("cluster_{}", mermaid_id);
         lines.push(format!(
-            "{}subgraph {}[{}]",
+            "{}subgraph {}[\"{}\"]",
             indent_str, subgraph_id, escaped_label
         ));
         lines.push(format!("{}    {}", indent_str, definition));
@@ -141,11 +141,11 @@ fn fallback_label(node_type: &NodeType) -> String {
 
 fn render_node(id: &str, node: &Node, label: &str) -> String {
     match node.node_type {
-        NodeType::FunctionRoot => format!("{id}(({label}))"),
-        NodeType::BranchGroup => format!("{id}{{{label}}}"),
-        NodeType::BranchArm => format!("{id}[{label}]"),
-        NodeType::Loop => format!("{id}([{label}])"),
-        NodeType::HeaderContextEnter | NodeType::OtherScope => format!("{id}[{label}]"),
+        NodeType::FunctionRoot => format!("{id}((\"{label}\"))"),
+        NodeType::BranchGroup => format!("{id}{{\"{label}\"}}"),
+        NodeType::BranchArm => format!("{id}[\"{label}\"]"),
+        NodeType::Loop => format!("{id}([\"{label}\"])"),
+        NodeType::HeaderContextEnter | NodeType::OtherScope => format!("{id}[\"{label}\"]"),
     }
 }
 
