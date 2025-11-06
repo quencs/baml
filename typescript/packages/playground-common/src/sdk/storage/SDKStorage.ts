@@ -20,6 +20,14 @@ import type {
   VSCodeSettings,
 } from '../atoms/core.atoms';
 
+import type {
+  TestHistoryRun,
+  TestHistoryEntry,
+  TestState,
+  WatchNotification,
+  FlashRange,
+} from '../atoms/test.atoms';
+
 /**
  * Storage interface for SDK state management
  */
@@ -118,4 +126,36 @@ export interface SDKStorage {
   getVSCodeSettings(): VSCodeSettings | null;
   setPlaygroundPort(port: number): void;
   getPlaygroundPort(): number;
+
+  // ============================================================================
+  // Test Execution State
+  // ============================================================================
+
+  // Test History
+  addTestHistoryRun(run: TestHistoryRun): void;
+  getTestHistory(): TestHistoryRun[];
+  updateTestInHistory(runIndex: number, testIndex: number, update: TestState): void;
+  setSelectedHistoryIndex(index: number): void;
+  getSelectedHistoryIndex(): number;
+
+  // Test Execution State
+  setAreTestsRunning(running: boolean): void;
+  getAreTestsRunning(): boolean;
+  setCurrentAbortController(controller: AbortController | null): void;
+  getCurrentAbortController(): AbortController | null;
+
+  // Watch Notifications & Highlighting
+  setCurrentWatchNotifications(notifications: WatchNotification[]): void;
+  getCurrentWatchNotifications(): WatchNotification[];
+  addWatchNotification(notification: WatchNotification): void;
+  clearWatchNotifications(): void;
+
+  setHighlightedBlocks(blocks: Set<string>): void;
+  getHighlightedBlocks(): Set<string>;
+  addHighlightedBlock(blockName: string): void;
+  clearHighlightedBlocks(): void;
+
+  setFlashRanges(ranges: FlashRange[]): void;
+  getFlashRanges(): FlashRange[];
+  clearFlashRanges(): void;
 }

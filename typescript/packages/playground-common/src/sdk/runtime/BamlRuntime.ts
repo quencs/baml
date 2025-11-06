@@ -149,15 +149,21 @@ export class BamlRuntime implements BamlRuntimeInterface {
   }
 
   getTestCases(nodeId?: string): TestCaseInput[] {
+    // Need valid runtime to get test cases
+    if (!this.wasmRuntime) {
+      console.log('[BamlRuntime] Cannot get test cases - runtime is invalid');
+      return [];
+    }
+
     try {
-      // Get all test cases from WASM project
-      const allTestCases = this.wasmProject.list_testcases();
+      // Get all test cases from WASM runtime
+      const allTestCases = this.wasmRuntime.list_testcases();
 
       return allTestCases
         .filter((tc: any) => {
           if (!nodeId) return true;
           // Filter by nodeId - check if this test belongs to the specified function
-          return tc.parent_functions.some((pf: any) => pf.function_name === nodeId);
+          return tc.parent_functions.some((pf: any) => pf.name === nodeId);
         })
         .map((tc: any, index: number) => {
           // Convert WasmParam[] to Record<string, any>
@@ -178,7 +184,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
             id: `${tc.name}_${index}`,
             name: tc.name,
             source: 'test' as const,
-            nodeId: tc.parent_functions[0]?.function_name || '',
+            nodeId: tc.parent_functions[0]?.name || '',
             filePath: tc.span.file_path,
             inputs,
             status: tc.error ? ('failing' as const) : ('unknown' as const),
@@ -236,9 +242,138 @@ export class BamlRuntime implements BamlRuntimeInterface {
   }
 
   async *executeTest(testId: string): AsyncGenerator<ExecutionEvent> {
-    // TODO: Implement test execution
-    console.warn('[BamlRuntime] executeTest() not yet implemented');
-    throw new Error('Test execution not yet implemented for BamlRuntime');
+    if (!this.wasmRuntime) {
+      throw new Error('Cannot execute test - runtime is invalid');
+    }
+
+    // Parse testId to get function name and test name
+    // Format: "functionName:testName" or just use test name and search
+    const testCases = this.wasmRuntime.list_testcases();
+    const testCase = testCases.find((tc: any) => tc.name === testId);
+
+    if (!testCase) {
+      throw new Error(`Test case not found: ${testId}`);
+    }
+
+    // Get the function for this test
+    const functions = this.wasmRuntime.list_functions();
+    const functionName = testCase.parent_functions[0]?.name;
+    const wasmFunction = functions.find((fn: any) => fn.name === functionName);
+
+    if (!wasmFunction) {
+      throw new Error(`Function not found for test: ${functionName}`);
+    }
+
+    const nodeId = functionName;
+
+    try {
+      // Extract inputs from test case
+      const inputs: Record<string, any> = {};
+      for (const param of testCase.inputs) {
+        if (param.value !== undefined) {
+          try {
+            inputs[param.name] = JSON.parse(param.value);
+          } catch {
+            inputs[param.name] = param.value;
+          }
+        }
+      }
+
+      // Yield started event
+      yield {
+        type: 'node.started',
+        nodeId,
+        inputs,
+      };
+
+      const startTime = performance.now();
+      let lastPartialResponse: any = null;
+
+      // Execute the test
+      const result = await wasmFunction.run_test_with_expr_events(
+        this.wasmRuntime,
+        testCase.name,
+        // on_partial_response callback
+        (partial: any) => {
+          lastPartialResponse = partial;
+          // Could yield progress events here if needed
+        },
+        // get_baml_src_cb - load media files
+        vscode.loadMediaFile,
+        // on_expr_event - expression evaluation events (for highlighting)
+        (_spans: any) => {
+          // Could yield log events for expression evaluation
+        },
+        // env - API keys / environment
+        {},
+        // abort_signal
+        null,
+        // watch_handler - for watch notifications
+        (_notification: any) => {
+          // Could yield log events for watch notifications
+        }
+      );
+
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+
+      // Parse the result
+      const status = result.status();
+      const statusMap = {
+        [this.wasm.TestStatus.Passed]: 'passed',
+        [this.wasm.TestStatus.LLMFailure]: 'llm_failed',
+        [this.wasm.TestStatus.ParseFailure]: 'parse_failed',
+        [this.wasm.TestStatus.ConstraintsFailed]: 'constraints_failed',
+        [this.wasm.TestStatus.AssertFailed]: 'assert_failed',
+        [this.wasm.TestStatus.UnableToRun]: 'error',
+        [this.wasm.TestStatus.FinishReasonFailed]: 'error',
+      } as const;
+
+      const testStatus = statusMap[status] || 'error';
+
+      // Extract outputs
+      let outputs: Record<string, any> = {};
+
+      if (testStatus === 'passed') {
+        const parsedResponse = result.parsed_response();
+        if (parsedResponse) {
+          try {
+            outputs = { result: JSON.parse(parsedResponse.value) };
+          } catch {
+            outputs = { result: parsedResponse.value };
+          }
+        }
+      } else {
+        // Get error information
+        const failureMsg = result.failure_message();
+        if (failureMsg) {
+          outputs = { error: failureMsg };
+        }
+      }
+
+      // Yield completion or error event
+      if (testStatus === 'passed') {
+        yield {
+          type: 'node.completed',
+          nodeId,
+          inputs,
+          outputs,
+          duration,
+        };
+      } else {
+        yield {
+          type: 'node.error',
+          nodeId,
+          error: new Error(outputs.error || `Test failed with status: ${testStatus}`),
+        };
+      }
+    } catch (error) {
+      yield {
+        type: 'node.error',
+        nodeId,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
   }
 
   async cancelExecution(executionId: string): Promise<void> {

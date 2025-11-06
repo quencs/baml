@@ -243,23 +243,37 @@ describe('BAML Runtime Integration', () => {
   });
 
   describe('Test Execution (Expected Failure)', () => {
-    it('should track execution state even when test fails', async () => {
-      // This test is expected to fail due to missing API key
-      // But we want to verify that state is tracked correctly
+    it('should extract and attempt to run test case', async () => {
+      // Re-initialize SDK with valid settings (previous tests may have left it in invalid state)
+      await sdk.initialize(bamlFiles);
 
-      try {
-        // Try to get test cases
-        const testCases = sdk.testCases.get('ExtractResume');
+      // Get test cases
+      const testCases = sdk.testCases.get('ExtractResume');
+      console.log('Available test cases:', testCases);
 
-        console.log('Available test cases:', testCases);
+      expect(testCases).toBeDefined();
+      expect(testCases.length).toBe(1);
 
-        // Note: Actual test execution may not be implemented yet
-        // This documents the expected API
-      } catch (error) {
-        // Expected to fail - just verify error is captured
-        expect(error).toBeDefined();
-        console.log('Test execution failed as expected:', error instanceof Error ? error.message : error);
-      }
+      const testCase = testCases[0];
+      expect(testCase).toBeDefined();
+      expect(testCase?.name).toBe('Test1');
+      expect(testCase?.nodeId).toBe('ExtractResume');
+      expect(testCase?.inputs).toBeDefined();
+      expect(testCase?.inputs.resume_text).toContain('John Doe');
+
+      // Try to run the test
+      // Expected to fail due to missing OPENAI_API_KEY
+      const result = await sdk.tests.run('ExtractResume', 'Test1');
+      console.log('Test execution result:', result);
+
+      expect(result).toBeDefined();
+      expect(result.executionId).toBeDefined();
+      expect(['success', 'error']).toContain(result.status);
+
+      // Should fail due to missing API key
+      expect(result.status).toBe('error');
+      expect(result.error).toBeDefined();
+      console.log('Test failed as expected:', result.error?.message);
     });
   });
 

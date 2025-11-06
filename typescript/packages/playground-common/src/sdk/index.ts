@@ -20,12 +20,14 @@ import type {
 
 // Import all atoms to expose via sdk.atoms
 import * as coreAtoms from './atoms/core.atoms';
+import * as testAtoms from './atoms/test.atoms';
 
 // Re-export types
 export * from './types';
 export * from './runtime/BamlRuntimeInterface';
 export * from './storage/SDKStorage';
 export * from './mock-config/types';
+export * from './atoms/test.atoms';
 
 /**
  * BAML SDK - orchestrates runtime and storage
@@ -41,8 +43,9 @@ export class BAMLSDK {
   /**
    * Expose all atoms directly via sdk.atoms
    * Components can access state via: sdk.atoms.workflows, sdk.atoms.diagnostics, etc.
+   * Test-related atoms are namespaced under sdk.atoms.test
    */
-  atoms = coreAtoms;
+  atoms = { ...coreAtoms, test: testAtoms };
 
   constructor(runtimeFactory: BamlRuntimeFactory, storage: SDKStorage) {
     this.runtimeFactory = runtimeFactory;
@@ -457,6 +460,14 @@ export class BAMLSDK {
   tests = {
     /**
      * Run a test case
+     *
+     * The SDK automatically manages all test state:
+     * - Creates test history run
+     * - Updates areTestsRunningAtom
+     * - Tracks execution progress
+     * - Updates test state with results
+     *
+     * UI components just call this and read atoms - no manual state management needed!
      */
     run: async (
       functionName: string,
@@ -468,14 +479,99 @@ export class BAMLSDK {
       outputs?: Record<string, any>;
       error?: Error;
     }> => {
-      console.debug('[SDK] Running test:', { functionName, testCaseName });
+      console.log('[SDK] Running test:', { functionName, testCaseName });
 
-      // For now, return a mock result
-      return {
-        executionId: `test_${Date.now()}`,
-        status: 'success',
-        duration: 100,
+      if (!this.runtime) {
+        throw new Error('Runtime not initialized');
+      }
+
+      const executionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Get test inputs for history
+      const testCases = this.runtime.getTestCases(functionName);
+      const testCase = testCases.find((tc) => tc.name === testCaseName);
+      const inputs = testCase?.inputs;
+
+      // SDK automatically manages state:
+      // 1. Mark as running
+      this.storage.setAreTestsRunning(true);
+      this.storage.clearWatchNotifications();
+      this.storage.clearHighlightedBlocks();
+
+      // 2. Create test history run
+      const historyRun: import('./atoms/test.atoms').TestHistoryRun = {
+        timestamp: Date.now(),
+        tests: [
+          {
+            timestamp: Date.now(),
+            functionName,
+            testName: testCaseName,
+            response: { status: 'running' },
+            input: inputs,
+          },
+        ],
       };
+      this.storage.addTestHistoryRun(historyRun);
+      this.storage.setSelectedHistoryIndex(0);
+
+      let duration = 0;
+      let outputs: Record<string, any> | undefined;
+      let error: Error | undefined;
+
+      try {
+        // 3. Execute the test and update state during execution
+        for await (const event of this.runtime.executeTest(testCaseName)) {
+          console.log('[SDK] Test event:', event);
+
+          if (event.type === 'node.started') {
+            // Update to running with inputs
+            this.storage.updateTestInHistory(0, 0, {
+              status: 'running',
+            });
+          } else if (event.type === 'node.completed') {
+            duration = event.duration;
+            outputs = event.outputs;
+          } else if (event.type === 'node.error') {
+            error = event.error;
+          }
+        }
+
+        // 4. Update test history with final result
+        this.storage.updateTestInHistory(0, 0, {
+          status: 'done',
+          response: outputs || error,
+          response_status: error ? 'error' : 'passed',
+          latency_ms: duration,
+        });
+
+        return {
+          executionId,
+          status: error ? 'error' : 'success',
+          duration,
+          outputs,
+          error,
+        };
+      } catch (e) {
+        console.error('[SDK] Test execution error:', e);
+
+        const err = e instanceof Error ? e : new Error(String(e));
+
+        // Update history with error
+        this.storage.updateTestInHistory(0, 0, {
+          status: 'error',
+          message: err.message,
+        });
+
+        return {
+          executionId,
+          status: 'error',
+          duration: 0,
+          error: err,
+        };
+      } finally {
+        // 5. Always mark as not running
+        this.storage.setAreTestsRunning(false);
+      }
     },
 
     /**

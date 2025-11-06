@@ -42,6 +42,24 @@ import type {
   VSCodeSettings,
 } from '../atoms/core.atoms';
 
+// Import test execution atoms
+import {
+  testHistoryAtom,
+  selectedHistoryIndexAtom,
+  areTestsRunningAtom,
+  currentAbortControllerAtom,
+  currentWatchNotificationsAtom,
+  highlightedBlocksAtom,
+  flashRangesAtom,
+} from '../atoms/test.atoms';
+
+import type {
+  TestHistoryRun,
+  TestState,
+  WatchNotification,
+  FlashRange,
+} from '../atoms/test.atoms';
+
 export class JotaiStorage implements SDKStorage {
   constructor(private store: ReturnType<typeof createStore>) {}
 
@@ -290,5 +308,108 @@ export class JotaiStorage implements SDKStorage {
 
   getPlaygroundPort() {
     return this.store.get(playgroundPortAtom);
+  }
+
+  // ============================================================================
+  // Test Execution State
+  // ============================================================================
+
+  addTestHistoryRun(run: TestHistoryRun) {
+    const current = this.store.get(testHistoryAtom);
+    this.store.set(testHistoryAtom, [run, ...current]);
+  }
+
+  getTestHistory() {
+    return this.store.get(testHistoryAtom);
+  }
+
+  updateTestInHistory(runIndex: number, testIndex: number, update: TestState) {
+    const history = this.store.get(testHistoryAtom);
+    const newHistory = [...history];
+    const run = newHistory[runIndex];
+    if (!run) return;
+
+    const test = run.tests[testIndex];
+    if (!test) return;
+
+    run.tests[testIndex] = {
+      ...test,
+      response: update,
+      timestamp: Date.now(),
+    };
+
+    this.store.set(testHistoryAtom, newHistory);
+  }
+
+  setSelectedHistoryIndex(index: number) {
+    this.store.set(selectedHistoryIndexAtom, index);
+  }
+
+  getSelectedHistoryIndex() {
+    return this.store.get(selectedHistoryIndexAtom);
+  }
+
+  setAreTestsRunning(running: boolean) {
+    this.store.set(areTestsRunningAtom, running);
+  }
+
+  getAreTestsRunning() {
+    return this.store.get(areTestsRunningAtom);
+  }
+
+  setCurrentAbortController(controller: AbortController | null) {
+    this.store.set(currentAbortControllerAtom, controller);
+  }
+
+  getCurrentAbortController() {
+    return this.store.get(currentAbortControllerAtom);
+  }
+
+  setCurrentWatchNotifications(notifications: WatchNotification[]) {
+    this.store.set(currentWatchNotificationsAtom, notifications);
+  }
+
+  getCurrentWatchNotifications() {
+    return this.store.get(currentWatchNotificationsAtom);
+  }
+
+  addWatchNotification(notification: WatchNotification) {
+    const current = this.store.get(currentWatchNotificationsAtom);
+    this.store.set(currentWatchNotificationsAtom, [...current, notification]);
+  }
+
+  clearWatchNotifications() {
+    this.store.set(currentWatchNotificationsAtom, []);
+  }
+
+  setHighlightedBlocks(blocks: Set<string>) {
+    this.store.set(highlightedBlocksAtom, blocks);
+  }
+
+  getHighlightedBlocks() {
+    return this.store.get(highlightedBlocksAtom);
+  }
+
+  addHighlightedBlock(blockName: string) {
+    const current = this.store.get(highlightedBlocksAtom);
+    const newSet = new Set(current);
+    newSet.add(blockName);
+    this.store.set(highlightedBlocksAtom, newSet);
+  }
+
+  clearHighlightedBlocks() {
+    this.store.set(highlightedBlocksAtom, new Set());
+  }
+
+  setFlashRanges(ranges: FlashRange[]) {
+    this.store.set(flashRangesAtom, ranges);
+  }
+
+  getFlashRanges() {
+    return this.store.get(flashRangesAtom);
+  }
+
+  clearFlashRanges() {
+    this.store.set(flashRangesAtom, []);
   }
 }
