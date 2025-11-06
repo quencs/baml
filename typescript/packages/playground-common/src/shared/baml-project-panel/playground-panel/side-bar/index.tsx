@@ -32,8 +32,8 @@ import {
   Square,
 } from 'lucide-react';
 import * as React from 'react';
-import { selectedItemAtom, areTestsRunningAtom } from '../atoms';
-import { useRunBamlTests } from '../prompt-preview/test-panel/test-runner';
+import { selectedItemAtom, areTestsRunningAtom } from '../../../atoms';
+import { useRunBamlTests } from '../prompt-preview/test-panel/test-runner-sdk';
 import { testHistoryAtom, selectedHistoryIndexAtom } from '../prompt-preview/test-panel/atoms';
 import { functionsAtom, isSidebarOpenAtom } from './atoms';
 import { FunctionItem } from './function-item';

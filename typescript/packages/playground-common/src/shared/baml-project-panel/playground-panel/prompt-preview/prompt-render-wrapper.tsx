@@ -8,7 +8,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import { BarChart2, Check, Copy, Server } from 'lucide-react';
 import React from 'react';
 import { runtimeAtom, betaFeatureEnabledAtom } from '../../atoms';
-import { selectionAtom } from '../atoms';
+import { selectionAtom } from '../../../atoms';
 import { displaySettingsAtom } from '../preview-toolbar';
 import { PromptPreviewContent } from './prompt-preview-content';
 import { renderedPromptAtom } from './prompt-preview-content';

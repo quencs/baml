@@ -1,7 +1,7 @@
 import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 import { vscode } from '../../vscode';
-import { runtimeStateAtom } from '../atoms';
+import { runtimeStateAtom } from '../../../atoms';
 import { sessionStore } from '../../../../baml_wasm_web/JotaiProvider';
 
 const getIsEmbed = () => {

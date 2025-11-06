@@ -8,7 +8,7 @@ import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import type { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { functionGraphAtom } from '../../../atoms-orch-graph';
 import { vscode } from '../../../../vscode';
-import { flashRangesAtom } from '../../../atoms';
+import { flashRangesAtom } from '../../../../../atoms';
 import { highlightedBlocksAtom } from '../atoms';
 
 // === BAML Mermaid CSS Override (media-like styling) ===

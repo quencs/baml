@@ -27,10 +27,10 @@ import { showApiKeyDialogAtom } from '../../../components/api-keys-dialog/atoms'
 import { proxyUrlAtom } from '../atoms';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { vscode } from '../vscode';
-import { areTestsRunningAtom, selectedItemAtom, selectionAtom } from './atoms';
+import { areTestsRunningAtom, selectedItemAtom, selectionAtom } from '../../atoms';
 import { FunctionTestName } from './function-test-name';
 import { isParallelTestsEnabledAtom } from './prompt-preview/test-panel/atoms';
-import { useRunBamlTests } from './prompt-preview/test-panel/test-runner';
+import { useRunBamlTests } from './prompt-preview/test-panel/test-runner-sdk';
 import { standaloneBetaFeatureEnabledAtom, isVSCodeEnvironment } from '../feature-flags';
 import { vscodeSettingsAtom } from '../atoms';
 

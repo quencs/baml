@@ -8,7 +8,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { apiKeysAtom } from '../../../../components/api-keys-dialog/atoms';
 import { ctxAtom, filesAtom, runtimeAtom } from '../../atoms';
-import { selectionAtom } from '../atoms';
+import { selectionAtom } from '../../../atoms';
 import { TruncatedString } from './TruncatedString';
 import { Loader } from './components';
 import { vscode } from '../../vscode';

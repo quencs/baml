@@ -1,6 +1,6 @@
 // ResponseRenderer.tsx
 import { WasmFunctionResponse, WasmTestResponse, WasmLLMFailure, WasmLLMResponse } from '@gloo-ai/baml-schema-wasm-web'
-import { DoneTestStatusType, TestState } from '../../../atoms'
+import { DoneTestStatusType, TestState } from '../../../../../atoms'
 import { useState } from 'react'
 import {
   AlertCircle,
