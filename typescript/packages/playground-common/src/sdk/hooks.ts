@@ -7,8 +7,9 @@
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useMemo } from 'react';
 
-// Re-export useBAMLSDK from provider
-export { useBAMLSDK } from './provider';
+// Re-export useBAMLSDK from provider for convenience
+export { useBAMLSDK, BAMLSDKProvider } from './provider';
+
 
 // Import atoms directly from core.atoms.ts (no barrel exports)
 import {

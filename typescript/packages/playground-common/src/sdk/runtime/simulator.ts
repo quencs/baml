@@ -10,8 +10,9 @@
  */
 
 import type { WorkflowDefinition, GraphNode } from '../types';
-import type { ExecutionEvent, LogEntry } from './BamlRuntimeInterface';
+import type { ExecutionEvent } from './BamlRuntimeInterface';
 import type { MockRuntimeConfig } from '../mock-config/types';
+import type { LogEntry } from '../types';
 
 /**
  * Simulate workflow execution following the graph structure

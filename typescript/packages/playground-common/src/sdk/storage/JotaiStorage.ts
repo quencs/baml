@@ -23,6 +23,7 @@ import {
   registerNodeAtom,
   cacheAtom,
   getCacheKey,
+  versionAtom,
   diagnosticsAtom,
   lastValidRuntimeAtom,
   generatedFilesAtom,
@@ -33,6 +34,8 @@ import {
   sandboxFilesTrackedAtom,
   vscodeSettingsAtom,
   playgroundPortAtom,
+  selectedFunctionNameAtom,
+  selectedTestCaseNameAtom,
 } from '../atoms/core.atoms';
 
 import type {
@@ -203,6 +206,18 @@ export class JotaiStorage implements SDKStorage {
   }
 
   // ============================================================================
+  // Version
+  // ============================================================================
+
+  setVersion(version: string) {
+    this.store.set(versionAtom, version);
+  }
+
+  getVersion() {
+    return this.store.get(versionAtom);
+  }
+
+  // ============================================================================
   // Diagnostics
   // ============================================================================
 
@@ -308,6 +323,26 @@ export class JotaiStorage implements SDKStorage {
 
   getPlaygroundPort() {
     return this.store.get(playgroundPortAtom);
+  }
+
+  // ============================================================================
+  // Selection State (Function & Test Case)
+  // ============================================================================
+
+  setSelectedFunctionName(name: string | null) {
+    this.store.set(selectedFunctionNameAtom, name);
+  }
+
+  getSelectedFunctionName() {
+    return this.store.get(selectedFunctionNameAtom);
+  }
+
+  setSelectedTestCaseName(name: string | null) {
+    this.store.set(selectedTestCaseNameAtom, name);
+  }
+
+  getSelectedTestCaseName() {
+    return this.store.get(selectedTestCaseNameAtom);
   }
 
   // ============================================================================

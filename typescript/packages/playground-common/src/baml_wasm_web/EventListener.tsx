@@ -1,65 +1,60 @@
 "use client";
-// import * as vscode from 'vscode'
 
 import { vscode } from "@baml/playground-common";
-import {
-  diagnosticsAtom,
-  wasmAtom,
-  selectedFunctionAtom,
-  orchIndexAtom,
-} from "@baml/playground-common";
 import { useDebounceCallback } from "@react-hook/debounce";
-import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
+import { atom, useSetAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { useEffect } from "react";
 import { vscodeLocalStorageStore } from "./JotaiProvider";
 import { type BamlConfigAtom, bamlConfig } from "./bamlConfig";
 import { VscodeToWebviewCommand } from "./vscode-to-webview-rpc";
-import { useBAMLSDK } from "../sdk/provider";
 import { handleIDEMessage, handleLSPMessage } from "./message-handlers";
+import { useBAMLSDK } from "../sdk";
+
+// ============================================================================
+// EventListener-specific atoms (not managed by SDK)
+// ============================================================================
 
 export const hasClosedEnvVarsDialogAtom = atomWithStorage<boolean>(
   "has-closed-env-vars-dialog",
   false,
   vscodeLocalStorageStore,
 );
+
 export const bamlCliVersionAtom = atom<string | null>(null);
 
 export const showIntroToChecksDialogAtom = atom(false);
+
 export const hasClosedIntroToChecksDialogAtom = atomWithStorage<boolean>(
   "has-closed-intro-to-checks-dialog",
   false,
   vscodeLocalStorageStore,
 );
 
-export const versionAtom = atom((get) => {
-  const wasm = get(wasmAtom);
-
-  if (wasm === undefined) {
-    return "Loading...";
-  }
-
-  return wasm.version();
-});
-
-export const numErrorsAtom = atom((get) => {
-  const errors = get(diagnosticsAtom);
-
-  const warningCount = errors.filter((e: any) => e.type === "warning").length;
-
-  return { errors: errors.length - warningCount, warnings: warningCount };
-});
-
 export const isConnectedAtom = atom(true);
 
+// ============================================================================
+// EventListener Component
+// ============================================================================
+
 export const EventListener: React.FC = () => {
-  // Get SDK instance
+  // Get SDK instance (guaranteed to be initialized by provider)
   const sdk = useBAMLSDK();
   const isVSCodeWebview = vscode.isVscode();
 
   // Non-core state atoms (not managed by SDK)
   const setBamlCliVersion = useSetAtom(bamlCliVersionAtom);
   const setBamlConfig = useSetAtom(bamlConfig);
+
+  // Mark as initialized when component mounts (SDK is ready)
+  useEffect(() => {
+    console.debug("SDK ready, marking initialized");
+    try {
+      vscode.markInitialized();
+    } catch (e) {
+      console.error("Error marking initialized", e);
+    }
+  }, []);
 
   // Platform quirk: Debounce file updates to prevent excessive WASM recompilation
   const debouncedUpdateFiles = useDebounceCallback(
@@ -70,28 +65,6 @@ export const EventListener: React.FC = () => {
     50,
     true // Leading edge
   );
-
-  const [selectedFunc] = useAtom(selectedFunctionAtom);
-  const wasm = useAtomValue(wasmAtom);
-  useEffect(() => {
-    if (wasm) {
-      console.debug("wasm ready!");
-      try {
-        vscode.markInitialized();
-      } catch (e) {
-        console.error("Error marking initialized", e);
-      }
-    }
-  }, [wasm]);
-
-  const setOrchestratorIndex = useSetAtom(orchIndexAtom);
-
-  useEffect(() => {
-    if (selectedFunc) {
-      // todo: maybe we use a derived atom to reset it. But for now this useeffect works.
-      setOrchestratorIndex(0);
-    }
-  }, [selectedFunc]);
 
   useEffect(() => {
     // Only open websocket if not in VSCode webview

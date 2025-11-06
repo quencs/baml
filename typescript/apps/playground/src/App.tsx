@@ -36,7 +36,7 @@ function App() {
 
             {/* Main content area */}
             <div className="h-full">
-              <PromptPreview />
+              {/* <PromptPreview /> */}
             </div>
 
             {/* Background event handler (no UI) */}

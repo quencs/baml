@@ -41,6 +41,10 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     return new MockBamlRuntime(config);
   }
 
+  getVersion(): string {
+    return '0.0.0-mock';
+  }
+
   getWorkflows(): WorkflowDefinition[] {
     return this.config.workflows;
   }

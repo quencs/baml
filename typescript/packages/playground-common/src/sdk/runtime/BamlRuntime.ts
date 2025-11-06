@@ -134,6 +134,10 @@ export class BamlRuntime implements BamlRuntimeInterface {
   // BamlRuntimeInterface Implementation
   // ============================================================================
 
+  getVersion(): string {
+    return this.wasm.version();
+  }
+
   getWorkflows(): WorkflowDefinition[] {
     // TODO: Extract workflows from WASM project
     // For now, return empty array
@@ -265,6 +269,10 @@ export class BamlRuntime implements BamlRuntimeInterface {
     }
 
     const nodeId = functionName;
+
+    if (!nodeId) {
+      throw new Error(`Node ID not found for test: ${testId}`);
+    }
 
     try {
       // Extract inputs from test case

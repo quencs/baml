@@ -73,6 +73,13 @@ export interface SDKStorage {
   clearCache(scope?: { workflowId?: string; nodeId?: string }): void;
 
   // ============================================================================
+  // Version
+  // ============================================================================
+
+  setVersion(version: string): void;
+  getVersion(): string;
+
+  // ============================================================================
   // Diagnostics
   // ============================================================================
 
@@ -126,6 +133,15 @@ export interface SDKStorage {
   getVSCodeSettings(): VSCodeSettings | null;
   setPlaygroundPort(port: number): void;
   getPlaygroundPort(): number;
+
+  // ============================================================================
+  // Selection State (Function & Test Case)
+  // ============================================================================
+
+  setSelectedFunctionName(name: string | null): void;
+  getSelectedFunctionName(): string | null;
+  setSelectedTestCaseName(name: string | null): void;
+  getSelectedTestCaseName(): string | null;
 
   // ============================================================================
   // Test Execution State

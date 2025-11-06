@@ -56,6 +56,11 @@ export interface ExecutionOptions {
  */
 export interface BamlRuntimeInterface {
   /**
+   * Get BAML runtime version
+   */
+  getVersion(): string;
+
+  /**
    * Get all discovered workflows
    */
   getWorkflows(): WorkflowDefinition[];

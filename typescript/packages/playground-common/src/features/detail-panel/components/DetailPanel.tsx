@@ -25,7 +25,7 @@ import {
 import { useActiveNode, useDetailPanel, useNodeInputSources, useSelectedInputSource } from '../../../sdk/hooks';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type { GraphNode, NodeExecution, InputSource } from '../../../sdk/types';
-import { useBAMLSDK } from '../../../sdk/provider';
+import { useBAMLSDK } from '@/sdk';
 
 // Tab Component Props
 interface IOTabProps {
@@ -107,15 +107,14 @@ export function DetailPanel() {
           </h3>
           {state && (
             <span
-              className={`text-[9px] px-1 py-0.5 rounded ${
-                state === 'running'
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                  : state === 'success'
+              className={`text-[9px] px-1 py-0.5 rounded ${state === 'running'
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                : state === 'success'
                   ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                   : state === 'error'
-                  ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                  : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-              }`}
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                }`}
             >
               {state}
             </span>
@@ -159,7 +158,7 @@ function LLMNodeContent({ node, execution }: IOTabProps) {
     const activeWorkflow = sdk.workflows.getActive();
     if (!activeWorkflow) return executionInputSources;
 
-    const testCases = sdk.testCases.get(activeWorkflow.id, node.id);
+    const testCases = sdk.testCases.get(node.id);
     return [...testCases, ...executionInputSources] as InputSource[];
   }, [sdk, node.id, executionInputSources]);
 
@@ -453,7 +452,7 @@ function StandardNodeContent({ node, execution }: IOTabProps) {
     const activeWorkflow = sdk.workflows.getActive();
     if (!activeWorkflow) return executionInputSources;
 
-    const testCases = sdk.testCases.get(activeWorkflow.id, node.id);
+    const testCases = sdk.testCases.get(node.id);
     return [...testCases, ...executionInputSources] as InputSource[];
   }, [sdk, node.id, executionInputSources]);
 
@@ -716,8 +715,8 @@ function StandardNodeContent({ node, execution }: IOTabProps) {
                     log.level === 'error'
                       ? 'text-red-600 dark:text-red-400'
                       : log.level === 'warn'
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : 'text-foreground'
+                        ? 'text-yellow-600 dark:text-yellow-400'
+                        : 'text-foreground'
                   }
                 >
                   [{log.level.toUpperCase()}]

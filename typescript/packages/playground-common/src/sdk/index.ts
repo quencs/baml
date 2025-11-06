@@ -29,6 +29,10 @@ export * from './storage/SDKStorage';
 export * from './mock-config/types';
 export * from './atoms/test.atoms';
 
+// Re-export hooks and provider
+export * from './hooks';
+export * from './provider';
+
 /**
  * BAML SDK - orchestrates runtime and storage
  * Follows wasmAtom pattern: creates new runtime instances on file changes
@@ -63,6 +67,10 @@ export class BAMLSDK {
       featureFlags?: string[];
     }
   ) {
+    if (Object.keys(initialFiles).length === 0) {
+      throw new Error('Cannot initialize SDK with empty files');
+    }
+
     console.log('SDK: Initializing with', Object.keys(initialFiles).length, 'files');
 
     // Store files
@@ -83,6 +91,9 @@ export class BAMLSDK {
       options?.envVars,
       options?.featureFlags
     );
+
+    // Store version
+    this.storage.setVersion(this.runtime.getVersion());
 
     // Extract and store diagnostics
     const diagnostics = this.runtime.getDiagnostics();
@@ -120,6 +131,10 @@ export class BAMLSDK {
      * Matches wasmAtom pattern: create new runtime on every file change
      */
     update: async (files: Record<string, string>) => {
+      if (Object.keys(files).length === 0) {
+        throw new Error('Files cannot be empty');
+      }
+
       console.log('SDK: Updating files, creating new runtime instance');
 
       // Store new files
@@ -177,6 +192,10 @@ export class BAMLSDK {
     },
 
     setActive: (id: string) => {
+      const workflow = this.workflows.getById(id);
+      if (!workflow) {
+        throw new Error(`Workflow "${id}" not found`);
+      }
       this.storage.setActiveWorkflowId(id);
     },
   };
@@ -191,8 +210,14 @@ export class BAMLSDK {
       inputs: Record<string, any>,
       options?: { clearCache?: boolean; startFromNodeId?: string }
     ): Promise<string> => {
+      if (!this.runtime) {
+        throw new Error('SDK not initialized');
+      }
+
       const workflow = this.workflows.getById(workflowId);
-      if (!workflow) throw new Error(`Workflow ${workflowId} not found`);
+      if (!workflow) {
+        throw new Error(`Workflow "${workflowId}" not found`);
+      }
 
       // Clear cache if requested
       if (options?.clearCache) {
@@ -315,7 +340,9 @@ export class BAMLSDK {
 
   testCases = {
     get: (nodeId: string): TestCaseInput[] => {
-      if (!this.runtime) return [];
+      if (!this.runtime) {
+        throw new Error('SDK not initialized');
+      }
       return this.runtime.getTestCases(nodeId);
     },
   };
@@ -423,6 +450,56 @@ export class BAMLSDK {
   };
 
   // ============================================================================
+  // Selection API
+  // ============================================================================
+
+  selection = {
+    /**
+     * Set the currently selected function
+     */
+    setFunction: (functionName: string | null): void => {
+      this.storage.setSelectedFunctionName(functionName);
+      // Clear test case selection when changing function
+      if (functionName === null) {
+        this.storage.setSelectedTestCaseName(null);
+      }
+    },
+
+    /**
+     * Set the currently selected test case
+     */
+    setTestCase: (testCaseName: string | null): void => {
+      this.storage.setSelectedTestCaseName(testCaseName);
+    },
+
+    /**
+     * Set both function and test case at once
+     */
+    set: (functionName: string | null, testCaseName: string | null): void => {
+      this.storage.setSelectedFunctionName(functionName);
+      this.storage.setSelectedTestCaseName(testCaseName);
+    },
+
+    /**
+     * Get current selection
+     */
+    get: () => {
+      return {
+        functionName: this.storage.getSelectedFunctionName(),
+        testCaseName: this.storage.getSelectedTestCaseName(),
+      };
+    },
+
+    /**
+     * Clear selection
+     */
+    clear: (): void => {
+      this.storage.setSelectedFunctionName(null);
+      this.storage.setSelectedTestCaseName(null);
+    },
+  };
+
+  // ============================================================================
   // Navigation API
   // ============================================================================
 
@@ -450,6 +527,7 @@ export class BAMLSDK {
      */
     selectFunction: (functionName: string): void => {
       console.debug('[SDK] Function selected:', functionName);
+      this.selection.setFunction(functionName);
     },
   };
 
@@ -482,7 +560,7 @@ export class BAMLSDK {
       console.log('[SDK] Running test:', { functionName, testCaseName });
 
       if (!this.runtime) {
-        throw new Error('Runtime not initialized');
+        throw new Error('SDK not initialized');
       }
 
       const executionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

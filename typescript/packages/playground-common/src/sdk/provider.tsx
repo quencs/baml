@@ -1,38 +1,28 @@
 /**
- * BAML SDK Provider for React
+ * BAML SDK Provider for React - Refactored
  *
  * Provides the SDK instance through React Context
+ * Uses the new runtime factory pattern
  */
 
 import { Provider as JotaiProvider, createStore } from 'jotai';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { BAMLSDK } from './index';
+import { BAMLSDK } from '.';
 import { createMockSDK } from './factory';
 
 const BAMLSDKContext = createContext<BAMLSDK | null>(null);
 
-export type PrdOrDevStore = ReturnType<typeof createStore>;
-
 interface BAMLSDKProviderProps {
   children: ReactNode;
-  sdk?: BAMLSDK; // Allow passing in a pre-configured SDK
-  initialFiles?: Record<string, string>; // Files to initialize with
-  envVars?: Record<string, string>;
-  featureFlags?: string[];
+  mode?: 'mock';
 }
 
 /**
  * Provider component that wraps the app and provides SDK access
  */
-export function BAMLSDKProvider({
-  children,
-  sdk,
-  initialFiles = {},
-  envVars,
-  featureFlags,
-}: BAMLSDKProviderProps) {
+export function BAMLSDKProvider({ children, mode = 'mock' }: BAMLSDKProviderProps) {
   // Create refs to ensure single instance creation
-  const storeRef = useRef<PrdOrDevStore | undefined>(undefined);
+  const storeRef = useRef<ReturnType<typeof createStore> | undefined>(undefined);
   const sdkRef = useRef<BAMLSDK | undefined>(undefined);
 
   // Initialize store and SDK only once
@@ -41,12 +31,11 @@ export function BAMLSDKProvider({
   }
 
   if (!sdkRef.current) {
-    // Use provided SDK or create a mock SDK
-    if (sdk) {
-      sdkRef.current = sdk;
-    } else {
-      console.log('🚀 Creating Mock BAML SDK');
+    console.log('🚀 Creating BAML SDK with mode:', mode);
+    if (mode === 'mock') {
       sdkRef.current = createMockSDK(storeRef.current);
+    } else {
+      throw new Error(`Unsupported mode: ${mode}`);
     }
   }
 
@@ -60,10 +49,15 @@ export function BAMLSDKProvider({
       if (!sdkRef.current) return;
 
       console.log('⏳ Initializing SDK...');
-      await sdkRef.current.initialize(initialFiles, {
-        envVars,
-        featureFlags,
-      });
+
+      // Initialize with empty files for mock mode
+      const initialFiles = {
+        'workflows/simple.baml': '// Mock workflow file',
+        'workflows/conditional.baml': '// Mock conditional workflow',
+      };
+
+      await sdkRef.current.initialize(initialFiles);
+
       if (mounted) {
         console.log('✅ SDK initialized successfully');
         const workflows = sdkRef.current.workflows.getAll();

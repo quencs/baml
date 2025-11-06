@@ -316,3 +316,13 @@ export interface MockDataProvider {
   simulateExecution(workflowId: string, inputs: Record<string, any>, startFromNodeId?: string): AsyncGenerator<BAMLEvent>;
   getBAMLFiles(): BAMLFile[];
 }
+
+// ============================================================================
+// Compatibility Type Aliases
+// ============================================================================
+
+/**
+ * @deprecated Use BAMLEvent instead
+ * Alias for backward compatibility with old code
+ */
+export type TestExecutionEvent = BAMLEvent;

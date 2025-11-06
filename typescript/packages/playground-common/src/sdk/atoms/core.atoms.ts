@@ -293,6 +293,72 @@ export const allFunctionsMapAtom = atom((get) => {
 });
 
 // ============================================================================
+// SELECTION STATE (Function & Test Case)
+// ============================================================================
+
+/**
+ * Currently selected function name
+ */
+export const selectedFunctionNameAtom = atom<string | null>(null);
+
+/**
+ * Currently selected test case name
+ */
+export const selectedTestCaseNameAtom = atom<string | null>(null);
+
+/**
+ * Selected function object (derived from bamlFilesAtom + selectedFunctionNameAtom)
+ * Returns the full function object with all metadata
+ */
+export const selectedFunctionObjectAtom = atom((get) => {
+  const funcName = get(selectedFunctionNameAtom);
+  if (!funcName) return null;
+
+  const functionsMap = get(allFunctionsMapAtom);
+  return functionsMap.get(funcName) || null;
+});
+
+/**
+ * Selected test case object (derived)
+ * Returns the test case from the selected function
+ */
+export const selectedTestCaseAtom = atom((get) => {
+  const func = get(selectedFunctionObjectAtom);
+  const tcName = get(selectedTestCaseNameAtom);
+  if (!func || !tcName) return null;
+
+  return func.test_cases?.find((tc: any) => tc.name === tcName) || null;
+});
+
+/**
+ * Combined selection atom (for backward compatibility with old code)
+ * Returns { selectedFn, selectedTc }
+ */
+export const selectionAtom = atom((get) => ({
+  selectedFn: get(selectedFunctionObjectAtom),
+  selectedTc: get(selectedTestCaseAtom),
+}));
+
+/**
+ * Function test snippet atom - generates test code template
+ */
+export const functionTestSnippetAtom = (functionName: string) => atom((get) => {
+  const functionsMap = get(allFunctionsMapAtom);
+  const func = functionsMap.get(functionName);
+
+  if (!func) return null;
+
+  // Generate test snippet based on function signature
+  // This is a placeholder - actual implementation would generate proper test code
+  return `test MyTest {
+  functions [${functionName}]
+  args {
+    // Add your test arguments here
+  }
+}`;
+});
+
+// ============================================================================
 // WASM PANIC HANDLING
 // ============================================================================
 
@@ -317,6 +383,9 @@ export interface DiagnosticError {
   filePath?: string;
   line?: number;
   column?: number;
+  // For compatibility with old code (CodeMirror needs these)
+  start_ch?: number;
+  end_ch?: number;
 }
 
 /**
@@ -431,3 +500,55 @@ export const proxyUrlAtom = atom((get) => {
  * Environment variables/API keys for runtime
  */
 export const envVarsAtom = atom<Record<string, string>>({});
+
+// ============================================================================
+// RUNTIME & WASM STATE (for compatibility with old code)
+// ============================================================================
+
+/**
+ * WASM module state
+ * Contains the loaded WASM instance
+ */
+export const wasmAtom = atom<any | undefined>(undefined);
+
+/**
+ * Current BAML files being tracked
+ */
+export const filesAtom = atom<Record<string, string>>({});
+
+/**
+ * Runtime state with diagnostics and last valid runtime
+ * Mimics the old runtimeAtom structure
+ */
+export const runtimeAtom = atom<{
+  rt: any | undefined;
+  diags: any | undefined;
+  lastValidRt: any | undefined;
+}>((get) => {
+  const diagnostics = get(diagnosticsAtom);
+  const hasErrors = diagnostics.some((d) => d.type === 'error');
+
+  // TODO: This needs to be properly integrated with the SDK's runtime
+  // For now, return a structure compatible with old code
+  return {
+    rt: undefined, // Will be set by SDK
+    diags: undefined,
+    lastValidRt: undefined,
+  };
+});
+
+/**
+ * Call context for WASM operations
+ * Used for passing context to WASM function calls
+ */
+export const ctxAtom = atom<any | undefined>(undefined);
+
+// ============================================================================
+// VERSION INFORMATION
+// ============================================================================
+
+/**
+ * BAML runtime version
+ * Set by the runtime during initialization
+ */
+export const versionAtom = atom<string>("Loading...");
