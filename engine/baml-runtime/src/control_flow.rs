@@ -268,7 +268,7 @@ struct Frame {
     entry: FrameEntry,
     node_id: NodeId,
     counters: FrameCounters,
-    last_header_child: Option<NodeId>,
+    last_linear_child: Option<NodeId>,
 }
 
 impl Frame {
@@ -277,7 +277,7 @@ impl Frame {
             entry,
             node_id,
             counters: FrameCounters::default(),
-            last_header_child: None,
+            last_linear_child: None,
         }
     }
 
@@ -290,6 +290,12 @@ impl Frame {
             FrameEntry::Header { level } => Some(level),
             _ => None,
         }
+    }
+}
+
+impl FrameEntry {
+    fn children_are_linear(&self) -> bool {
+        !matches!(self, FrameEntry::BranchGroup)
     }
 }
 
@@ -471,6 +477,8 @@ impl HirTraversalContext {
         let node_label = label.unwrap_or_else(|| "".to_string());
         let node = Node::new(node_id.clone(), node_label, span, NodeType::OtherScope);
         self.graph.add_node(node);
+        let parent_index = self.current_parent_index();
+        self.register_child_with_parent(parent_index, &node_id);
         self.frames
             .push(Frame::new(FrameEntry::OtherScope, node_id.clone()));
         self.visit_block_inline(block);
@@ -603,6 +611,8 @@ impl HirTraversalContext {
         let node_id = self.cursor.push_branch_group(&slug, ordinal);
         let node = Node::new(node_id.clone(), label, span, NodeType::BranchGroup);
         self.graph.add_node(node);
+        let parent_index = self.current_parent_index();
+        self.register_child_with_parent(parent_index, &node_id);
         self.frames
             .push(Frame::new(FrameEntry::BranchGroup, node_id.clone()));
 
@@ -650,6 +660,8 @@ impl HirTraversalContext {
         let node_id = self.cursor.push_branch_arm(&slug, ordinal);
         let node = Node::new(node_id.clone(), label, span, NodeType::BranchArm);
         self.graph.add_node(node);
+        let parent_index = self.current_parent_index();
+        self.register_child_with_parent(parent_index, &node_id);
         self.frames
             .push(Frame::new(FrameEntry::BranchArm, node_id.clone()));
         self.visit_expression(expr, BlockHandling::inline());
@@ -675,6 +687,8 @@ impl HirTraversalContext {
         let node_id = self.cursor.push_loop(&slug, ordinal);
         let node = Node::new(node_id.clone(), label, span, NodeType::Loop);
         self.graph.add_node(node);
+        let parent_index = self.current_parent_index();
+        self.register_child_with_parent(parent_index, &node_id);
         self.frames
             .push(Frame::new(FrameEntry::Loop, node_id.clone()));
         self.visit_block_inline(block);
@@ -708,16 +722,20 @@ impl HirTraversalContext {
         self.graph.add_node(node);
 
         let parent_index = self.current_parent_index();
-        self.register_header_with_parent(parent_index, &node_id);
+        self.register_child_with_parent(parent_index, &node_id);
         self.frames
             .push(Frame::new(FrameEntry::Header { level }, node_id));
     }
 
-    fn register_header_with_parent(&mut self, parent_index: usize, node_id: &NodeId) {
-        if let Some(prev) = self.frames[parent_index].last_header_child.clone() {
+    fn register_child_with_parent(&mut self, parent_index: usize, node_id: &NodeId) {
+        let parent_entry = self.frames[parent_index].entry.children_are_linear();
+        if !parent_entry {
+            return;
+        }
+        if let Some(prev) = self.frames[parent_index].last_linear_child.clone() {
             self.graph.add_edge(prev, node_id.clone());
         }
-        self.frames[parent_index].last_header_child = Some(node_id.clone());
+        self.frames[parent_index].last_linear_child = Some(node_id.clone());
     }
 
     fn pop_headers_to_level(&mut self, desired_level: u8) {
