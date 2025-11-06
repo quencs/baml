@@ -23,4 +23,4 @@ expr:
         start: 66
         end: 81
   edges: {}
-mermaid: "flowchart TD\n    subgraph cluster_NTopLevelNotFlattened_root_0_7274[\"TopLevelNotFlattened\"]\n        NTopLevelNotFlattened_root_0_7274((\"TopLevelNotFlattened\"))\n        NTopLevelNotFlattened_root_0_hdr_only_child_0_8783[\"Only Child\"]\n    end"
+mermaid: "flowchart TD\nsubgraph n0[\"TopLevelNotFlattened\"]\n  direction TB\n  n1[\"Only Child\"]\nend\n"

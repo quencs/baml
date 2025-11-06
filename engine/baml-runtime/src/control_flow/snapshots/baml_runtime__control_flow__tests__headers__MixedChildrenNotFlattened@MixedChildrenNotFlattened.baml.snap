@@ -39,4 +39,4 @@ expr:
         start: 138
         end: 152
   edges: {}
-mermaid: "flowchart TD\n    subgraph cluster_NMixedChildrenNotFlattened_root_0_b41c[\"MixedChildrenNotFlattened\"]\n        NMixedChildrenNotFlattened_root_0_b41c((\"MixedChildrenNotFlattened\"))\n        subgraph cluster_NMixedChildrenNotFlattened_root_0_hdr_md_child_0_2dfe[\"MD Child\"]\n            NMixedChildrenNotFlattened_root_0_hdr_md_child_0_2dfe[\"MD Child\"]\n            subgraph cluster_NMixedChildrenNotFlattened_root_0_hdr_md_child_0_loop_for_item_in_items_0_bb83[\"for (item in items)\"]\n                NMixedChildrenNotFlattened_root_0_hdr_md_child_0_loop_for_item_in_items_0_bb83([\"for (item in items)\"])\n                NMixedChildrenNotFlattened_root_0_hdr_md_child_0_loop_for_item_in_items_0_hdr_loop_child_0_8ec6[\"Loop Child\"]\n            end\n        end\n    end"
+mermaid: "flowchart TD\nsubgraph n0[\"MixedChildrenNotFlattened\"]\n  direction TB\n  subgraph n1[\"MD Child\"]\n    direction TB\n    subgraph n2[\"Loop: for (item in items)\"]\n      direction TB\n      n3[\"Loop Child\"]\n    end\n  end\nend\n"

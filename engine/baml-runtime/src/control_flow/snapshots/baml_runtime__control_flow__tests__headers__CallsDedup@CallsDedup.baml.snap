@@ -43,4 +43,4 @@ expr:
       - "CallsDedup|root:0|hdr:step-b:1"
     "CallsDedup|root:0|hdr:step-b:1":
       - "CallsDedup|root:0|hdr:step-c:2"
-mermaid: "flowchart TD\n    subgraph cluster_NCallsDedup_root_0_b695[\"CallsDedup\"]\n        NCallsDedup_root_0_b695((\"CallsDedup\"))\n        NCallsDedup_root_0_hdr_step_a_0_0910[\"Step A\"]\n        NCallsDedup_root_0_hdr_step_b_1_0752[\"Step B\"]\n        NCallsDedup_root_0_hdr_step_c_2_b94e[\"Step C\"]\n    end\n    NCallsDedup_root_0_hdr_step_a_0_0910 --> NCallsDedup_root_0_hdr_step_b_1_0752\n    NCallsDedup_root_0_hdr_step_b_1_0752 --> NCallsDedup_root_0_hdr_step_c_2_b94e"
+mermaid: "flowchart TD\nsubgraph n0[\"CallsDedup\"]\n  direction TB\n  n1[\"Step A\"]\n  n2[\"Step B\"]\n  n3[\"Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"

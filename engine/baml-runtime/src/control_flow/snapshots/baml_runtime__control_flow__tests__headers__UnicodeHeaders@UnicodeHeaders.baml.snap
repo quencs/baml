@@ -39,4 +39,4 @@ expr:
         start: 176
         end: 208
   edges: {}
-mermaid: "flowchart TD\n    subgraph cluster_NUnicodeHeaders_root_0_ea70[\"UnicodeHeaders\"]\n        NUnicodeHeaders_root_0_ea70((\"UnicodeHeaders\"))\n        subgraph cluster_NUnicodeHeaders_root_0_hdr_header_0_0_8114[\"你好世界\"]\n            NUnicodeHeaders_root_0_hdr_header_0_0_8114[\"你好世界\"]\n            subgraph cluster_NUnicodeHeaders_root_0_hdr_header_0_0_hdr_mojis_0_6a74[\"Émojis 🎉🎊\"]\n                NUnicodeHeaders_root_0_hdr_header_0_0_hdr_mojis_0_6a74[\"Émojis 🎉🎊\"]\n                NUnicodeHeaders_root_0_hdr_header_0_0_hdr_mojis_0_hdr_special_characters_0_2c7d[\"Special «Characters» ™\"]\n            end\n        end\n    end"
+mermaid: "flowchart TD\nsubgraph n0[\"UnicodeHeaders\"]\n  direction TB\n  subgraph n1[\"你好世界\"]\n    direction TB\n    subgraph n2[\"Émojis 🎉🎊\"]\n      direction TB\n      n3[\"Special «Characters» ™\"]\n    end\n  end\nend\n"

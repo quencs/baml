@@ -23,4 +23,4 @@ expr:
         start: 38
         end: 53
   edges: {}
-mermaid: "flowchart TD\n    subgraph cluster_NSimpleTest_root_0_c71a[\"SimpleTest\"]\n        NSimpleTest_root_0_c71a((\"SimpleTest\"))\n        NSimpleTest_root_0_hdr_main_header_0_91a0[\"Main Header\"]\n    end"
+mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"

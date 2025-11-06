@@ -25,4 +25,4 @@ expr:
   edges:
     "GenerateTitle|root:0":
       - "GenerateTitle|root:0|scope:llm:0"
-mermaid: "flowchart TD\n    subgraph cluster_NGenerateTitle_root_0_72a6[\"GenerateTitle\"]\n        NGenerateTitle_root_0_72a6((\"GenerateTitle\"))\n        NGenerateTitle_root_0_scope_llm_0_ffd2[\"LLM client: GPT4\"]\n    end\n    NGenerateTitle_root_0_72a6 --> NGenerateTitle_root_0_scope_llm_0_ffd2"
+mermaid: "flowchart TD\nsubgraph n0[\"GenerateTitle\"]\n  direction TB\n  n1[\"OtherScope: LLM client: GPT4\"]\nend\nn0 --> n1\n"
