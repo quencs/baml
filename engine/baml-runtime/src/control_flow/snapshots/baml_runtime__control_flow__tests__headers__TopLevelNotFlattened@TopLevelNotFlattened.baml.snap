@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/TopLevelNotFlattened.baml
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Only Child\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/TopLevelNotFlattened.baml\", contents: ... },\n                        start: 66,\n                        end: 81,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"done\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/TopLevelNotFlattened.baml\", contents: ... },\n                    start: 86,\n                    end: 92,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "TopLevelNotFlattened|c:func:0":
+    "TopLevelNotFlattened|root:0":
       label: TopLevelNotFlattened
       node_type: function
       parent: ~
@@ -14,27 +14,13 @@ expr:
         file: src/control_flow/testdata/TopLevelNotFlattened.baml
         start: 18
         end: 94
-    "TopLevelNotFlattened|c:func:0|h:only-child:0":
+    "TopLevelNotFlattened|root:0|hdr:only-child:0":
       label: Only Child
-      node_type: expr
-      parent: "TopLevelNotFlattened|c:func:0"
+      node_type: header
+      parent: "TopLevelNotFlattened|root:0"
       span:
         file: src/control_flow/testdata/TopLevelNotFlattened.baml
         start: 66
         end: 81
-    "TopLevelNotFlattened|c:func:0|h:only-child:0|s:1":
-      label: expr
-      node_type: expr
-      parent: "TopLevelNotFlattened|c:func:0|h:only-child:0"
-      span:
-        file: src/control_flow/testdata/TopLevelNotFlattened.baml
-        start: 86
-        end: 92
-  edges:
-    "TopLevelNotFlattened|c:func:0":
-      - dst: "TopLevelNotFlattened|c:func:0|h:only-child:0"
-        label: ""
-    "TopLevelNotFlattened|c:func:0|h:only-child:0":
-      - dst: "TopLevelNotFlattened|c:func:0|h:only-child:0|s:1"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NTopLevelNotFlattened_c_func_0_2389[TopLevelNotFlattened]\n        NTopLevelNotFlattened_c_func_0_2389((TopLevelNotFlattened))\n        subgraph cluster_NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff[Only Child]\n            NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff[Only Child]\n            NTopLevelNotFlattened_c_func_0_h_only_child_0_s_1_46de[expr]\n        end\n    end\n    NTopLevelNotFlattened_c_func_0_2389 --> NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff\n    NTopLevelNotFlattened_c_func_0_h_only_child_0_89ff --> NTopLevelNotFlattened_c_func_0_h_only_child_0_s_1_46de"
+  edges: {}
+mermaid: "flowchart TD\n    subgraph cluster_NTopLevelNotFlattened_root_0_7274[TopLevelNotFlattened]\n        NTopLevelNotFlattened_root_0_7274((TopLevelNotFlattened))\n        NTopLevelNotFlattened_root_0_hdr_only_child_0_8783[Only Child]\n    end"

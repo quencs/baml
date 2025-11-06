@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/ForLoopWithBodyHeaders.baml
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Loop Processing\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                        start: 47,\n                        end: 66,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"items\",\n                value: Array(\n                    [\n                        NumericValue(\n                            \"1\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 84,\n                                end: 85,\n                            },\n                        ),\n                        NumericValue(\n                            \"2\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 87,\n                                end: 88,\n                            },\n                        ),\n                        NumericValue(\n                            \"3\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 90,\n                                end: 91,\n                            },\n                        ),\n                        NumericValue(\n                            \"4\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 93,\n                                end: 94,\n                            },\n                        ),\n                        NumericValue(\n                            \"5\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 96,\n                                end: 97,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                        start: 83,\n                        end: 98,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                    start: 71,\n                    end: 100,\n                },\n            },\n            DeclareAndAssign {\n                name: \"result\",\n                value: NumericValue(\n                    \"0\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                        start: 117,\n                        end: 118,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                    start: 104,\n                    end: 120,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 2,\n                    title: \"Main Loop\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                        start: 125,\n                        end: 139,\n                    },\n                },\n            ),\n            ForLoop {\n                identifier: \"item\",\n                iterator: Identifier(\n                    \"items\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                        start: 161,\n                        end: 166,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Item Processing\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                    start: 178,\n                                    end: 199,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"processed\",\n                            value: BinaryOperation {\n                                left: Identifier(\n                                    \"item\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                        start: 224,\n                                        end: 228,\n                                    },\n                                ),\n                                operator: Mul,\n                                right: NumericValue(\n                                    \"2\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                        start: 231,\n                                        end: 232,\n                                    },\n                                ),\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                    start: 224,\n                                    end: 232,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 208,\n                                end: 234,\n                            },\n                        },\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 2,\n                                title: \"Accumulation\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                    start: 243,\n                                    end: 262,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"result2\",\n                            value: BinaryOperation {\n                                left: Identifier(\n                                    \"result\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                        start: 285,\n                                        end: 291,\n                                    },\n                                ),\n                                operator: Add,\n                                right: Identifier(\n                                    \"processed\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                        start: 294,\n                                        end: 303,\n                                    },\n                                ),\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                    start: 285,\n                                    end: 303,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 271,\n                                end: 305,\n                            },\n                        },\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"result2\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                                start: 314,\n                                end: 321,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                    start: 144,\n                    end: 327,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 2,\n                    title: \"Final Result\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                        start: 333,\n                        end: 350,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"result\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithBodyHeaders.baml\", contents: ... },\n                    start: 355,\n                    end: 361,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "ForLoopWithBodyHeaders|c:func:0":
+    "ForLoopWithBodyHeaders|root:0":
       label: ForLoopWithBodyHeaders
       node_type: function
       parent: ~
@@ -14,150 +14,55 @@ expr:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
         start: 0
         end: 363
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0":
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0":
       label: Loop Processing
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0"
+      node_type: header
+      parent: "ForLoopWithBodyHeaders|root:0"
       span:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
         start: 47
         end: 66
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0":
-      label: Main Loop
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 125
-        end: 139
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|c:loop:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 178
-        end: 199
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0":
-      label: Item Processing
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 178
-        end: 199
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0":
-      label: Accumulation
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 243
-        end: 262
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0|s:3":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 271
-        end: 305
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0|s:4":
-      label: expr
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 314
-        end: 321
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:final-result:0":
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:final-result:1":
       label: Final Result
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0"
+      node_type: header
+      parent: "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0"
       span:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
         start: 333
         end: 350
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:final-result:0|s:6":
-      label: expr
-      node_type: expr
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:final-result:0"
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0":
+      label: Main Loop
+      node_type: header
+      parent: "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0"
       span:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 355
-        end: 361
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 208
-        end: 234
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|s:4":
-      label: for
+        start: 125
+        end: 139
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0|loop:for-item-in-items:0":
+      label: for (item in items)
       node_type: loop
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0"
+      parent: "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0"
       span:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
         start: 144
         end: 327
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0"
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:item-processing:0":
+      label: Item Processing
+      node_type: header
+      parent: "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0|loop:for-item-in-items:0"
       span:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 71
-        end: 100
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|s:2":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0"
+        start: 178
+        end: 199
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:item-processing:0|hdr:accumulation:0":
+      label: Accumulation
+      node_type: header
+      parent: "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:item-processing:0"
       span:
         file: src/control_flow/testdata/ForLoopWithBodyHeaders.baml
-        start: 104
-        end: 120
+        start: 243
+        end: 262
   edges:
-    "ForLoopWithBodyHeaders|c:func:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|s:1"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|s:4"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|c:loop:0|c:block:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|s:1"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0|s:3"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0|s:3":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0|s:4"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0|s:4":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|s:4"
-        label: repeat
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:final-result:0":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:final-result:0|s:6"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|s:1":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:accumulation:0"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|s:4":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|c:loop:0|c:block:0"
-        label: ""
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0|h:item-processing:0|h:final-result:0"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|s:1":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|s:2"
-        label: ""
-    "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|s:2":
-      - dst: "ForLoopWithBodyHeaders|c:func:0|h:loop-processing:0|h:main-loop:0"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NForLoopWithBodyHeaders_c_func_0_a506[ForLoopWithBodyHeaders]\n        NForLoopWithBodyHeaders_c_func_0_a506((ForLoopWithBodyHeaders))\n        subgraph cluster_NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_5e0f[Loop Processing]\n            NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_5e0f[Loop Processing]\n            subgraph cluster_NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_b52a[Main Loop]\n                NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_b52a[Main Loop]\n                subgraph cluster_NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_1938[Item Processing]\n                    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_1938[Item Processing]\n                    subgraph cluster_NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_d66a[Accumulation]\n                        NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_d66a[Accumulation]\n                        NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_s_3_ec63[stmt]\n                        NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_s_4_d3f3[expr]\n                    end\n                    subgraph cluster_NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_final_result_0_10dc[Final Result]\n                        NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_final_result_0_10dc[Final Result]\n                        NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_final_result_0_s_6_74c2[expr]\n                    end\n                    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_s_1_3dfb[stmt]\n                end\n                NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_s_4_b009([for])\n            end\n            NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_s_1_6e0e[stmt]\n            NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_s_2_5e18[stmt]\n        end\n    end\n    NForLoopWithBodyHeaders_c_func_0_a506 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_5e0f\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_5e0f --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_s_1_6e0e\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_b52a --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_s_4_b009\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_c_loop_0_c_block_0_3c13 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_1938\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_1938 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_s_1_3dfb\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_d66a --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_s_3_ec63\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_s_3_ec63 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_s_4_d3f3\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_s_4_d3f3 -->|repeat| NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_s_4_b009\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_final_result_0_10dc --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_final_result_0_s_6_74c2\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_s_1_3dfb --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_accumulation_0_d66a\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_s_4_b009 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_c_loop_0_c_block_0_3c13\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_s_4_b009 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_h_item_processing_0_h_final_result_0_10dc\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_s_1_6e0e --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_s_2_5e18\n    NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_s_2_5e18 --> NForLoopWithBodyHeaders_c_func_0_h_loop_processing_0_h_main_loop_0_b52a"
+    "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:main-loop:0":
+      - "ForLoopWithBodyHeaders|root:0|hdr:loop-processing:0|hdr:final-result:1"
+mermaid: "flowchart TD\n    subgraph cluster_NForLoopWithBodyHeaders_root_0_b6be[ForLoopWithBodyHeaders]\n        NForLoopWithBodyHeaders_root_0_b6be((ForLoopWithBodyHeaders))\n        subgraph cluster_NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_5087[Loop Processing]\n            NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_5087[Loop Processing]\n            NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_final_result_1_4af7[Final Result]\n            subgraph cluster_NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_650e[Main Loop]\n                NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_650e[Main Loop]\n                subgraph cluster_NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_loop_for_item_in_items_0_ed44[for (item in items)]\n                    NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_loop_for_item_in_items_0_ed44([for (item in items)])\n                    subgraph cluster_NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_item_processing_0_0752[Item Processing]\n                        NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_item_processing_0_0752[Item Processing]\n                        NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_item_processing_0_hdr_accumulation_0_bc4d[Accumulation]\n                    end\n                end\n            end\n        end\n    end\n    NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_main_loop_0_650e --> NForLoopWithBodyHeaders_root_0_hdr_loop_processing_0_hdr_final_result_1_4af7"

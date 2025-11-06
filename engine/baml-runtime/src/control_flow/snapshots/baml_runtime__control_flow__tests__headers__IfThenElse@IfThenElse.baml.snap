@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/IfThenElse.baml
 hir: "Some(\n    Block {\n        statements: [\n            DeclareAndAssign {\n                name: \"x\",\n                value: NumericValue(\n                    \"1\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 54,\n                        end: 55,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                    start: 46,\n                    end: 57,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Before\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 62,\n                        end: 73,\n                    },\n                },\n            ),\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"If should always do else\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 79,\n                        end: 107,\n                    },\n                },\n            ),\n            Expression {\n                expr: If {\n                    condition: BoolValue(\n                        false,\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                            start: 116,\n                            end: 121,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"impossible: return 1\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                                            start: 134,\n                                            end: 159,\n                                        },\n                                    },\n                                ),\n                            ],\n                            trailing_expr: Some(\n                                NumericValue(\n                                    \"1\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                                        start: 168,\n                                        end: 169,\n                                    },\n                                ),\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                            start: 123,\n                            end: 175,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [\n                                    HeaderContextEnter(\n                                        HeaderContext {\n                                            level: 1,\n                                            title: \"should always be 5\",\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                                                start: 191,\n                                                end: 214,\n                                            },\n                                        },\n                                    ),\n                                ],\n                                trailing_expr: Some(\n                                    NumericValue(\n                                        \"5\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                                            start: 223,\n                                            end: 224,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                                start: 181,\n                                end: 230,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 112,\n                        end: 230,\n                    },\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                    start: 112,\n                    end: 231,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"After\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 236,\n                        end: 245,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            BinaryOperation {\n                left: Identifier(\n                    \"x\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 250,\n                        end: 251,\n                    },\n                ),\n                operator: Add,\n                right: NumericValue(\n                    \"4\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                        start: 254,\n                        end: 255,\n                    },\n                ),\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/IfThenElse.baml\", contents: ... },\n                    start: 250,\n                    end: 255,\n                },\n            },\n        ),\n    },\n)"
 expr:
   nodes:
-    "IfThenElse|c:func:0":
+    "IfThenElse|root:0":
       label: IfThenElse
       node_type: function
       parent: ~
@@ -14,139 +14,73 @@ expr:
         file: src/control_flow/testdata/IfThenElse.baml
         start: 11
         end: 257
-    "IfThenElse|c:func:0|h:before:0":
-      label: Before
-      node_type: expr
-      parent: "IfThenElse|c:func:0"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 62
-        end: 73
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0":
-      label: If should always do else
-      node_type: expr
-      parent: "IfThenElse|c:func:0"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 79
-        end: 107
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 134
-        end: 159
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0":
-      label: "impossible: return 1"
-      node_type: expr
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 134
-        end: 159
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 191
-        end: 214
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0":
+    "IfThenElse|root:0|hdr:after:2":
       label: After
-      node_type: expr
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1"
+      node_type: header
+      parent: "IfThenElse|root:0"
       span:
         file: src/control_flow/testdata/IfThenElse.baml
         start: 236
         end: 245
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0|s:5":
-      label: expr
-      node_type: expr
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0"
+    "IfThenElse|root:0|hdr:before:0":
+      label: Before
+      node_type: header
+      parent: "IfThenElse|root:0"
       span:
         file: src/control_flow/testdata/IfThenElse.baml
-        start: 250
-        end: 255
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0":
-      label: should always be 5
-      node_type: expr
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1"
+        start: 62
+        end: 73
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1":
+      label: If should always do else
+      node_type: header
+      parent: "IfThenElse|root:0"
       span:
         file: src/control_flow/testdata/IfThenElse.baml
-        start: 191
-        end: 214
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0|s:1":
-      label: expr
-      node_type: expr
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 223
-        end: 224
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|s:1":
-      label: expr
-      node_type: expr
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0"
-      span:
-        file: src/control_flow/testdata/IfThenElse.baml
-        start: 168
-        end: 169
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|s:3":
-      label: if
-      node_type: branch
-      parent: "IfThenElse|c:func:0|h:if-should-always-do-else:0"
+        start: 79
+        end: 107
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0":
+      label: if (false)
+      node_type: branch-group
+      parent: "IfThenElse|root:0|hdr:if-should-always-do-else:1"
       span:
         file: src/control_flow/testdata/IfThenElse.baml
         start: 112
         end: 230
-    "IfThenElse|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "IfThenElse|c:func:0"
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:else:1":
+      label: else
+      node_type: branch-arm
+      parent: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0"
       span:
         file: src/control_flow/testdata/IfThenElse.baml
-        start: 46
-        end: 57
+        start: 181
+        end: 230
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:else:1|hdr:should-always-be-5:0":
+      label: should always be 5
+      node_type: header
+      parent: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:else:1"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 191
+        end: 214
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:if-false:0":
+      label: if (false)
+      node_type: branch-arm
+      parent: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 123
+        end: 175
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:if-false:0|hdr:impossible-return-1:0":
+      label: "impossible: return 1"
+      node_type: header
+      parent: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:if-false:0"
+      span:
+        file: src/control_flow/testdata/IfThenElse.baml
+        start: 134
+        end: 159
   edges:
-    "IfThenElse|c:func:0":
-      - dst: "IfThenElse|c:func:0|s:0"
-        label: ""
-    "IfThenElse|c:func:0|h:before:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|s:3"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|c:block:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|s:1"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|c:block:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0|s:5"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0|s:1"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:should-always-be-5:0|s:1":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|s:1":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|h:after:0"
-        label: ""
-    "IfThenElse|c:func:0|h:if-should-always-do-else:0|s:3":
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|c:block:0"
-        label: ""
-      - dst: "IfThenElse|c:func:0|h:if-should-always-do-else:0|c:arm:0|h:impossible-return-1:0|c:arm:1|c:block:0"
-        label: ""
-    "IfThenElse|c:func:0|s:0":
-      - dst: "IfThenElse|c:func:0|h:before:0"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NIfThenElse_c_func_0_bf97[IfThenElse]\n        NIfThenElse_c_func_0_bf97((IfThenElse))\n        NIfThenElse_c_func_0_h_before_0_c74a[Before]\n        subgraph cluster_NIfThenElse_c_func_0_h_if_should_always_do_else_0_d445[If should always do else]\n            NIfThenElse_c_func_0_h_if_should_always_do_else_0_d445[If should always do else]\n            NIfThenElse_c_func_0_h_if_should_always_do_else_0_s_3_214b{if}\n        end\n        NIfThenElse_c_func_0_s_0_f217[stmt]\n    end\n    NIfThenElse_c_func_0_bf97 --> NIfThenElse_c_func_0_s_0_f217\n    NIfThenElse_c_func_0_h_before_0_c74a --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_d445\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_d445 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_s_3_214b\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_c_block_0_ff57 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_1659\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_1659 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_s_1_2a73\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_c_block_0_3db7 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_should_always_be_5_0_a9d4\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_after_0_ea4b --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_after_0_s_5_decc\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_should_always_be_5_0_a9d4 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_should_always_be_5_0_s_1_2407\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_should_always_be_5_0_s_1_2407 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_after_0_ea4b\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_s_1_2a73 --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_h_after_0_ea4b\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_s_3_214b --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_c_block_0_ff57\n    NIfThenElse_c_func_0_h_if_should_always_do_else_0_s_3_214b --> NIfThenElse_c_func_0_h_if_should_always_do_else_0_c_arm_0_h_impossible_return_1_0_c_arm_1_c_block_0_3db7\n    NIfThenElse_c_func_0_s_0_f217 --> NIfThenElse_c_func_0_h_before_0_c74a"
+    "IfThenElse|root:0|hdr:before:0":
+      - "IfThenElse|root:0|hdr:if-should-always-do-else:1"
+    "IfThenElse|root:0|hdr:if-should-always-do-else:1":
+      - "IfThenElse|root:0|hdr:after:2"
+mermaid: "flowchart TD\n    subgraph cluster_NIfThenElse_root_0_48b8[IfThenElse]\n        NIfThenElse_root_0_48b8((IfThenElse))\n        NIfThenElse_root_0_hdr_after_2_40ed[After]\n        NIfThenElse_root_0_hdr_before_0_c2cb[Before]\n        subgraph cluster_NIfThenElse_root_0_hdr_if_should_always_do_else_1_7636[If should always do else]\n            NIfThenElse_root_0_hdr_if_should_always_do_else_1_7636[If should always do else]\n            subgraph cluster_NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_41ad[if (false)]\n                NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_41ad{if (false)}\n                subgraph cluster_NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_arm_else_1_7c60[else]\n                    NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_arm_else_1_7c60[else]\n                    NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_arm_else_1_hdr_should_always_be_5_0_296a[should always be 5]\n                end\n                subgraph cluster_NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_arm_if_false_0_d527[if (false)]\n                    NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_arm_if_false_0_d527[if (false)]\n                    NIfThenElse_root_0_hdr_if_should_always_do_else_1_bg_if_false_0_arm_if_false_0_hdr_impossible_return_1_0_aeec[impossible: return 1]\n                end\n            end\n        end\n    end\n    NIfThenElse_root_0_hdr_before_0_c2cb --> NIfThenElse_root_0_hdr_if_should_always_do_else_1_7636\n    NIfThenElse_root_0_hdr_if_should_always_do_else_1_7636 --> NIfThenElse_root_0_hdr_after_2_40ed"

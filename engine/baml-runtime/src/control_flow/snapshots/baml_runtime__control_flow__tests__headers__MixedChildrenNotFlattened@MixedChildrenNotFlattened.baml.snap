@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/MixedChildrenNotFlattened.bam
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"MD Child\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                        start: 64,\n                        end: 77,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"items\",\n                value: Array(\n                    [\n                        NumericValue(\n                            \"42\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                                start: 95,\n                                end: 97,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                        start: 94,\n                        end: 98,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                    start: 82,\n                    end: 100,\n                },\n            },\n            ForLoop {\n                identifier: \"item\",\n                iterator: Identifier(\n                    \"items\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                        start: 121,\n                        end: 126,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Loop Child\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                                    start: 138,\n                                    end: 152,\n                                },\n                            },\n                        ),\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"item\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                                start: 161,\n                                end: 165,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                    start: 104,\n                    end: 171,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"done\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                    start: 176,\n                    end: 182,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "MixedChildrenNotFlattened|c:func:0":
+    "MixedChildrenNotFlattened|root:0":
       label: MixedChildrenNotFlattened
       node_type: function
       parent: ~
@@ -14,84 +14,29 @@ expr:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 11
         end: 184
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0":
+    "MixedChildrenNotFlattened|root:0|hdr:md-child:0":
       label: MD Child
-      node_type: expr
-      parent: "MixedChildrenNotFlattened|c:func:0"
+      node_type: header
+      parent: "MixedChildrenNotFlattened|root:0"
       span:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 64
         end: 77
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
-        start: 138
-        end: 152
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0":
-      label: Loop Child
-      node_type: expr
-      parent: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
-        start: 138
-        end: 152
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0|s:1":
-      label: expr
-      node_type: expr
-      parent: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0"
-      span:
-        file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
-        start: 161
-        end: 165
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0|s:3":
-      label: expr
-      node_type: expr
-      parent: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0"
-      span:
-        file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
-        start: 176
-        end: 182
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "MixedChildrenNotFlattened|c:func:0|h:md-child:0"
-      span:
-        file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
-        start: 82
-        end: 100
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:2":
-      label: for
+    "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0":
+      label: for (item in items)
       node_type: loop
-      parent: "MixedChildrenNotFlattened|c:func:0|h:md-child:0"
+      parent: "MixedChildrenNotFlattened|root:0|hdr:md-child:0"
       span:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 104
         end: 171
-  edges:
-    "MixedChildrenNotFlattened|c:func:0":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0"
-        label: ""
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:1"
-        label: ""
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|c:block:0":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0"
-        label: ""
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0|s:1"
-        label: ""
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0|s:1":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:2"
-        label: repeat
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:1":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:2"
-        label: ""
-    "MixedChildrenNotFlattened|c:func:0|h:md-child:0|s:2":
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|c:block:0"
-        label: ""
-      - dst: "MixedChildrenNotFlattened|c:func:0|h:md-child:0|c:loop:0|h:loop-child:0|s:3"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NMixedChildrenNotFlattened_c_func_0_55c5[MixedChildrenNotFlattened]\n        NMixedChildrenNotFlattened_c_func_0_55c5((MixedChildrenNotFlattened))\n        subgraph cluster_NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d[MD Child]\n            NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d[MD Child]\n            NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_1_cdb6[stmt]\n            NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_2_63f4([for])\n        end\n    end\n    NMixedChildrenNotFlattened_c_func_0_55c5 --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_a36d --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_1_cdb6\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_c_block_0_1cf8 --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_h_loop_child_0_a18f\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_h_loop_child_0_a18f --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_h_loop_child_0_s_1_9bb8\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_h_loop_child_0_s_1_9bb8 -->|repeat| NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_2_63f4\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_1_cdb6 --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_2_63f4\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_2_63f4 --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_c_block_0_1cf8\n    NMixedChildrenNotFlattened_c_func_0_h_md_child_0_s_2_63f4 --> NMixedChildrenNotFlattened_c_func_0_h_md_child_0_c_loop_0_h_loop_child_0_s_3_9cd9"
+    "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0|hdr:loop-child:0":
+      label: Loop Child
+      node_type: header
+      parent: "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0"
+      span:
+        file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
+        start: 138
+        end: 152
+  edges: {}
+mermaid: "flowchart TD\n    subgraph cluster_NMixedChildrenNotFlattened_root_0_b41c[MixedChildrenNotFlattened]\n        NMixedChildrenNotFlattened_root_0_b41c((MixedChildrenNotFlattened))\n        subgraph cluster_NMixedChildrenNotFlattened_root_0_hdr_md_child_0_2dfe[MD Child]\n            NMixedChildrenNotFlattened_root_0_hdr_md_child_0_2dfe[MD Child]\n            subgraph cluster_NMixedChildrenNotFlattened_root_0_hdr_md_child_0_loop_for_item_in_items_0_bb83[for (item in items)]\n                NMixedChildrenNotFlattened_root_0_hdr_md_child_0_loop_for_item_in_items_0_bb83([for (item in items)])\n                NMixedChildrenNotFlattened_root_0_hdr_md_child_0_loop_for_item_in_items_0_hdr_loop_child_0_8ec6[Loop Child]\n            end\n        end\n    end"

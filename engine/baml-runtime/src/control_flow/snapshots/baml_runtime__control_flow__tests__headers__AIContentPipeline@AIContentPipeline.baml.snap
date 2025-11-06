@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/AIContentPipeline.baml
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Fetch Resources\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 145,\n                        end: 164,\n                    },\n                },\n            ),\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 2,\n                    title: \"Retrieve Emails and Posts from Database\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 170,\n                        end: 214,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"emails\",\n                value: Call {\n                    function: Identifier(\n                        \"GetEmails\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 232,\n                            end: 241,\n                        },\n                    ),\n                    type_args: [],\n                    args: [],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 232,\n                        end: 243,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 219,\n                    end: 245,\n                },\n            },\n            DeclareAndAssign {\n                name: \"posts\",\n                value: Call {\n                    function: Identifier(\n                        \"GetPosts\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 261,\n                            end: 269,\n                        },\n                    ),\n                    type_args: [],\n                    args: [],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 261,\n                        end: 271,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 249,\n                    end: 273,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 2,\n                    title: \"Process and Load Video\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 278,\n                        end: 305,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"processed\",\n                value: Call {\n                    function: Identifier(\n                        \"ProcessVideo\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 326,\n                            end: 338,\n                        },\n                    ),\n                    type_args: [],\n                    args: [\n                        Identifier(\n                            \"video_id\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 339,\n                                end: 347,\n                            },\n                        ),\n                        Identifier(\n                            \"zoom_meeting_id\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 349,\n                                end: 364,\n                            },\n                        ),\n                    ],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 326,\n                        end: 365,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 310,\n                    end: 367,\n                },\n            },\n            DeclareAndAssign {\n                name: \"video_record\",\n                value: Call {\n                    function: Identifier(\n                        \"GetVideo\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 390,\n                            end: 398,\n                        },\n                    ),\n                    type_args: [],\n                    args: [\n                        Identifier(\n                            \"video_id\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 399,\n                                end: 407,\n                            },\n                        ),\n                    ],\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 390,\n                        end: 408,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 371,\n                    end: 410,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Generate Content\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 416,\n                        end: 436,\n                    },\n                },\n            ),\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 2,\n                    title: \"Video Summarization\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 442,\n                        end: 466,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"has_transcript\",\n                value: BinaryOperation {\n                    left: Identifier(\n                        \"transcript\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 492,\n                            end: 502,\n                        },\n                    ),\n                    operator: Neq,\n                    right: StringValue(\n                        \"\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 506,\n                            end: 508,\n                        },\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 492,\n                        end: 508,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 471,\n                    end: 510,\n                },\n            },\n            DeclareAndAssign {\n                name: \"summary\",\n                value: If {\n                    condition: Identifier(\n                        \"has_transcript\",\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 532,\n                            end: 546,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"Generate Summary\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 558,\n                                            end: 580,\n                                        },\n                                    },\n                                ),\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 2,\n                                        title: \"Create Summary Text\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 590,\n                                            end: 616,\n                                        },\n                                    },\n                                ),\n                                DeclareAndAssign {\n                                    name: \"s\",\n                                    value: Call {\n                                        function: Identifier(\n                                            \"SummarizeVideo\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 633,\n                                                end: 647,\n                                            },\n                                        ),\n                                        type_args: [],\n                                        args: [\n                                            Identifier(\n                                                \"transcript\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                    start: 648,\n                                                    end: 658,\n                                                },\n                                            ),\n                                            Identifier(\n                                                \"title\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                    start: 660,\n                                                    end: 665,\n                                                },\n                                            ),\n                                        ],\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 633,\n                                            end: 666,\n                                        },\n                                    },\n                                    annotated_type: None,\n                                    watch: None,\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 625,\n                                        end: 668,\n                                    },\n                                },\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 2,\n                                        title: \"Label Summary Category\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 677,\n                                            end: 706,\n                                        },\n                                    },\n                                ),\n                                DeclareAndAssign {\n                                    name: \"category\",\n                                    value: Call {\n                                        function: Identifier(\n                                            \"LabelSummaryCategory\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 730,\n                                                end: 750,\n                                            },\n                                        ),\n                                        type_args: [],\n                                        args: [\n                                            Identifier(\n                                                \"s\",\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                    start: 751,\n                                                    end: 752,\n                                                },\n                                            ),\n                                        ],\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 730,\n                                            end: 753,\n                                        },\n                                    },\n                                    annotated_type: None,\n                                    watch: None,\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 715,\n                                        end: 755,\n                                    },\n                                },\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"Save Summary\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 764,\n                                            end: 782,\n                                        },\n                                    },\n                                ),\n                            ],\n                            trailing_expr: Some(\n                                Call {\n                                    function: Identifier(\n                                        \"SaveSummary\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 791,\n                                            end: 802,\n                                        },\n                                    ),\n                                    type_args: [],\n                                    args: [\n                                        Identifier(\n                                            \"video_id\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 803,\n                                                end: 811,\n                                            },\n                                        ),\n                                        Identifier(\n                                            \"s\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 813,\n                                                end: 814,\n                                            },\n                                        ),\n                                    ],\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 791,\n                                        end: 815,\n                                    },\n                                },\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 548,\n                            end: 821,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [\n                                    HeaderContextEnter(\n                                        HeaderContext {\n                                            level: 1,\n                                            title: \"Skip Summarization\",\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 837,\n                                                end: 861,\n                                            },\n                                        },\n                                    ),\n                                ],\n                                trailing_expr: Some(\n                                    StringValue(\n                                        \"no-transcript\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 870,\n                                            end: 885,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 827,\n                                end: 891,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 528,\n                        end: 891,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 514,\n                    end: 893,\n                },\n            },\n            DeclareAndAssign {\n                name: \"content_types\",\n                value: Array(\n                    [\n                        StringValue(\n                            \"email\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 919,\n                                end: 926,\n                            },\n                        ),\n                        StringValue(\n                            \"x\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 928,\n                                end: 931,\n                            },\n                        ),\n                        StringValue(\n                            \"linkedin\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 933,\n                                end: 943,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 918,\n                        end: 944,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 898,\n                    end: 946,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 2,\n                    title: \"Generate Drafts for Posts\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 951,\n                        end: 981,\n                    },\n                },\n            ),\n            ForLoop {\n                identifier: \"kind\",\n                iterator: Identifier(\n                    \"content_types\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 1003,\n                        end: 1016,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Get Content Type and Generate Draft\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                    start: 1028,\n                                    end: 1069,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"structure\",\n                            value: Call {\n                                function: Identifier(\n                                    \"GetStructure\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 1094,\n                                        end: 1106,\n                                    },\n                                ),\n                                type_args: [],\n                                args: [\n                                    Identifier(\n                                        \"kind\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1107,\n                                            end: 1111,\n                                        },\n                                    ),\n                                ],\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                    start: 1094,\n                                    end: 1112,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1078,\n                                end: 1114,\n                            },\n                        },\n                        DeclareAndAssign {\n                            name: \"draft\",\n                            value: Call {\n                                function: Identifier(\n                                    \"GenerateContent\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 1134,\n                                        end: 1149,\n                                    },\n                                ),\n                                type_args: [],\n                                args: [\n                                    Identifier(\n                                        \"kind\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1150,\n                                            end: 1154,\n                                        },\n                                    ),\n                                    Identifier(\n                                        \"video_id\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1156,\n                                            end: 1164,\n                                        },\n                                    ),\n                                    Identifier(\n                                        \"summary\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1166,\n                                            end: 1173,\n                                        },\n                                    ),\n                                ],\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                    start: 1134,\n                                    end: 1174,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1122,\n                                end: 1176,\n                            },\n                        },\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Save Draft\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                    start: 1185,\n                                    end: 1201,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"saved_draft\",\n                            value: Call {\n                                function: Identifier(\n                                    \"SaveDraft\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 1228,\n                                        end: 1237,\n                                    },\n                                ),\n                                type_args: [],\n                                args: [\n                                    Identifier(\n                                        \"video_id\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1238,\n                                            end: 1246,\n                                        },\n                                    ),\n                                    Identifier(\n                                        \"draft\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1248,\n                                            end: 1253,\n                                        },\n                                    ),\n                                ],\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                    start: 1228,\n                                    end: 1254,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1210,\n                                end: 1256,\n                            },\n                        },\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"saved_draft\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1265,\n                                end: 1276,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 986,\n                    end: 1282,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Prepare Pull Request\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 1288,\n                        end: 1312,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"pr_status\",\n                value: If {\n                    condition: BinaryOperation {\n                        left: Identifier(\n                            \"summary\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1337,\n                                end: 1344,\n                            },\n                        ),\n                        operator: Neq,\n                        right: StringValue(\n                            \"no-transcript\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1348,\n                                end: 1363,\n                            },\n                        ),\n                        span: Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 1337,\n                            end: 1363,\n                        },\n                    },\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"Create GitHub PR\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1375,\n                                            end: 1397,\n                                        },\n                                    },\n                                ),\n                            ],\n                            trailing_expr: Some(\n                                Call {\n                                    function: Identifier(\n                                        \"CreatePR\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1406,\n                                            end: 1414,\n                                        },\n                                    ),\n                                    type_args: [],\n                                    args: [\n                                        Identifier(\n                                            \"video_id\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 1415,\n                                                end: 1423,\n                                            },\n                                        ),\n                                        Identifier(\n                                            \"summary\",\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 1425,\n                                                end: 1432,\n                                            },\n                                        ),\n                                    ],\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                        start: 1406,\n                                        end: 1433,\n                                    },\n                                },\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                            start: 1365,\n                            end: 1439,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [\n                                    HeaderContextEnter(\n                                        HeaderContext {\n                                            level: 1,\n                                            title: \"Missing Summary\",\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                                start: 1455,\n                                                end: 1476,\n                                            },\n                                        },\n                                    ),\n                                ],\n                                trailing_expr: Some(\n                                    StringValue(\n                                        \"no-pr\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                            start: 1485,\n                                            end: 1492,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                                start: 1445,\n                                end: 1498,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 1333,\n                        end: 1498,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 1317,\n                    end: 1500,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Complete\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                        start: 1505,\n                        end: 1517,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"done\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/AIContentPipeline.baml\", contents: ... },\n                    start: 1522,\n                    end: 1528,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "AIContentPipeline|c:func:0":
+    "AIContentPipeline|root:0":
       label: AIContentPipeline
       node_type: function
       parent: ~
@@ -14,282 +14,213 @@ expr:
         file: src/control_flow/testdata/AIContentPipeline.baml
         start: 24
         end: 1530
-    "AIContentPipeline|c:func:0|h:fetch-resources:0":
-      label: Fetch Resources
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 145
-        end: 164
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0":
-      label: Process and Load Video
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:fetch-resources:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 278
-        end: 305
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0|s:5":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 310
-        end: 367
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0|s:6":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 371
-        end: 410
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0":
-      label: Retrieve Emails and Posts from Database
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:fetch-resources:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 170
-        end: 214
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0|s:2":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 219
-        end: 245
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0|s:3":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 249
-        end: 273
-    "AIContentPipeline|c:func:0|h:generate-content:0":
-      label: Generate Content
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 416
-        end: 436
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0":
-      label: Generate Drafts for Posts
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 951
-        end: 981
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|c:loop:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1028
-        end: 1069
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:complete:0":
+    "AIContentPipeline|root:0|hdr:complete:3":
       label: Complete
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0"
+      node_type: header
+      parent: "AIContentPipeline|root:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
         start: 1505
         end: 1517
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:complete:0|s:17":
-      label: expr
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:complete:0"
+    "AIContentPipeline|root:0|hdr:fetch-resources:0":
+      label: Fetch Resources
+      node_type: header
+      parent: "AIContentPipeline|root:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1522
-        end: 1528
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0":
-      label: Get Content Type and Generate Draft
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0"
+        start: 145
+        end: 164
+    "AIContentPipeline|root:0|hdr:fetch-resources:0|hdr:process-and-load-video:1":
+      label: Process and Load Video
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:fetch-resources:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1028
-        end: 1069
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0"
+        start: 278
+        end: 305
+    "AIContentPipeline|root:0|hdr:fetch-resources:0|hdr:retrieve-emails-and-posts-from-database:0":
+      label: Retrieve Emails and Posts from Database
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:fetch-resources:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1078
-        end: 1114
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0|s:2":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0"
+        start: 170
+        end: 214
+    "AIContentPipeline|root:0|hdr:generate-content:1":
+      label: Generate Content
+      node_type: header
+      parent: "AIContentPipeline|root:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1122
-        end: 1176
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0":
-      label: Prepare Pull Request
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0"
+        start: 416
+        end: 436
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1":
+      label: Generate Drafts for Posts
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1288
-        end: 1312
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0|s:15":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1317
-        end: 1500
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0":
-      label: Save Draft
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1185
-        end: 1201
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0|s:4":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1210
-        end: 1256
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0|s:5":
-      label: expr
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0"
-      span:
-        file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 1265
-        end: 1276
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|s:13":
-      label: for
+        start: 951
+        end: 981
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0":
+      label: for (kind in content_types)
       node_type: loop
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0"
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
         start: 986
         end: 1282
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0":
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0|hdr:get-content-type-and-generate-draft:0":
+      label: Get Content Type and Generate Draft
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1028
+        end: 1069
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0|hdr:save-draft:1":
+      label: Save Draft
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1185
+        end: 1201
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0":
       label: Video Summarization
-      node_type: expr
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0"
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
         start: 442
         end: 466
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:10":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0"
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0":
+      label: if (has_transcript)
+      node_type: branch-group
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 514
-        end: 893
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:11":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0"
+        start: 528
+        end: 891
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:else:1":
+      label: else
+      node_type: branch-arm
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 898
-        end: 946
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:9":
-      label: stmt
-      node_type: stmt
-      parent: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0"
+        start: 827
+        end: 891
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:else:1|hdr:skip-summarization:0":
+      label: Skip Summarization
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:else:1"
       span:
         file: src/control_flow/testdata/AIContentPipeline.baml
-        start: 471
-        end: 510
+        start: 837
+        end: 861
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0":
+      label: if (has_transcript)
+      node_type: branch-arm
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 548
+        end: 821
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0":
+      label: Generate Summary
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 558
+        end: 580
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0|hdr:create-summary-text:0":
+      label: Create Summary Text
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 590
+        end: 616
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0|hdr:label-summary-category:1":
+      label: Label Summary Category
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 677
+        end: 706
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:save-summary:1":
+      label: Save Summary
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 764
+        end: 782
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2":
+      label: Prepare Pull Request
+      node_type: header
+      parent: "AIContentPipeline|root:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1288
+        end: 1312
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0":
+      label: "if (summary != \"no-transcript\")"
+      node_type: branch-group
+      parent: "AIContentPipeline|root:0|hdr:prepare-pull-request:2"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1333
+        end: 1498
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0|arm:else:1":
+      label: else
+      node_type: branch-arm
+      parent: "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1445
+        end: 1498
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0|arm:else:1|hdr:missing-summary:0":
+      label: Missing Summary
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0|arm:else:1"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1455
+        end: 1476
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0|arm:if-summary-no-transcript:0":
+      label: "if (summary != \"no-transcript\")"
+      node_type: branch-arm
+      parent: "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1365
+        end: 1439
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0|arm:if-summary-no-transcript:0|hdr:create-github-pr:0":
+      label: Create GitHub PR
+      node_type: header
+      parent: "AIContentPipeline|root:0|hdr:prepare-pull-request:2|bg:if-summary-no-transcript:0|arm:if-summary-no-transcript:0"
+      span:
+        file: src/control_flow/testdata/AIContentPipeline.baml
+        start: 1375
+        end: 1397
   edges:
-    "AIContentPipeline|c:func:0":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0|s:5"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0|s:5":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0|s:6"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0|s:6":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0|s:2"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0|s:2":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0|s:3"
-        label: ""
-    "AIContentPipeline|c:func:0|h:fetch-resources:0|h:retrieve-emails-and-posts-from-database:0|s:3":
-      - dst: "AIContentPipeline|c:func:0|h:fetch-resources:0|h:process-and-load-video:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|s:13"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|c:loop:0|c:block:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:complete:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:complete:0|s:17"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0|s:1"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0|s:1":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0|s:2"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:get-content-type-and-generate-draft:0|s:2":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0|s:15"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0|s:15":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:complete:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0|s:4"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0|s:4":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0|s:5"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:save-draft:0|s:5":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|s:13"
-        label: repeat
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|s:13":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|c:loop:0|c:block:0"
-        label: ""
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0|h:prepare-pull-request:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:9"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:10":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:11"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:11":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:generate-drafts-for-posts:0"
-        label: ""
-    "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:9":
-      - dst: "AIContentPipeline|c:func:0|h:generate-content:0|h:video-summarization:0|s:10"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NAIContentPipeline_c_func_0_352b[AIContentPipeline]\n        NAIContentPipeline_c_func_0_352b((AIContentPipeline))\n        subgraph cluster_NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea[Fetch Resources]\n            NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea[Fetch Resources]\n            subgraph cluster_NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_106c[Process and Load Video]\n                NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_106c[Process and Load Video]\n                NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_s_5_90ce[stmt]\n                NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_s_6_3aaf[stmt]\n            end\n            subgraph cluster_NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_0193[Retrieve Emails and Posts from Database]\n                NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_0193[Retrieve Emails and Posts from Database]\n                NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_s_2_a259[stmt]\n                NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_s_3_3ba4[stmt]\n            end\n        end\n        subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_45e1[Generate Content]\n            NAIContentPipeline_c_func_0_h_generate_content_0_45e1[Generate Content]\n            subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_83b7[Generate Drafts for Posts]\n                NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_83b7[Generate Drafts for Posts]\n                subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_complete_0_b090[Complete]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_complete_0_b090[Complete]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_complete_0_s_17_ceeb[expr]\n                end\n                subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_a5ac[Get Content Type and Generate Draft]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_a5ac[Get Content Type and Generate Draft]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_s_1_1449[stmt]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_s_2_c311[stmt]\n                end\n                subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_af7b[Prepare Pull Request]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_af7b[Prepare Pull Request]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_s_15_0258[stmt]\n                end\n                subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_068a[Save Draft]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_068a[Save Draft]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_s_4_cfc8[stmt]\n                    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_s_5_094b[expr]\n                end\n                NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_s_13_ea02([for])\n            end\n            subgraph cluster_NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_26da[Video Summarization]\n                NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_26da[Video Summarization]\n                NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_10_b23b[stmt]\n                NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_11_c161[stmt]\n                NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_9_f568[stmt]\n            end\n        end\n    end\n    NAIContentPipeline_c_func_0_352b --> NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_08ea --> NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_0193\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_106c --> NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_s_5_90ce\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_s_5_90ce --> NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_s_6_3aaf\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_s_6_3aaf --> NAIContentPipeline_c_func_0_h_generate_content_0_45e1\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_0193 --> NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_s_2_a259\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_s_2_a259 --> NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_s_3_3ba4\n    NAIContentPipeline_c_func_0_h_fetch_resources_0_h_retrieve_emails_and_posts_from_database_0_s_3_3ba4 --> NAIContentPipeline_c_func_0_h_fetch_resources_0_h_process_and_load_video_0_106c\n    NAIContentPipeline_c_func_0_h_generate_content_0_45e1 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_26da\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_83b7 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_s_13_ea02\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_c_loop_0_c_block_0_a6e4 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_a5ac\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_complete_0_b090 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_complete_0_s_17_ceeb\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_a5ac --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_s_1_1449\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_s_1_1449 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_s_2_c311\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_get_content_type_and_generate_draft_0_s_2_c311 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_068a\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_af7b --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_s_15_0258\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_s_15_0258 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_complete_0_b090\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_068a --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_s_4_cfc8\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_s_4_cfc8 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_s_5_094b\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_save_draft_0_s_5_094b -->|repeat| NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_s_13_ea02\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_s_13_ea02 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_c_loop_0_c_block_0_a6e4\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_s_13_ea02 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_h_prepare_pull_request_0_af7b\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_26da --> NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_9_f568\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_10_b23b --> NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_11_c161\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_11_c161 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_generate_drafts_for_posts_0_83b7\n    NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_9_f568 --> NAIContentPipeline_c_func_0_h_generate_content_0_h_video_summarization_0_s_10_b23b"
+    "AIContentPipeline|root:0|hdr:fetch-resources:0":
+      - "AIContentPipeline|root:0|hdr:generate-content:1"
+    "AIContentPipeline|root:0|hdr:fetch-resources:0|hdr:retrieve-emails-and-posts-from-database:0":
+      - "AIContentPipeline|root:0|hdr:fetch-resources:0|hdr:process-and-load-video:1"
+    "AIContentPipeline|root:0|hdr:generate-content:1":
+      - "AIContentPipeline|root:0|hdr:prepare-pull-request:2"
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0|hdr:get-content-type-and-generate-draft:0":
+      - "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1|loop:for-kind-in-content-types:0|hdr:save-draft:1"
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0":
+      - "AIContentPipeline|root:0|hdr:generate-content:1|hdr:generate-drafts-for-posts:1"
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0":
+      - "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:save-summary:1"
+    "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0|hdr:create-summary-text:0":
+      - "AIContentPipeline|root:0|hdr:generate-content:1|hdr:video-summarization:0|bg:if-has-transcript:0|arm:if-has-transcript:0|hdr:generate-summary:0|hdr:label-summary-category:1"
+    "AIContentPipeline|root:0|hdr:prepare-pull-request:2":
+      - "AIContentPipeline|root:0|hdr:complete:3"
+mermaid: "flowchart TD\n    subgraph cluster_NAIContentPipeline_root_0_1a13[AIContentPipeline]\n        NAIContentPipeline_root_0_1a13((AIContentPipeline))\n        NAIContentPipeline_root_0_hdr_complete_3_584a[Complete]\n        subgraph cluster_NAIContentPipeline_root_0_hdr_fetch_resources_0_a362[Fetch Resources]\n            NAIContentPipeline_root_0_hdr_fetch_resources_0_a362[Fetch Resources]\n            NAIContentPipeline_root_0_hdr_fetch_resources_0_hdr_process_and_load_video_1_7004[Process and Load Video]\n            NAIContentPipeline_root_0_hdr_fetch_resources_0_hdr_retrieve_emails_and_posts_from_database_0_71a4[Retrieve Emails and Posts from Database]\n        end\n        subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_f502[Generate Content]\n            NAIContentPipeline_root_0_hdr_generate_content_1_f502[Generate Content]\n            subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_afff[Generate Drafts for Posts]\n                NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_afff[Generate Drafts for Posts]\n                subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_loop_for_kind_in_content_types_0_9ffa[for (kind in content_types)]\n                    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_loop_for_kind_in_content_types_0_9ffa([for (kind in content_types)])\n                    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_loop_for_kind_in_content_types_0_hdr_get_content_type_and_generate_draft_0_0ca0[Get Content Type and Generate Draft]\n                    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_loop_for_kind_in_content_types_0_hdr_save_draft_1_ece2[Save Draft]\n                end\n            end\n            subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_830c[Video Summarization]\n                NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_830c[Video Summarization]\n                subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_6d63[if (has_transcript)]\n                    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_6d63{if (has_transcript)}\n                    subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_else_1_ecd8[else]\n                        NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_else_1_ecd8[else]\n                        NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_else_1_hdr_skip_summarization_0_7a98[Skip Summarization]\n                    end\n                    subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_1fb2[if (has_transcript)]\n                        NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_1fb2[if (has_transcript)]\n                        subgraph cluster_NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_4d9f[Generate Summary]\n                            NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_4d9f[Generate Summary]\n                            NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_hdr_create_summary_text_0_2e2c[Create Summary Text]\n                            NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_hdr_label_summary_category_1_0ad6[Label Summary Category]\n                        end\n                        NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_save_summary_1_c4f9[Save Summary]\n                    end\n                end\n            end\n        end\n        subgraph cluster_NAIContentPipeline_root_0_hdr_prepare_pull_request_2_e1bb[Prepare Pull Request]\n            NAIContentPipeline_root_0_hdr_prepare_pull_request_2_e1bb[Prepare Pull Request]\n            subgraph cluster_NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_8118[if (summary != &quot;no-transcript&quot;)]\n                NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_8118{if (summary != &quot;no-transcript&quot;)}\n                subgraph cluster_NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_arm_else_1_ef5d[else]\n                    NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_arm_else_1_ef5d[else]\n                    NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_arm_else_1_hdr_missing_summary_0_b08c[Missing Summary]\n                end\n                subgraph cluster_NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_arm_if_summary_no_transcript_0_a141[if (summary != &quot;no-transcript&quot;)]\n                    NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_arm_if_summary_no_transcript_0_a141[if (summary != &quot;no-transcript&quot;)]\n                    NAIContentPipeline_root_0_hdr_prepare_pull_request_2_bg_if_summary_no_transcript_0_arm_if_summary_no_transcript_0_hdr_create_github_pr_0_4488[Create GitHub PR]\n                end\n            end\n        end\n    end\n    NAIContentPipeline_root_0_hdr_fetch_resources_0_a362 --> NAIContentPipeline_root_0_hdr_generate_content_1_f502\n    NAIContentPipeline_root_0_hdr_fetch_resources_0_hdr_retrieve_emails_and_posts_from_database_0_71a4 --> NAIContentPipeline_root_0_hdr_fetch_resources_0_hdr_process_and_load_video_1_7004\n    NAIContentPipeline_root_0_hdr_generate_content_1_f502 --> NAIContentPipeline_root_0_hdr_prepare_pull_request_2_e1bb\n    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_loop_for_kind_in_content_types_0_hdr_get_content_type_and_generate_draft_0_0ca0 --> NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_loop_for_kind_in_content_types_0_hdr_save_draft_1_ece2\n    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_830c --> NAIContentPipeline_root_0_hdr_generate_content_1_hdr_generate_drafts_for_posts_1_afff\n    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_4d9f --> NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_save_summary_1_c4f9\n    NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_hdr_create_summary_text_0_2e2c --> NAIContentPipeline_root_0_hdr_generate_content_1_hdr_video_summarization_0_bg_if_has_transcript_0_arm_if_has_transcript_0_hdr_generate_summary_0_hdr_label_summary_category_1_0ad6\n    NAIContentPipeline_root_0_hdr_prepare_pull_request_2_e1bb --> NAIContentPipeline_root_0_hdr_complete_3_584a"

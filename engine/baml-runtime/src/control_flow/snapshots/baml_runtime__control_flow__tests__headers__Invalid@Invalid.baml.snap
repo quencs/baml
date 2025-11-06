@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/Invalid.baml
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Previously missing a closing parenthesis\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                        start: 113,\n                        end: 157,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"x\",\n                value: If {\n                    condition: BoolValue(\n                        true,\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                            start: 174,\n                            end: 178,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [],\n                            trailing_expr: Some(\n                                StringValue(\n                                    \"ok\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                                        start: 190,\n                                        end: 194,\n                                    },\n                                ),\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                            start: 180,\n                            end: 200,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [],\n                                trailing_expr: Some(\n                                    StringValue(\n                                        \"bad\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                                            start: 216,\n                                            end: 221,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                                start: 206,\n                                end: 227,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                        start: 170,\n                        end: 227,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                    start: 162,\n                    end: 229,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"x\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/Invalid.baml\", contents: ... },\n                    start: 234,\n                    end: 235,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "Invalid|c:func:0":
+    "Invalid|root:0":
       label: Invalid
       node_type: function
       parent: ~
@@ -14,38 +14,37 @@ expr:
         file: src/control_flow/testdata/Invalid.baml
         start: 78
         end: 237
-    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0":
+    "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0":
       label: Previously missing a closing parenthesis
-      node_type: expr
-      parent: "Invalid|c:func:0"
+      node_type: header
+      parent: "Invalid|root:0"
       span:
         file: src/control_flow/testdata/Invalid.baml
         start: 113
         end: 157
-    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0"
+    "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0|bg:if-true:0":
+      label: if (true)
+      node_type: branch-group
+      parent: "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0"
       span:
         file: src/control_flow/testdata/Invalid.baml
-        start: 162
-        end: 229
-    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0|s:2":
-      label: expr
-      node_type: expr
-      parent: "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0"
+        start: 170
+        end: 227
+    "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0|bg:if-true:0|arm:else:1":
+      label: else
+      node_type: branch-arm
+      parent: "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0|bg:if-true:0"
       span:
         file: src/control_flow/testdata/Invalid.baml
-        start: 234
-        end: 235
-  edges:
-    "Invalid|c:func:0":
-      - dst: "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0"
-        label: ""
-    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0":
-      - dst: "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0|s:1"
-        label: ""
-    "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0|s:1":
-      - dst: "Invalid|c:func:0|h:previously-missing-a-closing-parenthesis:0|s:2"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NInvalid_c_func_0_953f[Invalid]\n        NInvalid_c_func_0_953f((Invalid))\n        subgraph cluster_NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933[Previously missing a closing parenthesis]\n            NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933[Previously missing a closing parenthesis]\n            NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_s_1_d905[stmt]\n            NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_s_2_161e[expr]\n        end\n    end\n    NInvalid_c_func_0_953f --> NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933\n    NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_7933 --> NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_s_1_d905\n    NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_s_1_d905 --> NInvalid_c_func_0_h_previously_missing_a_closing_parenthesis_0_s_2_161e"
+        start: 206
+        end: 227
+    "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0|bg:if-true:0|arm:if-true:0":
+      label: if (true)
+      node_type: branch-arm
+      parent: "Invalid|root:0|hdr:previously-missing-a-closing-parenthesis:0|bg:if-true:0"
+      span:
+        file: src/control_flow/testdata/Invalid.baml
+        start: 180
+        end: 200
+  edges: {}
+mermaid: "flowchart TD\n    subgraph cluster_NInvalid_root_0_a95d[Invalid]\n        NInvalid_root_0_a95d((Invalid))\n        subgraph cluster_NInvalid_root_0_hdr_previously_missing_a_closing_parenthesis_0_59d3[Previously missing a closing parenthesis]\n            NInvalid_root_0_hdr_previously_missing_a_closing_parenthesis_0_59d3[Previously missing a closing parenthesis]\n            subgraph cluster_NInvalid_root_0_hdr_previously_missing_a_closing_parenthesis_0_bg_if_true_0_c993[if (true)]\n                NInvalid_root_0_hdr_previously_missing_a_closing_parenthesis_0_bg_if_true_0_c993{if (true)}\n                NInvalid_root_0_hdr_previously_missing_a_closing_parenthesis_0_bg_if_true_0_arm_else_1_95c1[else]\n                NInvalid_root_0_hdr_previously_missing_a_closing_parenthesis_0_bg_if_true_0_arm_if_true_0_f2c5[if (true)]\n            end\n        end\n    end"

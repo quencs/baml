@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/SingleNestedChildMultiItems.b
 hir: "Some(\n    Block {\n        statements: [\n            DeclareAndAssign {\n                name: \"items\",\n                value: Array(\n                    [\n                        NumericValue(\n                            \"1\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                start: 79,\n                                end: 80,\n                            },\n                        ),\n                        NumericValue(\n                            \"2\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                start: 82,\n                                end: 83,\n                            },\n                        ),\n                        NumericValue(\n                            \"3\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                start: 85,\n                                end: 86,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                        start: 78,\n                        end: 87,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                    start: 66,\n                    end: 89,\n                },\n            },\n            ForLoop {\n                identifier: \"item\",\n                iterator: Identifier(\n                    \"items\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                        start: 111,\n                        end: 116,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"First\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                    start: 128,\n                                    end: 138,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"x\",\n                            value: Identifier(\n                                \"item\",\n                                Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                    start: 155,\n                                    end: 159,\n                                },\n                            ),\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                start: 147,\n                                end: 161,\n                            },\n                        },\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Second\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                    start: 170,\n                                    end: 181,\n                                },\n                            },\n                        ),\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"x\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                                start: 190,\n                                end: 191,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                    start: 94,\n                    end: 197,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"done\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SingleNestedChildMultiItems.baml\", contents: ... },\n                    start: 203,\n                    end: 209,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "SingleNestedChildMultiItems|c:func:0":
+    "SingleNestedChildMultiItems|root:0":
       label: SingleNestedChildMultiItems
       node_type: function
       parent: ~
@@ -14,95 +14,31 @@ expr:
         file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
         start: 11
         end: 211
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "SingleNestedChildMultiItems|c:func:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 128
-        end: 138
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0":
-      label: First
-      node_type: expr
-      parent: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 128
-        end: 138
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0"
-      span:
-        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 147
-        end: 161
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0":
-      label: Second
-      node_type: expr
-      parent: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0"
-      span:
-        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 170
-        end: 181
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0|s:3":
-      label: expr
-      node_type: expr
-      parent: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0"
-      span:
-        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 190
-        end: 191
-    "SingleNestedChildMultiItems|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "SingleNestedChildMultiItems|c:func:0"
-      span:
-        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 66
-        end: 89
-    "SingleNestedChildMultiItems|c:func:0|s:1":
-      label: for
+    "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0":
+      label: for (item in items)
       node_type: loop
-      parent: "SingleNestedChildMultiItems|c:func:0"
+      parent: "SingleNestedChildMultiItems|root:0"
       span:
         file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
         start: 94
         end: 197
-    "SingleNestedChildMultiItems|c:func:0|s:2":
-      label: expr
-      node_type: expr
-      parent: "SingleNestedChildMultiItems|c:func:0"
+    "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:first:0":
+      label: First
+      node_type: header
+      parent: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0"
       span:
         file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
-        start: 203
-        end: 209
+        start: 128
+        end: 138
+    "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:second:1":
+      label: Second
+      node_type: header
+      parent: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0"
+      span:
+        file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+        start: 170
+        end: 181
   edges:
-    "SingleNestedChildMultiItems|c:func:0":
-      - dst: "SingleNestedChildMultiItems|c:func:0|s:0"
-        label: ""
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0":
-      - dst: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0"
-        label: ""
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0":
-      - dst: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0|s:1"
-        label: ""
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:first:0|s:1":
-      - dst: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0"
-        label: ""
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0":
-      - dst: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0|s:3"
-        label: ""
-    "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0|h:second:0|s:3":
-      - dst: "SingleNestedChildMultiItems|c:func:0|s:1"
-        label: repeat
-    "SingleNestedChildMultiItems|c:func:0|s:0":
-      - dst: "SingleNestedChildMultiItems|c:func:0|s:1"
-        label: ""
-    "SingleNestedChildMultiItems|c:func:0|s:1":
-      - dst: "SingleNestedChildMultiItems|c:func:0|c:loop:0|c:block:0"
-        label: ""
-      - dst: "SingleNestedChildMultiItems|c:func:0|s:2"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NSingleNestedChildMultiItems_c_func_0_bb5d[SingleNestedChildMultiItems]\n        NSingleNestedChildMultiItems_c_func_0_bb5d((SingleNestedChildMultiItems))\n        NSingleNestedChildMultiItems_c_func_0_s_0_23eb[stmt]\n        NSingleNestedChildMultiItems_c_func_0_s_1_25b9([for])\n        NSingleNestedChildMultiItems_c_func_0_s_2_d9e3[expr]\n    end\n    NSingleNestedChildMultiItems_c_func_0_bb5d --> NSingleNestedChildMultiItems_c_func_0_s_0_23eb\n    NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_5c1d --> NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_first_0_a383\n    NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_first_0_a383 --> NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_first_0_s_1_86e4\n    NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_first_0_s_1_86e4 --> NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_second_0_c88b\n    NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_second_0_c88b --> NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_second_0_s_3_e7af\n    NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_h_second_0_s_3_e7af -->|repeat| NSingleNestedChildMultiItems_c_func_0_s_1_25b9\n    NSingleNestedChildMultiItems_c_func_0_s_0_23eb --> NSingleNestedChildMultiItems_c_func_0_s_1_25b9\n    NSingleNestedChildMultiItems_c_func_0_s_1_25b9 --> NSingleNestedChildMultiItems_c_func_0_c_loop_0_c_block_0_5c1d\n    NSingleNestedChildMultiItems_c_func_0_s_1_25b9 --> NSingleNestedChildMultiItems_c_func_0_s_2_d9e3"
+    "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:first:0":
+      - "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:second:1"
+mermaid: "flowchart TD\n    subgraph cluster_NSingleNestedChildMultiItems_root_0_2f20[SingleNestedChildMultiItems]\n        NSingleNestedChildMultiItems_root_0_2f20((SingleNestedChildMultiItems))\n        subgraph cluster_NSingleNestedChildMultiItems_root_0_loop_for_item_in_items_0_d266[for (item in items)]\n            NSingleNestedChildMultiItems_root_0_loop_for_item_in_items_0_d266([for (item in items)])\n            NSingleNestedChildMultiItems_root_0_loop_for_item_in_items_0_hdr_first_0_7af5[First]\n            NSingleNestedChildMultiItems_root_0_loop_for_item_in_items_0_hdr_second_1_a9f6[Second]\n        end\n    end\n    NSingleNestedChildMultiItems_root_0_loop_for_item_in_items_0_hdr_first_0_7af5 --> NSingleNestedChildMultiItems_root_0_loop_for_item_in_items_0_hdr_second_1_a9f6"

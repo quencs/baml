@@ -6,7 +6,7 @@ input_file: baml-runtime/src/control_flow/testdata/ForLoopWithTopLevelHeader.bam
 hir: "Some(\n    Block {\n        statements: [\n            DeclareAndAssign {\n                name: \"items\",\n                value: Array(\n                    [\n                        NumericValue(\n                            \"1\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 83,\n                                end: 84,\n                            },\n                        ),\n                        NumericValue(\n                            \"2\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 86,\n                                end: 87,\n                            },\n                        ),\n                        NumericValue(\n                            \"3\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 89,\n                                end: 90,\n                            },\n                        ),\n                        NumericValue(\n                            \"4\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 92,\n                                end: 93,\n                            },\n                        ),\n                        NumericValue(\n                            \"5\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 95,\n                                end: 96,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                        start: 82,\n                        end: 97,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                    start: 70,\n                    end: 99,\n                },\n            },\n            DeclareAndAssign {\n                name: \"result\",\n                value: NumericValue(\n                    \"0\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                        start: 116,\n                        end: 117,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                    start: 103,\n                    end: 119,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Main Loop\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                        start: 124,\n                        end: 138,\n                    },\n                },\n            ),\n            ForLoop {\n                identifier: \"item\",\n                iterator: Identifier(\n                    \"items\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                        start: 160,\n                        end: 165,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Item Processing\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                    start: 177,\n                                    end: 198,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"processed\",\n                            value: BinaryOperation {\n                                left: Identifier(\n                                    \"item\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                        start: 223,\n                                        end: 227,\n                                    },\n                                ),\n                                operator: Mul,\n                                right: NumericValue(\n                                    \"2\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                        start: 230,\n                                        end: 231,\n                                    },\n                                ),\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                    start: 223,\n                                    end: 231,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 207,\n                                end: 233,\n                            },\n                        },\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Accumulation\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                    start: 242,\n                                    end: 260,\n                                },\n                            },\n                        ),\n                        DeclareAndAssign {\n                            name: \"result2\",\n                            value: BinaryOperation {\n                                left: Identifier(\n                                    \"result\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                        start: 283,\n                                        end: 289,\n                                    },\n                                ),\n                                operator: Add,\n                                right: Identifier(\n                                    \"processed\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                        start: 292,\n                                        end: 301,\n                                    },\n                                ),\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                    start: 283,\n                                    end: 301,\n                                },\n                            },\n                            annotated_type: None,\n                            watch: None,\n                            span: Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 269,\n                                end: 303,\n                            },\n                        },\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"result2\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                                start: 312,\n                                end: 319,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                    start: 143,\n                    end: 325,\n                },\n            },\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Final Result\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                        start: 331,\n                        end: 348,\n                    },\n                },\n            ),\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"result\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/ForLoopWithTopLevelHeader.baml\", contents: ... },\n                    start: 353,\n                    end: 359,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "ForLoopWithTopLevelHeader|c:func:0":
+    "ForLoopWithTopLevelHeader|root:0":
       label: ForLoopWithTopLevelHeader
       node_type: function
       parent: ~
@@ -14,139 +14,49 @@ expr:
         file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
         start: 20
         end: 361
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0":
-      label: Main Loop
-      node_type: expr
-      parent: "ForLoopWithTopLevelHeader|c:func:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 124
-        end: 138
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|c:block:0":
-      label: scope
-      node_type: scope
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 177
-        end: 198
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0":
-      label: Accumulation
-      node_type: expr
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 242
-        end: 260
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0|s:3":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 269
-        end: 303
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0|s:4":
-      label: expr
-      node_type: expr
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 312
-        end: 319
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:final-result:0":
+    "ForLoopWithTopLevelHeader|root:0|hdr:final-result:1":
       label: Final Result
-      node_type: expr
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0"
+      node_type: header
+      parent: "ForLoopWithTopLevelHeader|root:0"
       span:
         file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
         start: 331
         end: 348
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:final-result:0|s:5":
-      label: expr
-      node_type: expr
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:final-result:0"
+    "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0":
+      label: Main Loop
+      node_type: header
+      parent: "ForLoopWithTopLevelHeader|root:0"
       span:
         file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 353
-        end: 359
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0":
-      label: Item Processing
-      node_type: expr
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 177
-        end: 198
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0"
-      span:
-        file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 207
-        end: 233
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|s:3":
-      label: for
+        start: 124
+        end: 138
+    "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0":
+      label: for (item in items)
       node_type: loop
-      parent: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0"
+      parent: "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0"
       span:
         file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
         start: 143
         end: 325
-    "ForLoopWithTopLevelHeader|c:func:0|s:0":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithTopLevelHeader|c:func:0"
+    "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:accumulation:1":
+      label: Accumulation
+      node_type: header
+      parent: "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0"
       span:
         file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 70
-        end: 99
-    "ForLoopWithTopLevelHeader|c:func:0|s:1":
-      label: stmt
-      node_type: stmt
-      parent: "ForLoopWithTopLevelHeader|c:func:0"
+        start: 242
+        end: 260
+    "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:item-processing:0":
+      label: Item Processing
+      node_type: header
+      parent: "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0"
       span:
         file: src/control_flow/testdata/ForLoopWithTopLevelHeader.baml
-        start: 103
-        end: 119
+        start: 177
+        end: 198
   edges:
-    "ForLoopWithTopLevelHeader|c:func:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:0"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|s:3"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|c:block:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0|s:3"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0|s:3":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0|s:4"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0|s:4":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|s:3"
-        label: repeat
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:final-result:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:final-result:0|s:5"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0|s:1"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:item-processing:0|s:1":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:accumulation:0"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|s:3":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|c:block:0"
-        label: ""
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0|c:loop:0|h:final-result:0"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|s:0":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|s:1"
-        label: ""
-    "ForLoopWithTopLevelHeader|c:func:0|s:1":
-      - dst: "ForLoopWithTopLevelHeader|c:func:0|h:main-loop:0"
-        label: ""
-mermaid: "flowchart TD\n    subgraph cluster_NForLoopWithTopLevelHeader_c_func_0_4006[ForLoopWithTopLevelHeader]\n        NForLoopWithTopLevelHeader_c_func_0_4006((ForLoopWithTopLevelHeader))\n        subgraph cluster_NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3[Main Loop]\n            NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3[Main Loop]\n            NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_s_3_953d([for])\n        end\n        NForLoopWithTopLevelHeader_c_func_0_s_0_6e66[stmt]\n        NForLoopWithTopLevelHeader_c_func_0_s_1_d91a[stmt]\n    end\n    NForLoopWithTopLevelHeader_c_func_0_4006 --> NForLoopWithTopLevelHeader_c_func_0_s_0_6e66\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3 --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_s_3_953d\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_c_block_0_fc45 --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_item_processing_0_bd49\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_accumulation_0_ec2d --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_accumulation_0_s_3_39f7\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_accumulation_0_s_3_39f7 --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_accumulation_0_s_4_50ba\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_accumulation_0_s_4_50ba -->|repeat| NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_s_3_953d\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_final_result_0_8e5c --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_final_result_0_s_5_cf6a\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_item_processing_0_bd49 --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_item_processing_0_s_1_b1ae\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_item_processing_0_s_1_b1ae --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_accumulation_0_ec2d\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_s_3_953d --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_c_block_0_fc45\n    NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_s_3_953d --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_c_loop_0_h_final_result_0_8e5c\n    NForLoopWithTopLevelHeader_c_func_0_s_0_6e66 --> NForLoopWithTopLevelHeader_c_func_0_s_1_d91a\n    NForLoopWithTopLevelHeader_c_func_0_s_1_d91a --> NForLoopWithTopLevelHeader_c_func_0_h_main_loop_0_3bf3"
+    "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0":
+      - "ForLoopWithTopLevelHeader|root:0|hdr:final-result:1"
+    "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:item-processing:0":
+      - "ForLoopWithTopLevelHeader|root:0|hdr:main-loop:0|loop:for-item-in-items:0|hdr:accumulation:1"
+mermaid: "flowchart TD\n    subgraph cluster_NForLoopWithTopLevelHeader_root_0_9bc8[ForLoopWithTopLevelHeader]\n        NForLoopWithTopLevelHeader_root_0_9bc8((ForLoopWithTopLevelHeader))\n        NForLoopWithTopLevelHeader_root_0_hdr_final_result_1_da37[Final Result]\n        subgraph cluster_NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_2882[Main Loop]\n            NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_2882[Main Loop]\n            subgraph cluster_NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_loop_for_item_in_items_0_9e64[for (item in items)]\n                NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_loop_for_item_in_items_0_9e64([for (item in items)])\n                NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_accumulation_1_dba2[Accumulation]\n                NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_item_processing_0_b3b3[Item Processing]\n            end\n        end\n    end\n    NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_2882 --> NForLoopWithTopLevelHeader_root_0_hdr_final_result_1_da37\n    NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_item_processing_0_b3b3 --> NForLoopWithTopLevelHeader_root_0_hdr_main_loop_0_loop_for_item_in_items_0_hdr_accumulation_1_dba2"

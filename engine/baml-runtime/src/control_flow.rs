@@ -1,8 +1,9 @@
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::{collections::HashMap, fmt, io::Write, str::FromStr};
 
 use anyhow::{anyhow, Result};
 use baml_compiler::hir;
 use internal_baml_core::ast::Span;
+use pretty::RcDoc;
 
 pub mod mermaid;
 
@@ -50,29 +51,13 @@ impl FromStr for NodeId {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum PathSegment {
-    Statement { ordinal: u32 },
+enum PathSegment {
+    FunctionRoot { ordinal: u16 },
     Header { slug: String, ordinal: u16 },
-    Scope { kind: ScopeKind, ordinal: u16 },
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum ScopeKind {
-    FunctionRoot,
-    Block,
-    LoopBody,
-    BranchArm,
-}
-
-impl ScopeKind {
-    fn as_str(&self) -> &'static str {
-        match self {
-            ScopeKind::FunctionRoot => "func",
-            ScopeKind::Block => "block",
-            ScopeKind::LoopBody => "loop",
-            ScopeKind::BranchArm => "arm",
-        }
-    }
+    BranchGroup { slug: String, ordinal: u16 },
+    BranchArm { slug: String, ordinal: u16 },
+    Loop { slug: String, ordinal: u16 },
+    OtherScope { slug: String, ordinal: u16 },
 }
 
 #[derive(Clone, Debug)]
@@ -110,19 +95,17 @@ impl Node {
 #[derive(Clone, Debug)]
 pub enum NodeType {
     FunctionRoot,
-    ExprBlock,
-    Branch,
+    HeaderContextEnter,
+    BranchGroup,
+    BranchArm,
     Loop,
-    Llm { client: String },
-    ImpliedByNewScope,
-    ImpliedByStatement,
+    OtherScope,
 }
 
 #[derive(Clone, Debug)]
 pub struct Edge {
     pub src: NodeId,
     pub dst: NodeId,
-    pub label: String,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -142,8 +125,8 @@ impl ControlFlowVizBuilder {
         self.nodes.insert(node.id.clone(), node);
     }
 
-    fn add_edge(&mut self, src: NodeId, dst: NodeId, label: String) {
-        self.edges.push(Edge { src, dst, label });
+    fn add_edge(&mut self, src: NodeId, dst: NodeId) {
+        self.edges.push(Edge { src, dst });
     }
 
     fn finish(self) -> ControlFlowVisualization {
@@ -172,12 +155,8 @@ impl NodePathCursor {
         }
     }
 
-    fn push_scope(&mut self, kind: ScopeKind, ordinal: u16) {
-        self.segments.push(PathSegment::Scope { kind, ordinal });
-    }
-
-    fn push_statement(&mut self, ordinal: u32) -> NodeId {
-        self.segments.push(PathSegment::Statement { ordinal });
+    fn push_root(&mut self, ordinal: u16) -> NodeId {
+        self.segments.push(PathSegment::FunctionRoot { ordinal });
         NodeId::new(&self.function, &self.segments)
     }
 
@@ -189,40 +168,179 @@ impl NodePathCursor {
         NodeId::new(&self.function, &self.segments)
     }
 
-    fn current_id(&self) -> NodeId {
+    fn push_branch_group(&mut self, slug: &str, ordinal: u16) -> NodeId {
+        self.segments.push(PathSegment::BranchGroup {
+            slug: slug.to_string(),
+            ordinal,
+        });
+        NodeId::new(&self.function, &self.segments)
+    }
+
+    fn push_branch_arm(&mut self, slug: &str, ordinal: u16) -> NodeId {
+        self.segments.push(PathSegment::BranchArm {
+            slug: slug.to_string(),
+            ordinal,
+        });
+        NodeId::new(&self.function, &self.segments)
+    }
+
+    fn push_loop(&mut self, slug: &str, ordinal: u16) -> NodeId {
+        self.segments.push(PathSegment::Loop {
+            slug: slug.to_string(),
+            ordinal,
+        });
+        NodeId::new(&self.function, &self.segments)
+    }
+
+    fn push_other_scope(&mut self, slug: &str, ordinal: u16) -> NodeId {
+        self.segments.push(PathSegment::OtherScope {
+            slug: slug.to_string(),
+            ordinal,
+        });
         NodeId::new(&self.function, &self.segments)
     }
 
     fn pop(&mut self) {
         self.segments.pop();
     }
+}
 
-    fn pop_scope(&mut self, kind: ScopeKind) {
-        if matches!(self.segments.last(), Some(PathSegment::Scope { kind: k, .. }) if *k == kind) {
-            self.segments.pop();
+#[derive(Clone, Default)]
+struct FrameCounters {
+    header: u16,
+    branch_group: u16,
+    branch_arm: u16,
+    loop_node: u16,
+    other_scope: u16,
+}
+
+enum CounterKind {
+    Header,
+    BranchGroup,
+    BranchArm,
+    Loop,
+    OtherScope,
+}
+
+impl FrameCounters {
+    fn next(&mut self, kind: CounterKind) -> u16 {
+        match kind {
+            CounterKind::Header => {
+                let current = self.header;
+                self.header += 1;
+                current
+            }
+            CounterKind::BranchGroup => {
+                let current = self.branch_group;
+                self.branch_group += 1;
+                current
+            }
+            CounterKind::BranchArm => {
+                let current = self.branch_arm;
+                self.branch_arm += 1;
+                current
+            }
+            CounterKind::Loop => {
+                let current = self.loop_node;
+                self.loop_node += 1;
+                current
+            }
+            CounterKind::OtherScope => {
+                let current = self.other_scope;
+                self.other_scope += 1;
+                current
+            }
         }
     }
 }
 
-struct ScopeFrame {
-    kind: ScopeKind,
-    next_statement_ordinal: u32,
-    next_child_scope: u16,
+enum FrameEntry {
+    FunctionRoot,
+    Header { level: u8 },
+    BranchGroup,
+    BranchArm,
+    Loop,
+    OtherScope,
 }
 
-impl ScopeFrame {
-    fn new(kind: ScopeKind) -> Self {
+struct Frame {
+    entry: FrameEntry,
+    node_id: NodeId,
+    counters: FrameCounters,
+    last_header_child: Option<NodeId>,
+}
+
+impl Frame {
+    fn new(entry: FrameEntry, node_id: NodeId) -> Self {
         Self {
-            kind,
-            next_statement_ordinal: 0,
-            next_child_scope: 0,
+            entry,
+            node_id,
+            counters: FrameCounters::default(),
+            last_header_child: None,
         }
     }
 
-    fn bump_child_scope(&mut self) -> u16 {
-        let current = self.next_child_scope;
-        self.next_child_scope += 1;
-        current
+    fn next_ordinal(&mut self, kind: CounterKind) -> u16 {
+        self.counters.next(kind)
+    }
+
+    fn header_level(&self) -> Option<u8> {
+        match self.entry {
+            FrameEntry::Header { level } => Some(level),
+            _ => None,
+        }
+    }
+}
+
+struct BlockHandling {
+    wrap: bool,
+    label: Option<String>,
+}
+
+impl BlockHandling {
+    fn inline() -> Self {
+        Self {
+            wrap: false,
+            label: None,
+        }
+    }
+
+    fn wrap(label: Option<String>) -> Self {
+        Self { wrap: true, label }
+    }
+}
+
+enum LoopFlavor<'a> {
+    While {
+        condition: &'a hir::Expression,
+    },
+    For {
+        identifier: &'a str,
+        iterator: &'a hir::Expression,
+    },
+    CFor {
+        condition: Option<&'a hir::Expression>,
+    },
+}
+
+impl<'a> LoopFlavor<'a> {
+    fn label(&self) -> String {
+        match self {
+            LoopFlavor::While { condition } => {
+                format!("while ({})", render_expression(condition))
+            }
+            LoopFlavor::For {
+                identifier,
+                iterator,
+            } => format!("for ({} in {})", identifier, render_expression(iterator)),
+            LoopFlavor::CFor { condition } => {
+                if let Some(expr) = condition {
+                    format!("for ({})", render_expression(expr))
+                } else {
+                    "for (...)".to_string()
+                }
+            }
+        }
     }
 }
 
@@ -255,35 +373,26 @@ pub fn build_function_graph(function: HirFunctionRef<'_>) -> ControlFlowVisualiz
 
 fn build_expr_function_graph(func: &hir::ExprFunction) -> ControlFlowVisualization {
     let mut ctx = HirTraversalContext::new(func.name.as_str(), func.span.clone());
-    ctx.visit_block(&func.body);
+    ctx.visit_function_body(&func.body);
     ctx.finish()
 }
 
 fn build_llm_function_graph(func: &hir::LlmFunction) -> ControlFlowVisualization {
     let mut builder = ControlFlowVizBuilder::default();
     let mut cursor = NodePathCursor::new(&func.name);
-    cursor.push_scope(ScopeKind::FunctionRoot, 0);
-    let root_id = cursor.current_id();
+    let root_id = cursor.push_root(0);
     builder.add_node(Node::root(root_id.clone(), func.span.clone(), &func.name));
 
-    let stmt_id = {
-        cursor.push_statement(0);
-        let id = cursor.current_id();
-        cursor.pop();
-        id
-    };
-
-    let llm_node = Node::new(
-        stmt_id.clone(),
+    let slug = slug_or_default("llm", "llm");
+    let loop_id = cursor.push_other_scope(&slug, 0);
+    let node = Node::new(
+        loop_id.clone(),
         format!("LLM client: {}", func.client),
         func.span.clone(),
-        NodeType::Llm {
-            client: func.client.clone(),
-        },
+        NodeType::OtherScope,
     );
-
-    builder.add_node(llm_node);
-    builder.add_edge(root_id, stmt_id, String::new());
+    builder.add_node(node);
+    builder.add_edge(root_id, loop_id);
 
     builder.finish()
 }
@@ -291,27 +400,20 @@ fn build_llm_function_graph(func: &hir::LlmFunction) -> ControlFlowVisualization
 struct HirTraversalContext {
     graph: ControlFlowVizBuilder,
     cursor: NodePathCursor,
-    scope_stack: Vec<ScopeFrame>,
-    flow_frontier: Vec<NodeId>,
-    header_stack: Vec<u8>,
-    header_ordinals: Vec<u16>,
+    frames: Vec<Frame>,
 }
 
 impl HirTraversalContext {
     fn new(function_name: &str, span: Span) -> Self {
         let mut cursor = NodePathCursor::new(function_name);
-        cursor.push_scope(ScopeKind::FunctionRoot, 0);
+        let root_id = cursor.push_root(0);
         let mut graph = ControlFlowVizBuilder::default();
-        let root_id = cursor.current_id();
         graph.add_node(Node::root(root_id.clone(), span, function_name.to_string()));
 
         Self {
             graph,
             cursor,
-            scope_stack: vec![ScopeFrame::new(ScopeKind::FunctionRoot)],
-            flow_frontier: vec![root_id],
-            header_stack: Vec::new(),
-            header_ordinals: Vec::new(),
+            frames: vec![Frame::new(FrameEntry::FunctionRoot, root_id)],
         }
     }
 
@@ -319,299 +421,321 @@ impl HirTraversalContext {
         self.graph.finish()
     }
 
-    fn visit_block(&mut self, block: &hir::Block) {
-        let is_root = matches!(
-            self.scope_stack.last().map(|f| f.kind),
-            Some(ScopeKind::FunctionRoot)
-        );
-        let header_depth = self.header_stack.len();
-        if !is_root {
-            let ordinal = self
-                .scope_stack
-                .last_mut()
-                .map(|frame| frame.bump_child_scope())
-                .unwrap_or(0);
-            self.cursor.push_scope(ScopeKind::Block, ordinal);
-            let scope_id = self.cursor.current_id();
-            let node = Node::new(
-                scope_id.clone(),
-                "scope",
-                derive_block_span(block),
-                NodeType::ImpliedByNewScope,
-            );
-            self.emit_node(node, None);
-            self.scope_stack.push(ScopeFrame::new(ScopeKind::Block));
-        } else {
-            self.scope_stack
-                .push(ScopeFrame::new(ScopeKind::FunctionRoot));
-        }
+    fn current_parent_index(&self) -> usize {
+        self.frames
+            .len()
+            .checked_sub(1)
+            .expect("frame stack always contains root")
+    }
 
-        for (idx, stmt) in block.statements.iter().enumerate() {
-            if let Some(frame) = self.scope_stack.last_mut() {
-                frame.next_statement_ordinal = idx as u32;
-            }
+    fn visit_function_body(&mut self, block: &hir::Block) {
+        let depth = self.frames.len();
+        for stmt in &block.statements {
             self.visit_statement(stmt);
         }
-
         if let Some(expr) = &block.trailing_expr {
-            if let Some(frame) = self.scope_stack.last_mut() {
-                frame.next_statement_ordinal = block.statements.len() as u32;
-            }
-            self.visit_expression(expr);
+            self.visit_expression(expr, BlockHandling::inline());
         }
+        self.pop_frames_to(depth);
+    }
 
-        self.scope_stack.pop();
-        self.pop_headers_to_depth(header_depth);
-
-        if !is_root {
-            self.cursor.pop_scope(ScopeKind::Block);
+    fn visit_block_inline(&mut self, block: &hir::Block) {
+        let depth = self.frames.len();
+        for stmt in &block.statements {
+            self.visit_statement(stmt);
         }
+        if let Some(expr) = &block.trailing_expr {
+            self.visit_expression(expr, BlockHandling::inline());
+        }
+        self.pop_frames_to(depth);
+    }
+
+    fn emit_other_scope(&mut self, block: &hir::Block, span: Span, label: Option<String>) {
+        let parent_depth = self.frames.len();
+        let ordinal = {
+            let frame = self
+                .frames
+                .last_mut()
+                .expect("frame stack should not be empty");
+            frame.next_ordinal(CounterKind::OtherScope)
+        };
+        let label_ref = label.as_deref().unwrap_or("");
+        let slug_base = slugify(label_ref);
+        let slug = if slug_base.is_empty() {
+            format!("other-scope-{}", ordinal)
+        } else {
+            slug_base
+        };
+        let node_id = self.cursor.push_other_scope(&slug, ordinal);
+        let node_label = label.unwrap_or_else(|| "".to_string());
+        let node = Node::new(node_id.clone(), node_label, span, NodeType::OtherScope);
+        self.graph.add_node(node);
+        self.frames
+            .push(Frame::new(FrameEntry::OtherScope, node_id.clone()));
+        self.visit_block_inline(block);
+        self.pop_frames_to(parent_depth);
     }
 
     fn visit_statement(&mut self, stmt: &hir::Statement) {
         match stmt {
-            hir::Statement::HeaderContextEnter(header) => {
-                self.enter_header(header);
+            hir::Statement::HeaderContextEnter(header) => self.enter_header(header),
+            hir::Statement::Let { name, value, .. } => {
+                let is_block = matches!(value, hir::Expression::Block(_, _));
+                let behavior = if is_block {
+                    BlockHandling::wrap(Some(format!("let {name} = {{ ... }}")))
+                } else {
+                    BlockHandling::inline()
+                };
+                self.visit_expression(value, behavior);
             }
-            hir::Statement::Let { span, .. }
-            | hir::Statement::Assign { span, .. }
-            | hir::Statement::AssignOp { span, .. }
-            | hir::Statement::Declare { span, .. }
-            | hir::Statement::DeclareAndAssign { span, .. }
-            | hir::Statement::WatchOptions { span, .. }
-            | hir::Statement::WatchNotify { span, .. }
-            | hir::Statement::Semicolon { span, .. }
-            | hir::Statement::Assert { span, .. }
-            | hir::Statement::Break(span)
-            | hir::Statement::Continue(span) => {
-                self.emit_implied_node(span.clone(), NodeType::ImpliedByStatement);
+            hir::Statement::Assign { value, .. }
+            | hir::Statement::AssignOp { value, .. }
+            | hir::Statement::DeclareAndAssign { value, .. } => {
+                let behavior = if matches!(value, hir::Expression::Block(_, _)) {
+                    BlockHandling::wrap(None)
+                } else {
+                    BlockHandling::inline()
+                };
+                self.visit_expression(value, behavior);
             }
-            hir::Statement::Expression { expr, .. } => self.visit_expression(expr),
-            hir::Statement::Return { expr, span } => {
-                self.visit_expression(expr);
-                self.emit_terminal(span.clone(), "return");
+            hir::Statement::Expression { expr, .. } | hir::Statement::Semicolon { expr, .. } => {
+                let behavior = if matches!(expr, hir::Expression::Block(_, _)) {
+                    BlockHandling::wrap(None)
+                } else {
+                    BlockHandling::inline()
+                };
+                self.visit_expression(expr, behavior);
             }
-            hir::Statement::While { block, span, .. } => {
-                self.visit_loop(block, span.clone(), LoopFlavor::While);
+            hir::Statement::Assert { condition, .. } => {
+                self.visit_expression(condition, BlockHandling::inline());
             }
-            hir::Statement::ForLoop { block, span, .. } => {
-                self.visit_loop(block, span.clone(), LoopFlavor::For);
+            hir::Statement::Return { expr, .. } => {
+                self.visit_expression(expr, BlockHandling::inline());
             }
-            hir::Statement::CForLoop { block, .. } => {
+            hir::Statement::While {
+                condition,
+                block,
+                span,
+            } => {
+                self.visit_loop(LoopFlavor::While { condition }, block, span.clone());
+            }
+            hir::Statement::ForLoop {
+                identifier,
+                iterator,
+                block,
+                span,
+            } => {
+                self.visit_loop(
+                    LoopFlavor::For {
+                        identifier,
+                        iterator,
+                    },
+                    block,
+                    span.clone(),
+                );
+            }
+            hir::Statement::CForLoop {
+                condition, block, ..
+            } => {
                 let span = derive_block_span(block);
-                self.visit_loop(block, span, LoopFlavor::CFor);
+                let condition_ref = condition.as_ref();
+                self.visit_loop(
+                    LoopFlavor::CFor {
+                        condition: condition_ref,
+                    },
+                    block,
+                    span,
+                );
             }
+            hir::Statement::Declare { .. }
+            | hir::Statement::Break(_)
+            | hir::Statement::Continue(_)
+            | hir::Statement::WatchOptions { .. }
+            | hir::Statement::WatchNotify { .. } => {}
         }
     }
 
-    fn visit_expression(&mut self, expr: &hir::Expression) {
+    fn visit_expression(&mut self, expr: &hir::Expression, block_behavior: BlockHandling) {
         match expr {
             hir::Expression::If {
+                condition,
                 if_branch,
                 else_branch,
                 span,
                 ..
-            } => self.visit_if(if_branch, else_branch.as_deref(), span.clone()),
-            hir::Expression::Block(block, _) => self.visit_block(block),
-            _ => {
-                if let Some(span) = expression_primary_span(expr) {
-                    self.emit_implied_node(span, NodeType::ExprBlock);
+            } => self.visit_if(condition, if_branch, else_branch.as_deref(), span.clone()),
+            hir::Expression::Block(block, span) => {
+                if block_behavior.wrap {
+                    self.emit_other_scope(block, span.clone(), block_behavior.label);
                 } else {
-                    self.emit_implied_node(Span::fake(), NodeType::ExprBlock);
+                    self.visit_block_inline(block);
                 }
             }
+            _ => {}
         }
-    }
-
-    fn enter_header(&mut self, header: &hir::HeaderContext) {
-        let level = usize::from(header.level.max(1));
-        self.pop_headers_to_depth(level.saturating_sub(1));
-
-        if self.header_ordinals.len() < level {
-            self.header_ordinals.resize(level, 0);
-        }
-
-        self.header_ordinals[level - 1] += 1;
-        let ordinal = (self.header_ordinals[level - 1] - 1) as u16;
-
-        let slug = slugify(&header.title);
-        self.cursor.push_header(&slug, ordinal);
-        let node_id = self.cursor.current_id();
-        let node = Node::new(
-            node_id.clone(),
-            header.title.clone(),
-            header.span.clone(),
-            NodeType::ExprBlock,
-        );
-        self.emit_node(node, None);
-        self.header_stack.push(header.level.max(1));
-    }
-
-    fn pop_headers_to_depth(&mut self, depth: usize) {
-        while self.header_stack.len() > depth {
-            self.header_stack.pop();
-            self.cursor.pop();
-        }
-        if self.header_ordinals.len() > depth {
-            self.header_ordinals.truncate(depth);
-        }
-    }
-
-    fn emit_implied_node(&mut self, span: Span, node_type: NodeType) {
-        let ordinal = self
-            .scope_stack
-            .last()
-            .map(|frame| frame.next_statement_ordinal)
-            .unwrap_or_default();
-        let node_id = self.cursor.push_statement(ordinal);
-        let label = describe_node_type(&node_type).to_string();
-        let node = Node::new(node_id.clone(), label, span, node_type);
-        self.emit_node(node, None);
-        self.cursor.pop();
-    }
-
-    fn emit_node(&mut self, node: Node, edge_label: Option<String>) {
-        let node_id = node.id.clone();
-        let label = edge_label.unwrap_or_default();
-        for predecessor in self.flow_frontier.clone() {
-            self.graph
-                .add_edge(predecessor, node_id.clone(), label.clone());
-        }
-        self.graph.add_node(node);
-        self.flow_frontier.clear();
-        self.flow_frontier.push(node_id);
-    }
-
-    fn emit_terminal(&mut self, span: Span, label: &str) {
-        let ordinal = self
-            .scope_stack
-            .last()
-            .map(|frame| frame.next_statement_ordinal)
-            .unwrap_or_default();
-        let node_id = self.cursor.push_statement(ordinal);
-        let node = Node::new(node_id.clone(), label, span, NodeType::ImpliedByStatement);
-        self.emit_node(node, None);
-        self.cursor.pop();
-        self.flow_frontier.clear();
     }
 
     fn visit_if(
         &mut self,
+        condition: &hir::Expression,
         then_expr: &hir::Expression,
         else_expr: Option<&hir::Expression>,
         span: Span,
     ) {
-        let ordinal = self
-            .scope_stack
-            .last()
-            .map(|frame| frame.next_statement_ordinal)
-            .unwrap_or_default();
-        let branch_id = self.cursor.push_statement(ordinal);
-        let node = Node::new(branch_id.clone(), "if", span, NodeType::Branch);
-        self.emit_node(node, None);
-        self.cursor.pop();
+        let parent_depth = self.frames.len();
+        let ordinal = {
+            let frame = self
+                .frames
+                .last_mut()
+                .expect("frame stack should not be empty");
+            frame.next_ordinal(CounterKind::BranchGroup)
+        };
+        let label = format!("if ({})", render_expression(condition));
+        let slug = {
+            let slug_base = slugify(&label);
+            if slug_base.is_empty() {
+                format!("if-{}", ordinal)
+            } else {
+                slug_base
+            }
+        };
+        let node_id = self.cursor.push_branch_group(&slug, ordinal);
+        let node = Node::new(node_id.clone(), label, span, NodeType::BranchGroup);
+        self.graph.add_node(node);
+        self.frames
+            .push(Frame::new(FrameEntry::BranchGroup, node_id.clone()));
 
-        self.flow_frontier = vec![branch_id.clone()];
-        let then_exit = self.walk_branch_arm(then_expr);
+        let arm_label = format!("if ({})", render_expression(condition));
+        self.visit_branch_arm(arm_label, then_expr, expression_span(then_expr));
 
-        let else_exit = else_expr.map(|expr| {
-            self.flow_frontier = vec![branch_id.clone()];
-            self.walk_branch_arm(expr)
-        });
+        let mut current_else = else_expr;
+        while let Some(expr) = current_else {
+            match expr {
+                hir::Expression::If {
+                    condition: else_condition,
+                    if_branch,
+                    else_branch,
+                    ..
+                } => {
+                    let label = format!("else if ({})", render_expression(else_condition));
+                    self.visit_branch_arm(label, if_branch, expression_span(if_branch));
+                    current_else = else_branch.as_deref();
+                }
+                _ => {
+                    self.visit_branch_arm("else".to_string(), expr, expression_span(expr));
+                    current_else = None;
+                }
+            }
+        }
 
-        self.flow_frontier = merge_branch_exits(branch_id, then_exit, else_exit);
+        self.pop_frames_to(parent_depth);
     }
 
-    fn walk_branch_arm(&mut self, expr: &hir::Expression) -> Vec<NodeId> {
-        let ordinal = self
-            .scope_stack
-            .last_mut()
-            .map(|frame| frame.bump_child_scope())
-            .unwrap_or(0);
-        self.cursor.push_scope(ScopeKind::BranchArm, ordinal);
-        self.scope_stack.push(ScopeFrame::new(ScopeKind::BranchArm));
-
-        match expr {
-            hir::Expression::Block(block, _) => self.visit_block(block),
-            _ => self.visit_expression(expr),
-        }
-
-        let exits = self.flow_frontier.clone();
-
-        self.scope_stack.pop();
-        self.cursor.pop_scope(ScopeKind::BranchArm);
-
-        exits
+    fn visit_branch_arm(&mut self, label: String, expr: &hir::Expression, span: Span) {
+        let parent_depth = self.frames.len();
+        let ordinal = {
+            let frame = self
+                .frames
+                .last_mut()
+                .expect("branch group frame must exist");
+            frame.next_ordinal(CounterKind::BranchArm)
+        };
+        let slug_base = slugify(&label);
+        let slug = if slug_base.is_empty() {
+            format!("branch-arm-{}", ordinal)
+        } else {
+            slug_base
+        };
+        let node_id = self.cursor.push_branch_arm(&slug, ordinal);
+        let node = Node::new(node_id.clone(), label, span, NodeType::BranchArm);
+        self.graph.add_node(node);
+        self.frames
+            .push(Frame::new(FrameEntry::BranchArm, node_id.clone()));
+        self.visit_expression(expr, BlockHandling::inline());
+        self.pop_frames_to(parent_depth);
     }
 
-    fn visit_loop(&mut self, body: &hir::Block, span: Span, flavor: LoopFlavor) {
-        let ordinal = self
-            .scope_stack
-            .last()
-            .map(|frame| frame.next_statement_ordinal)
-            .unwrap_or_default();
-        let loop_id = self.cursor.push_statement(ordinal);
-        let node = Node::new(loop_id.clone(), flavor.label(), span, NodeType::Loop);
-        self.emit_node(node, None);
-        self.cursor.pop();
-
-        self.flow_frontier = vec![loop_id.clone()];
-
-        let scope_ord = self
-            .scope_stack
-            .last_mut()
-            .map(|frame| frame.bump_child_scope())
-            .unwrap_or(0);
-        self.cursor.push_scope(ScopeKind::LoopBody, scope_ord);
-        self.scope_stack.push(ScopeFrame::new(ScopeKind::LoopBody));
-
-        self.visit_block(body);
-
-        let exits = self.flow_frontier.clone();
-        for exit in exits {
-            self.graph
-                .add_edge(exit, loop_id.clone(), "repeat".to_string());
-        }
-
-        self.scope_stack.pop();
-        self.cursor.pop_scope(ScopeKind::LoopBody);
-
-        self.flow_frontier = vec![loop_id];
+    fn visit_loop(&mut self, flavor: LoopFlavor<'_>, block: &hir::Block, span: Span) {
+        let parent_depth = self.frames.len();
+        let ordinal = {
+            let frame = self
+                .frames
+                .last_mut()
+                .expect("frame stack should not be empty");
+            frame.next_ordinal(CounterKind::Loop)
+        };
+        let label = flavor.label();
+        let slug_base = slugify(&label);
+        let slug = if slug_base.is_empty() {
+            format!("loop-{}", ordinal)
+        } else {
+            slug_base
+        };
+        let node_id = self.cursor.push_loop(&slug, ordinal);
+        let node = Node::new(node_id.clone(), label, span, NodeType::Loop);
+        self.graph.add_node(node);
+        self.frames
+            .push(Frame::new(FrameEntry::Loop, node_id.clone()));
+        self.visit_block_inline(block);
+        self.pop_frames_to(parent_depth);
     }
-}
 
-enum LoopFlavor {
-    While,
-    For,
-    CFor,
-}
+    fn enter_header(&mut self, header: &hir::HeaderContext) {
+        let level = header.level.max(1);
+        self.pop_headers_to_level(level - 1);
 
-impl LoopFlavor {
-    fn label(&self) -> &'static str {
-        match self {
-            LoopFlavor::While => "while",
-            LoopFlavor::For => "for",
-            LoopFlavor::CFor => "cfor",
+        let ordinal = {
+            let frame = self
+                .frames
+                .last_mut()
+                .expect("frame stack should not be empty");
+            frame.next_ordinal(CounterKind::Header)
+        };
+
+        let mut slug = slugify(&header.title);
+        if slug.is_empty() {
+            slug = format!("header-{}", ordinal);
+        }
+
+        let node_id = self.cursor.push_header(&slug, ordinal);
+        let node = Node::new(
+            node_id.clone(),
+            header.title.clone(),
+            header.span.clone(),
+            NodeType::HeaderContextEnter,
+        );
+        self.graph.add_node(node);
+
+        let parent_index = self.current_parent_index();
+        self.register_header_with_parent(parent_index, &node_id);
+        self.frames
+            .push(Frame::new(FrameEntry::Header { level }, node_id));
+    }
+
+    fn register_header_with_parent(&mut self, parent_index: usize, node_id: &NodeId) {
+        if let Some(prev) = self.frames[parent_index].last_header_child.clone() {
+            self.graph.add_edge(prev, node_id.clone());
+        }
+        self.frames[parent_index].last_header_child = Some(node_id.clone());
+    }
+
+    fn pop_headers_to_level(&mut self, desired_level: u8) {
+        while let Some(frame) = self.frames.last() {
+            match frame.entry {
+                FrameEntry::Header { level } if level > desired_level => {
+                    self.frames.pop();
+                    self.cursor.pop();
+                }
+                _ => break,
+            }
         }
     }
-}
 
-fn merge_branch_exits(
-    branch_id: NodeId,
-    mut then_exit: Vec<NodeId>,
-    else_exit: Option<Vec<NodeId>>,
-) -> Vec<NodeId> {
-    if let Some(mut exit) = else_exit {
-        if exit.is_empty() {
-            exit.push(branch_id.clone());
+    fn pop_frames_to(&mut self, len: usize) {
+        while self.frames.len() > len {
+            self.frames.pop();
+            self.cursor.pop();
         }
-        then_exit.extend(exit);
-        then_exit
-    } else {
-        if then_exit.is_empty() {
-            then_exit.push(branch_id);
-        }
-        then_exit
     }
 }
 
@@ -647,8 +771,8 @@ fn statement_primary_span(stmt: &hir::Statement) -> Option<Span> {
         | hir::Statement::Continue(span)
         | hir::Statement::Return { span, .. }
         | hir::Statement::While { span, .. }
-        | hir::Statement::ForLoop { span, .. } => Some(span.clone()),
-        hir::Statement::Expression { span, .. } => Some(span.clone()),
+        | hir::Statement::ForLoop { span, .. }
+        | hir::Statement::Expression { span, .. } => Some(span.clone()),
         hir::Statement::HeaderContextEnter(header) => Some(header.span.clone()),
         hir::Statement::CForLoop { .. } => None,
     }
@@ -677,10 +801,37 @@ fn expression_primary_span(expr: &hir::Expression) -> Option<Span> {
     }
 }
 
-fn slugify(header: &str) -> String {
-    let mut slug = String::with_capacity(header.len());
+fn expression_span(expr: &hir::Expression) -> Span {
+    expression_primary_span(expr).unwrap_or_else(Span::fake)
+}
+
+fn render_expression(expr: &hir::Expression) -> String {
+    collapse_whitespace(&doc_to_string(expr.to_doc()))
+}
+
+fn doc_to_string(doc: RcDoc<'_, ()>) -> String {
+    let mut buffer = Vec::new();
+    let _ = doc.render(80, &mut buffer);
+    String::from_utf8(buffer).unwrap_or_default()
+}
+
+fn collapse_whitespace(input: &str) -> String {
+    let mut parts = input.split_whitespace();
+    let mut result = String::new();
+    if let Some(first) = parts.next() {
+        result.push_str(first);
+        for part in parts {
+            result.push(' ');
+            result.push_str(part);
+        }
+    }
+    result
+}
+
+fn slugify(input: &str) -> String {
+    let mut slug = String::with_capacity(input.len());
     let mut last_dash = false;
-    for ch in header.chars() {
+    for ch in input.chars() {
         if ch.is_ascii_alphanumeric() {
             slug.push(ch.to_ascii_lowercase());
             last_dash = false;
@@ -692,15 +843,23 @@ fn slugify(header: &str) -> String {
     slug.trim_matches('-').to_string()
 }
 
-fn describe_node_type(node_type: &NodeType) -> &str {
+fn slug_or_default(label: &str, default: &str) -> String {
+    let candidate = slugify(label);
+    if candidate.is_empty() {
+        default.to_string()
+    } else {
+        candidate
+    }
+}
+
+pub fn describe_node_type(node_type: &NodeType) -> &'static str {
     match node_type {
         NodeType::FunctionRoot => "function",
-        NodeType::ExprBlock => "expr",
-        NodeType::Branch => "branch",
+        NodeType::HeaderContextEnter => "header",
+        NodeType::BranchGroup => "branch-group",
+        NodeType::BranchArm => "branch-arm",
         NodeType::Loop => "loop",
-        NodeType::Llm { .. } => "llm",
-        NodeType::ImpliedByNewScope => "scope",
-        NodeType::ImpliedByStatement => "stmt",
+        NodeType::OtherScope => "other-scope",
     }
 }
 
@@ -709,19 +868,37 @@ fn encode_segments(function: &str, segments: &[PathSegment]) -> String {
     for segment in segments {
         encoded.push('|');
         match segment {
-            PathSegment::Statement { ordinal } => {
-                encoded.push_str("s:");
+            PathSegment::FunctionRoot { ordinal } => {
+                encoded.push_str("root:");
                 encoded.push_str(&ordinal.to_string());
             }
             PathSegment::Header { slug, ordinal } => {
-                encoded.push_str("h:");
+                encoded.push_str("hdr:");
                 encoded.push_str(slug);
                 encoded.push(':');
                 encoded.push_str(&ordinal.to_string());
             }
-            PathSegment::Scope { kind, ordinal } => {
-                encoded.push_str("c:");
-                encoded.push_str(kind.as_str());
+            PathSegment::BranchGroup { slug, ordinal } => {
+                encoded.push_str("bg:");
+                encoded.push_str(slug);
+                encoded.push(':');
+                encoded.push_str(&ordinal.to_string());
+            }
+            PathSegment::BranchArm { slug, ordinal } => {
+                encoded.push_str("arm:");
+                encoded.push_str(slug);
+                encoded.push(':');
+                encoded.push_str(&ordinal.to_string());
+            }
+            PathSegment::Loop { slug, ordinal } => {
+                encoded.push_str("loop:");
+                encoded.push_str(slug);
+                encoded.push(':');
+                encoded.push_str(&ordinal.to_string());
+            }
+            PathSegment::OtherScope { slug, ordinal } => {
+                encoded.push_str("scope:");
+                encoded.push_str(slug);
                 encoded.push(':');
                 encoded.push_str(&ordinal.to_string());
             }
@@ -738,14 +915,14 @@ fn decode_segments(encoded: &str) -> Result<NodeId> {
         let mut tokens = part.split(':');
         let tag = tokens.next().unwrap_or("");
         match tag {
-            "s" => {
-                let ordinal: u32 = tokens
+            "root" => {
+                let ordinal: u16 = tokens
                     .next()
-                    .ok_or_else(|| anyhow!("missing statement ordinal"))?
+                    .ok_or_else(|| anyhow!("missing root ordinal"))?
                     .parse()?;
-                segments.push(PathSegment::Statement { ordinal });
+                segments.push(PathSegment::FunctionRoot { ordinal });
             }
-            "h" => {
+            "hdr" => {
                 let slug = tokens
                     .next()
                     .ok_or_else(|| anyhow!("missing header slug"))?
@@ -756,23 +933,49 @@ fn decode_segments(encoded: &str) -> Result<NodeId> {
                     .parse()?;
                 segments.push(PathSegment::Header { slug, ordinal });
             }
-            "c" => {
-                let kind = tokens.next().ok_or_else(|| anyhow!("missing scope kind"))?;
+            "bg" => {
+                let slug = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing branch-group slug"))?
+                    .to_string();
+                let ordinal: u16 = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing branch-group ordinal"))?
+                    .parse()?;
+                segments.push(PathSegment::BranchGroup { slug, ordinal });
+            }
+            "arm" => {
+                let slug = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing branch-arm slug"))?
+                    .to_string();
+                let ordinal: u16 = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing branch-arm ordinal"))?
+                    .parse()?;
+                segments.push(PathSegment::BranchArm { slug, ordinal });
+            }
+            "loop" => {
+                let slug = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing loop slug"))?
+                    .to_string();
+                let ordinal: u16 = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing loop ordinal"))?
+                    .parse()?;
+                segments.push(PathSegment::Loop { slug, ordinal });
+            }
+            "scope" => {
+                let slug = tokens
+                    .next()
+                    .ok_or_else(|| anyhow!("missing scope slug"))?
+                    .to_string();
                 let ordinal: u16 = tokens
                     .next()
                     .ok_or_else(|| anyhow!("missing scope ordinal"))?
                     .parse()?;
-                let scope_kind = match kind {
-                    "func" => ScopeKind::FunctionRoot,
-                    "block" => ScopeKind::Block,
-                    "loop" => ScopeKind::LoopBody,
-                    "arm" => ScopeKind::BranchArm,
-                    _ => return Err(anyhow!("unknown scope kind")),
-                };
-                segments.push(PathSegment::Scope {
-                    kind: scope_kind,
-                    ordinal,
-                });
+                segments.push(PathSegment::OtherScope { slug, ordinal });
             }
             _ => return Err(anyhow!("unknown segment")),
         }

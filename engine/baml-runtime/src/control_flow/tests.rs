@@ -54,21 +54,18 @@ fn builds_simple_expr_function() {
         .nodes
         .values()
         .any(|node| matches!(node.node_type, NodeType::FunctionRoot)));
-    assert!(viz
-        .nodes
-        .values()
-        .any(|node| matches!(node.node_type, NodeType::ImpliedByStatement)));
 
     let root = viz
         .nodes
         .values()
         .find(|node| matches!(node.node_type, NodeType::FunctionRoot))
         .expect("root node");
+    assert_eq!(viz.nodes.len(), 1);
     assert!(viz
         .edges_by_src
         .get(&root.id)
-        .map(|edges| !edges.is_empty())
-        .unwrap_or(false));
+        .map(|edges| edges.is_empty())
+        .unwrap_or(true));
 }
 
 #[test]
@@ -172,16 +169,9 @@ fn viz_snapshot(viz: &ControlFlowVisualization) -> Value {
 
     let mut edges = BTreeMap::new();
     for (src, list) in &viz.edges_by_src {
-        let mut records: Vec<_> = list
-            .iter()
-            .map(|edge| (edge.dst.encode(), edge.label.clone()))
-            .collect();
-        records.sort();
-        let serialized: Vec<_> = records
-            .into_iter()
-            .map(|(dst, label)| json!({ "dst": dst, "label": label }))
-            .collect();
-        edges.insert(src.encode(), serialized);
+        let mut dests: Vec<_> = list.iter().map(|edge| edge.dst.encode()).collect();
+        dests.sort();
+        edges.insert(src.encode(), dests);
     }
 
     json!({
