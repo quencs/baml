@@ -10,7 +10,11 @@
     "build": "tsc",
     "release": "tsc",
     "clean": "git clean -xdf .turbo node_modules dist",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "exports": {
     ".": "./src/index.ts",
@@ -99,10 +103,14 @@
     "@types/react": "19.1.9",
     "@types/react-dom": "19.1.7",
     "@types/vscode": "1.96.0",
+    "@vitest/ui": "^4.0.7",
     "jotai-devtools": "0.12.0",
     "react-dom": "19.1.0",
     "ts-node": "10.9.2",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vite-plugin-top-level-await": "1.5.0",
+    "vite-plugin-wasm": "3.3.0",
+    "vitest": "^4.0.7"
   },
   "peerDependencies": {
     "jotai": "*"

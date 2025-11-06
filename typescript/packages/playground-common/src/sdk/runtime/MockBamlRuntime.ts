@@ -1,0 +1,108 @@
+/**
+ * MockBamlRuntime - In-memory mock implementation
+ *
+ * Uses centralized mock configuration (static, doesn't change with files)
+ */
+
+import type { WorkflowDefinition, TestCaseInput, BAMLFile } from '../types';
+import type {
+  BamlRuntimeInterface,
+  ExecutionEvent,
+  ExecutionOptions,
+  FunctionDefinition,
+} from './BamlRuntimeInterface';
+import type { MockRuntimeConfig } from '../mock-config/types';
+import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
+import { simulateExecution } from './simulator';
+
+export class MockBamlRuntime implements BamlRuntimeInterface {
+  private config: MockRuntimeConfig;
+  private executionCount = 0;
+
+  private constructor(config: MockRuntimeConfig) {
+    this.config = config;
+  }
+
+  /**
+   * Factory method to create new runtime instance
+   * Matches wasmAtom pattern: WasmProject.new('./', bamlFiles)
+   */
+  static async create(
+    files: Record<string, string>,
+    config: MockRuntimeConfig
+  ): Promise<MockBamlRuntime> {
+    console.log(
+      'Creating new MockBamlRuntime with',
+      Object.keys(files).length,
+      'files'
+    );
+    // Mock: We ignore files and use static config
+    // In a real runtime, this would parse/compile the files
+    return new MockBamlRuntime(config);
+  }
+
+  getWorkflows(): WorkflowDefinition[] {
+    return this.config.workflows;
+  }
+
+  getFunctions(): FunctionDefinition[] {
+    return this.config.functions;
+  }
+
+  getTestCases(nodeId?: string): TestCaseInput[] {
+    if (!nodeId) {
+      return Object.values(this.config.testCases).flat();
+    }
+    return this.config.testCases[nodeId] || [];
+  }
+
+  getBAMLFiles(): BAMLFile[] {
+    return this.config.bamlFiles;
+  }
+
+  getDiagnostics(): DiagnosticError[] {
+    // Mock runtime has no diagnostics (always valid)
+    return [];
+  }
+
+  getGeneratedFiles(): GeneratedFile[] {
+    // Mock runtime doesn't generate files
+    return [];
+  }
+
+  async *executeWorkflow(
+    workflowId: string,
+    inputs: Record<string, any>,
+    options?: ExecutionOptions
+  ): AsyncGenerator<ExecutionEvent> {
+    const workflow = this.config.workflows.find((w) => w.id === workflowId);
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`);
+    }
+
+    this.executionCount++;
+    const executionId = `exec_${Date.now()}_${this.executionCount}`;
+
+    // Use centralized execution simulator
+    yield* simulateExecution(
+      workflow,
+      this.config,
+      inputs,
+      executionId,
+      options?.startFromNodeId
+    );
+  }
+
+  async *executeTest(testId: string): AsyncGenerator<ExecutionEvent> {
+    // Find test and execute
+    const test = this.getTestCases().find((t) => t.id === testId);
+    if (!test) throw new Error(`Test ${testId} not found`);
+
+    // Execute with test inputs
+    yield* this.executeWorkflow(test.nodeId, test.inputs);
+  }
+
+  async cancelExecution(executionId: string): Promise<void> {
+    console.log(`Cancelling execution: ${executionId}`);
+  }
+}

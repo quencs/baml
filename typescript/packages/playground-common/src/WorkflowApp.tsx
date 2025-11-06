@@ -20,14 +20,12 @@ import { DebugPanel } from './features/debug';
 import { kEdgeTypes, ColorfulMarkerDefinitions, kNodeTypes } from './graph-primitives';
 import { ReactflowInstance } from './features/graph/components';
 import { useAutoLayout } from './features/graph/layout/useAutoLayout';
-import { useDetailPanel, useActiveWorkflow, useLayoutDirection, useSelectedNode } from './sdk/hooks';
+import { useDetailPanel, useActiveWorkflow, useLayoutDirection, useSelectedNode, useLLMOnlyMode } from './sdk/hooks';
 import { flowStore } from './states/reactflow';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@baml/ui/resizable';
 import type { Node } from '@xyflow/react';
 import { useBAMLSDK } from './sdk/provider';
-import { isLLMOnlyModeAtom } from './sdk/atoms';
 import { Loader as Spinner } from '@baml/ui/custom/loader';
-import { useAtomValue } from 'jotai';
 import { useCodeNavigation } from './features/navigation/hooks';
 import { useExecutionSync } from './features/execution/hooks';
 import { useGraphSync } from './features/graph/hooks';
@@ -47,7 +45,7 @@ const EditWorkFlow = () => {
   const { activeWorkflowId } = useActiveWorkflow();
   const [direction] = useLayoutDirection();
   const sdk = useBAMLSDK();
-  const shouldShowLLMOnlyView = useAtomValue(isLLMOnlyModeAtom);
+  const shouldShowLLMOnlyView = useLLMOnlyMode();
 
   const { getEdges, setNodes } = useReactFlow();
   const { layout } = useAutoLayout();

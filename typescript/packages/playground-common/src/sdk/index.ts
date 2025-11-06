@@ -1,116 +1,180 @@
 /**
- * BAML SDK - Main Interface
+ * BAML SDK - Refactored Architecture
  *
- * This SDK provides the API for workflow management, execution, and real-time updates.
- * It uses Jotai atoms for reactive state management.
+ * Follows the immutable runtime pattern:
+ * - Runtime is recreated on file changes (like wasmAtom)
+ * - SDK orchestrates runtime and storage
+ * - Storage abstraction allows swapping state management
  */
 
-import { getDefaultStore, type createStore } from 'jotai';
+import type { SDKStorage } from './storage/SDKStorage';
+import type { BamlRuntimeInterface, BamlRuntimeFactory } from './runtime/BamlRuntimeInterface';
 import type {
-  BAMLSDKConfig,
   WorkflowDefinition,
   ExecutionSnapshot,
-  BAMLEvent,
-  GraphNode,
-  GraphEdge,
   NodeExecution,
   CacheEntry,
   TestCaseInput,
+  NodeExecutionState,
 } from './types';
-import type { TestExecutionEvent } from './providers/base';
-import {
-  workflowsAtom,
-  activeWorkflowIdAtom,
-  activeWorkflowAtom,
-  workflowExecutionsAtomFamily,
-  addEventAtom,
-  cacheAtom,
-  getCacheKey,
-  viewModeAtom,
-  nodeStateAtomFamily,
-  registerNodeAtom,
-  clearAllNodeStatesAtom,
-} from './atoms';
 
+// Import all atoms to expose via sdk.atoms
+import * as coreAtoms from './atoms/core.atoms';
+
+// Re-export types
 export * from './types';
-export * from './atoms';
-export type { TestExecutionEvent } from './providers/base';
+export * from './runtime/BamlRuntimeInterface';
+export * from './storage/SDKStorage';
+export * from './mock-config/types';
 
 /**
- * Main BAML SDK class
+ * BAML SDK - orchestrates runtime and storage
+ * Follows wasmAtom pattern: creates new runtime instances on file changes
  */
 export class BAMLSDK {
-  private config: BAMLSDKConfig;
-  public store: ReturnType<typeof createStore>;
+  private runtime: BamlRuntimeInterface | null = null;
+  private storage: SDKStorage;
   private activeExecutions = new Map<string, AbortController>();
-  public mockData?: BAMLSDKConfig['mockData'];
+  private runtimeFactory: BamlRuntimeFactory;
+  private currentFiles: Record<string, string> = {};
 
-  constructor(config: BAMLSDKConfig, store?: ReturnType<typeof createStore>) {
-    this.config = config;
-    this.store = store ?? getDefaultStore();
-    // Support both 'mockData' and 'provider' for backward compatibility
-    this.mockData = config.mockData || config.provider;
+  /**
+   * Expose all atoms directly via sdk.atoms
+   * Components can access state via: sdk.atoms.workflows, sdk.atoms.diagnostics, etc.
+   */
+  atoms = coreAtoms;
+
+  constructor(runtimeFactory: BamlRuntimeFactory, storage: SDKStorage) {
+    this.runtimeFactory = runtimeFactory;
+    this.storage = storage;
   }
 
-  async initialize() {
-    if (this.config.mode === 'mock' && this.config.mockData) {
-      // Load mock workflows
-      const workflows = this.config.mockData.getWorkflows();
-      this.store.set(workflowsAtom, workflows);
-
-      // Emit discovery events
-      for (const workflow of workflows) {
-        this.emitEvent({ type: 'workflow.discovered', workflow });
-      }
-
-      // Set first workflow as active
-      if (workflows.length > 0 && workflows[0]) {
-        this.workflows.setActive(workflows[0].id);
-      } else {
-        console.error('No workflows found');
-      }
+  /**
+   * Initialize SDK with initial files
+   * Creates the first runtime instance
+   */
+  async initialize(
+    initialFiles: Record<string, string>,
+    options?: {
+      envVars?: Record<string, string>;
+      featureFlags?: string[];
     }
+  ) {
+    console.log('SDK: Initializing with', Object.keys(initialFiles).length, 'files');
+
+    // Store files
+    this.currentFiles = initialFiles;
+    this.storage.setBAMLFiles(initialFiles);
+
+    // Store env vars and feature flags
+    if (options?.envVars) {
+      this.storage.setEnvVars(options.envVars);
+    }
+    if (options?.featureFlags) {
+      this.storage.setFeatureFlags(options.featureFlags);
+    }
+
+    // Create runtime from files (like wasmAtom creating WasmProject)
+    this.runtime = await this.runtimeFactory(
+      initialFiles,
+      options?.envVars,
+      options?.featureFlags
+    );
+
+    // Extract and store diagnostics
+    const diagnostics = this.runtime.getDiagnostics();
+    this.storage.setDiagnostics(diagnostics);
+
+    // Check if runtime is valid (no compilation errors)
+    const hasErrors = diagnostics.some((d) => d.type === 'error');
+    this.storage.setLastValidRuntime(!hasErrors);
+
+    // Extract and store generated files (only if runtime is valid)
+    if (!hasErrors) {
+      const generatedFiles = this.runtime.getGeneratedFiles();
+      this.storage.setGeneratedFiles(generatedFiles);
+    }
+
+    // Load workflows from runtime into storage
+    const workflows = this.runtime.getWorkflows();
+    this.storage.setWorkflows(workflows);
+
+    // Set first workflow as active
+    if (workflows.length > 0) {
+      this.storage.setActiveWorkflowId(workflows[0]!.id);
+    }
+
+    console.log('SDK: Initialized with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
   }
+
+  // ============================================================================
+  // File Management API
+  // ============================================================================
+
+  files = {
+    /**
+     * Update files and recreate runtime
+     * Matches wasmAtom pattern: create new runtime on every file change
+     */
+    update: async (files: Record<string, string>) => {
+      console.log('SDK: Updating files, creating new runtime instance');
+
+      // Store new files
+      this.currentFiles = files;
+      this.storage.setBAMLFiles(files);
+
+      // Get current env vars and feature flags
+      const envVars = this.storage.getEnvVars();
+      const featureFlags = this.storage.getFeatureFlags();
+
+      // Create new runtime instance (like wasmAtom creating new WasmProject)
+      this.runtime = await this.runtimeFactory(files, envVars, featureFlags);
+
+      // Extract and store diagnostics
+      const diagnostics = this.runtime.getDiagnostics();
+      this.storage.setDiagnostics(diagnostics);
+
+      // Check if runtime is valid
+      const hasErrors = diagnostics.some((d) => d.type === 'error');
+      this.storage.setLastValidRuntime(!hasErrors);
+
+      // Extract and store generated files (only if runtime is valid)
+      if (!hasErrors) {
+        const generatedFiles = this.runtime.getGeneratedFiles();
+        this.storage.setGeneratedFiles(generatedFiles);
+      }
+
+      // Update workflows in storage
+      const workflows = this.runtime.getWorkflows();
+      this.storage.setWorkflows(workflows);
+
+      console.log('SDK: Runtime recreated with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
+    },
+
+    getCurrent: () => {
+      return { ...this.currentFiles };
+    },
+  };
 
   // ============================================================================
   // Workflow API
   // ============================================================================
 
   workflows = {
-    /**
-     * Get all available workflows
-     */
-    getAll: (): WorkflowDefinition[] => {
-      return this.store.get(workflowsAtom);
+    getAll: (): WorkflowDefinition[] => this.storage.getWorkflows(),
+
+    getById: (id: string): WorkflowDefinition | null => {
+      return this.storage.getWorkflows().find((w) => w.id === id) ?? null;
     },
 
-    /**
-     * Get a specific workflow by ID
-     */
-    getById: (workflowId: string): WorkflowDefinition | null => {
-      const workflows = this.store.get(workflowsAtom);
-      return workflows.find((w) => w.id === workflowId) ?? null;
-    },
-
-    /**
-     * Get the currently active workflow
-     */
     getActive: (): WorkflowDefinition | null => {
-      return this.store.get(activeWorkflowAtom);
+      const id = this.storage.getActiveWorkflowId();
+      if (!id) return null;
+      return this.workflows.getById(id);
     },
 
-    /**
-     * Set the active workflow
-     */
-    setActive: (workflowId: string): void => {
-      const workflow = this.workflows.getById(workflowId);
-      if (!workflow) {
-        throw new Error(`Workflow ${workflowId} not found`);
-      }
-
-      this.store.set(activeWorkflowIdAtom, workflowId);
-      this.store.set(viewModeAtom, { mode: 'editor' });
-      this.emitEvent({ type: 'workflow.selected', workflowId });
+    setActive: (id: string) => {
+      this.storage.setActiveWorkflowId(id);
     },
   };
 
@@ -119,29 +183,24 @@ export class BAMLSDK {
   // ============================================================================
 
   executions = {
-    /**
-     * Start a new execution of a workflow
-     */
     start: async (
       workflowId: string,
-      inputs: Record<string, unknown>,
+      inputs: Record<string, any>,
       options?: { clearCache?: boolean; startFromNodeId?: string }
     ): Promise<string> => {
       const workflow = this.workflows.getById(workflowId);
-      if (!workflow) {
-        throw new Error(`Workflow ${workflowId} not found`);
-      }
+      if (!workflow) throw new Error(`Workflow ${workflowId} not found`);
 
       // Clear cache if requested
       if (options?.clearCache) {
         this.cache.clear({ workflowId });
       }
 
-      // Clear all node states before starting new execution
-      this.store.set(clearAllNodeStatesAtom);
+      // Clear node states
+      this.storage.clearAllNodeStates();
 
-      // Wait 200ms to give users visual feedback that a new execution is starting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait for visual feedback
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Generate execution ID
       const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -163,64 +222,43 @@ export class BAMLSDK {
         inputs,
       };
 
-      // Add to executions using atomFamily
-      const workflowExecutionsAtom = workflowExecutionsAtomFamily(workflowId);
-      const workflowExecutions = this.store.get(workflowExecutionsAtom);
-      this.store.set(workflowExecutionsAtom, [execution, ...workflowExecutions]);
+      // Add to storage
+      this.storage.addExecution(workflowId, execution);
 
-      // Emit start event
-      this.emitEvent({
-        type: 'execution.started',
-        executionId,
-        workflowId,
-      });
-
-      // Run execution simulation (if mock mode)
-      if (this.config.mode === 'mock' && this.config.mockData) {
-        this.runMockExecution(execution, workflow, inputs, options?.startFromNodeId);
-      }
+      // Run execution via runtime
+      this.runExecution(executionId, workflowId, inputs, options);
 
       return executionId;
     },
 
-    /**
-     * Get all executions for a workflow
-     */
-    getExecutions: (workflowId: string): ExecutionSnapshot[] => {
-      const workflowExecutionsAtom = workflowExecutionsAtomFamily(workflowId);
-      return this.store.get(workflowExecutionsAtom);
+    getAll: (workflowId: string): ExecutionSnapshot[] => {
+      return this.storage.getExecutions(workflowId);
     },
 
-    /**
-     * Get a specific execution by ID
-     * Note: This requires searching through all workflows
-     */
-    getExecution: (executionId: string): ExecutionSnapshot | null => {
-      // Get all workflows to search through their executions
-      const workflows = this.store.get(workflowsAtom);
-      for (const workflow of workflows) {
-        const workflowExecutionsAtom = workflowExecutionsAtomFamily(workflow.id);
-        const executions = this.store.get(workflowExecutionsAtom);
-        const found = executions.find((e) => e.id === executionId);
-        if (found) return found;
-      }
-      return null;
-    },
-
-    /**
-     * Cancel a running execution
-     */
-    cancel: (executionId: string): void => {
+    cancel: (executionId: string) => {
       const controller = this.activeExecutions.get(executionId);
       if (controller) {
         controller.abort();
         this.activeExecutions.delete(executionId);
-        this.emitEvent({
-          type: 'execution.cancelled',
-          executionId,
-          reason: 'User cancelled',
-        });
       }
+    },
+  };
+
+  // ============================================================================
+  // Cache API
+  // ============================================================================
+
+  cache = {
+    get: (nodeId: string, inputsHash: string): CacheEntry | null => {
+      return this.storage.getCacheEntry(nodeId, inputsHash);
+    },
+
+    set: (entry: CacheEntry) => {
+      this.storage.setCacheEntry(entry);
+    },
+
+    clear: (scope?: { workflowId?: string; nodeId?: string }) => {
+      this.storage.clearCache(scope);
     },
   };
 
@@ -232,7 +270,7 @@ export class BAMLSDK {
     /**
      * Get graph structure for a workflow
      */
-    getGraph: (workflowId: string): { nodes: GraphNode[]; edges: GraphEdge[] } | null => {
+    getGraph: (workflowId: string): { nodes: any[]; edges: any[] } | null => {
       const workflow = this.workflows.getById(workflowId);
       if (!workflow) return null;
 
@@ -249,7 +287,7 @@ export class BAMLSDK {
       workflowId: string,
       positions: Map<string, { x: number; y: number }>
     ): void => {
-      const workflows = this.store.get(workflowsAtom);
+      const workflows = this.storage.getWorkflows();
       const updatedWorkflows = workflows.map((w) => {
         if (w.id !== workflowId) return w;
 
@@ -264,86 +302,120 @@ export class BAMLSDK {
         };
       });
 
-      this.store.set(workflowsAtom, updatedWorkflows);
-      this.emitEvent({
-        type: 'graph.layout.updated',
-        workflowId,
-        positions,
-      });
+      this.storage.setWorkflows(updatedWorkflows);
     },
   };
 
   // ============================================================================
-  // Cache API
-  // ============================================================================
-
-  cache = {
-    /**
-     * Get cached result for a node
-     */
-    get: (nodeId: string, inputsHash: string): CacheEntry | null => {
-      const cache = this.store.get(cacheAtom);
-      const key = getCacheKey(nodeId, inputsHash);
-      return cache.get(key) ?? null;
-    },
-
-    /**
-     * Set cache for a node
-     */
-    set: (entry: CacheEntry): void => {
-      const cache = this.store.get(cacheAtom);
-      const key = getCacheKey(entry.nodeId, entry.inputsHash);
-      cache.set(key, entry);
-      this.store.set(cacheAtom, new Map(cache));
-    },
-
-    /**
-     * Clear cache
-     */
-    clear: (scope?: { workflowId?: string; nodeId?: string }): void => {
-      if (!scope) {
-        // Clear all cache
-        this.store.set(cacheAtom, new Map());
-        this.emitEvent({ type: 'cache.cleared', scope: 'all' });
-      } else if (scope.workflowId) {
-        // Clear cache for workflow (simplified - clear all for now)
-        this.store.set(cacheAtom, new Map());
-        this.emitEvent({
-          type: 'cache.cleared',
-          scope: 'workflow',
-          workflowId: scope.workflowId,
-        });
-      }
-    },
-  };
-
-  // ============================================================================
-  // Test Cases API (Input Library - Phase 2)
+  // Test Cases API
   // ============================================================================
 
   testCases = {
-    /**
-     * Get test cases for a specific node
-     */
-    get: (workflowId: string, nodeId: string): TestCaseInput[] => {
-      if (this.config.mode === 'mock' && this.config.mockData) {
-        return this.config.mockData.getTestCases(workflowId, nodeId);
-      }
-      return [];
+    get: (nodeId: string): TestCaseInput[] => {
+      if (!this.runtime) return [];
+      return this.runtime.getTestCases(nodeId);
     },
   };
 
   // ============================================================================
-  // Files API
+  // Environment Variables API
   // ============================================================================
 
-  files = {
+  envVars = {
     /**
-     * Update BAML files (triggers recompilation)
+     * Update environment variables and recreate runtime
      */
-    update: (files: Record<string, string>): void => {
-      // TODO: Implement file update logic
-      console.debug('[SDK] Files updated:', Object.keys(files));
+    update: async (envVars: Record<string, string>) => {
+      console.log('SDK: Updating environment variables');
+
+      // Store new env vars
+      this.storage.setEnvVars(envVars);
+
+      // Recreate runtime with new env vars
+      const featureFlags = this.storage.getFeatureFlags();
+      this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
+
+      // Extract and update state
+      const diagnostics = this.runtime.getDiagnostics();
+      this.storage.setDiagnostics(diagnostics);
+
+      const hasErrors = diagnostics.some((d) => d.type === 'error');
+      this.storage.setLastValidRuntime(!hasErrors);
+
+      if (!hasErrors) {
+        const generatedFiles = this.runtime.getGeneratedFiles();
+        this.storage.setGeneratedFiles(generatedFiles);
+      }
+
+      const workflows = this.runtime.getWorkflows();
+      this.storage.setWorkflows(workflows);
+
+      console.log('SDK: Runtime recreated with updated env vars');
+    },
+
+    getCurrent: () => {
+      return this.storage.getEnvVars();
+    },
+  };
+
+  // ============================================================================
+  // Feature Flags API
+  // ============================================================================
+
+  featureFlags = {
+    /**
+     * Update feature flags and recreate runtime
+     */
+    update: async (featureFlags: string[]) => {
+      console.log('SDK: Updating feature flags');
+
+      // Store new feature flags
+      this.storage.setFeatureFlags(featureFlags);
+
+      // Recreate runtime with new feature flags
+      const envVars = this.storage.getEnvVars();
+      this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
+
+      // Extract and update state
+      const diagnostics = this.runtime.getDiagnostics();
+      this.storage.setDiagnostics(diagnostics);
+
+      const hasErrors = diagnostics.some((d) => d.type === 'error');
+      this.storage.setLastValidRuntime(!hasErrors);
+
+      if (!hasErrors) {
+        const generatedFiles = this.runtime.getGeneratedFiles();
+        this.storage.setGeneratedFiles(generatedFiles);
+      }
+
+      const workflows = this.runtime.getWorkflows();
+      this.storage.setWorkflows(workflows);
+
+      console.log('SDK: Runtime recreated with updated feature flags');
+    },
+
+    getCurrent: () => {
+      return this.storage.getFeatureFlags();
+    },
+  };
+
+  // ============================================================================
+  // Generated Files API
+  // ============================================================================
+
+  generatedFiles = {
+    /**
+     * Get all generated files
+     */
+    getAll: (): typeof coreAtoms.generatedFilesAtom extends infer T ? T : never => {
+      return this.storage.getGeneratedFiles() as any;
+    },
+
+    /**
+     * Get generated files filtered by language
+     */
+    getByLanguage: (lang: string) => {
+      return this.storage.getGeneratedFiles().filter((f) => f.outputDir.includes(lang));
     },
   };
 
@@ -356,7 +428,6 @@ export class BAMLSDK {
      * Update cursor position from IDE
      */
     updateCursor: (content: any): void => {
-      // TODO: Implement cursor update logic
       console.debug('[SDK] Cursor updated:', content);
     },
 
@@ -368,7 +439,6 @@ export class BAMLSDK {
       start: { line: number; character: number };
       end: { line: number; character: number };
     }): void => {
-      // TODO: Implement cursor range update logic
       console.debug('[SDK] Cursor updated from range:', params);
     },
 
@@ -376,7 +446,6 @@ export class BAMLSDK {
      * Select a function (navigate to it in the UI)
      */
     selectFunction: (functionName: string): void => {
-      // TODO: Implement function selection logic
       console.debug('[SDK] Function selected:', functionName);
     },
   };
@@ -389,14 +458,16 @@ export class BAMLSDK {
     /**
      * Run a test case
      */
-    run: async (functionName: string, testCaseName: string): Promise<{
+    run: async (
+      functionName: string,
+      testCaseName: string
+    ): Promise<{
       executionId: string;
       status: 'success' | 'error';
       duration: number;
       outputs?: Record<string, any>;
       error?: Error;
     }> => {
-      // TODO: Implement test execution logic
       console.debug('[SDK] Running test:', { functionName, testCaseName });
 
       // For now, return a mock result
@@ -413,216 +484,126 @@ export class BAMLSDK {
     runAll: (
       tests: Array<{ functionName: string; testName: string }>,
       options?: { parallel?: boolean; abortSignal?: AbortSignal }
-    ): AsyncGenerator<TestExecutionEvent> => {
+    ): AsyncGenerator<any> => {
       const self = this;
-      async function* gen(): AsyncGenerator<TestExecutionEvent> {
-        if (self.config.mode === 'mock' && self.config.mockData && 'runTests' in (self.config.mockData as any)) {
-          for await (const event of (self.config.mockData as any).runTests(tests, options)) {
-            yield event as TestExecutionEvent;
-          }
-          return;
-        }
-        console.debug('[SDK] runAll fallback: no provider available');
+      async function* gen(): AsyncGenerator<any> {
+        console.debug('[SDK] runAll:', tests, options);
+        // TODO: Implement test running
       }
       return gen();
     },
   };
 
   // ============================================================================
-  // Unified Execution API
+  // Private: Run execution and update storage based on runtime events
   // ============================================================================
 
-  /**
-   * Unified execute API that yields events
-   * This is the modern API for executing workflows and tests
-   */
-  async *execute(params: {
-    mode: 'workflow' | 'test';
-    workflowId: string;
-    inputs: Record<string, unknown>;
-    testCaseName?: string;
-    options?: { clearCache?: boolean; startFromNodeId?: string };
-  }): AsyncGenerator<BAMLEvent> {
-    const { workflowId, inputs, options } = params;
-
-    // Start execution
-    const executionId = await this.executions.start(workflowId, inputs, options);
-
-    // Yield events from mock data provider
-    if (this.config.mode === 'mock' && this.config.mockData) {
-      for await (const event of this.config.mockData.simulateExecution(
-        workflowId,
-        inputs,
-        options?.startFromNodeId
-      )) {
-        yield event;
-      }
+  private async runExecution(
+    executionId: string,
+    workflowId: string,
+    inputs: Record<string, any>,
+    options?: { clearCache?: boolean; startFromNodeId?: string }
+  ) {
+    if (!this.runtime) {
+      console.error('Cannot run execution: runtime not initialized');
+      return;
     }
-  }
-
-  // ============================================================================
-  // Event System
-  // ============================================================================
-
-  private emitEvent(event: BAMLEvent): void {
-    this.store.set(addEventAtom, event);
-  }
-
-  /**
-   * Subscribe to events
-   * Returns unsubscribe function
-   */
-  onEvent(_callback: (event: BAMLEvent) => void): () => void {
-    // Use Jotai's store subscription
-    return this.store.sub(addEventAtom, () => {
-      // Not ideal but works for now
-      // In a real implementation, we'd use a proper event emitter
-    });
-  }
-
-  // ============================================================================
-  // Mock Execution Simulation
-  // ============================================================================
-
-  private async runMockExecution(
-    execution: ExecutionSnapshot,
-    workflow: WorkflowDefinition,
-    inputs: Record<string, unknown>,
-    startFromNodeId?: string
-  ): Promise<void> {
-    if (!this.config.mockData) return;
 
     const controller = new AbortController();
-    this.activeExecutions.set(execution.id, controller);
-
-    console.log(`🎬 Starting mock execution for workflow: ${workflow.id}`, { executionId: execution.id });
+    this.activeExecutions.set(executionId, controller);
 
     try {
-      // Simulate execution through the generator
-      for await (const event of this.config.mockData.simulateExecution(
-        workflow.id,
-        inputs,
-        startFromNodeId
-      )) {
-        if (controller.signal.aborted) {
-          console.log(`⏹️ Execution aborted: ${execution.id}`);
-          break;
-        }
+      // Execute via runtime (stateless)
+      for await (const event of this.runtime.executeWorkflow(workflowId, inputs, options)) {
+        if (controller.signal.aborted) break;
 
-        // Update node states based on events
-        if (event.type === 'node.started') {
-          console.log(`▶️ Node started: ${event.nodeId}`);
-          // Register node and update its state using atomFamily
-          this.store.set(registerNodeAtom, event.nodeId);
-          this.store.set(nodeStateAtomFamily(event.nodeId), 'running');
-
-          // Create preliminary NodeExecution entry to store inputs and start time
-          const nodeExec: NodeExecution = {
-            nodeId: event.nodeId,
-            executionId: execution.id,
-            state: 'running',
-            inputs: event.inputs,
-            outputs: undefined,
-            logs: [],
-            startTime: Date.now(),
-            endTime: undefined,
-            duration: undefined,
-          };
-
-          execution.nodeExecutions.set(event.nodeId, nodeExec);
-        } else if (event.type === 'node.completed') {
-          console.log(`✅ Node completed: ${event.nodeId}`, event.outputs);
-          // Update node state using atomFamily
-          this.store.set(nodeStateAtomFamily(event.nodeId), 'success');
-
-          // Update execution with node execution data
-          const existingNodeExec = execution.nodeExecutions.get(event.nodeId);
-          const endTime = Date.now();
-          const nodeExec: NodeExecution = {
-            nodeId: event.nodeId,
-            executionId: execution.id,
-            state: 'success',
-            inputs: existingNodeExec?.inputs || event.inputs || {},  // Use inputs from started event, fallback to completed event
-            outputs: event.outputs,
-            logs: existingNodeExec?.logs || [],
-            startTime: existingNodeExec?.startTime || (endTime - event.duration),
-            endTime,
-            duration: event.duration,
-          };
-
-          execution.nodeExecutions.set(event.nodeId, nodeExec);
-        } else if (event.type === 'node.error') {
-          console.error(`❌ Node error: ${event.nodeId}`, event.error);
-          // Update node state using atomFamily
-          this.store.set(nodeStateAtomFamily(event.nodeId), 'error');
-
-          // Create NodeExecution entry for the failed node
-          const existingNodeExec = execution.nodeExecutions.get(event.nodeId);
-          const nodeExec: NodeExecution = {
-            nodeId: event.nodeId,
-            executionId: execution.id,
-            state: 'error',
-            inputs: existingNodeExec?.inputs || {},  // Use inputs from started event if available
-            outputs: undefined,
-            logs: [],
-            startTime: existingNodeExec?.startTime || Date.now(),
-            endTime: Date.now(),
-            duration: existingNodeExec?.startTime ? Date.now() - existingNodeExec.startTime : 0,
-            error: event.error,
-          };
-
-          execution.nodeExecutions.set(event.nodeId, nodeExec);
-        } else if (event.type === 'node.cached') {
-          console.log(`💾 Node cached: ${event.nodeId}`);
-          // Update node state using atomFamily
-          this.store.set(nodeStateAtomFamily(event.nodeId), 'cached');
-        }
-
-        this.emitEvent(event);
+        // Update storage based on event
+        this.handleExecutionEvent(executionId, event);
       }
 
       // Mark execution as completed
-      execution.status = 'completed';
-      execution.duration = Date.now() - execution.timestamp;
-
-      // Update execution in map with a new object to ensure reactivity
-      const workflowExecutionsAtom = workflowExecutionsAtomFamily(workflow.id);
-      const workflowExecutions = this.store.get(workflowExecutionsAtom);
-      const index = workflowExecutions.findIndex((e) => e.id === execution.id);
-      if (index !== -1) {
-        // Create new execution object to ensure reactivity
-        const updatedExecutions = [...workflowExecutions];
-        updatedExecutions[index] = { ...execution };
-        this.store.set(workflowExecutionsAtom, updatedExecutions);
-      }
-
-      this.emitEvent({
-        type: 'execution.completed',
-        executionId: execution.id,
-        duration: execution.duration,
-        outputs: execution.outputs ?? {},
+      this.storage.updateExecution(executionId, {
+        status: 'completed',
+        duration: Date.now() - this.storage.getExecutions(workflowId).find((e) => e.id === executionId)!.timestamp,
       });
     } catch (error) {
-      execution.status = 'error';
-      execution.error = error as Error;
-
-      // Update execution in map
-      const workflowExecutionsAtom = workflowExecutionsAtomFamily(workflow.id);
-      const workflowExecutions = this.store.get(workflowExecutionsAtom);
-      const index = workflowExecutions.findIndex((e) => e.id === execution.id);
-      if (index !== -1) {
-        const updatedExecutions = [...workflowExecutions];
-        updatedExecutions[index] = { ...execution };
-        this.store.set(workflowExecutionsAtom, updatedExecutions);
-      }
-
-      this.emitEvent({
-        type: 'execution.error',
-        executionId: execution.id,
+      // Mark execution as error
+      this.storage.updateExecution(executionId, {
+        status: 'error',
         error: error as Error,
       });
     } finally {
-      this.activeExecutions.delete(execution.id);
+      this.activeExecutions.delete(executionId);
+    }
+  }
+
+  /**
+   * Handle execution events from runtime and update storage
+   * This is the key method that translates runtime events to state updates
+   */
+  private handleExecutionEvent(executionId: string, event: any) {
+    switch (event.type) {
+      case 'node.started':
+        console.log(`▶️ Node started: ${event.nodeId}`);
+        this.storage.setNodeState(event.nodeId, 'running');
+
+        // Create preliminary node execution entry
+        this.storage.addNodeExecution(executionId, event.nodeId, {
+          nodeId: event.nodeId,
+          executionId,
+          state: 'running',
+          inputs: event.inputs,
+          outputs: undefined,
+          logs: [],
+          startTime: Date.now(),
+          endTime: undefined,
+          duration: undefined,
+        });
+        break;
+
+      case 'node.completed':
+        console.log(`✅ Node completed: ${event.nodeId}`);
+        this.storage.setNodeState(event.nodeId, 'success');
+
+        // Update node execution with results
+        const existingNode = this.storage.getNodeExecution(executionId, event.nodeId);
+        this.storage.addNodeExecution(executionId, event.nodeId, {
+          ...existingNode!,
+          state: 'success',
+          outputs: event.outputs,
+          endTime: Date.now(),
+          duration: event.duration,
+        });
+        break;
+
+      case 'node.error':
+        console.error(`❌ Node error: ${event.nodeId}`);
+        this.storage.setNodeState(event.nodeId, 'error');
+
+        const errorNode = this.storage.getNodeExecution(executionId, event.nodeId);
+        this.storage.addNodeExecution(executionId, event.nodeId, {
+          ...errorNode!,
+          state: 'error',
+          error: event.error,
+          endTime: Date.now(),
+        });
+        break;
+
+      case 'node.cached':
+        console.log(`💾 Node cached: ${event.nodeId}`);
+        this.storage.setNodeState(event.nodeId, 'cached');
+        break;
+
+      case 'node.log':
+        // Add log to node execution
+        const node = this.storage.getNodeExecution(executionId, event.nodeId);
+        if (node) {
+          this.storage.addNodeExecution(executionId, event.nodeId, {
+            ...node,
+            logs: [...node.logs, event.log],
+          });
+        }
+        break;
     }
   }
 
@@ -642,6 +623,9 @@ export class BAMLSDK {
 /**
  * Create a new BAML SDK instance
  */
-export function createBAMLSDK(config: BAMLSDKConfig, store?: ReturnType<typeof createStore>): BAMLSDK {
-  return new BAMLSDK(config, store);
+export function createBAMLSDK(
+  runtimeFactory: BamlRuntimeFactory,
+  storage: SDKStorage
+): BAMLSDK {
+  return new BAMLSDK(runtimeFactory, storage);
 }

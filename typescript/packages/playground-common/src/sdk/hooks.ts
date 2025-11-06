@@ -9,6 +9,8 @@ import { useCallback, useMemo } from 'react';
 
 // Re-export useBAMLSDK from provider
 export { useBAMLSDK } from './provider';
+
+// Import atoms directly from core.atoms.ts (no barrel exports)
 import {
   workflowsAtom,
   activeWorkflowIdAtom,
@@ -29,11 +31,23 @@ import {
   activeNodeInputsAtom,
   inputsDirtyAtom,
   allFunctionsMapAtom,
-  functionsByTypeAtom,
-  standaloneFunctionsAtom,
-  selectedFunctionAtom,
-  isLLMOnlyModeAtom,
-} from './atoms';
+  // New atoms from migration
+  diagnosticsAtom,
+  numErrorsAtom,
+  lastValidRuntimeAtom,
+  generatedFilesAtom,
+  generatedFilesByLangAtomFamily,
+  wasmPanicAtom,
+  featureFlagsAtom,
+  betaFeatureEnabledAtom,
+  envVarsAtom,
+  bamlFilesTrackedAtom,
+  sandboxFilesTrackedAtom,
+  vscodeSettingsAtom,
+  playgroundPortAtom,
+  proxyUrlAtom,
+} from './atoms/core.atoms';
+
 import type { BAMLEvent, InputSource } from './types';
 
 // ============================================================================
@@ -431,11 +445,13 @@ export function useActiveNodeInputs() {
 }
 
 // ============================================================================
-// Derived Atoms Hooks (Function Lookup & LLM Mode)
+// Derived State Hooks (Function Lookup & LLM Mode)
+// Per design document: compute derived state in hooks with useMemo instead of atoms
 // ============================================================================
 
 /**
  * Get all functions as a Map for O(1) lookup
+ * Uses the cached atom for performance
  */
 export function useAllFunctions() {
   return useAtomValue(allFunctionsMapAtom);
@@ -443,28 +459,254 @@ export function useAllFunctions() {
 
 /**
  * Get functions grouped by type
+ * Computed on-demand with useMemo instead of a cached atom
  */
 export function useFunctionsByType() {
-  return useAtomValue(functionsByTypeAtom);
+  const allFunctions = useAtomValue(allFunctionsMapAtom);
+
+  return useMemo(() => {
+    const byType: Record<string, any[]> = {
+      workflow: [],
+      llm_function: [],
+      function: [],
+    };
+
+    for (const func of allFunctions.values()) {
+      if (!byType[func.type]) {
+        byType[func.type] = [];
+      }
+      byType[func.type]?.push(func);
+    }
+
+    return byType;
+  }, [allFunctions]);
 }
 
 /**
  * Get standalone functions (not in any workflow)
+ * Computed on-demand with useMemo instead of a cached atom
  */
 export function useStandaloneFunctions() {
-  return useAtomValue(standaloneFunctionsAtom);
+  const allFunctions = useAtomValue(allFunctionsMapAtom);
+  const workflows = useAtomValue(workflowsAtom);
+
+  return useMemo(() => {
+    // Build set of workflow function IDs
+    const workflowFunctionIds = new Set<string>();
+    for (const workflow of workflows) {
+      for (const node of workflow.nodes) {
+        workflowFunctionIds.add(node.id);
+      }
+    }
+
+    // Filter to standalone functions
+    const standalone = new Map<string, any>();
+    for (const [name, func] of allFunctions) {
+      if (!workflowFunctionIds.has(name)) {
+        standalone.set(name, func);
+      }
+    }
+
+    return standalone;
+  }, [allFunctions, workflows]);
 }
 
 /**
  * Get the currently selected function details
+ * Computed on-demand with useMemo instead of a cached atom
  */
 export function useSelectedFunction() {
-  return useAtomValue(selectedFunctionAtom);
+  const [selectedNodeId] = useSelectedNode();
+  const allFunctions = useAtomValue(allFunctionsMapAtom);
+
+  return useMemo(() => {
+    if (!selectedNodeId) return null;
+    return allFunctions.get(selectedNodeId) ?? null;
+  }, [selectedNodeId, allFunctions]);
 }
 
 /**
  * Check if we're in LLM-only mode
+ * Computed on-demand with useMemo instead of a cached atom
+ *
+ * True when:
+ * 1. Selected node is an LLM function
+ * 2. NOT part of any workflow
  */
 export function useLLMOnlyMode() {
-  return useAtomValue(isLLMOnlyModeAtom);
+  const [selectedNodeId] = useSelectedNode();
+  const activeWorkflow = useAtomValue(activeWorkflowAtom);
+  const allFunctions = useAtomValue(allFunctionsMapAtom);
+  const workflows = useAtomValue(workflowsAtom);
+
+  return useMemo(() => {
+    if (!selectedNodeId) return false;
+
+    // Check if it's an LLM function
+    let isLLMFunction = false;
+
+    // Option 1: Check in current graph (if function is part of active workflow)
+    if (activeWorkflow) {
+      const node = activeWorkflow.nodes.find((n) => n.id === selectedNodeId);
+      if (node?.type === 'llm_function') {
+        isLLMFunction = true;
+      }
+    }
+
+    // Option 2: Check in all functions (standalone functions)
+    if (!isLLMFunction) {
+      const selectedFunction = allFunctions.get(selectedNodeId);
+      if (selectedFunction?.type === 'llm_function') {
+        isLLMFunction = true;
+      }
+    }
+
+    // If not an LLM function, definitely not LLM-only mode
+    if (!isLLMFunction) return false;
+
+    // Check if part of any workflow
+    for (const workflow of workflows) {
+      for (const node of workflow.nodes) {
+        if (node.id === selectedNodeId) {
+          return false; // Found in a workflow, not standalone
+        }
+      }
+    }
+
+    return true; // LLM function not in any workflow
+  }, [selectedNodeId, activeWorkflow, allFunctions, workflows]);
+}
+
+// ============================================================================
+// Diagnostics Hooks
+// ============================================================================
+
+/**
+ * Get compilation diagnostics (errors and warnings)
+ */
+export function useDiagnostics() {
+  return useAtomValue(diagnosticsAtom);
+}
+
+/**
+ * Get error and warning counts
+ */
+export function useErrorCounts() {
+  return useAtomValue(numErrorsAtom);
+}
+
+/**
+ * Check if runtime is valid (no compilation errors)
+ */
+export function useIsRuntimeValid() {
+  return useAtomValue(lastValidRuntimeAtom);
+}
+
+// ============================================================================
+// Generated Files Hooks
+// ============================================================================
+
+/**
+ * Get all generated files
+ */
+export function useGeneratedFiles() {
+  return useAtomValue(generatedFilesAtom);
+}
+
+/**
+ * Get generated files filtered by language
+ */
+export function useGeneratedFilesByLanguage(lang: string) {
+  return useAtomValue(generatedFilesByLangAtomFamily(lang));
+}
+
+// ============================================================================
+// WASM Panic Hooks
+// ============================================================================
+
+/**
+ * Get WASM panic state
+ */
+export function useWasmPanic() {
+  return useAtomValue(wasmPanicAtom);
+}
+
+/**
+ * Clear WASM panic
+ */
+export function useClearWasmPanic() {
+  const setPanic = useSetAtom(wasmPanicAtom);
+  return useCallback(() => setPanic(null), [setPanic]);
+}
+
+// ============================================================================
+// Feature Flags Hooks
+// ============================================================================
+
+/**
+ * Get feature flags
+ */
+export function useFeatureFlags() {
+  return useAtomValue(featureFlagsAtom);
+}
+
+/**
+ * Check if beta features are enabled
+ */
+export function useBetaFeatureEnabled() {
+  return useAtomValue(betaFeatureEnabledAtom);
+}
+
+// ============================================================================
+// Environment Variables Hooks
+// ============================================================================
+
+/**
+ * Get environment variables
+ */
+export function useEnvVars() {
+  return useAtomValue(envVarsAtom);
+}
+
+// ============================================================================
+// Files Tracking Hooks
+// ============================================================================
+
+/**
+ * Get tracked BAML files
+ */
+export function useBAMLFiles() {
+  return useAtomValue(bamlFilesTrackedAtom);
+}
+
+/**
+ * Get sandbox files
+ */
+export function useSandboxFiles() {
+  return useAtomValue(sandboxFilesTrackedAtom);
+}
+
+// ============================================================================
+// VSCode Integration Hooks
+// ============================================================================
+
+/**
+ * Get VSCode settings
+ */
+export function useVSCodeSettings() {
+  return useAtomValue(vscodeSettingsAtom);
+}
+
+/**
+ * Get playground port
+ */
+export function usePlaygroundPort() {
+  return useAtomValue(playgroundPortAtom);
+}
+
+/**
+ * Get proxy URL configuration
+ */
+export function useProxyUrl() {
+  return useAtomValue(proxyUrlAtom);
 }

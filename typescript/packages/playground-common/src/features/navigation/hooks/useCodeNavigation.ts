@@ -7,7 +7,7 @@
 
 import { useEffect } from 'react';
 import { useAtomValue } from 'jotai';
-import { activeCodeClickAtom } from '@/sdk/atoms';
+import { activeCodeClickAtom } from '@/sdk/atoms/core.atoms';
 import { useBAMLSDK } from '@/sdk/provider';
 import {
   determineNavigationAction,

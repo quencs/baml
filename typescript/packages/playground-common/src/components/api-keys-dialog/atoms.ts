@@ -2,7 +2,7 @@ import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 import { vscodeLocalStorageStore } from '../../shared/baml-project-panel/Jotai';
 import { vscode } from '../../shared/baml-project-panel/vscode';
-import { proxyUrlAtom, runtimeAtom } from '../../shared/atoms';
+import { proxyUrlAtom, runtimeAtom } from '../../shared/baml-project-panel/atoms';
 
 export const apiKeyVisibilityAtom = atom<Record<string, boolean>>({});
 

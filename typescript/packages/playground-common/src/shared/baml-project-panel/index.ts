@@ -1,5 +1,5 @@
-// Re-export unified atoms for backward compatibility
-export * from '../atoms';
+// BAML project panel exports (legacy playground)
+export * from './atoms'; // WASM runtime atoms (wasmAtom, runtimeAtom, diagnosticsAtom, etc.)
 export * from './vscode';
 export * from './Jotai';
 export * from './types';

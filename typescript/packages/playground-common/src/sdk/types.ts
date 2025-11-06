@@ -316,6 +316,3 @@ export interface MockDataProvider {
   simulateExecution(workflowId: string, inputs: Record<string, any>, startFromNodeId?: string): AsyncGenerator<BAMLEvent>;
   getBAMLFiles(): BAMLFile[];
 }
-
-// Re-export ExecutionOptions from execution/types.ts
-export type { ExecutionOptions, ExecutionResult } from './execution/types';

@@ -1,7 +1,7 @@
 import { useAtomValue } from 'jotai';
 import { memo, useMemo } from 'react';
 
-import { activeWorkflowExecutionsAtom } from '@/sdk/atoms';
+import { activeWorkflowExecutionsAtom } from '@/sdk/atoms/core.atoms';
 
 interface ExecutionHistoryDotsProps {
   nodeId: string;
