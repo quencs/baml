@@ -6,34 +6,23 @@ use indexmap::IndexMap;
 use internal_baml_core::ast::Span;
 use pretty::RcDoc;
 
+pub mod flatten;
 pub mod mermaid;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct NodeId {
-    function: String,
-    segments: Vec<PathSegment>,
-}
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct NodeId(u32);
 
 impl NodeId {
-    fn new(function: &str, segments: &[PathSegment]) -> Self {
-        Self {
-            function: function.to_string(),
-            segments: segments.to_vec(),
-        }
+    fn new(raw: u32) -> Self {
+        Self(raw)
     }
 
-    pub fn parent(&self) -> Option<Self> {
-        if self.segments.is_empty() {
-            return None;
-        }
-
-        let mut segments = self.segments.clone();
-        segments.pop();
-        Some(NodeId::new(&self.function, &segments))
+    pub fn raw(&self) -> u32 {
+        self.0
     }
 
     pub fn encode(&self) -> String {
-        encode_segments(&self.function, &self.segments)
+        self.0.to_string()
     }
 }
 
@@ -47,7 +36,8 @@ impl FromStr for NodeId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        decode_segments(s)
+        let raw: u32 = s.parse()?;
+        Ok(NodeId::new(raw))
     }
 }
 
@@ -65,31 +55,38 @@ enum PathSegment {
 pub struct Node {
     pub id: NodeId,
     pub parent_node_id: Option<NodeId>,
+    pub lexical_id: String,
     pub label: String,
     pub span: Span,
     pub node_type: NodeType,
 }
 
 impl Node {
-    fn new(id: NodeId, label: impl Into<String>, span: Span, node_type: NodeType) -> Self {
-        let parent_node_id = id.parent();
+    fn new(
+        id: NodeId,
+        parent_node_id: Option<NodeId>,
+        lexical_id: impl Into<String>,
+        label: impl Into<String>,
+        span: Span,
+        node_type: NodeType,
+    ) -> Self {
         Self {
             id,
             parent_node_id,
+            lexical_id: lexical_id.into(),
             label: label.into(),
             span,
             node_type,
         }
     }
 
-    fn root(id: NodeId, span: Span, label: impl Into<String>) -> Self {
-        Self {
-            parent_node_id: None,
-            id,
-            label: label.into(),
-            span,
-            node_type: NodeType::FunctionRoot,
-        }
+    fn root(
+        id: NodeId,
+        lexical_id: impl Into<String>,
+        span: Span,
+        label: impl Into<String>,
+    ) -> Self {
+        Self::new(id, None, lexical_id, label, span, NodeType::FunctionRoot)
     }
 }
 
@@ -115,13 +112,29 @@ pub struct ControlFlowVisualization {
     pub edges_by_src: IndexMap<NodeId, Vec<Edge>>,
 }
 
-#[derive(Default)]
 struct ControlFlowVizBuilder {
     nodes: IndexMap<NodeId, Node>,
     edges: Vec<Edge>,
+    next_node_id: u32,
+}
+
+impl Default for ControlFlowVizBuilder {
+    fn default() -> Self {
+        Self {
+            nodes: IndexMap::new(),
+            edges: Vec::new(),
+            next_node_id: 0,
+        }
+    }
 }
 
 impl ControlFlowVizBuilder {
+    fn allocate_id(&mut self) -> NodeId {
+        let id = NodeId::new(self.next_node_id);
+        self.next_node_id += 1;
+        id
+    }
+
     fn add_node(&mut self, node: Node) {
         self.nodes.insert(node.id.clone(), node);
     }
@@ -140,69 +153,6 @@ impl ControlFlowVizBuilder {
             nodes: self.nodes,
             edges_by_src,
         }
-    }
-}
-
-struct NodePathCursor {
-    function: String,
-    segments: Vec<PathSegment>,
-}
-
-impl NodePathCursor {
-    fn new(function: &str) -> Self {
-        Self {
-            function: function.to_string(),
-            segments: Vec::new(),
-        }
-    }
-
-    fn push_root(&mut self, ordinal: u16) -> NodeId {
-        self.segments.push(PathSegment::FunctionRoot { ordinal });
-        NodeId::new(&self.function, &self.segments)
-    }
-
-    fn push_header(&mut self, slug: &str, ordinal: u16) -> NodeId {
-        self.segments.push(PathSegment::Header {
-            slug: slug.to_string(),
-            ordinal,
-        });
-        NodeId::new(&self.function, &self.segments)
-    }
-
-    fn push_branch_group(&mut self, slug: &str, ordinal: u16) -> NodeId {
-        self.segments.push(PathSegment::BranchGroup {
-            slug: slug.to_string(),
-            ordinal,
-        });
-        NodeId::new(&self.function, &self.segments)
-    }
-
-    fn push_branch_arm(&mut self, slug: &str, ordinal: u16) -> NodeId {
-        self.segments.push(PathSegment::BranchArm {
-            slug: slug.to_string(),
-            ordinal,
-        });
-        NodeId::new(&self.function, &self.segments)
-    }
-
-    fn push_loop(&mut self, slug: &str, ordinal: u16) -> NodeId {
-        self.segments.push(PathSegment::Loop {
-            slug: slug.to_string(),
-            ordinal,
-        });
-        NodeId::new(&self.function, &self.segments)
-    }
-
-    fn push_other_scope(&mut self, slug: &str, ordinal: u16) -> NodeId {
-        self.segments.push(PathSegment::OtherScope {
-            slug: slug.to_string(),
-            ordinal,
-        });
-        NodeId::new(&self.function, &self.segments)
-    }
-
-    fn pop(&mut self) {
-        self.segments.pop();
     }
 }
 
@@ -267,15 +217,17 @@ enum FrameEntry {
 struct Frame {
     entry: FrameEntry,
     node_id: NodeId,
+    lexical_segment: Option<PathSegment>,
     counters: FrameCounters,
     last_linear_child: Option<NodeId>,
 }
 
 impl Frame {
-    fn new(entry: FrameEntry, node_id: NodeId) -> Self {
+    fn new(entry: FrameEntry, node_id: NodeId, lexical_segment: Option<PathSegment>) -> Self {
         Self {
             entry,
             node_id,
+            lexical_segment,
             counters: FrameCounters::default(),
             last_linear_child: None,
         }
@@ -386,14 +338,24 @@ fn build_expr_function_graph(func: &hir::ExprFunction) -> ControlFlowVisualizati
 
 fn build_llm_function_graph(func: &hir::LlmFunction) -> ControlFlowVisualization {
     let mut builder = ControlFlowVizBuilder::default();
-    let mut cursor = NodePathCursor::new(&func.name);
-    let root_id = cursor.push_root(0);
-    builder.add_node(Node::root(root_id.clone(), func.span.clone(), &func.name));
+    let root_id = builder.allocate_id();
+    let root_segment = PathSegment::FunctionRoot { ordinal: 0 };
+    let root_lexical = encode_segments(&func.name, &[root_segment.clone()]);
+    builder.add_node(Node::root(
+        root_id,
+        root_lexical,
+        func.span.clone(),
+        &func.name,
+    ));
 
     let slug = slug_or_default("llm", "llm");
-    let loop_id = cursor.push_other_scope(&slug, 0);
+    let segment = PathSegment::OtherScope { slug, ordinal: 0 };
+    let lexical_id = encode_segments(&func.name, &[root_segment, segment.clone()]);
+    let loop_id = builder.allocate_id();
     let node = Node::new(
-        loop_id.clone(),
+        loop_id,
+        Some(root_id),
+        lexical_id,
         format!("LLM client: {}", func.client),
         func.span.clone(),
         NodeType::OtherScope,
@@ -405,22 +367,32 @@ fn build_llm_function_graph(func: &hir::LlmFunction) -> ControlFlowVisualization
 }
 
 struct HirTraversalContext {
+    function_name: String,
     graph: ControlFlowVizBuilder,
-    cursor: NodePathCursor,
     frames: Vec<Frame>,
 }
 
 impl HirTraversalContext {
     fn new(function_name: &str, span: Span) -> Self {
-        let mut cursor = NodePathCursor::new(function_name);
-        let root_id = cursor.push_root(0);
         let mut graph = ControlFlowVizBuilder::default();
-        graph.add_node(Node::root(root_id.clone(), span, function_name.to_string()));
+        let root_id = graph.allocate_id();
+        let root_segment = PathSegment::FunctionRoot { ordinal: 0 };
+        let root_lexical = encode_segments(function_name, &[root_segment.clone()]);
+        graph.add_node(Node::root(
+            root_id,
+            root_lexical,
+            span,
+            function_name.to_string(),
+        ));
 
         Self {
+            function_name: function_name.to_string(),
             graph,
-            cursor,
-            frames: vec![Frame::new(FrameEntry::FunctionRoot, root_id)],
+            frames: vec![Frame::new(
+                FrameEntry::FunctionRoot,
+                root_id,
+                Some(root_segment),
+            )],
         }
     }
 
@@ -433,6 +405,20 @@ impl HirTraversalContext {
             .len()
             .checked_sub(1)
             .expect("frame stack always contains root")
+    }
+
+    fn current_parent_id(&self) -> Option<NodeId> {
+        self.frames.last().map(|frame| frame.node_id)
+    }
+
+    fn build_lexical_id(&self, segment: &PathSegment) -> String {
+        let mut segments: Vec<PathSegment> = self
+            .frames
+            .iter()
+            .filter_map(|frame| frame.lexical_segment.clone())
+            .collect();
+        segments.push(segment.clone());
+        encode_segments(&self.function_name, &segments)
     }
 
     fn visit_function_body(&mut self, block: &hir::Block) {
@@ -473,14 +459,24 @@ impl HirTraversalContext {
         } else {
             slug_base
         };
-        let node_id = self.cursor.push_other_scope(&slug, ordinal);
+        let segment = PathSegment::OtherScope { slug, ordinal };
+        let lexical_id = self.build_lexical_id(&segment);
+        let node_id = self.graph.allocate_id();
+        let parent_id = self.current_parent_id();
         let node_label = label.unwrap_or_else(|| "".to_string());
-        let node = Node::new(node_id.clone(), node_label, span, NodeType::OtherScope);
+        let node = Node::new(
+            node_id,
+            parent_id,
+            lexical_id,
+            node_label,
+            span,
+            NodeType::OtherScope,
+        );
         self.graph.add_node(node);
         let parent_index = self.current_parent_index();
         self.register_child_with_parent(parent_index, &node_id);
         self.frames
-            .push(Frame::new(FrameEntry::OtherScope, node_id.clone()));
+            .push(Frame::new(FrameEntry::OtherScope, node_id, Some(segment)));
         self.visit_block_inline(block);
         self.pop_frames_to(parent_depth);
     }
@@ -608,13 +604,23 @@ impl HirTraversalContext {
                 slug_base
             }
         };
-        let node_id = self.cursor.push_branch_group(&slug, ordinal);
-        let node = Node::new(node_id.clone(), label, span, NodeType::BranchGroup);
+        let segment = PathSegment::BranchGroup { slug, ordinal };
+        let lexical_id = self.build_lexical_id(&segment);
+        let node_id = self.graph.allocate_id();
+        let parent_id = self.current_parent_id();
+        let node = Node::new(
+            node_id,
+            parent_id,
+            lexical_id,
+            label,
+            span,
+            NodeType::BranchGroup,
+        );
         self.graph.add_node(node);
         let parent_index = self.current_parent_index();
         self.register_child_with_parent(parent_index, &node_id);
         self.frames
-            .push(Frame::new(FrameEntry::BranchGroup, node_id.clone()));
+            .push(Frame::new(FrameEntry::BranchGroup, node_id, Some(segment)));
 
         let arm_label = format!("if ({})", render_expression(condition));
         self.visit_branch_arm(arm_label, then_expr, expression_span(then_expr));
@@ -657,13 +663,23 @@ impl HirTraversalContext {
         } else {
             slug_base
         };
-        let node_id = self.cursor.push_branch_arm(&slug, ordinal);
-        let node = Node::new(node_id.clone(), label, span, NodeType::BranchArm);
+        let segment = PathSegment::BranchArm { slug, ordinal };
+        let lexical_id = self.build_lexical_id(&segment);
+        let node_id = self.graph.allocate_id();
+        let parent_id = self.current_parent_id();
+        let node = Node::new(
+            node_id,
+            parent_id,
+            lexical_id,
+            label,
+            span,
+            NodeType::BranchArm,
+        );
         self.graph.add_node(node);
         let parent_index = self.current_parent_index();
         self.register_child_with_parent(parent_index, &node_id);
         self.frames
-            .push(Frame::new(FrameEntry::BranchArm, node_id.clone()));
+            .push(Frame::new(FrameEntry::BranchArm, node_id, Some(segment)));
         self.visit_expression(expr, BlockHandling::inline());
         self.pop_frames_to(parent_depth);
     }
@@ -684,13 +700,16 @@ impl HirTraversalContext {
         } else {
             slug_base
         };
-        let node_id = self.cursor.push_loop(&slug, ordinal);
-        let node = Node::new(node_id.clone(), label, span, NodeType::Loop);
+        let segment = PathSegment::Loop { slug, ordinal };
+        let lexical_id = self.build_lexical_id(&segment);
+        let node_id = self.graph.allocate_id();
+        let parent_id = self.current_parent_id();
+        let node = Node::new(node_id, parent_id, lexical_id, label, span, NodeType::Loop);
         self.graph.add_node(node);
         let parent_index = self.current_parent_index();
         self.register_child_with_parent(parent_index, &node_id);
         self.frames
-            .push(Frame::new(FrameEntry::Loop, node_id.clone()));
+            .push(Frame::new(FrameEntry::Loop, node_id, Some(segment)));
         self.visit_block_inline(block);
         self.pop_frames_to(parent_depth);
     }
@@ -712,9 +731,14 @@ impl HirTraversalContext {
             slug = format!("header-{}", ordinal);
         }
 
-        let node_id = self.cursor.push_header(&slug, ordinal);
+        let segment = PathSegment::Header { slug, ordinal };
+        let lexical_id = self.build_lexical_id(&segment);
+        let node_id = self.graph.allocate_id();
+        let parent_id = self.current_parent_id();
         let node = Node::new(
-            node_id.clone(),
+            node_id,
+            parent_id,
+            lexical_id,
             header.title.clone(),
             header.span.clone(),
             NodeType::HeaderContextEnter,
@@ -723,8 +747,11 @@ impl HirTraversalContext {
 
         let parent_index = self.current_parent_index();
         self.register_child_with_parent(parent_index, &node_id);
-        self.frames
-            .push(Frame::new(FrameEntry::Header { level }, node_id));
+        self.frames.push(Frame::new(
+            FrameEntry::Header { level },
+            node_id,
+            Some(segment),
+        ));
     }
 
     fn register_child_with_parent(&mut self, parent_index: usize, node_id: &NodeId) {
@@ -743,7 +770,6 @@ impl HirTraversalContext {
             match frame.entry {
                 FrameEntry::Header { level } if level > desired_level => {
                     self.frames.pop();
-                    self.cursor.pop();
                 }
                 _ => break,
             }
@@ -753,7 +779,6 @@ impl HirTraversalContext {
     fn pop_frames_to(&mut self, len: usize) {
         while self.frames.len() > len {
             self.frames.pop();
-            self.cursor.pop();
         }
     }
 }
@@ -924,82 +949,6 @@ fn encode_segments(function: &str, segments: &[PathSegment]) -> String {
         }
     }
     encoded
-}
-
-fn decode_segments(encoded: &str) -> Result<NodeId> {
-    let mut parts = encoded.split('|');
-    let function = parts.next().ok_or_else(|| anyhow!("invalid NodeId"))?;
-    let mut segments = Vec::new();
-    for part in parts {
-        let mut tokens = part.split(':');
-        let tag = tokens.next().unwrap_or("");
-        match tag {
-            "root" => {
-                let ordinal: u16 = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing root ordinal"))?
-                    .parse()?;
-                segments.push(PathSegment::FunctionRoot { ordinal });
-            }
-            "hdr" => {
-                let slug = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing header slug"))?
-                    .to_string();
-                let ordinal: u16 = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing header ordinal"))?
-                    .parse()?;
-                segments.push(PathSegment::Header { slug, ordinal });
-            }
-            "bg" => {
-                let slug = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing branch-group slug"))?
-                    .to_string();
-                let ordinal: u16 = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing branch-group ordinal"))?
-                    .parse()?;
-                segments.push(PathSegment::BranchGroup { slug, ordinal });
-            }
-            "arm" => {
-                let slug = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing branch-arm slug"))?
-                    .to_string();
-                let ordinal: u16 = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing branch-arm ordinal"))?
-                    .parse()?;
-                segments.push(PathSegment::BranchArm { slug, ordinal });
-            }
-            "loop" => {
-                let slug = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing loop slug"))?
-                    .to_string();
-                let ordinal: u16 = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing loop ordinal"))?
-                    .parse()?;
-                segments.push(PathSegment::Loop { slug, ordinal });
-            }
-            "scope" => {
-                let slug = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing scope slug"))?
-                    .to_string();
-                let ordinal: u16 = tokens
-                    .next()
-                    .ok_or_else(|| anyhow!("missing scope ordinal"))?
-                    .parse()?;
-                segments.push(PathSegment::OtherScope { slug, ordinal });
-            }
-            _ => return Err(anyhow!("unknown segment")),
-        }
-    }
-    Ok(NodeId::new(function, &segments))
 }
 
 #[cfg(test)]

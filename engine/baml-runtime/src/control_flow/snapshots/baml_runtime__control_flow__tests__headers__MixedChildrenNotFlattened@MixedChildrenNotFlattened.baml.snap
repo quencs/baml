@@ -6,34 +6,38 @@ input_file: baml-runtime/src/control_flow/testdata/MixedChildrenNotFlattened.bam
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"MD Child\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                        start: 64,\n                        end: 77,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"items\",\n                value: Array(\n                    [\n                        NumericValue(\n                            \"42\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                                start: 95,\n                                end: 97,\n                            },\n                        ),\n                    ],\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                        start: 94,\n                        end: 98,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                    start: 82,\n                    end: 100,\n                },\n            },\n            ForLoop {\n                identifier: \"item\",\n                iterator: Identifier(\n                    \"items\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                        start: 121,\n                        end: 126,\n                    },\n                ),\n                block: Block {\n                    statements: [\n                        HeaderContextEnter(\n                            HeaderContext {\n                                level: 1,\n                                title: \"Loop Child\",\n                                span: Span {\n                                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                                    start: 138,\n                                    end: 152,\n                                },\n                            },\n                        ),\n                    ],\n                    trailing_expr: Some(\n                        Identifier(\n                            \"item\",\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                                start: 161,\n                                end: 165,\n                            },\n                        ),\n                    ),\n                },\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                    start: 104,\n                    end: 171,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            StringValue(\n                \"done\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/MixedChildrenNotFlattened.baml\", contents: ... },\n                    start: 176,\n                    end: 182,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "MixedChildrenNotFlattened|root:0":
+    "0":
       label: MixedChildrenNotFlattened
+      lexical_id: "MixedChildrenNotFlattened|root:0"
       node_type: function
       parent: ~
       span:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 11
         end: 184
-    "MixedChildrenNotFlattened|root:0|hdr:md-child:0":
+    "1":
       label: MD Child
+      lexical_id: "MixedChildrenNotFlattened|root:0|hdr:md-child:0"
       node_type: header
-      parent: "MixedChildrenNotFlattened|root:0"
+      parent: "0"
       span:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 64
         end: 77
-    "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0":
+    "2":
       label: for (item in items)
+      lexical_id: "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0"
       node_type: loop
-      parent: "MixedChildrenNotFlattened|root:0|hdr:md-child:0"
+      parent: "1"
       span:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 104
         end: 171
-    "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0|hdr:loop-child:0":
+    "3":
       label: Loop Child
+      lexical_id: "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0|hdr:loop-child:0"
       node_type: header
-      parent: "MixedChildrenNotFlattened|root:0|hdr:md-child:0|loop:for-item-in-items:0"
+      parent: "2"
       span:
         file: src/control_flow/testdata/MixedChildrenNotFlattened.baml
         start: 138

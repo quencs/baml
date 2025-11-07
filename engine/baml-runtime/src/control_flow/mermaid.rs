@@ -82,12 +82,7 @@ impl<'a> MermaidRenderer<'a> {
 
         if !self.root_edges.is_empty() {
             for (src, dst) in &self.root_edges {
-                let _ = writeln!(
-                    output,
-                    "{} --> {}",
-                    self.alias(src),
-                    self.alias(dst)
-                );
+                let _ = writeln!(output, "{} --> {}", self.alias(src), self.alias(dst));
             }
         }
 

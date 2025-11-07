@@ -6,18 +6,20 @@ input_file: baml-runtime/src/control_flow/testdata/SimpleTest.baml
 hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"Main Header\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SimpleTest.baml\", contents: ... },\n                        start: 38,\n                        end: 53,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"x\",\n                value: StringValue(\n                    \"hello\",\n                    Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/SimpleTest.baml\", contents: ... },\n                        start: 66,\n                        end: 73,\n                    },\n                ),\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SimpleTest.baml\", contents: ... },\n                    start: 58,\n                    end: 75,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"x\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/SimpleTest.baml\", contents: ... },\n                    start: 79,\n                    end: 80,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
-    "SimpleTest|root:0":
+    "0":
       label: SimpleTest
+      lexical_id: "SimpleTest|root:0"
       node_type: function
       parent: ~
       span:
         file: src/control_flow/testdata/SimpleTest.baml
         start: 0
         end: 82
-    "SimpleTest|root:0|hdr:main-header:0":
+    "1":
       label: Main Header
+      lexical_id: "SimpleTest|root:0|hdr:main-header:0"
       node_type: header
-      parent: "SimpleTest|root:0"
+      parent: "0"
       span:
         file: src/control_flow/testdata/SimpleTest.baml
         start: 38
