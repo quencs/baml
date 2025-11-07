@@ -21,15 +21,12 @@ pub fn flatten_branch_arms_and_scopes(viz: &ControlFlowVisualization) -> Control
             _ => continue,
         };
 
-        let entry_child = children
-            .iter()
-            .find(|child_id| {
-                viz.nodes
-                    .get(child_id)
-                    .map(|child| matches!(child.node_type, NodeType::HeaderContextEnter))
-                    .unwrap_or(false)
-            })
-            .copied();
+        let entry_child = children.iter().copied().find(|child_id| {
+            viz.nodes
+                .get(child_id)
+                .map(|child| matches!(child.node_type, NodeType::HeaderContextEnter))
+                .unwrap_or(false)
+        });
 
         if entry_child.is_none() {
             continue;
@@ -69,8 +66,8 @@ pub fn flatten_branch_arms_and_scopes(viz: &ControlFlowVisualization) -> Control
 
     for info in &targets_sorted {
         if let Some(children) = children_map.get(&info.node_id) {
-            for child_id in children {
-                if let Some(child_node) = nodes.get_mut(child_id) {
+            for child_id in children.iter().copied() {
+                if let Some(child_node) = nodes.get_mut(&child_id) {
                     child_node.parent_node_id = info.parent;
                 }
             }

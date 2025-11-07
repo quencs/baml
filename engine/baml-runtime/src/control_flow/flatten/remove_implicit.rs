@@ -92,7 +92,7 @@ fn filter_viz(viz: &ControlFlowVisualization, keep: &HashSet<NodeId>) -> Control
         if !keep.contains(src) {
             continue;
         }
-        let mut filtered: Vec<Edge> = edges
+        let filtered: Vec<Edge> = edges
             .iter()
             .filter(|edge| keep.contains(&edge.dst))
             .cloned()

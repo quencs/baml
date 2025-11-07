@@ -11,7 +11,10 @@ use baml_types::ir_type::{type_meta, TypeIR, TypeValue};
 use insta::assert_yaml_snapshot;
 use serde_json::{json, Value};
 
-use super::mermaid::to_mermaid;
+use super::{
+    flatten::{expand_branch_groups, flatten_branch_arms_and_scopes, remove_implicit_nodes},
+    mermaid::to_mermaid,
+};
 use crate::BamlRuntime;
 use internal_baml_core::feature_flags::FeatureFlags;
 
@@ -110,11 +113,22 @@ fn test_snapshots() {
                         })
                     } else {
                         match build_from_hir(&hir, &target_name) {
-                            Ok(viz) => json!({
-                                "hir": format!("{:#?}", &hir.expr_functions.iter().find(|f| f.name == target_name).map(|f| &f.body)),
-                                "expr": viz_snapshot(&viz),
-                                "mermaid": to_mermaid(&viz),
-                            }),
+                            Ok(viz) => {
+                                let pass1 = remove_implicit_nodes(&viz);
+                                let pass2 = expand_branch_groups(&pass1);
+                                let pass3 = flatten_branch_arms_and_scopes(&pass2);
+
+                                json!({
+                                    "hir": format!("{:#?}", &hir.expr_functions.iter().find(|f| f.name == target_name).map(|f| &f.body)),
+                                    "expr": viz_snapshot(&viz),
+                                    "mermaid": to_mermaid(&viz),
+                                    "flattening": {
+                                        "pass1_remove_implicit": flatten_stage_snapshot("Remove implicit nodes", &pass1),
+                                        "pass2_expand_branch_groups": flatten_stage_snapshot("Expand branch groups", &pass2),
+                                        "pass3_flatten_scopes": flatten_stage_snapshot("Flatten branch arms & scopes", &pass3),
+                                    },
+                                })
+                            }
                             Err(err) => json!({ "__error": format!("{err}") }),
                         }
                     }
@@ -127,6 +141,14 @@ fn test_snapshots() {
             assert_yaml_snapshot!(format!("headers__{}", snapshot_name), snapshot_value);
         }
     );
+}
+
+fn flatten_stage_snapshot(stage: &str, viz: &ControlFlowVisualization) -> Value {
+    json!({
+        "label": stage,
+        "expr": viz_snapshot(viz),
+        "mermaid": to_mermaid(viz),
+    })
 }
 
 fn load_runtime_from_fixture(path: &Path) -> anyhow::Result<BamlRuntime> {

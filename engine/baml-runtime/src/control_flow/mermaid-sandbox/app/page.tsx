@@ -23,6 +23,13 @@ type ExampleRow = {
     source: string;
     contents: string;
   };
+  flattenStages?: {
+    label: string;
+    mermaid?: {
+      source: string;
+      contents: string;
+    };
+  }[];
   error?: string;
 };
 
@@ -111,6 +118,37 @@ async function loadExamples(): Promise<ExampleRow[]> {
       };
     }
 
+    const flatteningValue = (dataDoc as { flattening?: unknown }).flattening;
+    if (flatteningValue && typeof flatteningValue === "object") {
+      const stages: Array<[string, string]> = [
+        ["pass1_remove_implicit", "Pass 1 – Remove implicit"],
+        ["pass2_expand_branch_groups", "Pass 2 – Expand branch groups"],
+        ["pass3_flatten_scopes", "Pass 3 – Flatten arms & scopes"],
+      ];
+
+      for (const [stageKey, stageLabel] of stages) {
+        const stageData = (flatteningValue as Record<string, unknown>)[stageKey];
+        if (!stageData || typeof stageData !== "object") {
+          continue;
+        }
+        const mermaidStage = (stageData as { mermaid?: unknown }).mermaid;
+        const stageEntry = {
+          label: stageLabel,
+          mermaid:
+            typeof mermaidStage === "string"
+              ? {
+                  source: `${snapshotFile}::${String(stageKey)}`,
+                  contents: mermaidStage,
+                }
+              : undefined,
+        };
+        if (!entry.flattenStages) {
+          entry.flattenStages = [];
+        }
+        entry.flattenStages.push(stageEntry);
+      }
+    }
+
     const hirValue = (dataDoc as { hir?: unknown }).hir;
     if (typeof hirValue === "string") {
       entry.hir = {
@@ -151,7 +189,7 @@ export default async function Home() {
                   {example.baml?.fileName ?? "(no source)"}
                 </p>
               </header>
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] p-4">
+              <div className="grid gap-6 lg:grid-cols-3 p-4">
                 <section className="space-y-2">
                   <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">HIR</h3>
                   <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
@@ -174,24 +212,6 @@ export default async function Home() {
                   </pre>
                 </section>
 
-                <section className="space-y-4">
-                  <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Mermaid Diagram</h3>
-                  {example.error ? (
-                    <p className="text-sm text-red-600">{example.error}</p>
-                  ) : example.mermaid ? (
-                    <figure className="border border-gray-200 rounded-md overflow-hidden">
-                      <figcaption className="px-3 py-2 text-sm font-medium bg-gray-50 border-b border-gray-200">
-                        {example.mermaid.source}
-                      </figcaption>
-                      <div className="p-4 bg-white">
-                        <MermaidDiagram chart={example.mermaid.contents} className="w-full overflow-auto" />
-                      </div>
-                    </figure>
-                  ) : (
-                    <p className="text-sm text-gray-600">No mermaid diagram available.</p>
-                  )}
-                </section>
-
                 <section className="space-y-2">
                   <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Graph Snapshot</h3>
                   <pre className="overflow-auto rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
@@ -202,6 +222,34 @@ export default async function Home() {
                     </code>
                   </pre>
                 </section>
+              </div>
+              <div className="space-y-4 border-t border-gray-200 px-4 py-4">
+                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">Mermaid Diagrams</h3>
+                {example.error ? (
+                  <p className="text-sm text-red-600">{example.error}</p>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {[{ label: "Original CFG", mermaid: example.mermaid }, ...(example.flattenStages ?? [])].map(
+                      (diagram, index) => (
+                        <figure
+                          key={`${example.baseName}-diagram-${index}-${diagram.label}`}
+                          className="border border-gray-200 rounded-md overflow-hidden"
+                        >
+                          <figcaption className="px-3 py-2 text-sm font-medium bg-gray-50 border-b border-gray-200">
+                            {diagram.label}
+                          </figcaption>
+                          <div className="p-4 bg-white">
+                            {diagram.mermaid ? (
+                              <MermaidDiagram chart={diagram.mermaid.contents} className="w-full overflow-auto" />
+                            ) : (
+                              <p className="text-sm text-gray-500">No diagram data.</p>
+                            )}
+                          </div>
+                        </figure>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
             </article>
           ))}
