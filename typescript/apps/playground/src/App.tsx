@@ -9,13 +9,14 @@ import { useFeedbackWidget } from '@baml/playground-common';
 // import IntroToChecksDialog from './shared/IntroToChecksDialog'
 import { CustomErrorBoundary } from '@baml/playground-common/custom-error-boundary';
 import { EventListener } from '@baml/playground-common/event-listener';
+import { BAMLSDKProvider } from '@baml/playground-common/sdk';
 // import 'jotai-devtools/styles.css'
 import { PromptPreview } from '@baml/playground-common/prompt-preview';
 import { ThemeProvider } from 'next-themes';
 import { useWasmPanicHandler } from '@baml/playground-common/baml-project-panel/atoms';
 import { WasmPanicNotification } from '@baml/playground-common/baml-project-panel/WasmPanicNotification';
 
-function App() {
+function AppContent() {
   useFeedbackWidget();
   // Wire up WASM panic handler to automatically cancel tests on panic
   useWasmPanicHandler();
@@ -63,6 +64,14 @@ function App() {
           </AppStateProvider>{' '} */}
       </Suspense>
     </CustomErrorBoundary>
+  );
+}
+
+function App() {
+  return (
+    <BAMLSDKProvider mode="mock">
+      <AppContent />
+    </BAMLSDKProvider>
   );
 }
 

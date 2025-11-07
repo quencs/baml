@@ -16,13 +16,13 @@ import {
 import type * as React from 'react';
 import { useMemo } from 'react';
 import { vscode } from '../../vscode';
-import { selectedItemAtom, testcaseObjectAtom } from '../../../atoms';
+import { selectedItemAtom, testcaseObjectAtom } from '../atoms';
 import { Loader } from '../prompt-preview/components';
 import {
   selectedHistoryIndexAtom,
   testHistoryAtom,
 } from '../prompt-preview/test-panel/atoms';
-import { useRunBamlTests } from '../prompt-preview/test-panel/test-runner-sdk';
+import { useRunBamlTests } from '../prompt-preview/test-panel/test-runner';
 import { getStatus } from '../prompt-preview/test-panel/testStateUtils';
 import type { TestItemProps } from './types';
 import { highlightText } from './utils';

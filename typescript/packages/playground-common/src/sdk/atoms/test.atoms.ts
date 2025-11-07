@@ -116,7 +116,7 @@ export const currentWatchNotificationsAtom = atom<WatchNotification[]>([]);
 /**
  * Highlighted blocks from watch notifications
  */
-export const highlightedBlocksAtom = atom<Set<string>>(new Set());
+export const highlightedBlocksAtom = atom<Set<string>>(new Set<string>());
 
 /**
  * Code ranges to flash/highlight during execution

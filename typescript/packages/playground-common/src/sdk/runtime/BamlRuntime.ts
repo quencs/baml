@@ -245,34 +245,32 @@ export class BamlRuntime implements BamlRuntimeInterface {
     throw new Error('Workflow execution not yet implemented for BamlRuntime');
   }
 
-  async *executeTest(testId: string): AsyncGenerator<ExecutionEvent> {
+  async *executeTest(
+    functionName: string,
+    testName: string,
+    options?: import('./BamlRuntimeInterface').TestExecutionOptions
+  ): AsyncGenerator<import('./BamlRuntimeInterface').ExecutionEvent> {
     if (!this.wasmRuntime) {
       throw new Error('Cannot execute test - runtime is invalid');
     }
 
-    // Parse testId to get function name and test name
-    // Format: "functionName:testName" or just use test name and search
+    // Find the test case
     const testCases = this.wasmRuntime.list_testcases();
-    const testCase = testCases.find((tc: any) => tc.name === testId);
+    const testCase = testCases.find((tc: any) => tc.name === testName);
 
     if (!testCase) {
-      throw new Error(`Test case not found: ${testId}`);
+      throw new Error(`Test case not found: ${testName}`);
     }
 
     // Get the function for this test
     const functions = this.wasmRuntime.list_functions();
-    const functionName = testCase.parent_functions[0]?.name;
     const wasmFunction = functions.find((fn: any) => fn.name === functionName);
 
     if (!wasmFunction) {
-      throw new Error(`Function not found for test: ${functionName}`);
+      throw new Error(`Function not found: ${functionName}`);
     }
 
     const nodeId = functionName;
-
-    if (!nodeId) {
-      throw new Error(`Node ID not found for test: ${testId}`);
-    }
 
     try {
       // Extract inputs from test case
@@ -295,32 +293,68 @@ export class BamlRuntime implements BamlRuntimeInterface {
       };
 
       const startTime = performance.now();
-      let lastPartialResponse: any = null;
 
-      // Execute the test
+      // Create a generator-friendly way to yield events from callbacks
+      const events: import('./BamlRuntimeInterface').ExecutionEvent[] = [];
+      const pushEvent = (event: import('./BamlRuntimeInterface').ExecutionEvent) => {
+        events.push(event);
+      };
+
+      // Execute the test with all callbacks yielding events
       const result = await wasmFunction.run_test_with_expr_events(
         this.wasmRuntime,
         testCase.name,
         // on_partial_response callback
         (partial: any) => {
-          lastPartialResponse = partial;
-          // Could yield progress events here if needed
+          pushEvent({
+            type: 'test.partial',
+            functionName,
+            testName,
+            response: partial,
+          });
         },
         // get_baml_src_cb - load media files
-        vscode.loadMediaFile,
+        options?.loadMediaFile || vscode.loadMediaFile,
         // on_expr_event - expression evaluation events (for highlighting)
-        (_spans: any) => {
-          // Could yield log events for expression evaluation
+        (spans: any[]) => {
+          if (spans && spans.length > 0) {
+            pushEvent({
+              type: 'test.highlight',
+              spans: spans.map((span) => ({
+                file_path: span.file_path,
+                start_line: span.start_line,
+                start: span.start,
+                end_line: span.end_line,
+                end: span.end,
+              })),
+            });
+          }
         },
         // env - API keys / environment
-        {},
+        options?.apiKeys || {},
         // abort_signal
-        null,
+        options?.abortSignal || null,
         // watch_handler - for watch notifications
-        (_notification: any) => {
-          // Could yield log events for watch notifications
+        (notification: any) => {
+          pushEvent({
+            type: 'test.watch',
+            functionName,
+            testName,
+            notification: {
+              variable_name: notification.variable_name,
+              channel_name: notification.channel_name,
+              block_name: notification.block_name,
+              is_stream: notification.is_stream,
+              value: notification.value,
+            },
+          });
         }
       );
+
+      // Yield all accumulated events from callbacks
+      for (const event of events) {
+        yield event;
+      }
 
       const endTime = performance.now();
       const duration = endTime - startTime;
@@ -381,6 +415,167 @@ export class BamlRuntime implements BamlRuntimeInterface {
         nodeId,
         error: error instanceof Error ? error : new Error(String(error)),
       };
+    }
+  }
+
+  async *executeTests(
+    tests: Array<{ functionName: string; testName: string }>,
+    options?: import('./BamlRuntimeInterface').TestExecutionOptions
+  ): AsyncGenerator<import('./BamlRuntimeInterface').ExecutionEvent> {
+    if (!this.wasmRuntime) {
+      throw new Error('Cannot execute tests - runtime is invalid');
+    }
+
+    try {
+      // Prepare test cases for run_tests
+      const testCases = tests.map((test) => {
+        const allTestCases = this.wasmRuntime!.list_testcases();
+        const testCase = allTestCases.find((tc: any) => tc.name === test.testName);
+
+        if (!testCase) {
+          throw new Error(`Test case not found: ${test.testName}`);
+        }
+
+        // Convert inputs
+        const inputs: Record<string, any> = {};
+        for (const param of testCase.inputs) {
+          if (param.value !== undefined) {
+            try {
+              inputs[param.name] = JSON.parse(param.value);
+            } catch {
+              inputs[param.name] = param.value;
+            }
+          }
+        }
+
+        return {
+          functionName: test.functionName,
+          testName: test.testName,
+          inputs,
+        };
+      });
+
+      // Yield started events for all tests
+      for (const test of tests) {
+        const testCase = testCases.find((tc) => tc.testName === test.testName);
+        if (testCase) {
+          yield {
+            type: 'node.started',
+            nodeId: test.functionName,
+            inputs: testCase.inputs,
+          };
+        }
+      }
+
+      // Create event collectors for callbacks
+      const events: import('./BamlRuntimeInterface').ExecutionEvent[] = [];
+      const pushEvent = (event: import('./BamlRuntimeInterface').ExecutionEvent) => {
+        events.push(event);
+      };
+
+      // Execute all tests in parallel via run_tests
+      const results = await this.wasmRuntime.run_tests(
+        testCases,
+        // on_partial_response callback
+        (partial: any) => {
+          const pair = partial.func_test_pair();
+          pushEvent({
+            type: 'test.partial',
+            functionName: pair.function_name,
+            testName: pair.test_name,
+            response: partial,
+          });
+        },
+        // get_baml_src_cb - load media files
+        options?.loadMediaFile || vscode.loadMediaFile,
+        // env - API keys / environment
+        options?.apiKeys || {},
+        // abort_signal
+        options?.abortSignal || null,
+        // watch_handler - for watch notifications
+        (notification: any) => {
+          // Watch notifications should have function_name and test_name from parallel execution
+          pushEvent({
+            type: 'test.watch',
+            functionName: notification.function_name || 'unknown',
+            testName: notification.test_name || 'unknown',
+            notification: {
+              variable_name: notification.variable_name,
+              channel_name: notification.channel_name,
+              block_name: notification.block_name,
+              is_stream: notification.is_stream,
+              value: notification.value,
+            },
+          });
+        }
+      );
+
+      // Yield all accumulated events from callbacks
+      for (const event of events) {
+        yield event;
+      }
+
+      // Process results
+      let response: any;
+      while ((response = results.yield_next()) !== undefined) {
+        const pair = response.func_test_pair();
+        const status = response.status();
+
+        const statusMap = {
+          [this.wasm.TestStatus.Passed]: 'passed',
+          [this.wasm.TestStatus.LLMFailure]: 'llm_failed',
+          [this.wasm.TestStatus.ParseFailure]: 'parse_failed',
+          [this.wasm.TestStatus.ConstraintsFailed]: 'constraints_failed',
+          [this.wasm.TestStatus.AssertFailed]: 'assert_failed',
+          [this.wasm.TestStatus.UnableToRun]: 'error',
+          [this.wasm.TestStatus.FinishReasonFailed]: 'error',
+        } as const;
+
+        const testStatus = statusMap[status] || 'error';
+
+        // Extract outputs
+        let outputs: Record<string, any> = {};
+        if (testStatus === 'passed') {
+          const parsedResponse = response.parsed_response();
+          if (parsedResponse) {
+            try {
+              outputs = { result: JSON.parse(parsedResponse.value) };
+            } catch {
+              outputs = { result: parsedResponse.value };
+            }
+          }
+        } else {
+          const failureMsg = response.failure_message();
+          if (failureMsg) {
+            outputs = { error: failureMsg };
+          }
+        }
+
+        // Yield completion or error event
+        if (testStatus === 'passed') {
+          yield {
+            type: 'node.completed',
+            nodeId: pair.function_name,
+            outputs,
+            duration: 0, // TODO: Track duration for parallel tests
+          };
+        } else {
+          yield {
+            type: 'node.error',
+            nodeId: pair.function_name,
+            error: new Error(outputs.error || `Test failed with status: ${testStatus}`),
+          };
+        }
+      }
+    } catch (error) {
+      // Yield error for all tests
+      for (const test of tests) {
+        yield {
+          type: 'node.error',
+          nodeId: test.functionName,
+          error: error instanceof Error ? error : new Error(String(error)),
+        };
+      }
     }
   }
 

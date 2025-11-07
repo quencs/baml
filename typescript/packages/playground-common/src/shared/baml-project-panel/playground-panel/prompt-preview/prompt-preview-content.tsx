@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import { apiKeysAtom } from '../../../../components/api-keys-dialog/atoms';
 import { ctxAtom, diagnosticsAtom, filesAtom, runtimeAtom } from '../../atoms';
-import { areTestsRunningAtom, selectionAtom } from '../../../atoms';
+import { areTestsRunningAtom, selectionAtom } from '../atoms';
 import { Loader } from './components';
 import { vscode } from '../../vscode';
 import { RenderPrompt } from './render-prompt';

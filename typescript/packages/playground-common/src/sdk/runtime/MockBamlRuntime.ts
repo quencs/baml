@@ -97,13 +97,27 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     );
   }
 
-  async *executeTest(testId: string): AsyncGenerator<ExecutionEvent> {
+  async *executeTest(
+    functionName: string,
+    testName: string,
+    options?: import('./BamlRuntimeInterface').TestExecutionOptions
+  ): AsyncGenerator<ExecutionEvent> {
     // Find test and execute
-    const test = this.getTestCases().find((t) => t.id === testId);
-    if (!test) throw new Error(`Test ${testId} not found`);
+    const test = this.getTestCases(functionName).find((t) => t.name === testName);
+    if (!test) throw new Error(`Test ${testName} not found for function ${functionName}`);
 
     // Execute with test inputs
     yield* this.executeWorkflow(test.nodeId, test.inputs);
+  }
+
+  async *executeTests(
+    tests: Array<{ functionName: string; testName: string }>,
+    options?: import('./BamlRuntimeInterface').TestExecutionOptions
+  ): AsyncGenerator<ExecutionEvent> {
+    // Mock implementation: run tests sequentially
+    for (const test of tests) {
+      yield* this.executeTest(test.functionName, test.testName, options);
+    }
   }
 
   async cancelExecution(executionId: string): Promise<void> {

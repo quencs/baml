@@ -1,7 +1,7 @@
 import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 import { sessionStore } from '../../../../../baml_wasm_web/JotaiProvider';
-import type { TestState } from '../../../../atoms';
+import type { TestState } from '../../atoms';
 import type { WatchNotification, CategorizedNotifications } from './types';
 
 export interface TestHistoryEntry {

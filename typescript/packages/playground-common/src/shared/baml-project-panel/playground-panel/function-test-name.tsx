@@ -25,7 +25,7 @@ import {
   runtimeStateAtom,
   selectedItemAtom,
   testcaseObjectAtom,
-} from '../../atoms';
+} from './atoms';
 
 interface FunctionTestNameProps {
   functionName: string;

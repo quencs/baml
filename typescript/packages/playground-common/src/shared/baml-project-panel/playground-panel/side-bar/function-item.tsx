@@ -4,7 +4,7 @@ import { useAtomValue } from 'jotai';
 import { FunctionSquare } from 'lucide-react';
 import * as React from 'react';
 import { vscode } from '../../vscode';
-import { functionObjectAtom } from '../../../atoms';
+import { functionObjectAtom } from '../atoms';
 import { Loader } from '../prompt-preview/components';
 import {
   selectedHistoryIndexAtom,

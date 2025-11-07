@@ -27,6 +27,7 @@
     "./custom-error-boundary": "./src/utils/ErrorFallback.tsx",
     "./jotai-provider": "./src/baml_wasm_web/JotaiProvider.tsx",
     "./event-listener": "./src/baml_wasm_web/EventListener.tsx",
+    "./sdk": "./src/sdk/index.ts",
     "./prompt-preview": "./src/shared/baml-project-panel/playground-panel/prompt-preview/index.tsx",
     "./codemirror-viewer": "./src/shared/baml-project-panel/codemirror-panel/code-mirror-viewer.tsx",
     "./baml-project-panel/atoms": "./src/shared/baml-project-panel/atoms.ts",

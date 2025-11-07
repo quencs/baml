@@ -22,12 +22,30 @@ import type {
 import * as coreAtoms from './atoms/core.atoms';
 import * as testAtoms from './atoms/test.atoms';
 
+// Import vscode integration for telemetry and flashing regions
+import { vscode } from '../shared/baml-project-panel/vscode';
+
 // Re-export types
 export * from './types';
-export * from './runtime/BamlRuntimeInterface';
+export type {
+  BamlRuntimeInterface,
+  BamlRuntimeFactory,
+  ExecutionEvent,
+  ExecutionOptions,
+  TestExecutionOptions,
+  FunctionDefinition,
+  WatchNotification,
+  CodeSpan,
+} from './runtime/BamlRuntimeInterface';
 export * from './storage/SDKStorage';
 export * from './mock-config/types';
-export * from './atoms/test.atoms';
+export type {
+  TestState,
+  TestHistoryEntry,
+  TestHistoryRun,
+  FlashRange,
+  CategorizedNotifications,
+} from './atoms/test.atoms';
 
 // Re-export hooks and provider
 export * from './hooks';
@@ -535,6 +553,21 @@ export class BAMLSDK {
   // Tests API
   // ============================================================================
 
+  /**
+   * Enrich watch notification with block_name from JSON parsing
+   */
+  private enrichNotification(notification: import('./runtime/BamlRuntimeInterface').WatchNotification): import('./runtime/BamlRuntimeInterface').WatchNotification {
+    if (!notification.block_name) {
+      try {
+        const parsed = JSON.parse(notification.value) as { type?: string; label?: string } | undefined;
+        if (parsed?.type === 'block' && typeof parsed.label === 'string') {
+          notification.block_name = parsed.label;
+        }
+      } catch { }
+    }
+    return notification;
+  }
+
   tests = {
     /**
      * Run a test case
@@ -543,13 +576,17 @@ export class BAMLSDK {
      * - Creates test history run
      * - Updates areTestsRunningAtom
      * - Tracks execution progress
+     * - Handles watch notifications and highlighting
      * - Updates test state with results
      *
      * UI components just call this and read atoms - no manual state management needed!
      */
     run: async (
       functionName: string,
-      testCaseName: string
+      testCaseName: string,
+      options?: {
+        apiKeys?: Record<string, string>;
+      }
     ): Promise<{
       executionId: string;
       status: 'success' | 'error';
@@ -570,11 +607,16 @@ export class BAMLSDK {
       const testCase = testCases.find((tc) => tc.name === testCaseName);
       const inputs = testCase?.inputs;
 
+      // Create abort controller for this test run
+      const controller = new AbortController();
+      this.storage.setCurrentAbortController(controller);
+
       // SDK automatically manages state:
-      // 1. Mark as running
+      // 1. Mark as running and clear previous state
       this.storage.setAreTestsRunning(true);
       this.storage.clearWatchNotifications();
       this.storage.clearHighlightedBlocks();
+      this.storage.clearFlashRanges();
 
       // 2. Create test history run
       const historyRun: import('./atoms/test.atoms').TestHistoryRun = {
@@ -592,13 +634,30 @@ export class BAMLSDK {
       this.storage.addTestHistoryRun(historyRun);
       this.storage.setSelectedHistoryIndex(0);
 
+      // Set selected function/test
+      this.storage.setSelectedFunctionName(functionName);
+      this.storage.setSelectedTestCaseName(testCaseName);
+
+      // Send telemetry
+      vscode.sendTelemetry({
+        action: 'run_tests',
+        data: {
+          num_tests: 1,
+          parallel: false,
+        },
+      });
+
       let duration = 0;
       let outputs: Record<string, any> | undefined;
       let error: Error | undefined;
+      const watchNotifications: import('./runtime/BamlRuntimeInterface').WatchNotification[] = [];
 
       try {
         // 3. Execute the test and update state during execution
-        for await (const event of this.runtime.executeTest(testCaseName)) {
+        for await (const event of this.runtime.executeTest(functionName, testCaseName, {
+          apiKeys: options?.apiKeys,
+          abortSignal: controller.signal,
+        })) {
           console.log('[SDK] Test event:', event);
 
           if (event.type === 'node.started') {
@@ -606,6 +665,43 @@ export class BAMLSDK {
             this.storage.updateTestInHistory(0, 0, {
               status: 'running',
             });
+          } else if (event.type === 'test.partial') {
+            // Update with partial response
+            this.storage.updateTestInHistory(0, 0, {
+              status: 'running',
+              response: event.response,
+              watchNotifications: [...watchNotifications],
+            });
+          } else if (event.type === 'test.watch') {
+            // Enrich and store watch notification
+            const enriched = this.enrichNotification(event.notification);
+            watchNotifications.push(enriched);
+            this.storage.addWatchNotification(enriched);
+
+            // Add to highlighted blocks if block_name exists
+            if (enriched.block_name) {
+              this.storage.addHighlightedBlock(enriched.block_name);
+            }
+
+            // Update history with notifications
+            this.storage.updateTestInHistory(0, 0, {
+              status: 'running',
+              watchNotifications: [...watchNotifications],
+            });
+          } else if (event.type === 'test.highlight') {
+            // Send to VSCode for flashing regions
+            try {
+              vscode.setFlashingRegions(event.spans);
+              this.storage.setFlashRanges(event.spans.map((span) => ({
+                filePath: span.file_path,
+                startLine: span.start_line,
+                startCol: span.start,
+                endLine: span.end_line,
+                endCol: span.end,
+              })));
+            } catch (e) {
+              console.error('[SDK] Failed to set flashing regions:', e);
+            }
           } else if (event.type === 'node.completed') {
             duration = event.duration;
             outputs = event.outputs;
@@ -620,6 +716,7 @@ export class BAMLSDK {
           response: outputs || error,
           response_status: error ? 'error' : 'passed',
           latency_ms: duration,
+          watchNotifications: [...watchNotifications],
         });
 
         return {
@@ -634,11 +731,20 @@ export class BAMLSDK {
 
         const err = e instanceof Error ? e : new Error(String(e));
 
-        // Update history with error
-        this.storage.updateTestInHistory(0, 0, {
-          status: 'error',
-          message: err.message,
-        });
+        // Check if this was an abort error
+        if (err.name === 'AbortError' || err.message?.includes('BamlAbortError')) {
+          // Update history with cancellation message
+          this.storage.updateTestInHistory(0, 0, {
+            status: 'error',
+            message: 'Test execution was cancelled by user',
+          });
+        } else {
+          // Update history with error
+          this.storage.updateTestInHistory(0, 0, {
+            status: 'error',
+            message: err.message,
+          });
+        }
 
         return {
           executionId,
@@ -647,24 +753,240 @@ export class BAMLSDK {
           error: err,
         };
       } finally {
-        // 5. Always mark as not running
+        // 5. Always mark as not running and clean up
         this.storage.setAreTestsRunning(false);
+        this.storage.setCurrentAbortController(null);
       }
     },
 
     /**
-     * Run all tests for a function
+     * Run multiple tests (sequential or parallel)
      */
-    runAll: (
+    runAll: async (
       tests: Array<{ functionName: string; testName: string }>,
-      options?: { parallel?: boolean; abortSignal?: AbortSignal }
-    ): AsyncGenerator<any> => {
-      const self = this;
-      async function* gen(): AsyncGenerator<any> {
-        console.debug('[SDK] runAll:', tests, options);
-        // TODO: Implement test running
+      options?: {
+        apiKeys?: Record<string, string>;
+        parallel?: boolean;
       }
-      return gen();
+    ): Promise<void> => {
+      console.log('[SDK] Running tests:', tests.length, 'parallel:', options?.parallel);
+
+      if (!this.runtime) {
+        throw new Error('SDK not initialized');
+      }
+
+      if (tests.length === 0) {
+        console.warn('[SDK] No tests to run');
+        return;
+      }
+
+      // Create abort controller for this test run
+      const controller = new AbortController();
+      this.storage.setCurrentAbortController(controller);
+
+      // Set running state
+      this.storage.setAreTestsRunning(true);
+      this.storage.clearWatchNotifications();
+      this.storage.clearHighlightedBlocks();
+      this.storage.clearFlashRanges();
+
+      // Create test history run with all tests
+      const historyRun: import('./atoms/test.atoms').TestHistoryRun = {
+        timestamp: Date.now(),
+        tests: tests.map((test) => {
+          const testCases = this.runtime!.getTestCases(test.functionName);
+          const testCase = testCases.find((tc) => tc.name === test.testName);
+          return {
+            timestamp: Date.now(),
+            functionName: test.functionName,
+            testName: test.testName,
+            response: { status: 'queued' },
+            input: testCase?.inputs,
+          };
+        }),
+      };
+      this.storage.addTestHistoryRun(historyRun);
+      this.storage.setSelectedHistoryIndex(0);
+
+      // Set first test as selected
+      this.storage.setSelectedFunctionName(tests[0]!.functionName);
+      this.storage.setSelectedTestCaseName(tests[0]!.testName);
+
+      // Send telemetry
+      vscode.sendTelemetry({
+        action: 'run_tests',
+        data: {
+          num_tests: tests.length,
+          parallel: options?.parallel || false,
+        },
+      });
+
+      // Track watch notifications per test
+      const watchNotificationsByTest: Record<string, import('./runtime/BamlRuntimeInterface').WatchNotification[]> = {};
+
+      try {
+        if (options?.parallel) {
+          // Parallel execution via runtime.executeTests()
+          for await (const event of this.runtime.executeTests(tests, {
+            apiKeys: options?.apiKeys,
+            abortSignal: controller.signal,
+          })) {
+            const testKey = event.type.startsWith('test.') && 'functionName' in event && 'testName' in event
+              ? `${event.functionName}:${event.testName}`
+              : null;
+
+            // Find test index in history
+            const testIndex = tests.findIndex((t) =>
+              event.type.startsWith('node.') && 'nodeId' in event
+                ? t.functionName === event.nodeId
+                : testKey
+                  ? t.functionName === (event as any).functionName && t.testName === (event as any).testName
+                  : false
+            );
+
+            if (testIndex === -1) continue;
+
+            if (event.type === 'test.partial') {
+              this.storage.updateTestInHistory(0, testIndex, {
+                status: 'running',
+                response: event.response,
+                watchNotifications: watchNotificationsByTest[testKey!] || [],
+              });
+            } else if (event.type === 'test.watch') {
+              if (!testKey) continue;
+              if (!watchNotificationsByTest[testKey]) {
+                watchNotificationsByTest[testKey] = [];
+              }
+              const enriched = this.enrichNotification(event.notification);
+              watchNotificationsByTest[testKey].push(enriched);
+              this.storage.addWatchNotification(enriched);
+              if (enriched.block_name) {
+                this.storage.addHighlightedBlock(enriched.block_name);
+              }
+            } else if (event.type === 'test.highlight') {
+              try {
+                vscode.setFlashingRegions(event.spans);
+                this.storage.setFlashRanges(event.spans.map((span) => ({
+                  filePath: span.file_path,
+                  startLine: span.start_line,
+                  startCol: span.start,
+                  endLine: span.end_line,
+                  endCol: span.end,
+                })));
+              } catch (e) {
+                console.error('[SDK] Failed to set flashing regions:', e);
+              }
+            } else if (event.type === 'node.completed') {
+              const tk = `${tests[testIndex]!.functionName}:${tests[testIndex]!.testName}`;
+              this.storage.updateTestInHistory(0, testIndex, {
+                status: 'done',
+                response: event.outputs,
+                response_status: 'passed',
+                latency_ms: event.duration,
+                watchNotifications: watchNotificationsByTest[tk] || [],
+              });
+            } else if (event.type === 'node.error') {
+              this.storage.updateTestInHistory(0, testIndex, {
+                status: 'error',
+                message: event.error.message,
+              });
+            }
+          }
+        } else {
+          // Sequential execution
+          for (let i = 0; i < tests.length; i++) {
+            const test = tests[i]!;
+            const testKey = `${test.functionName}:${test.testName}`;
+            watchNotificationsByTest[testKey] = [];
+
+            // Mark as running
+            this.storage.updateTestInHistory(0, i, { status: 'running' });
+
+            try {
+              for await (const event of this.runtime.executeTest(test.functionName, test.testName, {
+                apiKeys: options?.apiKeys,
+                abortSignal: controller.signal,
+              })) {
+                if (event.type === 'test.partial') {
+                  this.storage.updateTestInHistory(0, i, {
+                    status: 'running',
+                    response: event.response,
+                    watchNotifications: watchNotificationsByTest[testKey] || [],
+                  });
+                } else if (event.type === 'test.watch') {
+                  const enriched = this.enrichNotification(event.notification);
+                  watchNotificationsByTest[testKey].push(enriched);
+                  this.storage.addWatchNotification(enriched);
+                  if (enriched.block_name) {
+                    this.storage.addHighlightedBlock(enriched.block_name);
+                  }
+                } else if (event.type === 'test.highlight') {
+                  try {
+                    vscode.setFlashingRegions(event.spans);
+                    this.storage.setFlashRanges(event.spans.map((span) => ({
+                      filePath: span.file_path,
+                      startLine: span.start_line,
+                      startCol: span.start,
+                      endLine: span.end_line,
+                      endCol: span.end,
+                    })));
+                  } catch (e) {
+                    console.error('[SDK] Failed to set flashing regions:', e);
+                  }
+                } else if (event.type === 'node.completed') {
+                  this.storage.updateTestInHistory(0, i, {
+                    status: 'done',
+                    response: event.outputs,
+                    response_status: 'passed',
+                    latency_ms: event.duration,
+                    watchNotifications: watchNotificationsByTest[testKey] || [],
+                  });
+                } else if (event.type === 'node.error') {
+                  this.storage.updateTestInHistory(0, i, {
+                    status: 'error',
+                    message: event.error.message,
+                  });
+                }
+              }
+            } catch (e) {
+              const err = e instanceof Error ? e : new Error(String(e));
+              this.storage.updateTestInHistory(0, i, {
+                status: 'error',
+                message: err.message,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[SDK] Test execution error:', e);
+        const err = e instanceof Error ? e : new Error(String(e));
+
+        // Update all running/queued tests to error
+        tests.forEach((_, i) => {
+          this.storage.updateTestInHistory(0, i, {
+            status: 'error',
+            message: err.message,
+          });
+        });
+      } finally {
+        this.storage.setAreTestsRunning(false);
+        this.storage.setCurrentAbortController(null);
+      }
+    },
+
+    /**
+     * Cancel currently running tests
+     */
+    cancel: (): void => {
+      console.log('[SDK] Cancelling tests');
+      const controller = this.storage.getCurrentAbortController();
+      if (controller) {
+        controller.abort();
+        this.storage.setCurrentAbortController(null);
+        this.storage.setAreTestsRunning(false);
+      } else {
+        console.warn('[SDK] No active tests to cancel');
+      }
     },
   };
 

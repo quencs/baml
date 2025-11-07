@@ -37,7 +37,7 @@ import {
 // } from '@typescript/vfs';
 import { useTheme } from 'next-themes';
 import ts from 'typescript';
-import { flashRangesAtom, updateCursorAtom } from '../../atoms';
+import { flashRangesAtom, updateCursorAtom } from '../playground-panel/atoms';
 
 const extensionMap = {
   js: [langs.javascript()],

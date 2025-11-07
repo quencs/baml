@@ -22,9 +22,32 @@ import type {
 import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
 
 /**
+ * Watch notification from test execution
+ */
+export interface WatchNotification {
+  variable_name?: string;
+  channel_name?: string;
+  block_name?: string;
+  is_stream: boolean;
+  value: string;
+}
+
+/**
+ * Code span for highlighting during execution
+ */
+export interface CodeSpan {
+  file_path: string;
+  start_line: number;
+  start: number;
+  end_line: number;
+  end: number;
+}
+
+/**
  * Execution events emitted by the runtime during execution
  */
 export type ExecutionEvent =
+  // Workflow/Node events
   | { type: 'node.started'; nodeId: string; inputs: Record<string, any> }
   | {
       type: 'node.completed';
@@ -36,7 +59,11 @@ export type ExecutionEvent =
   | { type: 'node.error'; nodeId: string; error: Error }
   | { type: 'node.log'; nodeId: string; log: LogEntry }
   | { type: 'node.cached'; nodeId: string; fromExecutionId: string }
-  | { type: 'node.progress'; nodeId: string; progress: number };
+  | { type: 'node.progress'; nodeId: string; progress: number }
+  // Test execution events
+  | { type: 'test.partial'; functionName: string; testName: string; response: any }
+  | { type: 'test.watch'; functionName: string; testName: string; notification: WatchNotification }
+  | { type: 'test.highlight'; spans: CodeSpan[] };
 
 export interface FunctionDefinition {
   name: string;
@@ -49,6 +76,15 @@ export interface FunctionDefinition {
 export interface ExecutionOptions {
   clearCache?: boolean;
   startFromNodeId?: string;
+}
+
+/**
+ * Options for test execution
+ */
+export interface TestExecutionOptions {
+  apiKeys?: Record<string, string>;
+  abortSignal?: AbortSignal;
+  loadMediaFile?: (path: string) => Promise<string>;
 }
 
 /**
@@ -104,8 +140,27 @@ export interface BamlRuntimeInterface {
 
   /**
    * Execute a single test
+   *
+   * @param functionName - The function to test
+   * @param testName - The test case name
+   * @param options - Test execution options (apiKeys, abortSignal, loadMediaFile)
    */
-  executeTest(testId: string): AsyncGenerator<ExecutionEvent>;
+  executeTest(
+    functionName: string,
+    testName: string,
+    options?: TestExecutionOptions
+  ): AsyncGenerator<ExecutionEvent>;
+
+  /**
+   * Execute multiple tests (potentially in parallel)
+   *
+   * @param tests - Array of tests to execute
+   * @param options - Test execution options (apiKeys, abortSignal, loadMediaFile)
+   */
+  executeTests(
+    tests: Array<{ functionName: string; testName: string }>,
+    options?: TestExecutionOptions
+  ): AsyncGenerator<ExecutionEvent>;
 
   /**
    * Cancel a running execution

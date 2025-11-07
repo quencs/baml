@@ -8,47 +8,86 @@
 import { Provider as JotaiProvider, createStore } from 'jotai';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BAMLSDK } from '.';
-import { createMockSDK } from './factory';
+import { createMockSDK, createRealBAMLSDK } from './factory';
+import {
+  DebugBanner,
+  isDebugMode,
+  getPersistedRuntimeMode,
+  persistRuntimeMode,
+  type RuntimeMode,
+} from './DebugBanner';
 
 const BAMLSDKContext = createContext<BAMLSDK | null>(null);
 
 interface BAMLSDKProviderProps {
   children: ReactNode;
-  mode?: 'mock';
+  mode?: RuntimeMode;
 }
 
 /**
  * Provider component that wraps the app and provides SDK access
  */
-export function BAMLSDKProvider({ children, mode = 'mock' }: BAMLSDKProviderProps) {
+export function BAMLSDKProvider({ children, mode: initialMode = 'mock' }: BAMLSDKProviderProps) {
+  // Check if debug mode is enabled (lazy initialization to avoid SSR issues)
+  const [debugMode] = useState(() => isDebugMode());
+
+  // Get persisted runtime mode or use initial mode (lazy initialization)
+  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(() => {
+    const defaultMode = debugMode ? (getPersistedRuntimeMode() || initialMode) : initialMode;
+    return defaultMode;
+  });
+
   // Create refs to ensure single instance creation
   const storeRef = useRef<ReturnType<typeof createStore> | undefined>(undefined);
   const sdkRef = useRef<BAMLSDK | undefined>(undefined);
 
-  // Initialize store and SDK only once
+  // Track which mode the current SDK was created with
+  const currentSDKModeRef = useRef<RuntimeMode | undefined>(undefined);
+
+  // Initialize store once
   if (!storeRef.current) {
     storeRef.current = createStore();
   }
 
-  if (!sdkRef.current) {
-    console.log('🚀 Creating BAML SDK with mode:', mode);
-    if (mode === 'mock') {
+  // Create or recreate SDK when mode changes
+  if (!sdkRef.current || currentSDKModeRef.current !== runtimeMode) {
+    console.log('🚀 Creating BAML SDK with mode:', runtimeMode);
+    if (runtimeMode === 'mock') {
       sdkRef.current = createMockSDK(storeRef.current);
+    } else if (runtimeMode === 'wasm') {
+      sdkRef.current = createRealBAMLSDK(storeRef.current);
     } else {
-      throw new Error(`Unsupported mode: ${mode}`);
+      throw new Error(`Unsupported mode: ${runtimeMode}`);
     }
+    currentSDKModeRef.current = runtimeMode;
   }
 
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Handle async initialization only once
+  // Handle mode change from debug banner
+  const handleModeChange = (newMode: RuntimeMode) => {
+    if (newMode === runtimeMode) return;
+
+    console.log('🔄 Switching runtime mode:', runtimeMode, '->', newMode);
+
+    // Persist the new mode
+    persistRuntimeMode(newMode);
+
+    // Reset initialization state
+    setIsInitialized(false);
+
+    // Update mode (this will trigger SDK recreation)
+    setRuntimeMode(newMode);
+  };
+
+  // Handle async initialization - reinitialize when runtime mode changes
   useEffect(() => {
     let mounted = true;
 
     async function init() {
       if (!sdkRef.current) return;
 
-      console.log('⏳ Initializing SDK...');
+      console.log('⏳ Initializing SDK with mode:', runtimeMode);
 
       // Initialize with empty files for mock mode
       const initialFiles = {
@@ -71,23 +110,31 @@ export function BAMLSDKProvider({ children, mode = 'mock' }: BAMLSDKProviderProp
     return () => {
       mounted = false;
     };
-  }, []); // Empty deps - only run once
+  }, [runtimeMode]); // Reinitialize when runtime mode changes
 
   // Show loading state while SDK initializes
   if (!isInitialized) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="text-xl font-semibold">Loading BAML SDK...</div>
-          <div className="text-sm text-muted-foreground mt-2">Initializing workflows</div>
+      <>
+        {debugMode && <DebugBanner currentMode={runtimeMode} onModeChange={handleModeChange} />}
+        <div className="w-screen h-screen flex items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="text-xl font-semibold">Loading BAML SDK...</div>
+            <div className="text-sm text-muted-foreground mt-2">
+              Initializing {runtimeMode === 'mock' ? 'mock' : 'WASM'} runtime
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <BAMLSDKContext.Provider value={sdkRef.current}>
-      <JotaiProvider store={storeRef.current}>{children}</JotaiProvider>
+      <JotaiProvider store={storeRef.current}>
+        {debugMode && <DebugBanner currentMode={runtimeMode} onModeChange={handleModeChange} />}
+        {children}
+      </JotaiProvider>
     </BAMLSDKContext.Provider>
   );
 }
@@ -102,3 +149,6 @@ export function useBAMLSDK(): BAMLSDK {
   }
   return sdk;
 }
+
+// Re-export RuntimeMode type for convenience
+export type { RuntimeMode } from './DebugBanner';

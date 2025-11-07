@@ -1,4 +1,4 @@
-import type { DoneTestStatusType, TestState } from '../../../../atoms';
+import type { DoneTestStatusType, TestState } from '../../atoms';
 
 export type FinalTestStatus = DoneTestStatusType | 'running' | 'idle';
 
