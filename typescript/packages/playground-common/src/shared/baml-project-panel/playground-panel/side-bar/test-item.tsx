@@ -82,13 +82,11 @@ export function TestItem({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('[TestItem] handleClick:', { functionName, label });
     setSelectedItem(functionName, label);
   };
 
   const handleJumpToFile = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('[TestItem] handleJumpToFile:', { functionName, label });
     // Update selection first
     setSelectedItem(functionName, label);
     // Then jump to file

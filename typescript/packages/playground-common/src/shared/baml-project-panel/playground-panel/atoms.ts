@@ -216,22 +216,19 @@ export const updateCursorAtom = atom(
 export const selectionAtom = atom((get) => {
   const selectedFunction = get(selectedFunctionAtom);
   const selectedTestcase = get(selectedTestcaseAtom);
-  console.log('[selectionAtom (playground-panel)] selectedFunction:', selectedFunction, 'selectedTestcase:', selectedTestcase);
 
   const { functions } = get(runtimeStateAtom);
-  console.log('[selectionAtom (playground-panel)] functions:', functions.map(f => f.name));
 
   let selectedFn = functions.at(0);
   if (selectedFunction !== undefined) {
     const foundFn = functions.find((f) => f.name === selectedFunction);
     if (foundFn) {
       selectedFn = foundFn;
-      console.log('[selectionAtom (playground-panel)] Found function:', selectedFn.name, 'test_cases:', selectedFn.test_cases?.map((tc: any) => tc.name));
     } else {
-      console.error('[selectionAtom (playground-panel)] Function not found', selectedFunction);
+      console.error('Function not found', selectedFunction);
     }
   } else {
-    console.debug('[selectionAtom (playground-panel)] No function selected');
+    console.debug('No function selected');
   }
 
   let selectedTc = selectedFn?.test_cases?.at(0);
@@ -241,13 +238,11 @@ export const selectionAtom = atom((get) => {
     );
     if (foundTc) {
       selectedTc = foundTc;
-      console.log('[selectionAtom (playground-panel)] Found testcase:', selectedTc.name);
     } else {
-      console.error('[selectionAtom (playground-panel)] Testcase not found', selectedTestcase, 'in test_cases:', selectedFn?.test_cases?.map((tc: any) => tc.name));
+      console.error('Testcase not found', selectedTestcase);
     }
   }
 
-  console.log('[selectionAtom (playground-panel)] returning:', { selectedFn: selectedFn?.name, selectedTc: selectedTc?.name });
   return { selectedFn, selectedTc };
 });
 

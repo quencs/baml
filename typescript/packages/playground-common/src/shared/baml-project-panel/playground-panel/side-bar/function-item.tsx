@@ -143,7 +143,6 @@ export function FunctionItem({ functionName, tests }: FunctionItemProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('[FunctionItem] handleClick:', { functionName, hasTests: tests.length > 0 });
     // Update selection - select function and first test (or undefined if no tests)
     const firstTest = tests.length > 0 ? tests[0] : undefined;
     setSelectedItem(functionName, firstTest);
