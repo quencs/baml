@@ -9,7 +9,7 @@ import type {
   TestCaseInput,
   BAMLFile,
 } from '../types';
-import type { FunctionDefinition } from '../runtime/BamlRuntimeInterface';
+import type { FunctionWithCallGraph, TestCaseMetadata } from '../interface';
 
 /**
  * Node output generator function
@@ -22,16 +22,17 @@ export type NodeOutputGenerator = (
 
 /**
  * Centralized mock runtime configuration
+ * Now uses unified types from interface layer
  */
 export interface MockRuntimeConfig {
   // Workflows discovered by the runtime
   workflows: WorkflowDefinition[];
 
   // Standalone functions (not in workflows)
-  functions: FunctionDefinition[];
+  functions: FunctionWithCallGraph[];
 
   // Test cases organized by node ID
-  testCases: Record<string, TestCaseInput[]>;
+  testCases: Record<string, TestCaseMetadata[]>;
 
   // Node output generators (one per node or workflow.node)
   nodeOutputs: Record<string, NodeOutputGenerator>;

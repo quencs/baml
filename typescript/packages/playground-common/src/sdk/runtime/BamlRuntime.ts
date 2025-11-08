@@ -23,11 +23,9 @@ import type {
 } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 import type {
   BamlRuntimeInterface,
-  ExecutionEvent,
-  FunctionDefinition,
   CursorPosition,
   CursorNavigationResult,
-  TestExecutionOptions,
+  ExecutionOptions,
 } from './BamlRuntimeInterface';
 import type {
   WorkflowDefinition,
@@ -37,6 +35,19 @@ import type {
 } from '../types';
 import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
 import { vscode } from '../../shared/baml-project-panel/vscode';
+
+// Import unified types and adapter from interface layer
+import {
+  WasmTypeAdapter,
+  type FunctionWithCallGraph,
+  type TestCaseMetadata,
+  type CallGraphNode,
+  type GraphNode,
+  type GraphEdge,
+  type PromptInfo,
+  type RichExecutionEvent,
+  type TestExecutionContext,
+} from '../interface';
 
 
 
@@ -114,6 +125,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
   private wasmRuntime: WasmRuntime | undefined;
   private diagnostics: DiagnosticError[] = [];
   private wasm: BamlWasmModule;
+  private adapter: WasmTypeAdapter;
 
   private constructor(
     wasm: BamlWasmModule,
@@ -125,6 +137,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
     this.wasmProject = wasmProject;
     this.wasmRuntime = wasmRuntime;
     this.diagnostics = diagnostics;
+    this.adapter = new WasmTypeAdapter(wasm);
   }
 
   /**
@@ -216,15 +229,20 @@ export class BamlRuntime implements BamlRuntimeInterface {
     return this.wasmRuntime;
   }
 
-  getWorkflows(): WorkflowDefinition[] {
-    // TODO: Extract workflows from WASM project
-    // For now, return empty array
-    // This will need to be implemented once we understand the WASM API
-    console.warn('[BamlRuntime] getWorkflows() not yet implemented');
-    return [];
+  getWorkflows(): FunctionWithCallGraph[] {
+    // Workflows are just root functions with call graphs
+    // For now, return all functions (naive implementation)
+    // TODO: Filter by isRoot: true when we properly analyze call relationships
+    return this.getFunctions();
   }
 
-  getFunctions(): FunctionDefinition[] {
+  getCallGraph(functionName: string): CallGraphNode | undefined {
+    const functions = this.getFunctions();
+    const func = functions.find(f => f.name === functionName);
+    return func?.callGraph;
+  }
+
+  getFunctions(): FunctionWithCallGraph[] {
     if (!this.wasmRuntime) {
       console.log('[BamlRuntime] Cannot get functions - runtime is invalid');
       return [];
@@ -233,15 +251,52 @@ export class BamlRuntime implements BamlRuntimeInterface {
     try {
       const functions: WasmFunction[] = this.wasmRuntime.list_functions();
       return functions.map((fn) => {
+        // Convert WASM function to unified type using adapter
+        const metadata = this.adapter.convertFunction(fn, this.wasmRuntime!);
 
+        // Build call graph (for now, create a simple node)
+        // TODO: Extract proper call graph from orchestration_graph()
+        const callGraph: CallGraphNode = {
+          id: fn.name,
+          type: 'llm_function',
+          children: [],
+        };
+
+        // Convert call graph to nodes and edges for backward compatibility
+        const nodes: GraphNode[] = [{
+          id: fn.name,
+          type: 'llm_function',
+          label: fn.name,
+          functionName: fn.name,
+          codeHash: '', // TODO: Generate hash
+          lastModified: Date.now(),
+          llmClient: metadata.clientName,
+        }];
+
+        const edges: GraphEdge[] = [];
+
+        // For now, treat all functions as root functions
+        // TODO: Analyze call relationships to determine actual roots
         return {
-          type: 'llm_function' as const,
-          name: fn.name,
-          span: fn.span,
-          test_snippet: fn.test_snippet,
-          signature: fn.signature,
-          test_cases: fn.test_cases,
-          inner: fn
+          ...metadata,
+          callGraph,
+          isRoot: true,
+          callGraphDepth: 1,
+
+          // Backward compatibility fields
+          id: fn.name,
+          displayName: fn.name,
+          filePath: metadata.span.filePath,
+          startLine: metadata.span.startLine,
+          endLine: metadata.span.endLine,
+          nodes,
+          edges,
+          entryPoint: fn.name,
+          parameters: [], // TODO: Parse from signature
+          returnType: '', // TODO: Parse from signature
+          childFunctions: [],
+          lastModified: Date.now(),
+          codeHash: '', // TODO: Generate hash
         };
       });
     } catch (e) {
@@ -250,7 +305,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
     }
   }
 
-  getTestCases(nodeId?: string): TestCaseInput[] {
+  getTestCases(functionName?: string): TestCaseMetadata[] {
     // Need valid runtime to get test cases
     if (!this.wasmRuntime) {
       console.log('[BamlRuntime] Cannot get test cases - runtime is invalid');
@@ -263,35 +318,11 @@ export class BamlRuntime implements BamlRuntimeInterface {
 
       return allTestCases
         .filter((tc) => {
-          if (!nodeId) return true;
-          // Filter by nodeId - check if this test belongs to the specified function
-          return tc.parent_functions.some((pf) => pf.name === nodeId);
+          if (!functionName) return true;
+          // Filter by functionName - check if this test belongs to the specified function
+          return tc.parent_functions.some((pf) => pf.name === functionName);
         })
-        .map((tc, index) => {
-          // Convert WasmParam[] to Record<string, unknown>
-          const inputs: Record<string, unknown> = {};
-          for (const param of tc.inputs) {
-            if (param.value !== undefined) {
-              try {
-                // Try to parse as JSON first
-                inputs[param.name] = JSON.parse(param.value);
-              } catch {
-                // If not JSON, use as string
-                inputs[param.name] = param.value;
-              }
-            }
-          }
-
-          return {
-            id: `${tc.name}_${index}`,
-            name: tc.name,
-            source: 'test' as const,
-            functionId: tc.parent_functions[0]?.name || '',
-            filePath: tc.span.file_path,
-            inputs,
-            status: tc.error ? ('failing' as const) : ('unknown' as const),
-          };
-        });
+        .map((tc) => this.adapter.convertTestCase(tc));
     } catch (e) {
       console.error('[BamlRuntime] Error getting test cases:', e);
       return [];
@@ -310,7 +341,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
 
       // Group by file path
-      const fileMap = new Map<string, { functions: FunctionDefinition[], tests: BAMLTest[] }>();
+      const fileMap = new Map<string, { functions: FunctionWithCallGraph[], tests: BAMLTest[] }>();
 
       // Add functions to map
       for (const fn of functions) {
@@ -319,15 +350,38 @@ export class BamlRuntime implements BamlRuntimeInterface {
           fileMap.set(filePath, { functions: [], tests: [] });
         }
         const fnWithType = fn as WasmFunction & { type?: string };
-        fileMap.get(filePath)!.functions.push({
+        const functionType = fnWithType.type as 'function' | 'llm_function' | 'workflow';
+        const span = this.adapter.convertSpan(fn.span);
+
+        // Create FunctionWithCallGraph with minimal call graph data
+        const functionWithCallGraph: FunctionWithCallGraph = {
           name: fn.name,
-          type: fnWithType.type as 'function' | 'llm_function' | 'workflow',
-          span: fn.span,
-          test_snippet: fn.test_snippet,
+          type: functionType,
+          span,
+          testSnippet: fn.test_snippet,
           signature: fn.signature,
-          test_cases: fn.test_cases,
-          inner: fn
-        });
+          testCases: fn.test_cases.map(tc => this.adapter.convertTestCase(tc)),
+          // Call graph fields (minimal for getBAMLFiles)
+          callGraph: { id: fn.name, type: functionType === 'workflow' ? 'block' : functionType, children: [] },
+          isRoot: true,
+          callGraphDepth: 1,
+          // Workflow compatibility fields
+          id: fn.name,
+          displayName: fn.name,
+          filePath: span.filePath,
+          startLine: span.startLine,
+          endLine: span.endLine,
+          nodes: [],
+          edges: [],
+          entryPoint: fn.name,
+          parameters: [],
+          returnType: '',
+          childFunctions: [],
+          codeHash: '',
+          lastModified: Date.now(),
+        };
+
+        fileMap.get(filePath)!.functions.push(functionWithCallGraph);
       }
 
       // Add tests to map - transform WasmTestCase to BAMLTest
@@ -393,8 +447,8 @@ export class BamlRuntime implements BamlRuntimeInterface {
   async *executeWorkflow(
     workflowId: string,
     inputs: Record<string, any>,
-    options?: { clearCache?: boolean; startFromNodeId?: string }
-  ): AsyncGenerator<ExecutionEvent> {
+    options?: ExecutionOptions
+  ): AsyncGenerator<RichExecutionEvent> {
     // TODO: Implement workflow execution
     console.warn('[BamlRuntime] executeWorkflow() not yet implemented');
     throw new Error('Workflow execution not yet implemented for BamlRuntime');
@@ -403,11 +457,14 @@ export class BamlRuntime implements BamlRuntimeInterface {
   async *executeTest(
     functionName: string,
     testName: string,
-    options?: TestExecutionOptions
-  ): AsyncGenerator<ExecutionEvent> {
+    context: TestExecutionContext
+  ): AsyncGenerator<RichExecutionEvent> {
     if (!this.wasmRuntime) {
       throw new Error('Cannot execute test - runtime is invalid');
     }
+
+    // Generate execution ID
+    const executionId = `exec_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
     // Find the test case
     const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
@@ -440,18 +497,21 @@ export class BamlRuntime implements BamlRuntimeInterface {
         }
       }
 
-      // Yield started event
+      // Yield node enter event
       yield {
-        type: 'node.started',
+        type: 'node.enter',
         nodeId,
+        timestamp: Date.now(),
+        iteration: 0,
+        executionId,
         inputs,
       };
 
       const startTime = performance.now();
 
       // Create a generator-friendly way to yield events from callbacks
-      const events: ExecutionEvent[] = [];
-      const pushEvent = (event: ExecutionEvent) => {
+      const events: RichExecutionEvent[] = [];
+      const pushEvent = (event: RichExecutionEvent) => {
         events.push(event);
       };
 
@@ -460,40 +520,49 @@ export class BamlRuntime implements BamlRuntimeInterface {
         this.wasmRuntime,
         testCase.name,
         // on_partial_response callback
-        (partial: WasmPartialResponse) => {
+        (partial: any) => {
           pushEvent({
-            type: 'test.partial',
-            functionName,
-            testName,
-            response: partial,
+            type: 'partial.response',
+            nodeId,
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
+            partialContent: String(partial),
+            isFinal: false,
           });
         },
         // get_baml_src_cb - load media files
-        options?.loadMediaFile || vscode.loadMediaFile,
+        context?.loadMediaFile || vscode.loadMediaFile,
         // on_expr_event - expression evaluation events (for highlighting)
         (spans: WasmSpan[]) => {
           if (spans && spans.length > 0) {
             pushEvent({
-              type: 'test.highlight',
-              spans: spans.map((span) => span),
+              type: 'highlight',
+              nodeId,
+              timestamp: Date.now(),
+              iteration: 0,
+              executionId,
+              spans: spans.map((span) => this.adapter.convertSpan(span)),
             });
           }
         },
         // env - API keys / environment
-        options?.apiKeys || {},
+        context?.apiKeys || {},
         // abort_signal
-        options?.abortSignal || null,
+        context?.abortSignal || null,
         // watch_handler - for watch notifications
-        (notification: WasmNotification) => {
+        (notification: any) => {
           pushEvent({
-            type: 'test.watch',
-            functionName,
-            testName,
+            type: 'watch.notification',
+            nodeId,
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
             notification: {
-              variable_name: notification.variable_name,
-              channel_name: notification.channel_name,
-              block_name: notification.block_name,
-              is_stream: notification.is_stream,
+              variableName: notification.variable_name,
+              channelName: notification.channel_name,
+              blockName: notification.block_name,
+              isStream: notification.is_stream,
               value: notification.value,
             },
           });
@@ -545,32 +614,49 @@ export class BamlRuntime implements BamlRuntimeInterface {
       // Yield completion or error event
       if (testStatus === 'passed') {
         yield {
-          type: 'node.completed',
+          type: 'node.exit',
           nodeId,
-          inputs,
+          timestamp: Date.now(),
+          iteration: 0,
+          executionId,
           outputs,
           duration,
         };
       } else {
         yield {
-          type: 'node.error',
+          type: 'node.exit',
           nodeId,
-          error: new Error(outputs.error || `Test failed with status: ${testStatus}`),
+          timestamp: Date.now(),
+          iteration: 0,
+          executionId,
+          outputs,
+          duration,
+          error: {
+            message: outputs.error || `Test failed with status: ${testStatus}`,
+            code: testStatus,
+          },
         };
       }
     } catch (error) {
       yield {
-        type: 'node.error',
+        type: 'node.exit',
         nodeId,
-        error: error instanceof Error ? error : new Error(String(error)),
+        timestamp: Date.now(),
+        iteration: 0,
+        executionId,
+        duration: 0,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
       };
     }
   }
 
   async *executeTests(
     tests: Array<{ functionName: string; testName: string }>,
-    options?: TestExecutionOptions
-  ): AsyncGenerator<ExecutionEvent> {
+    context: TestExecutionContext
+  ): AsyncGenerator<RichExecutionEvent> {
     if (!this.wasmRuntime) {
       throw new Error('Cannot execute tests - runtime is invalid');
     }
@@ -604,21 +690,26 @@ export class BamlRuntime implements BamlRuntimeInterface {
         };
       });
 
+      const executionId = `batch_${Date.now()}`;
+
       // Yield started events for all tests
       for (const test of tests) {
         const testCase = testCases.find((tc) => tc.testName === test.testName);
         if (testCase) {
           yield {
-            type: 'node.started',
+            type: 'node.enter',
             nodeId: test.functionName,
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
             inputs: testCase.inputs,
           };
         }
       }
 
       // Create event collectors for callbacks
-      const events: ExecutionEvent[] = [];
-      const pushEvent = (event: ExecutionEvent) => {
+      const events: RichExecutionEvent[] = [];
+      const pushEvent = (event: RichExecutionEvent) => {
         events.push(event);
       };
 
@@ -628,33 +719,45 @@ export class BamlRuntime implements BamlRuntimeInterface {
         // on_partial_response callback
         (partial: WasmPartialResponse & { func_test_pair: () => { function_name: string; test_name: string } }) => {
           const pair = partial.func_test_pair();
+          if (context.onPartialResponse) {
+            context.onPartialResponse(partial);
+          }
           pushEvent({
-            type: 'test.partial',
-            functionName: pair.function_name,
-            testName: pair.test_name,
-            response: partial,
+            type: 'partial.response',
+            nodeId: pair.function_name,
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
+            partialContent: String(partial),
+            isFinal: false,
           });
         },
         // get_baml_src_cb - load media files
-        options?.loadMediaFile || vscode.loadMediaFile,
+        context.loadMediaFile || vscode.loadMediaFile,
         // env - API keys / environment
-        options?.apiKeys || {},
+        context.apiKeys || {},
         // abort_signal
-        options?.abortSignal || null,
+        context.abortSignal || null,
         // watch_handler - for watch notifications
         (notification: WasmNotification & { function_name?: string; test_name?: string }) => {
           // Watch notifications should have function_name and test_name from parallel execution
+          const watchNotification = {
+            variableName: notification.variable_name,
+            channelName: notification.channel_name,
+            blockName: notification.block_name,
+            isStream: notification.is_stream,
+            value: notification.value,
+          };
+          if (context.onWatchNotification) {
+            context.onWatchNotification(watchNotification);
+          }
           pushEvent({
-            type: 'test.watch',
-            functionName: notification.function_name || 'unknown',
-            testName: notification.test_name || 'unknown',
-            notification: {
-              variable_name: notification.variable_name,
-              channel_name: notification.channel_name,
-              block_name: notification.block_name,
-              is_stream: notification.is_stream,
-              value: notification.value,
-            },
+            type: 'watch.notification',
+            nodeId: notification.function_name || 'unknown',
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
+            notification: watchNotification,
           });
         }
       );
@@ -703,26 +806,45 @@ export class BamlRuntime implements BamlRuntimeInterface {
         // Yield completion or error event
         if (testStatus === 'passed') {
           yield {
-            type: 'node.completed',
+            type: 'node.exit',
             nodeId: pair.function_name,
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
             outputs,
             duration: 0, // TODO: Track duration for parallel tests
           };
         } else {
           yield {
-            type: 'node.error',
+            type: 'node.exit',
             nodeId: pair.function_name,
-            error: new Error(outputs.error || `Test failed with status: ${testStatus}`),
+            timestamp: Date.now(),
+            iteration: 0,
+            executionId,
+            outputs,
+            duration: 0,
+            error: {
+              message: outputs.error || `Test failed with status: ${testStatus}`,
+              code: testStatus,
+            },
           };
         }
       }
     } catch (error) {
       // Yield error for all tests
+      const executionId = `batch_${Date.now()}`;
       for (const test of tests) {
         yield {
-          type: 'node.error',
+          type: 'node.exit',
           nodeId: test.functionName,
-          error: error instanceof Error ? error : new Error(String(error)),
+          timestamp: Date.now(),
+          iteration: 0,
+          executionId,
+          duration: 0,
+          error: {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          },
         };
       }
     }
@@ -731,6 +853,67 @@ export class BamlRuntime implements BamlRuntimeInterface {
   async cancelExecution(executionId: string): Promise<void> {
     // TODO: Implement execution cancellation
     console.warn('[BamlRuntime] cancelExecution() not yet implemented');
+  }
+
+  async renderPromptForTest(
+    functionName: string,
+    testName: string,
+    context: TestExecutionContext
+  ): Promise<PromptInfo> {
+    if (!this.wasmRuntime) {
+      throw new Error('Runtime not initialized');
+    }
+
+    const wasmFunctions = this.wasmRuntime.list_functions();
+    const wasmFn = wasmFunctions.find(f => f.name === functionName);
+    if (!wasmFn) {
+      throw new Error(`Function ${functionName} not found`);
+    }
+
+    const wasmCallContext = new this.wasm.WasmCallContext();
+    const wasmPrompt = await wasmFn.render_prompt_for_test(
+      this.wasmRuntime,
+      testName,
+      wasmCallContext,
+      context.loadMediaFile || (() => Promise.resolve('')),
+      context.apiKeys || {}
+    );
+
+    // Convert WASM prompt to unified type
+    return this.adapter.convertPrompt(wasmPrompt);
+  }
+
+  async renderCurlForTest(
+    functionName: string,
+    testName: string,
+    options: {
+      stream: boolean;
+      expandImages: boolean;
+      exposeSecrets: boolean;
+    },
+    context: TestExecutionContext
+  ): Promise<string> {
+    if (!this.wasmRuntime) {
+      throw new Error('Runtime not initialized');
+    }
+
+    const wasmFunctions = this.wasmRuntime.list_functions();
+    const wasmFn = wasmFunctions.find(f => f.name === functionName);
+    if (!wasmFn) {
+      throw new Error(`Function ${functionName} not found`);
+    }
+
+    const wasmCallContext = new this.wasm.WasmCallContext();
+    return await wasmFn.render_raw_curl_for_test(
+      this.wasmRuntime,
+      testName,
+      wasmCallContext,
+      options.stream || false,
+      options.expandImages || false,
+      context.loadMediaFile || (() => Promise.resolve('')),
+      context.apiKeys || {},
+      options.exposeSecrets || false
+    );
   }
 
   updateCursor(

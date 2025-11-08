@@ -5,6 +5,10 @@
  */
 
 import { atom } from 'jotai';
+import type { WatchNotification } from '../interface';
+
+// Re-export WatchNotification for backward compatibility
+export type { WatchNotification };
 
 // ============================================================================
 // Test State Types
@@ -42,17 +46,6 @@ export interface TestHistoryEntry {
 export interface TestHistoryRun {
   timestamp: number;
   tests: TestHistoryEntry[];
-}
-
-/**
- * Watch notification from test execution
- */
-export interface WatchNotification {
-  variable_name?: string;
-  channel_name?: string;
-  block_name?: string;
-  is_stream: boolean;
-  value: string;
 }
 
 /**
@@ -144,7 +137,7 @@ export const categorizedNotificationsAtom = atom<CategorizedNotifications>((get)
   };
 
   const isStream = (notification: WatchNotification) => {
-    if (notification.is_stream) return true;
+    if (notification.isStream) return true;
     return notification.value.startsWith('Stream(');
   };
 

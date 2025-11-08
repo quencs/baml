@@ -10,7 +10,7 @@
  */
 
 import type { WorkflowDefinition, GraphNode } from '../types';
-import type { ExecutionEvent } from './BamlRuntimeInterface';
+import type { RichExecutionEvent } from '../interface';
 import type { MockRuntimeConfig } from '../mock-config/types';
 import type { LogEntry } from '../types';
 
@@ -23,7 +23,7 @@ export async function* simulateExecution(
   inputs: Record<string, unknown>,
   executionId: string,
   startFromNodeId?: string
-): AsyncGenerator<ExecutionEvent> {
+): AsyncGenerator<RichExecutionEvent> {
   const visited = new Set<string>();
   let currentNodes = [startFromNodeId || workflow.entryPoint];
   let iterationCount = 0;
@@ -83,13 +83,13 @@ export async function* simulateExecution(
 
           if (config.executionBehavior.verboseLogging) {
             yield {
-              type: 'node.log',
+              type: 'log',
               nodeId,
-              log: createLog(
-                executionId,
-                'info',
-                `Branch: ${result.outputs.condition} → ${chosenEdge.target}`
-              ),
+              timestamp: Date.now(),
+              iteration: 0,
+              executionId,
+              level: 'info',
+              message: `Branch: ${result.outputs.condition} → ${chosenEdge.target}`,
             };
           }
         }
@@ -119,7 +119,7 @@ async function* executeNode(
   workflow: WorkflowDefinition,
   config: MockRuntimeConfig
 ): AsyncGenerator<
-  ExecutionEvent,
+  RichExecutionEvent,
   { outputs?: Record<string, unknown>; error?: Error },
   undefined
 > {
@@ -128,8 +128,11 @@ async function* executeNode(
 
   // Emit start event
   yield {
-    type: 'node.started',
+    type: 'node.enter',
     nodeId: node.id,
+    timestamp: Date.now(),
+    iteration: 0,
+    executionId,
     inputs: nodeInputs,
   };
 
@@ -137,17 +140,27 @@ async function* executeNode(
   const shouldUseCache =
     Math.random() < config.executionBehavior.cacheHitRate;
   if (shouldUseCache) {
-    yield {
-      type: 'node.cached',
-      nodeId: node.id,
-      fromExecutionId: `exec_${Date.now() - 60000}_1`,
-    };
-
     const cachedOutputs = generateOutputs(node, workflow, context, config);
+
+    // Log cache hit if verbose logging enabled
+    if (config.executionBehavior.verboseLogging) {
+      yield {
+        type: 'log',
+        nodeId: node.id,
+        timestamp: Date.now(),
+        iteration: 0,
+        executionId,
+        level: 'info',
+        message: 'Cache hit - using cached result',
+      };
+    }
+
     yield {
-      type: 'node.completed',
+      type: 'node.exit',
       nodeId: node.id,
-      inputs: nodeInputs,
+      timestamp: Date.now(),
+      iteration: 0,
+      executionId,
       outputs: cachedOutputs,
       duration: 50, // Cached is fast
     };
@@ -166,18 +179,13 @@ async function* executeNode(
 
     if (config.executionBehavior.verboseLogging) {
       yield {
-        type: 'node.log',
+        type: 'log',
         nodeId: node.id,
-        log: createLog(executionId, 'info', getLogMessage(node, i, logCount)),
-      };
-    }
-
-    // Emit progress for long-running nodes
-    if (node.type === 'llm_function' && i < logCount - 1) {
-      yield {
-        type: 'node.progress',
-        nodeId: node.id,
-        progress: ((i + 1) / logCount) * 100,
+        timestamp: Date.now(),
+        iteration: 0,
+        executionId,
+        level: 'info',
+        message: getLogMessage(node, i, logCount),
       };
     }
   }
@@ -185,24 +193,34 @@ async function* executeNode(
   // Simulate errors (based on configured error rate)
   const shouldError = Math.random() < config.executionBehavior.errorRate;
 
-  if (shouldError) {
-    const error = new Error(getErrorMessage(node));
-    yield {
-      type: 'node.error',
-      nodeId: node.id,
-      error,
-    };
-    return { error };
-  }
-
   // Generate outputs
   const outputs = generateOutputs(node, workflow, context, config);
   const actualDuration = Date.now() - startTime;
 
+  if (shouldError) {
+    const error = new Error(getErrorMessage(node));
+    yield {
+      type: 'node.exit',
+      nodeId: node.id,
+      timestamp: Date.now(),
+      iteration: 0,
+      executionId,
+      duration: actualDuration,
+      error: {
+        message: error.message,
+        code: 'SIMULATION_ERROR',
+        stack: error.stack,
+      },
+    };
+    return { error };
+  }
+
   yield {
-    type: 'node.completed',
+    type: 'node.exit',
     nodeId: node.id,
-    inputs: nodeInputs,
+    timestamp: Date.now(),
+    iteration: 0,
+    executionId,
     outputs,
     duration: actualDuration,
   };

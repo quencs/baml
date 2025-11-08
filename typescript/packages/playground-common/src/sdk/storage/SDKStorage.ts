@@ -28,7 +28,8 @@ import type {
   FlashRange,
 } from '../atoms/test.atoms';
 
-import type { BamlRuntimeInterface, FunctionDefinition } from '../runtime/BamlRuntimeInterface';
+import type { BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
+import type { FunctionWithCallGraph } from '../interface';
 import type { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 import { BamlRuntime } from '../runtime/BamlRuntime';
 
@@ -109,7 +110,7 @@ export interface SDKStorage {
   // Functions
   // ============================================================================
 
-  getFunctions(): FunctionDefinition[];
+  getFunctions(): FunctionWithCallGraph[];
 
   // ============================================================================
   // Generated Files

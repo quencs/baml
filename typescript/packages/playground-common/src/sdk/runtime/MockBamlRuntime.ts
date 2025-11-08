@@ -7,15 +7,24 @@
 import type { WorkflowDefinition, TestCaseInput, BAMLFile } from '../types';
 import type {
   BamlRuntimeInterface,
-  ExecutionEvent,
   ExecutionOptions,
-  FunctionDefinition,
   CursorPosition,
   CursorNavigationResult,
 } from './BamlRuntimeInterface';
 import type { MockRuntimeConfig } from '../mock-config/types';
 import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
 import { simulateExecution } from './simulator';
+
+// Import unified types from interface layer
+import {
+  createMockPrompt,
+  type FunctionWithCallGraph,
+  type TestCaseMetadata,
+  type CallGraphNode,
+  type PromptInfo,
+  type RichExecutionEvent,
+  type TestExecutionContext,
+} from '../interface';
 
 export class MockBamlRuntime implements BamlRuntimeInterface {
   private config: MockRuntimeConfig;
@@ -51,19 +60,29 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     return undefined;
   }
 
-  getWorkflows(): WorkflowDefinition[] {
-    return this.config.workflows;
+  getWorkflows(): FunctionWithCallGraph[] {
+    // Workflows are just root functions with call graphs
+    // For now, return all functions (naive implementation)
+    return this.getFunctions();
   }
 
-  getFunctions(): FunctionDefinition[] {
-    return this.config.functions;
+  getCallGraph(functionName: string): CallGraphNode | undefined {
+    const functions = this.getFunctions();
+    const func = functions.find(f => f.name === functionName);
+    return func?.callGraph;
   }
 
-  getTestCases(nodeId?: string): TestCaseInput[] {
-    if (!nodeId) {
-      return Object.values(this.config.testCases).flat();
+  getFunctions(): FunctionWithCallGraph[] {
+    // Cast config functions to FunctionWithCallGraph
+    // They should already have the right shape if properly configured
+    return this.config.functions as unknown as FunctionWithCallGraph[];
+  }
+
+  getTestCases(functionName?: string): TestCaseMetadata[] {
+    if (!functionName) {
+      return Object.values(this.config.testCases).flat() as unknown as TestCaseMetadata[];
     }
-    return this.config.testCases[nodeId] || [];
+    return (this.config.testCases[functionName] || []) as unknown as TestCaseMetadata[];
   }
 
   getBAMLFiles(): BAMLFile[] {
@@ -84,7 +103,7 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     workflowId: string,
     inputs: Record<string, any>,
     options?: ExecutionOptions
-  ): AsyncGenerator<ExecutionEvent> {
+  ): AsyncGenerator<RichExecutionEvent> {
     const workflow = this.config.workflows.find((w) => w.id === workflowId);
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
@@ -106,28 +125,59 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
   async *executeTest(
     functionName: string,
     testName: string,
-    options?: import('./BamlRuntimeInterface').TestExecutionOptions
-  ): AsyncGenerator<ExecutionEvent> {
+    context: TestExecutionContext
+  ): AsyncGenerator<RichExecutionEvent> {
     // Find test and execute
     const test = this.getTestCases(functionName).find((t) => t.name === testName);
     if (!test) throw new Error(`Test ${testName} not found for function ${functionName}`);
 
     // Execute with test inputs
-    yield* this.executeWorkflow(test.functionId, test.inputs);
+    // TODO: Update simulator to emit RichExecutionEvent
+    // For now, cast the events
+    const inputs: Record<string, unknown> = {};
+    for (const input of test.inputs) {
+      if (input.value) {
+        inputs[input.name] = input.value;
+      }
+    }
+    yield* this.executeWorkflow(test.functionId, inputs) as AsyncGenerator<RichExecutionEvent>;
   }
 
   async *executeTests(
     tests: Array<{ functionName: string; testName: string }>,
-    options?: import('./BamlRuntimeInterface').TestExecutionOptions
-  ): AsyncGenerator<ExecutionEvent> {
+    context: TestExecutionContext
+  ): AsyncGenerator<RichExecutionEvent> {
     // Mock implementation: run tests sequentially
     for (const test of tests) {
-      yield* this.executeTest(test.functionName, test.testName, options);
+      yield* this.executeTest(test.functionName, test.testName, context);
     }
   }
 
   async cancelExecution(executionId: string): Promise<void> {
     console.log(`Cancelling execution: ${executionId}`);
+  }
+
+  async renderPromptForTest(
+    functionName: string,
+    testName: string,
+    context: TestExecutionContext
+  ): Promise<PromptInfo> {
+    // Mock implementation - return fake prompt
+    return createMockPrompt('chat', 'mock-client');
+  }
+
+  async renderCurlForTest(
+    functionName: string,
+    testName: string,
+    options: {
+      stream: boolean;
+      expandImages: boolean;
+      exposeSecrets: boolean;
+    },
+    context: TestExecutionContext
+  ): Promise<string> {
+    // Mock implementation - return fake curl command
+    return `curl -X POST https://mock-api.example.com/${functionName} -d '{"test": "${testName}"}'`;
   }
 
   updateCursor(

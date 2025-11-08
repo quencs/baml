@@ -10,6 +10,12 @@
  * - Doesn't watch files - files are pushed to it
  * - Once created, runtime is immutable
  * - On file changes, create a new runtime instance (like wasmAtom pattern)
+ *
+ * Key philosophy:
+ * - Everything is a function (no special "workflow" execution)
+ * - getWorkflows() returns root functions with call graphs
+ * - executeTest() works for any function (workflow or standalone)
+ * - Events have node IDs, timestamps, iterations for graph mapping
  */
 
 import type {
@@ -20,61 +26,18 @@ import type {
 } from '../types';
 
 import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
-import { WasmFunction, WasmRuntime, WasmSpan, WasmTestCase } from '@gloo-ai/baml-schema-wasm-web';
+import type { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web';
 
-/**
- * Watch notification from test execution
- */
-export interface WatchNotification {
-  variable_name?: string;
-  channel_name?: string;
-  block_name?: string;
-  is_stream: boolean;
-  value: string;
-}
-
-// /**
-//  * Code span for highlighting during execution
-//  */
-// export interface CodeSpan {
-//   file_path: string;
-//   start_line: number;
-//   start: number;
-//   end_line: number;
-//   end: number;
-// }
-
-/**
- * Execution events emitted by the runtime during execution
- */
-export type ExecutionEvent =
-  // Workflow/Node events
-  | { type: 'node.started'; nodeId: string; inputs: Record<string, any> }
-  | {
-    type: 'node.completed';
-    nodeId: string;
-    inputs?: Record<string, any>;
-    outputs: Record<string, any>;
-    duration: number;
-  }
-  | { type: 'node.error'; nodeId: string; error: Error }
-  | { type: 'node.log'; nodeId: string; log: LogEntry }
-  | { type: 'node.cached'; nodeId: string; fromExecutionId: string }
-  | { type: 'node.progress'; nodeId: string; progress: number }
-  // Test execution events
-  | { type: 'test.partial'; functionName: string; testName: string; response: any }
-  | { type: 'test.watch'; functionName: string; testName: string; notification: WatchNotification }
-  | { type: 'test.highlight'; spans: WasmSpan[] };
-
-export interface FunctionDefinition {
-  type: 'function' | 'llm_function' | 'workflow';
-  name: string;
-  span: WasmSpan;
-  test_snippet: string;
-  signature: string;
-  test_cases: WasmTestCase[];
-  inner: WasmFunction;
-}
+// Import unified types from interface layer
+import type {
+  FunctionMetadata,
+  FunctionWithCallGraph,
+  TestCaseMetadata,
+  CallGraphNode,
+  PromptInfo,
+  RichExecutionEvent,
+  TestExecutionContext,
+} from '../interface';
 
 /**
  * Cursor position in a file
@@ -99,18 +62,20 @@ export interface ExecutionOptions {
 }
 
 /**
- * Options for test execution
- */
-export interface TestExecutionOptions {
-  apiKeys?: Record<string, string>;
-  abortSignal?: AbortSignal;
-  loadMediaFile?: (path: string) => Promise<string>;
-}
-
-/**
  * BAML Runtime Interface
+ * Works with unified types only - no WASM dependencies
+ *
+ * Key philosophy:
+ * - Everything is a function (no special "workflow" execution)
+ * - getWorkflows() returns root functions with call graphs
+ * - executeTest() works for any function (workflow or standalone)
+ * - Events have node IDs, timestamps, iterations for graph mapping
  */
 export interface BamlRuntimeInterface {
+  // ============================================================================
+  // METADATA
+  // ============================================================================
+
   /**
    * Get BAML runtime version
    */
@@ -123,20 +88,47 @@ export interface BamlRuntimeInterface {
    */
   getWasmRuntime(): WasmRuntime | undefined;
 
-  /**
-   * Get all discovered workflows
-   */
-  getWorkflows(): WorkflowDefinition[];
+  // ============================================================================
+  // FUNCTIONS & CALL GRAPHS
+  // ============================================================================
 
   /**
-   * Get all discovered functions (including LLM functions)
+   * Get all functions with their call graphs
+   *
+   * Returns all functions, including their static call graphs.
+   * The UI can filter for root functions (isRoot: true) to show as "workflows"
    */
-  getFunctions(): FunctionDefinition[];
+  getFunctions(): FunctionWithCallGraph[];
 
   /**
-   * Get all discovered test cases
+   * Get workflows (root functions with non-trivial call graphs)
+   *
+   * This is essentially a filter over getFunctions():
+   * - Returns only root functions (not called by others)
+   * - Could naively return all functions
+   * - Could filter by call graph depth > 1
+   *
+   * The UI treats these as "workflows" but the runtime just sees functions.
    */
-  getTestCases(nodeId?: string): TestCaseInput[];
+  getWorkflows(): FunctionWithCallGraph[];
+
+  /**
+   * Get call graph for a specific function
+   */
+  getCallGraph(functionName: string): CallGraphNode | undefined;
+
+  // ============================================================================
+  // TEST CASES
+  // ============================================================================
+
+  /**
+   * Get test cases (unified type, not WASM type)
+   */
+  getTestCases(functionName?: string): TestCaseMetadata[];
+
+  // ============================================================================
+  // FILES & DIAGNOSTICS
+  // ============================================================================
 
   /**
    * Get BAML file structure (for debug panel)
@@ -155,44 +147,89 @@ export interface BamlRuntimeInterface {
    */
   getGeneratedFiles(): GeneratedFile[];
 
+  // ============================================================================
+  // EXECUTION (Rich Events)
+  // ============================================================================
+
   /**
    * Execute a workflow (stateless - just yields events)
    * Does NOT track state - that's the SDK's job
+   * @deprecated Workflows are just functions - use executeTest instead
    */
   executeWorkflow(
     workflowId: string,
-    inputs: Record<string, any>,
+    inputs: Record<string, unknown>,
     options?: ExecutionOptions
-  ): AsyncGenerator<ExecutionEvent>;
+  ): AsyncGenerator<RichExecutionEvent>;
 
   /**
-   * Execute a single test
+   * Execute a function with a test case
    *
-   * @param functionName - The function to test
-   * @param testName - The test case name
-   * @param options - Test execution options (apiKeys, abortSignal, loadMediaFile)
+   * Emits rich execution events with:
+   * - Node IDs for graph mapping
+   * - Timestamps for ordering
+   * - Iteration counts for loops/cycles
+   * - Actual runtime values (client, types, etc.)
+   * - Block entry/exit events
+   *
+   * Works for both:
+   * - Standalone functions (simple execution)
+   * - Root functions/"workflows" (nested calls emit events for each node)
    */
   executeTest(
     functionName: string,
     testName: string,
-    options?: TestExecutionOptions
-  ): AsyncGenerator<ExecutionEvent>;
+    context: TestExecutionContext
+  ): AsyncGenerator<RichExecutionEvent>;
 
   /**
-   * Execute multiple tests (potentially in parallel)
+   * Execute multiple tests
    *
-   * @param tests - Array of tests to execute
-   * @param options - Test execution options (apiKeys, abortSignal, loadMediaFile)
+   * Can execute in parallel or sequentially.
+   * Events are tagged with executionId to group related events.
    */
   executeTests(
     tests: Array<{ functionName: string; testName: string }>,
-    options?: TestExecutionOptions
-  ): AsyncGenerator<ExecutionEvent>;
+    context: TestExecutionContext
+  ): AsyncGenerator<RichExecutionEvent>;
 
   /**
    * Cancel a running execution
    */
   cancelExecution(executionId: string): Promise<void>;
+
+  // ============================================================================
+  // LLM-SPECIFIC OPERATIONS
+  // ============================================================================
+
+  /**
+   * Render prompt for a test case
+   * Returns actual prompt that would be sent to LLM
+   */
+  renderPromptForTest(
+    functionName: string,
+    testName: string,
+    context: TestExecutionContext
+  ): Promise<PromptInfo>;
+
+  /**
+   * Render curl command for a test case
+   * Useful for debugging/testing outside BAML
+   */
+  renderCurlForTest(
+    functionName: string,
+    testName: string,
+    options: {
+      stream: boolean;
+      expandImages: boolean;
+      exposeSecrets: boolean;
+    },
+    context: TestExecutionContext
+  ): Promise<string>;
+
+  // ============================================================================
+  // NAVIGATION
+  // ============================================================================
 
   /**
    * Update cursor position and determine which function/test is at that position

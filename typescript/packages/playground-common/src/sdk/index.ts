@@ -8,7 +8,8 @@
  */
 
 import type { SDKStorage } from './storage/SDKStorage';
-import type { BamlRuntimeInterface, BamlRuntimeFactory, FunctionDefinition } from './runtime/BamlRuntimeInterface';
+import type { BamlRuntimeInterface, BamlRuntimeFactory } from './runtime/BamlRuntimeInterface';
+import type { FunctionWithCallGraph } from './interface';
 import type {
   WorkflowDefinition,
   ExecutionSnapshot,
@@ -31,11 +32,7 @@ export * from './types';
 export type {
   BamlRuntimeInterface,
   BamlRuntimeFactory,
-  ExecutionEvent,
   ExecutionOptions,
-  TestExecutionOptions,
-  FunctionDefinition,
-  WatchNotification,
 } from './runtime/BamlRuntimeInterface';
 export * from './storage/SDKStorage';
 export * from './mock-config/types';
@@ -415,7 +412,21 @@ export class BAMLSDK {
       if (!this.runtime) {
         throw new Error('SDK not initialized');
       }
-      return this.runtime.getTestCases(nodeId);
+      // Filter and map TestCaseMetadata to TestCaseInput
+      const testCases = this.runtime.getTestCases(nodeId);
+      return testCases
+        .filter((tc): tc is import('./interface').TestCaseMetadata & { source: 'test' } => tc.source === 'test')
+        .map(tc => ({
+          id: tc.id,
+          name: tc.name,
+          source: 'test' as const,
+          functionId: tc.functionId,
+          filePath: tc.filePath,
+          inputs: tc.inputs,
+          expectedOutput: undefined,
+          status: undefined,
+          lastRun: undefined,
+        }));
     },
   };
 
@@ -513,7 +524,7 @@ export class BAMLSDK {
     /**
      * Get all functions
      */
-    getFunctions: (): FunctionDefinition[] => {
+    getFunctions: (): FunctionWithCallGraph[] => {
       if (!this.runtime) {
         return [];
       }
@@ -608,14 +619,14 @@ export class BAMLSDK {
   // ============================================================================
 
   /**
-   * Enrich watch notification with block_name from JSON parsing
+   * Enrich watch notification with blockName from JSON parsing
    */
-  private enrichNotification(notification: import('./runtime/BamlRuntimeInterface').WatchNotification): import('./runtime/BamlRuntimeInterface').WatchNotification {
-    if (!notification.block_name) {
+  private enrichNotification(notification: import('./interface').WatchNotification): import('./interface').WatchNotification {
+    if (!notification.blockName) {
       try {
         const parsed = JSON.parse(notification.value) as { type?: string; label?: string } | undefined;
         if (parsed?.type === 'block' && typeof parsed.label === 'string') {
-          notification.block_name = parsed.label;
+          notification.blockName = parsed.label;
         }
       } catch { }
     }
@@ -704,7 +715,7 @@ export class BAMLSDK {
       let duration = 0;
       let outputs: Record<string, any> | undefined;
       let error: Error | undefined;
-      const watchNotifications: import('./runtime/BamlRuntimeInterface').WatchNotification[] = [];
+      const watchNotifications: import('./interface').WatchNotification[] = [];
 
       try {
         // 3. Execute the test and update state during execution
@@ -714,27 +725,27 @@ export class BAMLSDK {
         })) {
           console.log('[SDK] Test event:', event);
 
-          if (event.type === 'node.started') {
+          if (event.type === 'node.enter') {
             // Update to running with inputs
             this.storage.updateTestInHistory(0, 0, {
               status: 'running',
             });
-          } else if (event.type === 'test.partial') {
+          } else if (event.type === 'partial.response') {
             // Update with partial response
             this.storage.updateTestInHistory(0, 0, {
               status: 'running',
-              response: event.response,
+              response: event.partialContent,
               watchNotifications: [...watchNotifications],
             });
-          } else if (event.type === 'test.watch') {
+          } else if (event.type === 'watch.notification') {
             // Enrich and store watch notification
             const enriched = this.enrichNotification(event.notification);
             watchNotifications.push(enriched);
             this.storage.addWatchNotification(enriched);
 
-            // Add to highlighted blocks if block_name exists
-            if (enriched.block_name) {
-              this.storage.addHighlightedBlock(enriched.block_name);
+            // Add to highlighted blocks if blockName exists
+            if (enriched.blockName) {
+              this.storage.addHighlightedBlock(enriched.blockName);
             }
 
             // Update history with notifications
@@ -742,25 +753,36 @@ export class BAMLSDK {
               status: 'running',
               watchNotifications: [...watchNotifications],
             });
-          } else if (event.type === 'test.highlight') {
+          } else if (event.type === 'highlight') {
             // Send to VSCode for flashing regions
             try {
-              vscode.setFlashingRegions(event.spans);
+              // Convert SpanInfo (camelCase) to VSCode format (snake_case)
+              const vscodeSpans = event.spans.map((span) => ({
+                file_path: span.filePath,
+                start_line: span.startLine,
+                start: span.start,
+                end_line: span.endLine,
+                end: span.end,
+              }));
+              vscode.setFlashingRegions(vscodeSpans);
               this.storage.setFlashRanges(event.spans.map((span) => ({
-                filePath: span.file_path,
-                startLine: span.start_line,
+                filePath: span.filePath,
+                startLine: span.startLine,
                 startCol: span.start,
-                endLine: span.end_line,
+                endLine: span.endLine,
                 endCol: span.end,
               })));
             } catch (e) {
               console.error('[SDK] Failed to set flashing regions:', e);
             }
-          } else if (event.type === 'node.completed') {
+          } else if (event.type === 'node.exit') {
             duration = event.duration;
-            outputs = event.outputs;
-          } else if (event.type === 'node.error') {
-            error = event.error;
+            if (event.error) {
+              error = new Error(event.error.message);
+              error.stack = event.error.stack;
+            } else {
+              outputs = event.outputs;
+            }
           }
         }
 
@@ -876,7 +898,7 @@ export class BAMLSDK {
       });
 
       // Track watch notifications per test
-      const watchNotificationsByTest: Record<string, import('./runtime/BamlRuntimeInterface').WatchNotification[]> = {};
+      const watchNotificationsByTest: Record<string, import('./interface').WatchNotification[]> = {};
 
       try {
         if (options?.parallel) {
@@ -885,65 +907,67 @@ export class BAMLSDK {
             apiKeys: options?.apiKeys,
             abortSignal: controller.signal,
           })) {
-            const testKey = event.type.startsWith('test.') && 'functionName' in event && 'testName' in event
-              ? `${event.functionName}:${event.testName}`
-              : null;
-
-            // Find test index in history
-            const testIndex = tests.findIndex((t) =>
-              event.type.startsWith('node.') && 'nodeId' in event
-                ? t.functionName === event.nodeId
-                : testKey
-                  ? t.functionName === (event as any).functionName && t.testName === (event as any).testName
-                  : false
-            );
+            // Find test index based on nodeId (which should be the function name)
+            const testIndex = 'nodeId' in event
+              ? tests.findIndex((t) => t.functionName === event.nodeId)
+              : -1;
 
             if (testIndex === -1) continue;
 
-            if (event.type === 'test.partial') {
+            const testKey = `${tests[testIndex]!.functionName}:${tests[testIndex]!.testName}`;
+
+            if (event.type === 'partial.response') {
               this.storage.updateTestInHistory(0, testIndex, {
                 status: 'running',
-                response: event.response,
-                watchNotifications: watchNotificationsByTest[testKey!] || [],
+                response: event.partialContent,
+                watchNotifications: watchNotificationsByTest[testKey] || [],
               });
-            } else if (event.type === 'test.watch') {
-              if (!testKey) continue;
+            } else if (event.type === 'watch.notification') {
               if (!watchNotificationsByTest[testKey]) {
                 watchNotificationsByTest[testKey] = [];
               }
               const enriched = this.enrichNotification(event.notification);
               watchNotificationsByTest[testKey].push(enriched);
               this.storage.addWatchNotification(enriched);
-              if (enriched.block_name) {
-                this.storage.addHighlightedBlock(enriched.block_name);
+              if (enriched.blockName) {
+                this.storage.addHighlightedBlock(enriched.blockName);
               }
-            } else if (event.type === 'test.highlight') {
+            } else if (event.type === 'highlight') {
               try {
-                vscode.setFlashingRegions(event.spans);
+                // Convert SpanInfo (camelCase) to VSCode format (snake_case)
+                const vscodeSpans = event.spans.map((span) => ({
+                  file_path: span.filePath,
+                  start_line: span.startLine,
+                  start: span.start,
+                  end_line: span.endLine,
+                  end: span.end,
+                }));
+                vscode.setFlashingRegions(vscodeSpans);
                 this.storage.setFlashRanges(event.spans.map((span) => ({
-                  filePath: span.file_path,
-                  startLine: span.start_line,
+                  filePath: span.filePath,
+                  startLine: span.startLine,
                   startCol: span.start,
-                  endLine: span.end_line,
+                  endLine: span.endLine,
                   endCol: span.end,
                 })));
               } catch (e) {
                 console.error('[SDK] Failed to set flashing regions:', e);
               }
-            } else if (event.type === 'node.completed') {
-              const tk = `${tests[testIndex]!.functionName}:${tests[testIndex]!.testName}`;
-              this.storage.updateTestInHistory(0, testIndex, {
-                status: 'done',
-                response: event.outputs,
-                response_status: 'passed',
-                latency_ms: event.duration,
-                watchNotifications: watchNotificationsByTest[tk] || [],
-              });
-            } else if (event.type === 'node.error') {
-              this.storage.updateTestInHistory(0, testIndex, {
-                status: 'error',
-                message: event.error.message,
-              });
+            } else if (event.type === 'node.exit') {
+              if (event.error) {
+                this.storage.updateTestInHistory(0, testIndex, {
+                  status: 'error',
+                  message: event.error.message,
+                });
+              } else {
+                this.storage.updateTestInHistory(0, testIndex, {
+                  status: 'done',
+                  response: event.outputs,
+                  response_status: 'passed',
+                  latency_ms: event.duration,
+                  watchNotifications: watchNotificationsByTest[testKey] || [],
+                });
+              }
             }
           }
         } else {
@@ -961,45 +985,55 @@ export class BAMLSDK {
                 apiKeys: options?.apiKeys,
                 abortSignal: controller.signal,
               })) {
-                if (event.type === 'test.partial') {
+                if (event.type === 'partial.response') {
                   this.storage.updateTestInHistory(0, i, {
                     status: 'running',
-                    response: event.response,
+                    response: event.partialContent,
                     watchNotifications: watchNotificationsByTest[testKey] || [],
                   });
-                } else if (event.type === 'test.watch') {
+                } else if (event.type === 'watch.notification') {
                   const enriched = this.enrichNotification(event.notification);
                   watchNotificationsByTest[testKey].push(enriched);
                   this.storage.addWatchNotification(enriched);
-                  if (enriched.block_name) {
-                    this.storage.addHighlightedBlock(enriched.block_name);
+                  if (enriched.blockName) {
+                    this.storage.addHighlightedBlock(enriched.blockName);
                   }
-                } else if (event.type === 'test.highlight') {
+                } else if (event.type === 'highlight') {
                   try {
-                    vscode.setFlashingRegions(event.spans);
+                    // Convert SpanInfo (camelCase) to VSCode format (snake_case)
+                    const vscodeSpans = event.spans.map((span) => ({
+                      file_path: span.filePath,
+                      start_line: span.startLine,
+                      start: span.start,
+                      end_line: span.endLine,
+                      end: span.end,
+                    }));
+                    vscode.setFlashingRegions(vscodeSpans);
                     this.storage.setFlashRanges(event.spans.map((span) => ({
-                      filePath: span.file_path,
-                      startLine: span.start_line,
+                      filePath: span.filePath,
+                      startLine: span.startLine,
                       startCol: span.start,
-                      endLine: span.end_line,
+                      endLine: span.endLine,
                       endCol: span.end,
                     })));
                   } catch (e) {
                     console.error('[SDK] Failed to set flashing regions:', e);
                   }
-                } else if (event.type === 'node.completed') {
-                  this.storage.updateTestInHistory(0, i, {
-                    status: 'done',
-                    response: event.outputs,
-                    response_status: 'passed',
-                    latency_ms: event.duration,
-                    watchNotifications: watchNotificationsByTest[testKey] || [],
-                  });
-                } else if (event.type === 'node.error') {
-                  this.storage.updateTestInHistory(0, i, {
-                    status: 'error',
-                    message: event.error.message,
-                  });
+                } else if (event.type === 'node.exit') {
+                  if (event.error) {
+                    this.storage.updateTestInHistory(0, i, {
+                      status: 'error',
+                      message: event.error.message,
+                    });
+                  } else {
+                    this.storage.updateTestInHistory(0, i, {
+                      status: 'done',
+                      response: event.outputs,
+                      response_status: 'passed',
+                      latency_ms: event.duration,
+                      watchNotifications: watchNotificationsByTest[testKey] || [],
+                    });
+                  }
                 }
               }
             } catch (e) {
@@ -1093,7 +1127,7 @@ export class BAMLSDK {
    */
   private handleExecutionEvent(executionId: string, event: any) {
     switch (event.type) {
-      case 'node.started':
+      case 'node.enter':
         console.log(`▶️ Node started: ${event.nodeId}`);
         this.storage.setNodeState(event.nodeId, 'running');
 
@@ -1111,46 +1145,47 @@ export class BAMLSDK {
         });
         break;
 
-      case 'node.completed':
-        console.log(`✅ Node completed: ${event.nodeId}`);
-        this.storage.setNodeState(event.nodeId, 'success');
+      case 'node.exit':
+        if (event.error) {
+          console.error(`❌ Node error: ${event.nodeId}`);
+          this.storage.setNodeState(event.nodeId, 'error');
 
-        // Update node execution with results
-        const existingNode = this.storage.getNodeExecution(executionId, event.nodeId);
-        this.storage.addNodeExecution(executionId, event.nodeId, {
-          ...existingNode!,
-          state: 'success',
-          outputs: event.outputs,
-          endTime: Date.now(),
-          duration: event.duration,
-        });
+          const errorNode = this.storage.getNodeExecution(executionId, event.nodeId);
+          this.storage.addNodeExecution(executionId, event.nodeId, {
+            ...errorNode!,
+            state: 'error',
+            error: event.error,
+            endTime: Date.now(),
+            duration: event.duration,
+          });
+        } else {
+          console.log(`✅ Node completed: ${event.nodeId}`);
+          this.storage.setNodeState(event.nodeId, 'success');
+
+          // Update node execution with results
+          const existingNode = this.storage.getNodeExecution(executionId, event.nodeId);
+          this.storage.addNodeExecution(executionId, event.nodeId, {
+            ...existingNode!,
+            state: 'success',
+            outputs: event.outputs,
+            endTime: Date.now(),
+            duration: event.duration,
+          });
+        }
         break;
 
-      case 'node.error':
-        console.error(`❌ Node error: ${event.nodeId}`);
-        this.storage.setNodeState(event.nodeId, 'error');
-
-        const errorNode = this.storage.getNodeExecution(executionId, event.nodeId);
-        this.storage.addNodeExecution(executionId, event.nodeId, {
-          ...errorNode!,
-          state: 'error',
-          error: event.error,
-          endTime: Date.now(),
-        });
-        break;
-
-      case 'node.cached':
+      case 'cache.hit':
         console.log(`💾 Node cached: ${event.nodeId}`);
         this.storage.setNodeState(event.nodeId, 'cached');
         break;
 
-      case 'node.log':
+      case 'log':
         // Add log to node execution
         const node = this.storage.getNodeExecution(executionId, event.nodeId);
         if (node) {
           this.storage.addNodeExecution(executionId, event.nodeId, {
             ...node,
-            logs: [...node.logs, event.log],
+            logs: [...node.logs, event.message],
           });
         }
         break;

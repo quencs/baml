@@ -6,7 +6,14 @@
 
 import type { WorkflowDefinition, GraphNode, GraphEdge, TestCaseInput, BAMLFile } from '../types';
 import type { MockRuntimeConfig, NodeOutputGenerator } from './types';
-import type { FunctionDefinition } from '../runtime/BamlRuntimeInterface';
+import {
+  createMockFunction as createMockFunctionUnified,
+  createMockTestCase as createMockTestCaseUnified,
+  createMockSpan,
+  type FunctionMetadata,
+  type FunctionWithCallGraph,
+  type TestCaseMetadata,
+} from '../interface';
 
 /**
  * Helper to create a workflow
@@ -155,69 +162,79 @@ function createMockWorkflows(): WorkflowDefinition[] {
 /**
  * Create mock test cases
  */
-function createMockTestCases(): Record<string, TestCaseInput[]> {
+function createMockTestCases(): Record<string, TestCaseMetadata[]> {
+  const mockSpan = createMockSpan('tests/mock.test.ts');
+
   return {
     fetchData: [
       {
         id: 'test_fetchData_success',
         name: 'success_case',
-        source: 'test',
+        source: 'test' as const,
         functionId: 'fetchData',
         filePath: 'tests/fetchData.test.ts',
-        inputs: { url: 'https://api.example.com/data', timeout: 5000 },
-        expectedOutput: { data: { id: 1, name: 'Test' }, status: 200 },
-        status: 'passing',
-        lastRun: Date.now() - 3600000,
+        inputs: [
+          { name: 'url', value: 'https://api.example.com/data' },
+          { name: 'timeout', value: '5000' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'fetchData', start: 0, end: 100 }],
       },
       {
         id: 'test_fetchData_timeout',
         name: 'timeout_case',
-        source: 'test',
+        source: 'test' as const,
         functionId: 'fetchData',
         filePath: 'tests/fetchData.test.ts',
-        inputs: { url: 'https://slow-api.example.com/data', timeout: 100 },
-        expectedOutput: { error: 'Timeout' },
-        status: 'passing',
-        lastRun: Date.now() - 7200000,
+        inputs: [
+          { name: 'url', value: 'https://slow-api.example.com/data' },
+          { name: 'timeout', value: '100' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'fetchData', start: 0, end: 100 }],
       },
     ],
     processData: [
       {
         id: 'test_processData_valid',
         name: 'valid_input',
-        source: 'test',
+        source: 'test' as const,
         functionId: 'processData',
         filePath: 'tests/processData.test.ts',
-        inputs: { data: { id: 1, value: 'test' }, format: 'json' },
-        expectedOutput: { processed: true, result: 'formatted data' },
-        status: 'passing',
-        lastRun: Date.now() - 1800000,
+        inputs: [
+          { name: 'data', value: JSON.stringify({ id: 1, value: 'test' }) },
+          { name: 'format', value: 'json' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'processData', start: 0, end: 100 }],
       },
     ],
     validateInput: [
       {
         id: 'test_validateInput_valid_email',
         name: 'valid_email',
-        source: 'test',
+        source: 'test' as const,
         functionId: 'validateInput',
         filePath: 'tests/validateInput.test.ts',
-        inputs: { data: { email: 'test@example.com', age: 25 } },
-        expectedOutput: { valid: true },
-        status: 'passing',
-        lastRun: Date.now() - 600000,
+        inputs: [
+          { name: 'data', value: JSON.stringify({ email: 'test@example.com', age: 25 }) },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'validateInput', start: 0, end: 100 }],
       },
     ],
     aggregateData: [
       {
         id: 'test_aggregateData_multiple',
         name: 'multiple_sources',
-        source: 'test',
+        source: 'test' as const,
         functionId: 'aggregateData',
         filePath: 'tests/aggregateData.test.ts',
-        inputs: { sources: ['api1', 'api2', 'api3'] },
-        expectedOutput: { aggregated: { total: 3 }, count: 3 },
-        status: 'passing',
-        lastRun: Date.now() - 1200000,
+        inputs: [
+          { name: 'sources', value: JSON.stringify(['api1', 'api2', 'api3']) },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'aggregateData', start: 0, end: 100 }],
       },
     ],
   };
@@ -308,55 +325,67 @@ function createOutputGenerators(): Record<string, NodeOutputGenerator> {
 }
 
 /**
- * Create a mock FunctionDefinition
+ * Create a mock function with call graph
+ * Now uses unified type system
  */
 function createMockFunction(
   name: string,
-  type: 'function' | 'llm_function' | 'workflow',
+  type: 'function' | 'llm_function' | 'block',
   filePath: string
-): FunctionDefinition {
+): FunctionWithCallGraph {
+  // Convert block to workflow for the base function generator
+  const functionType = type === 'block' ? 'workflow' : type;
+  const baseFunction = createMockFunctionUnified(name, functionType, filePath);
+
+  // Call graph type should match the input type
+  const callGraphType = type;
+
+  // Add call graph and workflow compatibility fields
   return {
-    name,
-    type,
-    span: {
-      file_path: filePath,
-      start_line: 0,
-      start_column: 0,
-      end_line: 0,
-      end_column: 0,
-      start: 0,
-      end: 0,
-    } as any,
-    test_snippet: `test ${name}_test {}`,
-    signature: `function ${name}() {}`,
-    test_cases: [],
-    inner: {} as any,
+    ...baseFunction,
+    // WorkflowDefinition compatibility
+    id: name,
+    displayName: name,
+    filePath: baseFunction.span.filePath,
+    startLine: baseFunction.span.startLine,
+    endLine: baseFunction.span.endLine,
+    nodes: [{
+      id: name,
+      type: type === 'llm_function' ? 'llm_function' : 'function',
+      label: name,
+      functionName: name,
+      codeHash: '',
+      lastModified: Date.now(),
+    }],
+    edges: [],
+    entryPoint: name,
+    parameters: [],
+    returnType: '',
+    childFunctions: [],
+    lastModified: Date.now(),
+    codeHash: '',
+    // Call graph fields
+    callGraph: {
+      id: name,
+      type: callGraphType,
+      children: [],
+    },
+    isRoot: true,
+    callGraphDepth: 1,
   };
 }
 
 /**
- * Create a mock WasmTestCase
+ * Create a mock TestCaseMetadata
+ * Now uses unified type system
  */
 function createMockTestCase(
   name: string,
   parentFunctionName: string,
   filePath: string
-): any {
-  return {
-    name,
-    parent_functions: [{ name: parentFunctionName }],
-    span: {
-      file_path: filePath,
-      start_line: 0,
-      start_column: 0,
-      end_line: 0,
-      end_column: 0,
-      start: 0,
-      end: 0,
-    },
-    inputs: [],
-    error: null,
-  };
+): TestCaseMetadata {
+  // Use unified mock generator
+  return createMockTestCaseUnified(name, parentFunctionName, filePath);
 }
 
 /**
@@ -367,26 +396,26 @@ function createBAMLFiles(): BAMLFile[] {
     {
       path: 'workflows/simple.baml',
       functions: [
-        createMockFunction('simpleWorkflow', 'workflow', 'workflows/simple.baml'),
+        createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml'),
         createMockFunction('fetchData', 'function', 'workflows/simple.baml'),
         createMockFunction('processData', 'llm_function', 'workflows/simple.baml'),
         createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
       ],
       tests: [
-        createMockTestCase('test_fetchData_success', 'fetchData', 'workflows/simple.baml'),
-        createMockTestCase('test_processData_valid', 'processData', 'workflows/simple.baml'),
+        { name: 'test_fetchData_success', functionName: 'fetchData', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
+        { name: 'test_processData_valid', functionName: 'processData', filePath: 'workflows/simple.baml', nodeType: 'llm_function' as const },
       ],
     },
     {
       path: 'workflows/conditional.baml',
       functions: [
-        createMockFunction('conditionalWorkflow', 'workflow', 'workflows/conditional.baml'),
+        createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml'),
         createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
         createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
         createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
       ],
       tests: [
-        createMockTestCase('test_validateInput_valid_email', 'validateInput', 'workflows/conditional.baml'),
+        { name: 'test_validateInput_valid_email', functionName: 'validateInput', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
       ],
     },
   ];

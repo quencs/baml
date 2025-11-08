@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { determineNavigationAction, type NavigationState } from './navigationHeuristic';
 import type { CodeClickEvent, WorkflowDefinition, BAMLFile, BAMLTest } from './types';
-import type { FunctionDefinition } from './runtime/BamlRuntimeInterface';
+import type { FunctionWithCallGraph, SpanInfo } from './interface';
 
 // ============================================================================
 // Test Data Setup
@@ -67,25 +67,48 @@ const mockWorkflows: WorkflowDefinition[] = [
 // Helper functions for creating mock data
 function createMockFunction(
   name: string,
-  type: 'function' | 'llm_function' | 'workflow',
+  type: 'function' | 'llm_function' | 'block',
   filePath: string
-): FunctionDefinition {
+): FunctionWithCallGraph {
+  const span: SpanInfo = {
+    filePath,
+    start: 0,
+    end: 0,
+    startLine: 0,
+    startColumn: 0,
+    endLine: 0,
+    endColumn: 0,
+  };
+
   return {
     name,
-    type,
-    span: {
-      file_path: filePath,
-      start_line: 0,
-      start_column: 0,
-      end_line: 0,
-      end_column: 0,
-      start: 0,
-      end: 0,
-    } as any,
-    test_snippet: `test ${name}_test {}`,
+    type: type === 'block' ? 'workflow' : type,
+    span,
+    testSnippet: `test ${name}_test {}`,
     signature: `function ${name}() {}`,
-    test_cases: [],
-    inner: {} as any,
+    testCases: [],
+    // Call graph fields
+    callGraph: {
+      id: name,
+      type,
+      children: [],
+    },
+    isRoot: true,
+    callGraphDepth: 1,
+    // Workflow compatibility fields
+    id: name,
+    displayName: name,
+    filePath,
+    startLine: 0,
+    endLine: 0,
+    nodes: [],
+    edges: [],
+    entryPoint: name,
+    parameters: [],
+    returnType: 'any',
+    childFunctions: [],
+    lastModified: Date.now(),
+    codeHash: '',
   };
 }
 
@@ -102,7 +125,7 @@ const mockBAMLFiles: BAMLFile[] = [
   {
     path: 'workflows/simple.baml',
     functions: [
-      createMockFunction('simpleWorkflow', 'workflow', 'workflows/simple.baml'),
+      createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml'),
       createMockFunction('fetchData', 'function', 'workflows/simple.baml'),
       createMockFunction('processData', 'llm_function', 'workflows/simple.baml'),
       createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
@@ -115,7 +138,7 @@ const mockBAMLFiles: BAMLFile[] = [
   {
     path: 'workflows/conditional.baml',
     functions: [
-      createMockFunction('conditionalWorkflow', 'workflow', 'workflows/conditional.baml'),
+      createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml'),
       createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
       createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
       createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),

@@ -4,7 +4,66 @@
  */
 
 import { WasmTestCase } from "@gloo-ai/baml-schema-wasm-web";
-import { FunctionDefinition } from "./runtime/BamlRuntimeInterface";
+import type { FunctionWithCallGraph } from "./interface";
+
+// ============================================================================
+// RE-EXPORT UNIFIED TYPES FROM INTERFACE LAYER
+// ============================================================================
+
+// Re-export unified types for convenience
+export type {
+  // Core types
+  FunctionMetadata,
+  FunctionWithCallGraph,
+  TestCaseMetadata,
+  CallGraphNode,
+  SpanInfo,
+  ParentFunctionInfo,
+  ParameterInfo,
+  OrchestrationScope,
+
+  // Prompt types
+  PromptInfo,
+  ChatMessage,
+  ChatMessagePart,
+  PromptType,
+
+  // Test execution types
+  TestStatus,
+  TestExecutionResult,
+  ParsedTestResponse,
+  LLMResponseInfo,
+  LLMFailureInfo,
+  TestExecutionContext,
+  WatchNotification,
+
+  // Event types
+  RichExecutionEvent,
+  BaseExecutionEvent,
+  NodeEnterEvent,
+  NodeExitEvent,
+  BlockEnterEvent,
+  BlockExitEvent,
+  LLMRequestEvent,
+  LLMResponseEvent,
+  LLMFailureEvent,
+  PartialResponseEvent,
+  WatchNotificationEvent,
+  HighlightEvent,
+  LogEvent,
+
+  // Function call types
+  FunctionCall,
+} from './interface';
+
+// Re-export generators for creating mock data
+export {
+  createMockFunction,
+  createMockTestCase,
+  createMockTestResult,
+  createMockPrompt,
+  createMockSpan,
+} from './interface';
 
 // ============================================================================
 // Core Node & Execution States
@@ -284,8 +343,8 @@ export interface BAMLTest {
 
 export interface BAMLFile {
   path: string; // e.g., "workflows/workflow1.baml"
-  functions: FunctionDefinition[];
-  tests: BAMLTest[]; // Changed from WasmTestCase[] to BAMLTest[]
+  functions: FunctionWithCallGraph[];
+  tests: BAMLTest[];
 }
 
 export type CodeClickEvent = {

@@ -14,7 +14,8 @@ import type {
   CacheEntry,
   BAMLEvent,
 } from '../types';
-import type { FunctionDefinition, BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
+import type { BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
+import type { FunctionMetadata, FunctionWithCallGraph } from '../interface';
 import type { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 
 // ============================================================================
@@ -290,9 +291,9 @@ export const recentWorkflowsAtom = atom((get) => {
  * functions every time, we build a Map once and cache it.
  * Updates automatically when functionsAtom changes.
  */
-export const allFunctionsMapAtom = atom((get) => {
+export const allFunctionsMapAtom = atom((get): Map<string, FunctionWithCallGraph> => {
   const functions = get(functionsAtom);
-  const functionsMap = new Map<string, FunctionDefinition>();
+  const functionsMap = new Map<string, FunctionWithCallGraph>();
 
   for (const func of functions) {
     functionsMap.set(func.name, func);
@@ -319,7 +320,7 @@ export const selectedTestCaseNameAtom = atom<string | null>(null);
  * Selected function object (derived from bamlFilesAtom + selectedFunctionNameAtom)
  * Returns the full function object with all metadata
  */
-export const selectedFunctionObjectAtom = atom((get) => {
+export const selectedFunctionObjectAtom = atom((get): FunctionWithCallGraph | null => {
   const funcName = get(selectedFunctionNameAtom);
   if (!funcName) return null;
 
@@ -336,7 +337,7 @@ export const selectedTestCaseAtom = atom((get) => {
   const tcName = get(selectedTestCaseNameAtom);
   if (!func || !tcName) return null;
 
-  return func.test_cases?.find((tc: any) => tc.name === tcName) || null;
+  return func.testCases?.find((tc) => tc.name === tcName) || null;
 });
 
 /**
@@ -425,7 +426,7 @@ export const diagnosticsAtom = atom((get) => {
 /**
  * All functions extracted from BAML runtime - derived from runtime
  */
-export const functionsAtom = atom((get) => {
+export const functionsAtom = atom((get): FunctionWithCallGraph[] => {
   const runtime = get(runtimeInstanceAtom);
   return runtime?.getFunctions() ?? [];
 });

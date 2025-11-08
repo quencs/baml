@@ -66,7 +66,8 @@ import type {
   WatchNotification,
   FlashRange,
 } from '../atoms/test.atoms';
-import { BamlRuntimeInterface, FunctionDefinition } from '../runtime/BamlRuntimeInterface';
+import type { BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
+import type { FunctionWithCallGraph } from '../interface';
 import { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web';
 
 export class JotaiStorage implements SDKStorage {

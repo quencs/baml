@@ -298,7 +298,7 @@ describe('Selection State Integration (Real WASM Runtime)', () => {
       const firstFunction = functions[0];
       expect(firstFunction).toBeDefined();
       expect(firstFunction?.name).toBeDefined();
-      expect(firstFunction?.span?.file_path).toBeDefined();
+      expect(firstFunction?.span?.filePath).toBeDefined();
 
       console.log('Sample function:', firstFunction);
     });
