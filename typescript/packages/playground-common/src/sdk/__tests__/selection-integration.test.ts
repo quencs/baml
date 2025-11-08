@@ -46,7 +46,7 @@ describe('Selection State Integration (Real WASM Runtime)', () => {
       const functions = sdk.diagnostics.getFunctions();
       const allTestCases = functions.flatMap(fn => sdk.testCases.get(fn.name));
 
-      console.log('Extracted test cases:', allTestCases.map(tc => `${tc.name} (${tc.nodeId})`));
+      console.log('Extracted test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
 
       expect(allTestCases).toBeDefined();
       expect(allTestCases.length).toBeGreaterThanOrEqual(3);
@@ -298,7 +298,7 @@ describe('Selection State Integration (Real WASM Runtime)', () => {
       const firstFunction = functions[0];
       expect(firstFunction).toBeDefined();
       expect(firstFunction?.name).toBeDefined();
-      expect(firstFunction?.filePath).toBeDefined();
+      expect(firstFunction?.span?.file_path).toBeDefined();
 
       console.log('Sample function:', firstFunction);
     });

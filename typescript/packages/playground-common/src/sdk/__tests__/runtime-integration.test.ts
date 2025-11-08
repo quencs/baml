@@ -42,7 +42,7 @@ describe('BAML Runtime Integration', () => {
       expect(sdk.atoms.diagnosticsAtom).toBeDefined();
       expect(sdk.atoms.generatedFilesAtom).toBeDefined();
       expect(sdk.atoms.workflowsAtom).toBeDefined();
-      expect(sdk.atoms.lastValidRuntimeAtom).toBeDefined();
+      expect(sdk.atoms.isRuntimeValid).toBeDefined();
     });
   });
 
@@ -78,7 +78,7 @@ describe('BAML Runtime Integration', () => {
     });
 
     it('should track runtime validity', () => {
-      const isValid = store.get(sdk.atoms.lastValidRuntimeAtom);
+      const isValid = store.get(sdk.atoms.isRuntimeValid);
 
       expect(typeof isValid).toBe('boolean');
 

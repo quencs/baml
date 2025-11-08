@@ -32,6 +32,7 @@ export const PromptPreviewContent = () => {
         selectedFn === undefined ||
         selectedTc === undefined
       ) {
+
         return;
       }
       console.log('[PromptPreview] Attempt render_prompt_for_test', {
@@ -47,10 +48,7 @@ export const PromptPreviewContent = () => {
           vscode.loadMediaFile,
           apiKeys,
         );
-        console.log('[PromptPreview] render_prompt_for_test success', {
-          functionName: selectedFn.name,
-          testCaseName: selectedTc.name,
-        });
+
         setLastKnownPreview(newPreview);
         setPromptData(newPreview);
         return newPreview;
@@ -69,6 +67,7 @@ export const PromptPreviewContent = () => {
   const [lastKnownPreview, setLastKnownPreview] = useState<
     WasmPrompt | undefined
   >();
+
 
   const {
     data: preview,
@@ -96,12 +95,14 @@ export const PromptPreviewContent = () => {
 
   if (isLoading && !preview) {
     if (lastKnownPreview) {
+      console.log('[PromptPreview] Rendering last known preview');
       return <RenderPrompt prompt={lastKnownPreview} testCase={selectedTc} />;
     }
     return <Loader message="Loading..." />;
   }
 
   if (error) {
+
     return (
       <EnhancedErrorRenderer
         errorMessage={error instanceof Error ? error.message : 'Unknown Error'}

@@ -115,28 +115,22 @@ export function BAMLSDKProvider({ children, mode: initialMode = 'mock' }: BAMLSD
     };
   }, [runtimeMode, debugMode]); // Reinitialize when runtime mode changes
 
-  // Show loading state while SDK initializes
-  if (!isInitialized) {
-    return (
-      <>
-        {debugMode && <DebugBanner currentMode={runtimeMode} onModeChange={handleModeChange} />}
-        <div className="w-screen h-screen flex items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="text-xl font-semibold">Loading BAML SDK...</div>
-            <div className="text-sm text-muted-foreground mt-2">
-              Initializing {runtimeMode === 'mock' ? 'mock' : 'WASM'} runtime
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <BAMLSDKContext.Provider value={sdkRef.current}>
       <JotaiProvider store={storeRef.current}>
         {debugMode && <DebugBanner currentMode={runtimeMode} onModeChange={handleModeChange} />}
-        {children}
+        {!isInitialized ? (
+          <div className="w-screen h-screen flex items-center justify-center bg-background">
+            <div className="text-center">
+              <div className="text-xl font-semibold">Loading BAML SDK...</div>
+              <div className="text-sm text-muted-foreground mt-2">
+                Initializing {runtimeMode === 'mock' ? 'mock' : 'WASM'} runtime
+              </div>
+            </div>
+          </div>
+        ) : (
+          children
+        )}
       </JotaiProvider>
     </BAMLSDKContext.Provider>
   );

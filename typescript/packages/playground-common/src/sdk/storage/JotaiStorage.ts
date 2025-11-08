@@ -76,6 +76,14 @@ export class JotaiStorage implements SDKStorage {
   // Runtime Instance (source of truth for derived state)
   // ============================================================================
 
+  setWasm(wasm: typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build') | undefined) {
+    this.store.set(wasmAtom, wasm);
+  }
+
+  getWasm() {
+    return this.store.get(wasmAtom);
+  }
+
   setRuntime(runtime: BamlRuntimeInterface | null) {
     this.store.set(runtimeInstanceAtom, runtime);
   }

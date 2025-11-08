@@ -272,6 +272,7 @@ function findTestsForFunction(
 
   for (const file of bamlFiles) {
     for (const test of file.tests) {
+      // Check if this test belongs to the specified function
       if (test.functionName === functionName) {
         tests.push(test.name);
       }

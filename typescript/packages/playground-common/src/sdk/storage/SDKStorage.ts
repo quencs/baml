@@ -40,6 +40,8 @@ export interface SDKStorage {
   // Runtime Instance (source of truth for derived state)
   // ============================================================================
 
+  setWasm(wasm: typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build') | undefined): void;
+  getWasm(): typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build') | undefined;
   setRuntime(runtime: BamlRuntimeInterface | null): void;
   getRuntime(): BamlRuntimeInterface | null;
 

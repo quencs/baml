@@ -549,6 +549,12 @@ export const envVarsAtom = atom<Record<string, string>>({});
 // ============================================================================
 
 /**
+ * Orchestration graph index for WasmCallContext
+ * Used when rendering prompts to track which node in the orchestration graph is being evaluated
+ */
+export const orchIndexAtom = atom(0);
+
+/**
  * WASM Runtime instance - derived from runtimeInstanceAtom
  * Contains the WasmRuntime instance (recreated on file changes)
  */
@@ -572,28 +578,50 @@ export const lastValidWasmAtom = atom(
 export const filesAtom = atom<Record<string, string>>({});
 
 /**
+ * Current WasmRuntime instance - derived from runtimeInstanceAtom
+ * This is the actual WasmRuntime object (not the WASM module)
+ */
+export const currentWasmRuntimeAtom = atom((get) => {
+  const runtime = get(runtimeInstanceAtom);
+  return runtime?.getWasmRuntime();
+});
+
+/**
  * Runtime state with diagnostics and last valid runtime
  * Mimics the old runtimeAtom structure for backward compatibility
  */
 export const runtimeAtom = atom((get) => {
   const diagnostics = get(diagnosticsAtom);
-  const wasm = get(wasmAtom);
+  const currentWasmRuntime = get(currentWasmRuntimeAtom);
   const lastValidWasm = get(lastValidWasmAtom);
   const hasErrors = diagnostics.some((d) => d.type === 'error');
 
   // Return structure compatible with old code
+  // rt and lastValidRt should be WasmRuntime instances
   return {
-    rt: hasErrors ? undefined : wasm,
+    rt: hasErrors ? undefined : currentWasmRuntime,
     diags: diagnostics,
-    lastValidRt: hasErrors && lastValidWasm ? lastValidWasm : wasm,
+    lastValidRt: hasErrors && lastValidWasm ? lastValidWasm : currentWasmRuntime,
   };
 });
 
 /**
  * Call context for WASM operations
  * Used for passing context to WASM function calls
+ *
+ * This is a derived atom that creates a WasmCallContext from the WASM module
+ * and sets the node_index from orchIndexAtom
  */
-export const ctxAtom = atom<any | undefined>(undefined);
+export const ctxAtom = atom((get) => {
+  const wasm = get(wasmAtom);
+  if (wasm === undefined) {
+    return undefined;
+  }
+  const context = new wasm.WasmCallContext();
+  const orch_index = get(orchIndexAtom);
+  context.node_index = orch_index;
+  return context;
+});
 
 // ============================================================================
 // VERSION INFORMATION

@@ -6,7 +6,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { determineNavigationAction, type NavigationState } from './navigationHeuristic';
-import type { CodeClickEvent, WorkflowDefinition, BAMLFile } from './types';
+import type { CodeClickEvent, WorkflowDefinition, BAMLFile, BAMLTest } from './types';
+import type { FunctionDefinition } from './runtime/BamlRuntimeInterface';
 
 // ============================================================================
 // Test Data Setup
@@ -63,40 +64,74 @@ const mockWorkflows: WorkflowDefinition[] = [
   },
 ];
 
+// Helper functions for creating mock data
+function createMockFunction(
+  name: string,
+  type: 'function' | 'llm_function' | 'workflow',
+  filePath: string
+): FunctionDefinition {
+  return {
+    name,
+    type,
+    span: {
+      file_path: filePath,
+      start_line: 0,
+      start_column: 0,
+      end_line: 0,
+      end_column: 0,
+      start: 0,
+      end: 0,
+    } as any,
+    test_snippet: `test ${name}_test {}`,
+    signature: `function ${name}() {}`,
+    test_cases: [],
+    inner: {} as any,
+  };
+}
+
+function createMockTestCase(name: string, parentFunctionName: string, filePath: string): BAMLTest {
+  return {
+    name,
+    functionName: parentFunctionName,
+    filePath,
+    nodeType: 'llm_function', // Default to llm_function for tests
+  };
+}
+
 const mockBAMLFiles: BAMLFile[] = [
   {
     path: 'workflows/simple.baml',
     functions: [
-      { name: 'simpleWorkflow', type: 'workflow', filePath: 'workflows/simple.baml' },
-      { name: 'fetchData', type: 'function', filePath: 'workflows/simple.baml' },
-      { name: 'processData', type: 'llm_function', filePath: 'workflows/simple.baml' },
-      { name: 'saveResult', type: 'function', filePath: 'workflows/simple.baml' },
+      createMockFunction('simpleWorkflow', 'workflow', 'workflows/simple.baml'),
+      createMockFunction('fetchData', 'function', 'workflows/simple.baml'),
+      createMockFunction('processData', 'llm_function', 'workflows/simple.baml'),
+      createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
     ],
     tests: [
-      { name: 'test_simple_success', functionName: 'simpleWorkflow', filePath: 'workflows/simple.baml', nodeType: 'function' },
-      { name: 'test_simple_with_invalid_data', functionName: 'simpleWorkflow', filePath: 'workflows/simple.baml', nodeType: 'function' },
+      createMockTestCase('test_simple_success', 'simpleWorkflow', 'workflows/simple.baml'),
+      createMockTestCase('test_simple_with_invalid_data', 'simpleWorkflow', 'workflows/simple.baml'),
     ],
   },
   {
     path: 'workflows/conditional.baml',
     functions: [
-      { name: 'conditionalWorkflow', type: 'workflow', filePath: 'workflows/conditional.baml' },
-      { name: 'validateInput', type: 'function', filePath: 'workflows/conditional.baml' },
-      { name: 'handleSuccess', type: 'llm_function', filePath: 'workflows/conditional.baml' },
-      { name: 'handleFailure', type: 'function', filePath: 'workflows/conditional.baml' },
+      createMockFunction('conditionalWorkflow', 'workflow', 'workflows/conditional.baml'),
+      createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
+      createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
+      createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
     ],
     tests: [
-      { name: 'test_conditional_success_path', functionName: 'conditionalWorkflow', filePath: 'workflows/conditional.baml', nodeType: 'function' },
+      createMockTestCase('test_conditional_success_path', 'conditionalWorkflow', 'workflows/conditional.baml'),
     ],
   },
   {
     path: 'functions/utils.baml',
     functions: [
-      { name: 'extractUser', type: 'llm_function', filePath: 'functions/utils.baml' },
-      { name: 'helperFunction', type: 'function', filePath: 'functions/utils.baml' },
+      createMockFunction('extractUser', 'llm_function', 'functions/utils.baml'),
+      createMockFunction('helperFunction', 'function', 'functions/utils.baml'),
     ],
     tests: [
-      { name: 'test_extract_valid_user', functionName: 'extractUser', filePath: 'functions/utils.baml', nodeType: 'llm_function' },
+      createMockTestCase('test_extract_valid_user', 'extractUser', 'functions/utils.baml'),
     ],
   },
 ];

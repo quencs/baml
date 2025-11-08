@@ -10,6 +10,7 @@
 import { atom } from 'jotai';
 import { runtimeAtom } from '../atoms';
 import { selectedFunctionObjectAtom } from './atoms';
+import { orchIndexAtom as coreOrchIndexAtom } from '../../../sdk/atoms/core.atoms';
 
 export interface TypeCount {
   // options are F (Fallback), R (Retry), D (Direct), B (Round Robin)
@@ -76,7 +77,12 @@ export interface Dimension {
   height: number;
 }
 
-export const orchIndexAtom = atom(0);
+/**
+ * Re-export orchIndexAtom from core.atoms for backward compatibility
+ * The actual atom is defined in sdk/atoms/core.atoms.ts
+ */
+export const orchIndexAtom = coreOrchIndexAtom;
+
 export const currentClientsAtom = atom((get) => {
   const func = get(selectedFunctionObjectAtom);
   const runtime = get(runtimeAtom).rt;

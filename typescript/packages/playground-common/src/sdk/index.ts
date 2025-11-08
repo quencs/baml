@@ -95,11 +95,13 @@ export class BAMLSDK {
 
     console.log('SDK: Initializing with', Object.keys(initialFiles).length, 'files');
 
-    // Store files
+    // Load VSCode settings (in VSCode environment only)
+    await this.loadVSCodeSettings();
+
+    // Store initial state in atoms
     this.currentFiles = initialFiles;
     this.storage.setBAMLFiles(initialFiles);
 
-    // Store env vars and feature flags
     if (options?.envVars) {
       this.storage.setEnvVars(options.envVars);
     }
@@ -107,37 +109,83 @@ export class BAMLSDK {
       this.storage.setFeatureFlags(options.featureFlags);
     }
 
-    // Create runtime from files (like wasmAtom creating WasmProject)
-    this.runtime = await this.runtimeFactory(
-      initialFiles,
-      options?.envVars,
-      options?.featureFlags
-    );
+    // Create runtime (WASM module will be loaded and cached on first call)
+    await this.recreateRuntime();
 
-    // Store runtime instance - this automatically updates all derived atoms:
-    // - functionsAtom, diagnosticsAtom, workflowsAtom, generatedFilesAtom, versionAtom, wasmAtom, etc.
+    // Set first workflow as active
+    const workflows = this.runtime!.getWorkflows();
+    if (workflows.length > 0) {
+      this.storage.setActiveWorkflowId(workflows[0]!.id);
+    }
+  }
+
+  /**
+   * Load VSCode settings and playground port
+   * Called during initialization to populate VSCode-specific state
+   */
+  private async loadVSCodeSettings() {
+    try {
+      // Load VSCode settings
+      const settings = await vscode.getVSCodeSettings();
+      this.storage.setVSCodeSettings({
+        enablePlaygroundProxy: settings.enablePlaygroundProxy,
+        featureFlags: settings.featureFlags,
+      });
+      console.log('SDK: Loaded VSCode settings:', settings);
+    } catch (e) {
+      console.log('SDK: Not in VSCode environment or failed to load settings:', e);
+      // Not in VSCode environment - settings remain null
+    }
+
+    try {
+      // Load playground port
+      const port = await vscode.getPlaygroundPort();
+      this.storage.setPlaygroundPort(port);
+      console.log('SDK: Loaded playground port:', port);
+    } catch (e) {
+      console.log('SDK: Failed to load playground port:', e);
+      // Port remains 0
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE: Runtime Recreation Helper
+  // ============================================================================
+
+  /**
+   * Recreate runtime with current files, env vars, and feature flags
+   * This is the central place where runtime recreation happens
+   *
+   * WASM module is now cached at the module level, so this only recreates
+   * WasmProject and WasmRuntime instances (not the entire WASM module)
+   */
+  private async recreateRuntime() {
+    console.log('SDK: Recreating runtime instance');
+
+    const envVars = this.storage.getEnvVars();
+    const featureFlags = this.storage.getFeatureFlags();
+
+    // Create new runtime instance (WASM module is cached, only WasmProject/WasmRuntime recreated)
+    this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
+
+    // Store runtime instance - this automatically updates all derived atoms
     this.storage.setRuntime(this.runtime);
 
     // Store last valid WASM instance if no errors
     const diagnostics = this.runtime.getDiagnostics();
     const hasErrors = diagnostics.some((d) => d.type === 'error');
     if (!hasErrors) {
-      const wasmRuntime = this.runtime.getWasmRuntime();
-      if (wasmRuntime) {
-        this.storage.setWasmRuntime(wasmRuntime);
+      const wasmInstance = this.runtime.getWasmRuntime();
+      if (wasmInstance) {
+        this.storage.setWasmRuntime(wasmInstance);
       }
     }
 
-    // Set first workflow as active
-    const workflows = this.runtime.getWorkflows();
-    if (workflows.length > 0) {
-      this.storage.setActiveWorkflowId(workflows[0]!.id);
-    }
-
     // Log what was extracted from the runtime
+    const workflows = this.runtime.getWorkflows();
     const functions = this.runtime.getFunctions();
     const allTestCases = this.runtime.getTestCases();
-    console.log('SDK: Initialized with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
+    console.log('SDK: Runtime recreated with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
     console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
     console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
   }
@@ -149,46 +197,21 @@ export class BAMLSDK {
   files = {
     /**
      * Update files and recreate runtime
-     * Matches wasmAtom pattern: create new runtime on every file change
+     * Atoms handle reactivity - we just update state and recreate
      */
     update: async (files: Record<string, string>) => {
       if (Object.keys(files).length === 0) {
         throw new Error('Files cannot be empty');
       }
 
-      console.log('SDK: Updating files, creating new runtime instance');
+      console.log('SDK: Updating files');
 
-      // Store new files
+      // Update files in storage (updates atom)
       this.currentFiles = files;
       this.storage.setBAMLFiles(files);
 
-      // Get current env vars and feature flags
-      const envVars = this.storage.getEnvVars();
-      const featureFlags = this.storage.getFeatureFlags();
-
-      // Create new runtime instance (like wasmAtom creating new WasmProject)
-      this.runtime = await this.runtimeFactory(files, envVars, featureFlags);
-
-      // Store runtime instance - this automatically updates all derived atoms (including wasmAtom)
-      this.storage.setRuntime(this.runtime);
-
-      // Store last valid WASM instance if no errors
-      const diagnostics = this.runtime.getDiagnostics();
-      const hasErrors = diagnostics.some((d) => d.type === 'error');
-      if (!hasErrors) {
-        const wasmInstance = this.runtime.getWasmRuntime();
-        if (wasmInstance) {
-          this.storage.setWasmRuntime(wasmInstance);
-        }
-      }
-
-      // Log what was extracted from the runtime
-      const workflows = this.runtime.getWorkflows();
-      const functions = this.runtime.getFunctions();
-      const allTestCases = this.runtime.getTestCases();
-      console.log('SDK: Runtime recreated with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
-      console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
-      console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
+      // Recreate runtime with new files
+      await this.recreateRuntime();
     },
 
     getCurrent: () => {
@@ -403,37 +426,16 @@ export class BAMLSDK {
   envVars = {
     /**
      * Update environment variables and recreate runtime
+     * Atoms handle reactivity - we just update state and recreate
      */
     update: async (envVars: Record<string, string>) => {
       console.log('SDK: Updating environment variables');
 
-      // Store new env vars
+      // Update env vars in storage (updates atom)
       this.storage.setEnvVars(envVars);
 
       // Recreate runtime with new env vars
-      const featureFlags = this.storage.getFeatureFlags();
-      this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
-
-      // Store runtime instance - this automatically updates all derived atoms (including wasmAtom)
-      this.storage.setRuntime(this.runtime);
-
-      // Store last valid WASM instance if no errors
-      const diagnostics = this.runtime.getDiagnostics();
-      const hasErrors = diagnostics.some((d) => d.type === 'error');
-      if (!hasErrors) {
-        const wasmInstance = this.runtime.getWasmRuntime();
-        if (wasmInstance) {
-          this.storage.setWasmRuntime(wasmInstance);
-        }
-      }
-
-      // Log what was extracted from the runtime
-      const workflows = this.runtime.getWorkflows();
-      const functions = this.runtime.getFunctions();
-      const allTestCases = this.runtime.getTestCases();
-      console.log('SDK: Runtime recreated with updated env vars');
-      console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
-      console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
+      await this.recreateRuntime();
     },
 
     getCurrent: () => {
@@ -448,37 +450,16 @@ export class BAMLSDK {
   featureFlags = {
     /**
      * Update feature flags and recreate runtime
+     * Atoms handle reactivity - we just update state and recreate
      */
     update: async (featureFlags: string[]) => {
       console.log('SDK: Updating feature flags');
 
-      // Store new feature flags
+      // Update feature flags in storage (updates atom)
       this.storage.setFeatureFlags(featureFlags);
 
       // Recreate runtime with new feature flags
-      const envVars = this.storage.getEnvVars();
-      this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
-
-      // Store runtime instance - this automatically updates all derived atoms (including wasmAtom)
-      this.storage.setRuntime(this.runtime);
-
-      // Store last valid WASM instance if no errors
-      const diagnostics = this.runtime.getDiagnostics();
-      const hasErrors = diagnostics.some((d) => d.type === 'error');
-      if (!hasErrors) {
-        const wasmInstance = this.runtime.getWasmRuntime();
-        if (wasmInstance) {
-          this.storage.setWasmRuntime(wasmInstance);
-        }
-      }
-
-      // Log what was extracted from the runtime
-      const workflows = this.runtime.getWorkflows();
-      const functions = this.runtime.getFunctions();
-      const allTestCases = this.runtime.getTestCases();
-      console.log('SDK: Runtime recreated with updated feature flags');
-      console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
-      console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
+      await this.recreateRuntime();
     },
 
     getCurrent: () => {

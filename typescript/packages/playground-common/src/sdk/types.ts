@@ -285,7 +285,7 @@ export interface BAMLTest {
 export interface BAMLFile {
   path: string; // e.g., "workflows/workflow1.baml"
   functions: FunctionDefinition[];
-  tests: WasmTestCase[];
+  tests: BAMLTest[]; // Changed from WasmTestCase[] to BAMLTest[]
 }
 
 export type CodeClickEvent = {

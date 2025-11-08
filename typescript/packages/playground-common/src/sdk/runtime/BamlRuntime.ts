@@ -66,6 +66,36 @@ import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
 
 import { vscode } from '../../shared/baml-project-panel/vscode';
 
+// ============================================================================
+// Module-Level WASM Cache
+// ============================================================================
+
+/**
+ * WASM module cache - loaded once and reused across all runtime instances
+ * This prevents reloading the entire WASM module on every file change
+ */
+let wasmModuleCache: BamlWasmModule | null = null;
+
+/**
+ * Load WASM module once and cache it
+ * Subsequent calls return the cached module immediately
+ */
+async function getWasmModule(): Promise<BamlWasmModule> {
+  if (!wasmModuleCache) {
+    console.log('[BamlRuntime] Loading WASM module for the first time...');
+    wasmModuleCache = await import('@gloo-ai/baml-schema-wasm-web/baml_schema_build');
+
+    // CRITICAL: Initialize callback bridge ONCE when module is loaded
+    // This enables AWS/GCP credential loading
+    console.log('[BamlRuntime] Initializing WASM callback bridge');
+    wasmModuleCache.init_js_callback_bridge(vscode.loadAwsCreds, vscode.loadGcpCreds);
+
+    console.log('[BamlRuntime] WASM module loaded and cached ✓');
+  }
+
+  return wasmModuleCache;
+}
+
 /**
  * Real BAML Runtime wrapping WASM
  */
@@ -98,16 +128,11 @@ export class BamlRuntime implements BamlRuntimeInterface {
     files: Record<string, string>,
     envVars: Record<string, string> = {},
     featureFlags: string[] = []
-  ): Promise<BamlRuntime> {
+  ): Promise<{ wasm: typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build'), runtime: BamlRuntime }> {
     console.log('[BamlRuntime] Creating runtime with', Object.keys(files).length, 'files');
 
-    // Load WASM module
-    const wasm = await import('@gloo-ai/baml-schema-wasm-web/baml_schema_build');
-
-    // CRITICAL: Initialize callback bridge BEFORE creating WasmProject
-    // This enables AWS/GCP credential loading
-    console.log('[BamlRuntime] Initializing WASM callback bridge');
-    wasm.init_js_callback_bridge(vscode.loadAwsCreds, vscode.loadGcpCreds);
+    // Get cached WASM module (loads once, then reuses)
+    const wasm = await getWasmModule();
 
     // Filter to .baml files only
     const bamlFiles = Object.entries(files).filter(([path]) => path.endsWith('.baml'));
@@ -166,7 +191,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       wasmRuntime = undefined;
     }
 
-    return new BamlRuntime(wasm, wasmProject, wasmRuntime, diagnostics);
+    return { wasm, runtime: new BamlRuntime(wasm, wasmProject, wasmRuntime, diagnostics) };
   }
 
   // ============================================================================
@@ -275,7 +300,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
 
       // Group by file path
-      const fileMap = new Map<string, { functions: FunctionDefinition[], tests: WasmTestCase[] }>();
+      const fileMap = new Map<string, { functions: FunctionDefinition[], tests: import('../types').BAMLTest[] }>();
 
       // Add functions to map
       for (const fn of functions) {
@@ -295,15 +320,23 @@ export class BamlRuntime implements BamlRuntimeInterface {
         });
       }
 
-      // Add tests to map
+      // Add tests to map - transform WasmTestCase to BAMLTest
       for (const tc of testCases) {
         const filePath = tc.span?.file_path || 'unknown.baml';
         if (!fileMap.has(filePath)) {
           fileMap.set(filePath, { functions: [], tests: [] });
         }
         const parentFn = tc.parent_functions[0];
-        const parentFnWithType = parentFn as typeof parentFn & { type?: string };
-        fileMap.get(filePath)!.tests.push(tc);
+
+        // Transform WasmTestCase to BAMLTest
+        const bamlTest: import('../types').BAMLTest = {
+          name: tc.name,
+          functionName: parentFn?.name || 'unknown',
+          filePath: filePath,
+          nodeType: (parentFn as any)?.type === 'llm_function' ? 'llm_function' : 'function',
+        };
+
+        fileMap.get(filePath)!.tests.push(bamlTest);
       }
 
       // Convert map to array of BAMLFile objects

@@ -308,6 +308,58 @@ function createOutputGenerators(): Record<string, NodeOutputGenerator> {
 }
 
 /**
+ * Create a mock FunctionDefinition
+ */
+function createMockFunction(
+  name: string,
+  type: 'function' | 'llm_function' | 'workflow',
+  filePath: string
+): FunctionDefinition {
+  return {
+    name,
+    type,
+    span: {
+      file_path: filePath,
+      start_line: 0,
+      start_column: 0,
+      end_line: 0,
+      end_column: 0,
+      start: 0,
+      end: 0,
+    } as any,
+    test_snippet: `test ${name}_test {}`,
+    signature: `function ${name}() {}`,
+    test_cases: [],
+    inner: {} as any,
+  };
+}
+
+/**
+ * Create a mock WasmTestCase
+ */
+function createMockTestCase(
+  name: string,
+  parentFunctionName: string,
+  filePath: string
+): any {
+  return {
+    name,
+    parent_functions: [{ name: parentFunctionName }],
+    span: {
+      file_path: filePath,
+      start_line: 0,
+      start_column: 0,
+      end_line: 0,
+      end_column: 0,
+      start: 0,
+      end: 0,
+    },
+    inputs: [],
+    error: null,
+  };
+}
+
+/**
  * Create mock BAML files
  */
 function createBAMLFiles(): BAMLFile[] {
@@ -315,41 +367,26 @@ function createBAMLFiles(): BAMLFile[] {
     {
       path: 'workflows/simple.baml',
       functions: [
-        { name: 'simpleWorkflow', type: 'workflow', filePath: 'workflows/simple.baml' },
-        { name: 'fetchData', type: 'function', filePath: 'workflows/simple.baml' },
-        { name: 'processData', type: 'llm_function', filePath: 'workflows/simple.baml' },
-        { name: 'saveResult', type: 'function', filePath: 'workflows/simple.baml' },
+        createMockFunction('simpleWorkflow', 'workflow', 'workflows/simple.baml'),
+        createMockFunction('fetchData', 'function', 'workflows/simple.baml'),
+        createMockFunction('processData', 'llm_function', 'workflows/simple.baml'),
+        createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
       ],
       tests: [
-        {
-          name: 'test_fetchData_success',
-          functionName: 'fetchData',
-          filePath: 'workflows/simple.baml',
-          nodeType: 'function',
-        },
-        {
-          name: 'test_processData_valid',
-          functionName: 'processData',
-          filePath: 'workflows/simple.baml',
-          nodeType: 'llm_function',
-        },
+        createMockTestCase('test_fetchData_success', 'fetchData', 'workflows/simple.baml'),
+        createMockTestCase('test_processData_valid', 'processData', 'workflows/simple.baml'),
       ],
     },
     {
       path: 'workflows/conditional.baml',
       functions: [
-        { name: 'conditionalWorkflow', type: 'workflow', filePath: 'workflows/conditional.baml' },
-        { name: 'validateInput', type: 'function', filePath: 'workflows/conditional.baml' },
-        { name: 'handleSuccess', type: 'llm_function', filePath: 'workflows/conditional.baml' },
-        { name: 'handleFailure', type: 'function', filePath: 'workflows/conditional.baml' },
+        createMockFunction('conditionalWorkflow', 'workflow', 'workflows/conditional.baml'),
+        createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
+        createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
+        createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
       ],
       tests: [
-        {
-          name: 'test_validateInput_valid_email',
-          functionName: 'validateInput',
-          filePath: 'workflows/conditional.baml',
-          nodeType: 'function',
-        },
+        createMockTestCase('test_validateInput_valid_email', 'validateInput', 'workflows/conditional.baml'),
       ],
     },
   ];

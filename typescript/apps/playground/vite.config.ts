@@ -28,7 +28,7 @@ export default defineConfig({
       ]
     }),
     // Forward browser console logs to the terminal in dev mode
-    // !isWatchMode && consoleForwardPlugin(),
+    !isWatchMode && consoleForwardPlugin(),
     // topLevelAwait(),
   ].filter(Boolean),
   // root: path.resolve(process.cwd(), './src'),

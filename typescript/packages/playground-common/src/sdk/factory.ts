@@ -72,17 +72,20 @@ export function createErrorProneSDK(store: ReturnType<typeof createStore>): BAML
  * This creates a production SDK that uses the actual BAML compiler.
  */
 export function createRealBAMLSDK(store: ReturnType<typeof createStore>): BAMLSDK {
+  // Create storage
+  const storage = new JotaiStorage(store);
   // Create runtime factory that uses real BAML runtime
   const runtimeFactory = async (
     files: Record<string, string>,
     envVars?: Record<string, string>,
     featureFlags?: string[]
   ) => {
-    return await BamlRuntime.create(files, envVars || {}, featureFlags || []);
+    const { wasm, runtime } = await BamlRuntime.create(files, envVars || {}, featureFlags || []);
+    storage.setWasm(wasm);
+    return runtime;
   };
 
-  // Create storage
-  const storage = new JotaiStorage(store);
+
 
   // Create SDK
   return createBAMLSDK(runtimeFactory, storage);
