@@ -21,6 +21,26 @@ import type {
   WasmSpan,
   WasmTestResponse,
 } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
+import type {
+  BamlRuntimeInterface,
+  ExecutionEvent,
+  FunctionDefinition,
+  CursorPosition,
+  CursorNavigationResult,
+  TestExecutionOptions,
+} from './BamlRuntimeInterface';
+import type {
+  WorkflowDefinition,
+  TestCaseInput,
+  BAMLFile,
+  BAMLTest,
+} from '../types';
+import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
+import { vscode } from '../../shared/baml-project-panel/vscode';
+
+
+
+
 
 // Type for the WASM module that contains all exports
 type BamlWasmModule = typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build');
@@ -55,16 +75,6 @@ type WasmNotification = { variable_name?: string; channel_name?: string; block_n
 //   raw_output: () => string;
 //   llm_output_text: () => string;
 // };
-
-import type { BamlRuntimeInterface, ExecutionEvent, FunctionDefinition, CursorPosition, CursorNavigationResult } from './BamlRuntimeInterface';
-import type {
-  WorkflowDefinition,
-  TestCaseInput,
-  BAMLFile,
-} from '../types';
-import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
-
-import { vscode } from '../../shared/baml-project-panel/vscode';
 
 // ============================================================================
 // Module-Level WASM Cache
@@ -300,7 +310,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
 
       // Group by file path
-      const fileMap = new Map<string, { functions: FunctionDefinition[], tests: import('../types').BAMLTest[] }>();
+      const fileMap = new Map<string, { functions: FunctionDefinition[], tests: BAMLTest[] }>();
 
       // Add functions to map
       for (const fn of functions) {
@@ -329,7 +339,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
         const parentFn = tc.parent_functions[0];
 
         // Transform WasmTestCase to BAMLTest
-        const bamlTest: import('../types').BAMLTest = {
+        const bamlTest: BAMLTest = {
           name: tc.name,
           functionName: parentFn?.name || 'unknown',
           filePath: filePath,
@@ -393,8 +403,8 @@ export class BamlRuntime implements BamlRuntimeInterface {
   async *executeTest(
     functionName: string,
     testName: string,
-    options?: import('./BamlRuntimeInterface').TestExecutionOptions
-  ): AsyncGenerator<import('./BamlRuntimeInterface').ExecutionEvent> {
+    options?: TestExecutionOptions
+  ): AsyncGenerator<ExecutionEvent> {
     if (!this.wasmRuntime) {
       throw new Error('Cannot execute test - runtime is invalid');
     }
@@ -440,8 +450,8 @@ export class BamlRuntime implements BamlRuntimeInterface {
       const startTime = performance.now();
 
       // Create a generator-friendly way to yield events from callbacks
-      const events: import('./BamlRuntimeInterface').ExecutionEvent[] = [];
-      const pushEvent = (event: import('./BamlRuntimeInterface').ExecutionEvent) => {
+      const events: ExecutionEvent[] = [];
+      const pushEvent = (event: ExecutionEvent) => {
         events.push(event);
       };
 
@@ -559,8 +569,8 @@ export class BamlRuntime implements BamlRuntimeInterface {
 
   async *executeTests(
     tests: Array<{ functionName: string; testName: string }>,
-    options?: import('./BamlRuntimeInterface').TestExecutionOptions
-  ): AsyncGenerator<import('./BamlRuntimeInterface').ExecutionEvent> {
+    options?: TestExecutionOptions
+  ): AsyncGenerator<ExecutionEvent> {
     if (!this.wasmRuntime) {
       throw new Error('Cannot execute tests - runtime is invalid');
     }
@@ -607,8 +617,8 @@ export class BamlRuntime implements BamlRuntimeInterface {
       }
 
       // Create event collectors for callbacks
-      const events: import('./BamlRuntimeInterface').ExecutionEvent[] = [];
-      const pushEvent = (event: import('./BamlRuntimeInterface').ExecutionEvent) => {
+      const events: ExecutionEvent[] = [];
+      const pushEvent = (event: ExecutionEvent) => {
         events.push(event);
       };
 
