@@ -22,10 +22,10 @@ import { useMemo, useState } from 'react';
 import { vscode } from '../vscode';
 import {
   functionObjectAtom,
-  runtimeStateAtom,
   selectedItemAtom,
   testcaseObjectAtom,
 } from './atoms';
+import { runtimeStateAtom } from '../../atoms';
 
 interface FunctionTestNameProps {
   functionName: string;

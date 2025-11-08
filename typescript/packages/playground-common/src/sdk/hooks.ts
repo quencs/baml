@@ -35,7 +35,7 @@ import {
   // New atoms from migration
   diagnosticsAtom,
   numErrorsAtom,
-  lastValidRuntimeAtom,
+  isRuntimeValid,
   generatedFilesAtom,
   generatedFilesByLangAtomFamily,
   wasmPanicAtom,
@@ -600,7 +600,7 @@ export function useErrorCounts() {
  * Check if runtime is valid (no compilation errors)
  */
 export function useIsRuntimeValid() {
-  return useAtomValue(lastValidRuntimeAtom);
+  return useAtomValue(isRuntimeValid);
 }
 
 // ============================================================================

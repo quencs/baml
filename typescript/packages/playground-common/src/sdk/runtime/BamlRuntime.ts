@@ -15,9 +15,48 @@ import type {
   WasmProject,
   WasmRuntime,
   WasmDiagnosticError,
+  WasmFunction,
+  WasmTestCase,
+  WasmError,
+  WasmSpan,
+  WasmTestResponse,
 } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 
-import type { BamlRuntimeInterface, ExecutionEvent } from './BamlRuntimeInterface';
+// Type for the WASM module that contains all exports
+type BamlWasmModule = typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build');
+
+// // Type for WASM diagnostic error objects
+// type WasmDiagnosticErrorObject = {
+//   type?: string;
+//   message?: string;
+//   file_path?: string;
+//   line?: number;
+//   column?: number;
+// };
+
+// Type for WASM generator output
+type WasmGeneratorOutput = {
+  output_dir: string;
+  files: Array<{
+    path_in_output_dir: string;
+    contents: string;
+  }>;
+};
+
+// Type for test execution callbacks
+type WasmPartialResponse = unknown; // The partial response shape varies
+type WasmNotification = { variable_name?: string; channel_name?: string; block_name?: string; is_stream: boolean; value: string };
+
+// Type for test result from run_tests
+// type WasmTestResult = {
+//   func_test_pair: () => { function_name: string; test_name: string };
+//   status: () => number; // TestStatus enum value
+//   parse_output: () => unknown;
+//   raw_output: () => string;
+//   llm_output_text: () => string;
+// };
+
+import type { BamlRuntimeInterface, ExecutionEvent, FunctionDefinition, CursorPosition, CursorNavigationResult } from './BamlRuntimeInterface';
 import type {
   WorkflowDefinition,
   TestCaseInput,
@@ -34,10 +73,10 @@ export class BamlRuntime implements BamlRuntimeInterface {
   private wasmProject: WasmProject;
   private wasmRuntime: WasmRuntime | undefined;
   private diagnostics: DiagnosticError[] = [];
-  private wasm: any;
+  private wasm: BamlWasmModule;
 
   private constructor(
-    wasm: any,
+    wasm: BamlWasmModule,
     wasmProject: WasmProject,
     wasmRuntime: WasmRuntime | undefined,
     diagnostics: DiagnosticError[]
@@ -88,13 +127,13 @@ export class BamlRuntime implements BamlRuntimeInterface {
       // Get diagnostics from project
       const diags = wasmProject.diagnostics(wasmRuntime);
       if (diags) {
-        diagnostics = diags.errors().map((e: any, index: number) => ({
+        diagnostics = diags.errors().map((e: WasmError, index: number) => ({
           id: `diag_${index}`,
-          type: e.type || 'error',
+          type: e.type as 'error' | 'warning',
           message: e.message || String(e),
           filePath: e.file_path,
-          line: e.line,
-          column: e.column,
+          line: e.start_line,
+          column: e.start_column,
         }));
       }
 
@@ -105,13 +144,13 @@ export class BamlRuntime implements BamlRuntimeInterface {
       // Check if it's a WasmDiagnosticError
       if (wasm.WasmDiagnosticError && e instanceof wasm.WasmDiagnosticError) {
         const wasmDiagError = e as WasmDiagnosticError;
-        diagnostics = wasmDiagError.errors().map((err: any, index: number) => ({
+        diagnostics = wasmDiagError.errors().map((err: WasmError, index: number) => ({
           id: `diag_${index}`,
-          type: err.type || 'error',
+          type: err.type as 'error' | 'warning',
           message: err.message || String(err),
           filePath: err.file_path,
-          line: err.line,
-          column: err.column,
+          line: err.start_line,
+          column: err.start_column,
         }));
         console.log('[BamlRuntime] Captured', diagnostics.length, 'diagnostics from error');
       } else {
@@ -138,6 +177,10 @@ export class BamlRuntime implements BamlRuntimeInterface {
     return this.wasm.version();
   }
 
+  getWasmRuntime(): WasmRuntime | undefined {
+    return this.wasmRuntime;
+  }
+
   getWorkflows(): WorkflowDefinition[] {
     // TODO: Extract workflows from WASM project
     // For now, return empty array
@@ -146,10 +189,30 @@ export class BamlRuntime implements BamlRuntimeInterface {
     return [];
   }
 
-  getFunctions() {
-    // TODO: Extract functions from WASM project
-    console.warn('[BamlRuntime] getFunctions() not yet implemented');
-    return [];
+  getFunctions(): FunctionDefinition[] {
+    if (!this.wasmRuntime) {
+      console.log('[BamlRuntime] Cannot get functions - runtime is invalid');
+      return [];
+    }
+
+    try {
+      const functions: WasmFunction[] = this.wasmRuntime.list_functions();
+      return functions.map((fn) => {
+
+        return {
+          type: 'llm_function' as const,
+          name: fn.name,
+          span: fn.span,
+          test_snippet: fn.test_snippet,
+          signature: fn.signature,
+          test_cases: fn.test_cases,
+          inner: fn
+        };
+      });
+    } catch (e) {
+      console.error('[BamlRuntime] Error getting functions:', e);
+      return [];
+    }
   }
 
   getTestCases(nodeId?: string): TestCaseInput[] {
@@ -161,17 +224,17 @@ export class BamlRuntime implements BamlRuntimeInterface {
 
     try {
       // Get all test cases from WASM runtime
-      const allTestCases = this.wasmRuntime.list_testcases();
+      const allTestCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
 
       return allTestCases
-        .filter((tc: any) => {
+        .filter((tc) => {
           if (!nodeId) return true;
           // Filter by nodeId - check if this test belongs to the specified function
-          return tc.parent_functions.some((pf: any) => pf.name === nodeId);
+          return tc.parent_functions.some((pf) => pf.name === nodeId);
         })
-        .map((tc: any, index: number) => {
-          // Convert WasmParam[] to Record<string, any>
-          const inputs: Record<string, any> = {};
+        .map((tc, index) => {
+          // Convert WasmParam[] to Record<string, unknown>
+          const inputs: Record<string, unknown> = {};
           for (const param of tc.inputs) {
             if (param.value !== undefined) {
               try {
@@ -188,7 +251,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
             id: `${tc.name}_${index}`,
             name: tc.name,
             source: 'test' as const,
-            nodeId: tc.parent_functions[0]?.name || '',
+            functionId: tc.parent_functions[0]?.name || '',
             filePath: tc.span.file_path,
             inputs,
             status: tc.error ? ('failing' as const) : ('unknown' as const),
@@ -201,9 +264,58 @@ export class BamlRuntime implements BamlRuntimeInterface {
   }
 
   getBAMLFiles(): BAMLFile[] {
-    // TODO: Extract BAML file structure from WASM project
-    console.warn('[BamlRuntime] getBAMLFiles() not yet implemented');
-    return [];
+    if (!this.wasmRuntime) {
+      console.log('[BamlRuntime] Cannot get BAML files - runtime is invalid');
+      return [];
+    }
+
+    try {
+      // Get all functions and test cases
+      const functions: WasmFunction[] = this.wasmRuntime.list_functions();
+      const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
+
+      // Group by file path
+      const fileMap = new Map<string, { functions: FunctionDefinition[], tests: WasmTestCase[] }>();
+
+      // Add functions to map
+      for (const fn of functions) {
+        const filePath = fn.span?.file_path || 'unknown.baml';
+        if (!fileMap.has(filePath)) {
+          fileMap.set(filePath, { functions: [], tests: [] });
+        }
+        const fnWithType = fn as WasmFunction & { type?: string };
+        fileMap.get(filePath)!.functions.push({
+          name: fn.name,
+          type: fnWithType.type as 'function' | 'llm_function' | 'workflow',
+          span: fn.span,
+          test_snippet: fn.test_snippet,
+          signature: fn.signature,
+          test_cases: fn.test_cases,
+          inner: fn
+        });
+      }
+
+      // Add tests to map
+      for (const tc of testCases) {
+        const filePath = tc.span?.file_path || 'unknown.baml';
+        if (!fileMap.has(filePath)) {
+          fileMap.set(filePath, { functions: [], tests: [] });
+        }
+        const parentFn = tc.parent_functions[0];
+        const parentFnWithType = parentFn as typeof parentFn & { type?: string };
+        fileMap.get(filePath)!.tests.push(tc);
+      }
+
+      // Convert map to array of BAMLFile objects
+      return Array.from(fileMap.entries()).map(([path, data]) => ({
+        path,
+        functions: data.functions,
+        tests: data.tests,
+      }));
+    } catch (e) {
+      console.error('[BamlRuntime] Error getting BAML files:', e);
+      return [];
+    }
   }
 
   getDiagnostics(): DiagnosticError[] {
@@ -218,9 +330,9 @@ export class BamlRuntime implements BamlRuntimeInterface {
     }
 
     try {
-      const generators = this.wasmProject.run_generators();
-      const files = generators.flatMap((gen: any) =>
-        gen.files.map((f: any) => ({
+      const generators: WasmGeneratorOutput[] = this.wasmProject.run_generators();
+      const files = generators.flatMap((gen) =>
+        gen.files.map((f) => ({
           path: f.path_in_output_dir,
           content: f.contents,
           outputDir: gen.output_dir,
@@ -255,16 +367,16 @@ export class BamlRuntime implements BamlRuntimeInterface {
     }
 
     // Find the test case
-    const testCases = this.wasmRuntime.list_testcases();
-    const testCase = testCases.find((tc: any) => tc.name === testName);
+    const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
+    const testCase = testCases.find((tc) => tc.name === testName);
 
     if (!testCase) {
       throw new Error(`Test case not found: ${testName}`);
     }
 
     // Get the function for this test
-    const functions = this.wasmRuntime.list_functions();
-    const wasmFunction = functions.find((fn: any) => fn.name === functionName);
+    const functions: WasmFunction[] = this.wasmRuntime.list_functions();
+    const wasmFunction = functions.find((fn) => fn.name === functionName);
 
     if (!wasmFunction) {
       throw new Error(`Function not found: ${functionName}`);
@@ -305,7 +417,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
         this.wasmRuntime,
         testCase.name,
         // on_partial_response callback
-        (partial: any) => {
+        (partial: WasmPartialResponse) => {
           pushEvent({
             type: 'test.partial',
             functionName,
@@ -316,17 +428,11 @@ export class BamlRuntime implements BamlRuntimeInterface {
         // get_baml_src_cb - load media files
         options?.loadMediaFile || vscode.loadMediaFile,
         // on_expr_event - expression evaluation events (for highlighting)
-        (spans: any[]) => {
+        (spans: WasmSpan[]) => {
           if (spans && spans.length > 0) {
             pushEvent({
               type: 'test.highlight',
-              spans: spans.map((span) => ({
-                file_path: span.file_path,
-                start_line: span.start_line,
-                start: span.start,
-                end_line: span.end_line,
-                end: span.end,
-              })),
+              spans: spans.map((span) => span),
             });
           }
         },
@@ -335,7 +441,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
         // abort_signal
         options?.abortSignal || null,
         // watch_handler - for watch notifications
-        (notification: any) => {
+        (notification: WasmNotification) => {
           pushEvent({
             type: 'test.watch',
             functionName,
@@ -429,15 +535,15 @@ export class BamlRuntime implements BamlRuntimeInterface {
     try {
       // Prepare test cases for run_tests
       const testCases = tests.map((test) => {
-        const allTestCases = this.wasmRuntime!.list_testcases();
-        const testCase = allTestCases.find((tc: any) => tc.name === test.testName);
+        const allTestCases: WasmTestCase[] = this.wasmRuntime!.list_testcases();
+        const testCase = allTestCases.find((tc) => tc.name === test.testName);
 
         if (!testCase) {
           throw new Error(`Test case not found: ${test.testName}`);
         }
 
         // Convert inputs
-        const inputs: Record<string, any> = {};
+        const inputs: Record<string, unknown> = {};
         for (const param of testCase.inputs) {
           if (param.value !== undefined) {
             try {
@@ -477,7 +583,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       const results = await this.wasmRuntime.run_tests(
         testCases,
         // on_partial_response callback
-        (partial: any) => {
+        (partial: WasmPartialResponse & { func_test_pair: () => { function_name: string; test_name: string } }) => {
           const pair = partial.func_test_pair();
           pushEvent({
             type: 'test.partial',
@@ -493,7 +599,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
         // abort_signal
         options?.abortSignal || null,
         // watch_handler - for watch notifications
-        (notification: any) => {
+        (notification: WasmNotification & { function_name?: string; test_name?: string }) => {
           // Watch notifications should have function_name and test_name from parallel execution
           pushEvent({
             type: 'test.watch',
@@ -516,7 +622,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       }
 
       // Process results
-      let response: any;
+      let response: WasmTestResponse | undefined;
       while ((response = results.yield_next()) !== undefined) {
         const pair = response.func_test_pair();
         const status = response.status();
@@ -582,5 +688,64 @@ export class BamlRuntime implements BamlRuntimeInterface {
   async cancelExecution(executionId: string): Promise<void> {
     // TODO: Implement execution cancellation
     console.warn('[BamlRuntime] cancelExecution() not yet implemented');
+  }
+
+  updateCursor(
+    cursor: CursorPosition,
+    fileContents: Record<string, string>,
+    currentSelection: string | null
+  ): CursorNavigationResult {
+    if (!this.wasmRuntime) {
+      return { functionName: null, testCaseName: null };
+    }
+
+    const fileContent = fileContents[cursor.fileName];
+    if (!fileContent) {
+      return { functionName: null, testCaseName: null };
+    }
+
+    // Convert line/column to character index
+    const lines = fileContent.split('\n');
+    let cursorIdx = 0;
+    for (let i = 0; i < cursor.line; i++) {
+      cursorIdx += (lines[i]?.length ?? 0) + 1; // +1 for newline
+    }
+    cursorIdx += cursor.column;
+
+    // Get function at cursor position
+    const selectedFunc = this.wasmRuntime.get_function_at_position(
+      cursor.fileName,
+      currentSelection ?? '',
+      cursorIdx
+    );
+
+    if (!selectedFunc) {
+      return { functionName: null, testCaseName: null };
+    }
+
+    // Check if cursor is in a test case
+    const selectedTestcase = this.wasmRuntime.get_testcase_from_position(
+      selectedFunc,
+      cursorIdx
+    );
+
+    if (selectedTestcase) {
+      // Check for nested function in test case
+      const nestedFunc = this.wasmRuntime.get_function_of_testcase(
+        cursor.fileName,
+        cursorIdx
+      );
+
+      return {
+        functionName: nestedFunc ? nestedFunc.name : selectedFunc.name,
+        testCaseName: selectedTestcase.name,
+      };
+    }
+
+    // Just a function, no test case
+    return {
+      functionName: selectedFunc.name,
+      testCaseName: null,
+    };
   }
 }

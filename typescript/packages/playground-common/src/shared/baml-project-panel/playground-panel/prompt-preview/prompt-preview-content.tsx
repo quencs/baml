@@ -111,11 +111,11 @@ export const PromptPreviewContent = () => {
 
   if (diagnostics.length > 0 && diagnostics.some((d) => d.type === 'error')) {
     const errorMessages = diagnostics
-      .filter((d: WasmError) => d.type === 'error')
+      .filter((d) => d.type === 'error')
       .map((d) => `- ${d.message}`)
       .join('\n');
 
-    const fullErrorMessage = `${diagnostics.filter((d: WasmError) => d.type === 'error').length} error(s):\n${errorMessages}`;
+    const fullErrorMessage = `${diagnostics.filter((d) => d.type === 'error').length} error(s):\n${errorMessages}`;
 
     return (
       <div className="relative">

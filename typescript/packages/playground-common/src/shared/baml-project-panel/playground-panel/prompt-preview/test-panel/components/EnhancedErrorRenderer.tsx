@@ -494,7 +494,4 @@ export const EnhancedErrorRenderer: React.FC<EnhancedErrorRendererProps> = React
   );
 });
 
-EnhancedErrorRenderer.displayName = 'EnhancedErrorRenderer';
-
-// Export utility function for registering custom renderers
-export { registerErrorRenderer as addErrorRenderer }; 
+EnhancedErrorRenderer.displayName = 'EnhancedErrorRenderer'; 

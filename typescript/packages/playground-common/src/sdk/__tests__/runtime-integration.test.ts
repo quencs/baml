@@ -257,7 +257,7 @@ describe('BAML Runtime Integration', () => {
       const testCase = testCases[0];
       expect(testCase).toBeDefined();
       expect(testCase?.name).toBe('Test1');
-      expect(testCase?.nodeId).toBe('ExtractResume');
+      expect(testCase?.functionId).toBe('ExtractResume');
       expect(testCase?.inputs).toBeDefined();
       expect(testCase?.inputs.resume_text).toContain('John Doe');
 
@@ -382,15 +382,22 @@ describe('BAML Runtime Integration', () => {
         callCount++;
       });
 
-      // Manually update diagnostics to trigger subscription
-      const testDiagnostics = [
-        {
+      // Create a mock runtime with test diagnostics
+      const mockRuntime = {
+        getDiagnostics: () => [{
           id: 'test-1',
           type: 'error' as const,
           message: 'Test error',
-        },
-      ];
-      store.set(sdk.atoms.diagnosticsAtom, testDiagnostics);
+        }],
+        getFunctions: () => [],
+        getWorkflows: () => [],
+        getGeneratedFiles: () => [],
+        getVersion: () => '0.0.0-test',
+        getWasmInstance: () => undefined,
+      } as any;
+
+      // Update runtime to trigger diagnostics change (diagnosticsAtom is derived from runtime)
+      store.set(sdk.atoms.runtimeInstanceAtom, mockRuntime);
 
       // Verify subscription was called
       expect(callCount).toBeGreaterThan(0);

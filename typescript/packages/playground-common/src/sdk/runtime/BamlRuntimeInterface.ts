@@ -20,6 +20,7 @@ import type {
 } from '../types';
 
 import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
+import { WasmFunction, WasmRuntime, WasmSpan, WasmTestCase } from '@gloo-ai/baml-schema-wasm-web';
 
 /**
  * Watch notification from test execution
@@ -32,16 +33,16 @@ export interface WatchNotification {
   value: string;
 }
 
-/**
- * Code span for highlighting during execution
- */
-export interface CodeSpan {
-  file_path: string;
-  start_line: number;
-  start: number;
-  end_line: number;
-  end: number;
-}
+// /**
+//  * Code span for highlighting during execution
+//  */
+// export interface CodeSpan {
+//   file_path: string;
+//   start_line: number;
+//   start: number;
+//   end_line: number;
+//   end: number;
+// }
 
 /**
  * Execution events emitted by the runtime during execution
@@ -50,12 +51,12 @@ export type ExecutionEvent =
   // Workflow/Node events
   | { type: 'node.started'; nodeId: string; inputs: Record<string, any> }
   | {
-      type: 'node.completed';
-      nodeId: string;
-      inputs?: Record<string, any>;
-      outputs: Record<string, any>;
-      duration: number;
-    }
+    type: 'node.completed';
+    nodeId: string;
+    inputs?: Record<string, any>;
+    outputs: Record<string, any>;
+    duration: number;
+  }
   | { type: 'node.error'; nodeId: string; error: Error }
   | { type: 'node.log'; nodeId: string; log: LogEntry }
   | { type: 'node.cached'; nodeId: string; fromExecutionId: string }
@@ -63,14 +64,33 @@ export type ExecutionEvent =
   // Test execution events
   | { type: 'test.partial'; functionName: string; testName: string; response: any }
   | { type: 'test.watch'; functionName: string; testName: string; notification: WatchNotification }
-  | { type: 'test.highlight'; spans: CodeSpan[] };
+  | { type: 'test.highlight'; spans: WasmSpan[] };
 
 export interface FunctionDefinition {
-  name: string;
   type: 'function' | 'llm_function' | 'workflow';
-  filePath: string;
-  parameters?: Array<{ name: string; type: string; optional: boolean }>;
-  returnType?: string;
+  name: string;
+  span: WasmSpan;
+  test_snippet: string;
+  signature: string;
+  test_cases: WasmTestCase[];
+  inner: WasmFunction;
+}
+
+/**
+ * Cursor position in a file
+ */
+export interface CursorPosition {
+  fileName: string;
+  line: number;
+  column: number;
+}
+
+/**
+ * Result of cursor navigation - which function/test is at the cursor
+ */
+export interface CursorNavigationResult {
+  functionName: string | null;
+  testCaseName: string | null;
 }
 
 export interface ExecutionOptions {
@@ -95,6 +115,13 @@ export interface BamlRuntimeInterface {
    * Get BAML runtime version
    */
   getVersion(): string;
+
+  /**
+   * Get the WASM runtime instance (for legacy compatibility with wasmAtom)
+   * This returns the WasmRuntime, not the WASM module
+   * Returns undefined for mock runtimes or when runtime has errors
+   */
+  getWasmRuntime(): WasmRuntime | undefined;
 
   /**
    * Get all discovered workflows
@@ -166,6 +193,20 @@ export interface BamlRuntimeInterface {
    * Cancel a running execution
    */
   cancelExecution(executionId: string): Promise<void>;
+
+  /**
+   * Update cursor position and determine which function/test is at that position
+   *
+   * @param cursor - Cursor position (fileName, line, column)
+   * @param fileContents - Map of file paths to their contents
+   * @param currentSelection - Currently selected function name (for context)
+   * @returns The function and test case at the cursor position
+   */
+  updateCursor(
+    cursor: CursorPosition,
+    fileContents: Record<string, string>,
+    currentSelection: string | null
+  ): CursorNavigationResult;
 }
 
 /**

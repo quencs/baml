@@ -10,6 +10,8 @@ import type {
   ExecutionEvent,
   ExecutionOptions,
   FunctionDefinition,
+  CursorPosition,
+  CursorNavigationResult,
 } from './BamlRuntimeInterface';
 import type { MockRuntimeConfig } from '../mock-config/types';
 import type { DiagnosticError, GeneratedFile } from '../atoms/core.atoms';
@@ -43,6 +45,10 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
 
   getVersion(): string {
     return '0.0.0-mock';
+  }
+
+  getWasmRuntime(): undefined {
+    return undefined;
   }
 
   getWorkflows(): WorkflowDefinition[] {
@@ -107,7 +113,7 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     if (!test) throw new Error(`Test ${testName} not found for function ${functionName}`);
 
     // Execute with test inputs
-    yield* this.executeWorkflow(test.nodeId, test.inputs);
+    yield* this.executeWorkflow(test.functionId, test.inputs);
   }
 
   async *executeTests(
@@ -122,5 +128,15 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
 
   async cancelExecution(executionId: string): Promise<void> {
     console.log(`Cancelling execution: ${executionId}`);
+  }
+
+  updateCursor(
+    cursor: CursorPosition,
+    fileContents: Record<string, string>,
+    currentSelection: string | null
+  ): CursorNavigationResult {
+    // Mock implementation - could be enhanced to parse the file and find functions/tests
+    // For now, just return null (no navigation)
+    return { functionName: null, testCaseName: null };
   }
 }

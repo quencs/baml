@@ -1,3 +1,12 @@
+/**
+ * Orchestration Graph Atoms
+ *
+ * These atoms are WASM-specific and handle orchestration graph visualization.
+ * They use the WASM runtime through the compatibility layer.
+ *
+ * TODO: This will be migrated when SDK supports orchestration graph features.
+ */
+
 import { atom } from 'jotai';
 import { runtimeAtom } from '../atoms';
 import { selectedFunctionObjectAtom } from './atoms';

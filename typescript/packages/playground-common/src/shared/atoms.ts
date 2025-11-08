@@ -90,9 +90,34 @@ export const testCaseResponseAtom = atom((get) => {
 });
 
 /**
- * @deprecated Use runtimeAtom instead
+ * @deprecated Use SDK functionsAtom instead
+ * This is a compatibility shim for old code
  */
-export const runtimeStateAtom = runtimeAtom;
+export const runtimeStateAtom = atom((get) => {
+  const runtime = get(runtimeAtom);
+
+  if (!runtime.rt) {
+    // No current runtime, check if we have a last valid one
+    if (!runtime.lastValidRt) {
+      return { functions: [], stale: false };
+    }
+    // Use last valid runtime (stale)
+    const llmFunctions = runtime.lastValidRt.list_functions?.() || [];
+    const exprFunctions = runtime.lastValidRt.list_expr_fns?.() || [];
+    return {
+      functions: [...llmFunctions, ...exprFunctions],
+      stale: true
+    };
+  }
+
+  // Current runtime is valid
+  const llmFunctions = runtime.rt.list_functions?.() || [];
+  const exprFunctions = runtime.rt.list_expr_fns?.() || [];
+  return {
+    functions: [...llmFunctions, ...exprFunctions],
+    stale: false
+  };
+});
 
 /**
  * Cursor update atom for CodeMirror navigation

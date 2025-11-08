@@ -31,7 +31,8 @@
     "./prompt-preview": "./src/shared/baml-project-panel/playground-panel/prompt-preview/index.tsx",
     "./codemirror-viewer": "./src/shared/baml-project-panel/codemirror-panel/code-mirror-viewer.tsx",
     "./baml-project-panel/atoms": "./src/shared/baml-project-panel/atoms.ts",
-    "./baml-project-panel/WasmPanicNotification": "./src/shared/baml-project-panel/WasmPanicNotification.tsx"
+    "./baml-project-panel/WasmPanicNotification": "./src/shared/baml-project-panel/WasmPanicNotification.tsx",
+    "./features/debug": "./src/features/debug/index.ts"
   },
   "engines": {
     "vscode": ">=1.63.0"

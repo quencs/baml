@@ -3,6 +3,9 @@
  * Based on the DESIGN.md specification
  */
 
+import { WasmTestCase } from "@gloo-ai/baml-schema-wasm-web";
+import { FunctionDefinition } from "./runtime/BamlRuntimeInterface";
+
 // ============================================================================
 // Core Node & Execution States
 // ============================================================================
@@ -236,7 +239,7 @@ export interface TestCaseInput {
   id: string; // testId
   name: string; // "success_case"
   source: 'test';
-  nodeId: string;
+  functionId: string;
   filePath: string;
   inputs: Record<string, any>;
   expectedOutput?: Record<string, any>;
@@ -281,8 +284,8 @@ export interface BAMLTest {
 
 export interface BAMLFile {
   path: string; // e.g., "workflows/workflow1.baml"
-  functions: BAMLFunction[];
-  tests: BAMLTest[];
+  functions: FunctionDefinition[];
+  tests: WasmTestCase[];
 }
 
 export type CodeClickEvent = {

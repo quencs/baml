@@ -1,4 +1,20 @@
-// This is a BAML config file, which extends the Jinja2 templating language to write LLM functions.
+/**
+ * Debug mode BAML fixtures
+ * These are loaded when debug mode is enabled
+ */
+
+export const DEBUG_BAML_FILES = {
+  'baml_src/clients.baml': `// Define the GPT4o client
+client<llm> GPT4o {
+  provider openai
+  options {
+    model "gpt-4o"
+    api_key env.OPENAI_API_KEY
+  }
+}
+`,
+
+  'baml_src/main.baml': `// This is a BAML config file, which extends the Jinja2 templating language to write LLM functions.
 
 class Resume {
   name string
@@ -112,3 +128,5 @@ test ParseResumeTest {
     "#
   }
 }
+`,
+};

@@ -8,7 +8,7 @@
  */
 
 import type { SDKStorage } from './storage/SDKStorage';
-import type { BamlRuntimeInterface, BamlRuntimeFactory } from './runtime/BamlRuntimeInterface';
+import type { BamlRuntimeInterface, BamlRuntimeFactory, FunctionDefinition } from './runtime/BamlRuntimeInterface';
 import type {
   WorkflowDefinition,
   ExecutionSnapshot,
@@ -16,6 +16,7 @@ import type {
   CacheEntry,
   TestCaseInput,
   NodeExecutionState,
+  BAMLFile,
 } from './types';
 
 // Import all atoms to expose via sdk.atoms
@@ -35,7 +36,6 @@ export type {
   TestExecutionOptions,
   FunctionDefinition,
   WatchNotification,
-  CodeSpan,
 } from './runtime/BamlRuntimeInterface';
 export * from './storage/SDKStorage';
 export * from './mock-config/types';
@@ -50,6 +50,10 @@ export type {
 // Re-export hooks and provider
 export * from './hooks';
 export * from './provider';
+
+// Re-export debug fixtures and factory functions for testing
+export { DEBUG_BAML_FILES } from './debugFixtures';
+export { createRealBAMLSDK, createMockSDK, createFastMockSDK, createErrorProneSDK } from './factory';
 
 /**
  * BAML SDK - orchestrates runtime and storage
@@ -110,33 +114,32 @@ export class BAMLSDK {
       options?.featureFlags
     );
 
-    // Store version
-    this.storage.setVersion(this.runtime.getVersion());
+    // Store runtime instance - this automatically updates all derived atoms:
+    // - functionsAtom, diagnosticsAtom, workflowsAtom, generatedFilesAtom, versionAtom, wasmAtom, etc.
+    this.storage.setRuntime(this.runtime);
 
-    // Extract and store diagnostics
+    // Store last valid WASM instance if no errors
     const diagnostics = this.runtime.getDiagnostics();
-    this.storage.setDiagnostics(diagnostics);
-
-    // Check if runtime is valid (no compilation errors)
     const hasErrors = diagnostics.some((d) => d.type === 'error');
-    this.storage.setLastValidRuntime(!hasErrors);
-
-    // Extract and store generated files (only if runtime is valid)
     if (!hasErrors) {
-      const generatedFiles = this.runtime.getGeneratedFiles();
-      this.storage.setGeneratedFiles(generatedFiles);
+      const wasmRuntime = this.runtime.getWasmRuntime();
+      if (wasmRuntime) {
+        this.storage.setWasmRuntime(wasmRuntime);
+      }
     }
 
-    // Load workflows from runtime into storage
-    const workflows = this.runtime.getWorkflows();
-    this.storage.setWorkflows(workflows);
-
     // Set first workflow as active
+    const workflows = this.runtime.getWorkflows();
     if (workflows.length > 0) {
       this.storage.setActiveWorkflowId(workflows[0]!.id);
     }
 
+    // Log what was extracted from the runtime
+    const functions = this.runtime.getFunctions();
+    const allTestCases = this.runtime.getTestCases();
     console.log('SDK: Initialized with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
+    console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
+    console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
   }
 
   // ============================================================================
@@ -166,25 +169,26 @@ export class BAMLSDK {
       // Create new runtime instance (like wasmAtom creating new WasmProject)
       this.runtime = await this.runtimeFactory(files, envVars, featureFlags);
 
-      // Extract and store diagnostics
+      // Store runtime instance - this automatically updates all derived atoms (including wasmAtom)
+      this.storage.setRuntime(this.runtime);
+
+      // Store last valid WASM instance if no errors
       const diagnostics = this.runtime.getDiagnostics();
-      this.storage.setDiagnostics(diagnostics);
-
-      // Check if runtime is valid
       const hasErrors = diagnostics.some((d) => d.type === 'error');
-      this.storage.setLastValidRuntime(!hasErrors);
-
-      // Extract and store generated files (only if runtime is valid)
       if (!hasErrors) {
-        const generatedFiles = this.runtime.getGeneratedFiles();
-        this.storage.setGeneratedFiles(generatedFiles);
+        const wasmInstance = this.runtime.getWasmRuntime();
+        if (wasmInstance) {
+          this.storage.setWasmRuntime(wasmInstance);
+        }
       }
 
-      // Update workflows in storage
+      // Log what was extracted from the runtime
       const workflows = this.runtime.getWorkflows();
-      this.storage.setWorkflows(workflows);
-
+      const functions = this.runtime.getFunctions();
+      const allTestCases = this.runtime.getTestCases();
       console.log('SDK: Runtime recreated with', workflows.length, 'workflows,', diagnostics.length, 'diagnostics');
+      console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
+      console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
     },
 
     getCurrent: () => {
@@ -309,6 +313,33 @@ export class BAMLSDK {
   };
 
   // ============================================================================
+  // Cursor Navigation API
+  // ============================================================================
+
+  cursor = {
+    /**
+     * Update cursor position and determine which function/test is at that position
+     * This updates the selection state automatically
+     */
+    update: (cursor: { fileName: string; line: number; column: number }): void => {
+      if (!this.runtime) {
+        return;
+      }
+
+      const currentSelection = this.storage.getSelectedFunctionName();
+      const fileContents = this.storage.getBAMLFiles();
+
+      const result = this.runtime.updateCursor(cursor, fileContents, currentSelection);
+
+      // Update selection state if we found something
+      if (result.functionName) {
+        this.storage.setSelectedFunctionName(result.functionName);
+        this.storage.setSelectedTestCaseName(result.testCaseName);
+      }
+    },
+  };
+
+  // ============================================================================
   // Graph API
   // ============================================================================
 
@@ -383,22 +414,26 @@ export class BAMLSDK {
       const featureFlags = this.storage.getFeatureFlags();
       this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
 
-      // Extract and update state
+      // Store runtime instance - this automatically updates all derived atoms (including wasmAtom)
+      this.storage.setRuntime(this.runtime);
+
+      // Store last valid WASM instance if no errors
       const diagnostics = this.runtime.getDiagnostics();
-      this.storage.setDiagnostics(diagnostics);
-
       const hasErrors = diagnostics.some((d) => d.type === 'error');
-      this.storage.setLastValidRuntime(!hasErrors);
-
       if (!hasErrors) {
-        const generatedFiles = this.runtime.getGeneratedFiles();
-        this.storage.setGeneratedFiles(generatedFiles);
+        const wasmInstance = this.runtime.getWasmRuntime();
+        if (wasmInstance) {
+          this.storage.setWasmRuntime(wasmInstance);
+        }
       }
 
+      // Log what was extracted from the runtime
       const workflows = this.runtime.getWorkflows();
-      this.storage.setWorkflows(workflows);
-
+      const functions = this.runtime.getFunctions();
+      const allTestCases = this.runtime.getTestCases();
       console.log('SDK: Runtime recreated with updated env vars');
+      console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
+      console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
     },
 
     getCurrent: () => {
@@ -424,22 +459,26 @@ export class BAMLSDK {
       const envVars = this.storage.getEnvVars();
       this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
 
-      // Extract and update state
+      // Store runtime instance - this automatically updates all derived atoms (including wasmAtom)
+      this.storage.setRuntime(this.runtime);
+
+      // Store last valid WASM instance if no errors
       const diagnostics = this.runtime.getDiagnostics();
-      this.storage.setDiagnostics(diagnostics);
-
       const hasErrors = diagnostics.some((d) => d.type === 'error');
-      this.storage.setLastValidRuntime(!hasErrors);
-
       if (!hasErrors) {
-        const generatedFiles = this.runtime.getGeneratedFiles();
-        this.storage.setGeneratedFiles(generatedFiles);
+        const wasmInstance = this.runtime.getWasmRuntime();
+        if (wasmInstance) {
+          this.storage.setWasmRuntime(wasmInstance);
+        }
       }
 
+      // Log what was extracted from the runtime
       const workflows = this.runtime.getWorkflows();
-      this.storage.setWorkflows(workflows);
-
+      const functions = this.runtime.getFunctions();
+      const allTestCases = this.runtime.getTestCases();
       console.log('SDK: Runtime recreated with updated feature flags');
+      console.log('SDK: Extracted', functions.length, 'functions:', functions.map(f => f.name));
+      console.log('SDK: Extracted', allTestCases.length, 'test cases:', allTestCases.map(tc => `${tc.name} (${tc.functionId})`));
     },
 
     getCurrent: () => {
@@ -464,6 +503,40 @@ export class BAMLSDK {
      */
     getByLanguage: (lang: string) => {
       return this.storage.getGeneratedFiles().filter((f) => f.outputDir.includes(lang));
+    },
+  };
+
+  // ============================================================================
+  // Files & Diagnostics API
+  // ============================================================================
+
+  diagnostics = {
+    /**
+     * Get BAML file structure (for debug panel, navigation, etc.)
+     * Returns files organized with their functions and tests
+     */
+    getBAMLFiles: (): BAMLFile[] => {
+      if (!this.runtime) {
+        return [];
+      }
+      return this.runtime.getBAMLFiles();
+    },
+
+    /**
+     * Get all compilation diagnostics
+     */
+    getDiagnostics: () => {
+      return this.storage.getDiagnostics();
+    },
+
+    /**
+     * Get all functions
+     */
+    getFunctions: (): FunctionDefinition[] => {
+      if (!this.runtime) {
+        return [];
+      }
+      return this.runtime.getFunctions();
     },
   };
 

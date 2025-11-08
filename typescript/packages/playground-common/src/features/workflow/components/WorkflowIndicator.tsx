@@ -8,9 +8,9 @@
 import { minidenticon } from 'minidenticons';
 import { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { useActiveWorkflow, useSelectedNode, useWorkflows } from '@/sdk/hooks';
-import { flowStore } from '@/states/reactflow';
-import { panToNodeIfNeeded } from '@/utils/cameraPan';
+import { useActiveWorkflow, useSelectedNode, useWorkflows } from '../../../sdk/hooks';
+import { flowStore } from '../../../states/reactflow';
+import { panToNodeIfNeeded } from '../../../utils/cameraPan';
 import {
   DropdownMenu,
   DropdownMenuContent,

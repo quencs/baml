@@ -7,20 +7,20 @@
 
 import { useEffect } from 'react';
 import { useAtomValue } from 'jotai';
-import { activeCodeClickAtom } from '@/sdk/atoms/core.atoms';
-import { useBAMLSDK } from '@/sdk/provider';
+import { activeCodeClickAtom } from '../../../sdk/atoms/core.atoms';
+import { useBAMLSDK } from '../../../sdk/provider';
 import {
   determineNavigationAction,
   getCurrentNavigationState,
-} from '@/sdk/navigationHeuristic';
+} from '../../../sdk/navigationHeuristic';
 import {
   useActiveWorkflow,
   useSelectedNode,
   useDetailPanel,
   useSelectedInputSource,
-} from '@/sdk/hooks';
-import { flowStore } from '@/states/reactflow';
-import { panToNodeIfNeeded } from '@/utils/cameraPan';
+} from '../../../sdk/hooks';
+import { flowStore } from '../../../states/reactflow';
+import { panToNodeIfNeeded } from '../../../utils/cameraPan';
 
 /**
  * Hook that listens to code click events and performs navigation

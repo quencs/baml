@@ -28,10 +28,21 @@ import type {
   FlashRange,
 } from '../atoms/test.atoms';
 
+import type { BamlRuntimeInterface, FunctionDefinition } from '../runtime/BamlRuntimeInterface';
+import type { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
+import { BamlRuntime } from '../runtime/BamlRuntime';
+
 /**
  * Storage interface for SDK state management
  */
 export interface SDKStorage {
+  // ============================================================================
+  // Runtime Instance (source of truth for derived state)
+  // ============================================================================
+
+  setRuntime(runtime: BamlRuntimeInterface | null): void;
+  getRuntime(): BamlRuntimeInterface | null;
+
   // ============================================================================
   // Workflows
   // ============================================================================
@@ -76,23 +87,32 @@ export interface SDKStorage {
   // Version
   // ============================================================================
 
-  setVersion(version: string): void;
   getVersion(): string;
+
+  // ============================================================================
+  // WASM Instance (for legacy compatibility)
+  // Stores the last valid (error-free) WasmRuntime instance
+  // ============================================================================
+
+  setWasmRuntime(wasm: WasmRuntime | undefined): void;
+  getWasmRuntime(): WasmRuntime | undefined;
 
   // ============================================================================
   // Diagnostics
   // ============================================================================
 
-  setDiagnostics(diagnostics: DiagnosticError[]): void;
   getDiagnostics(): DiagnosticError[];
-  setLastValidRuntime(valid: boolean): void;
-  getLastValidRuntime(): boolean;
+
+  // ============================================================================
+  // Functions
+  // ============================================================================
+
+  getFunctions(): FunctionDefinition[];
 
   // ============================================================================
   // Generated Files
   // ============================================================================
 
-  setGeneratedFiles(files: GeneratedFile[]): void;
   getGeneratedFiles(): GeneratedFile[];
 
   // ============================================================================

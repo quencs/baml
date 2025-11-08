@@ -14,15 +14,28 @@ import type {
   CacheEntry,
   BAMLEvent,
 } from '../types';
+import type { FunctionDefinition, BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
+import type { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 
 // ============================================================================
 // CORE STATE (source of truth)
 // ============================================================================
 
 /**
- * All available workflows
+ * Runtime instance atom - the source of truth for all derived state
+ * When this changes, all derived atoms (functions, diagnostics, workflows, etc.) automatically update
  */
-export const workflowsAtom = atom<WorkflowDefinition[]>([]);
+export const runtimeInstanceAtom = atom<BamlRuntimeInterface | null>(null);
+
+/**
+ * All available workflows (derived from runtime)
+ */
+export const workflowsAtom = atom((get) => {
+  const runtime = get(runtimeInstanceAtom);
+  return runtime?.getWorkflows() ?? [];
+}, (get, set, update: WorkflowDefinition[]) => {
+  set(workflowsAtom, update);
+});
 
 /**
  * Currently active workflow ID
@@ -159,7 +172,7 @@ export const detailPanelAtom = atom<DetailPanelState>({
 /**
  * Layout direction for graph
  */
-export const layoutDirectionAtom = atom<'TB' | 'LR'>('TB');
+export const layoutDirectionAtom = atom<'vertical' | 'horizontal'>('vertical');
 
 /**
  * Selected input source for a node
@@ -271,22 +284,18 @@ export const recentWorkflowsAtom = atom((get) => {
 });
 
 /**
- * All functions from BAML files indexed by name for O(1) lookup
+ * All functions from BAML runtime indexed by name for O(1) lookup
  *
  * This is a legitimate performance optimization - instead of looping through
- * files every time, we build a Map once and cache it.
- * Updates automatically when bamlFilesAtom changes.
+ * functions every time, we build a Map once and cache it.
+ * Updates automatically when functionsAtom changes.
  */
 export const allFunctionsMapAtom = atom((get) => {
-  const bamlFiles = get(bamlFilesAtom);
-  const functionsMap = new Map<string, any>();
+  const functions = get(functionsAtom);
+  const functionsMap = new Map<string, FunctionDefinition>();
 
-  for (const file of bamlFiles) {
-    if (file.functions) {
-      for (const func of file.functions) {
-        functionsMap.set(func.name, { ...func, filePath: file.path });
-      }
-    }
+  for (const func of functions) {
+    functionsMap.set(func.name, func);
   }
 
   return functionsMap;
@@ -340,6 +349,23 @@ export const selectionAtom = atom((get) => ({
 }));
 
 /**
+ * Write-only atom to update selection (shared by updateCursor and DebugPanel)
+ * This is the central place where selection state is updated
+ */
+export const updateSelectionAtom = atom(
+  null,
+  (get, set, update: { functionName: string | null; testCaseName?: string | null }) => {
+    console.log('[updateSelection]', update);
+
+    // Set function name
+    set(selectedFunctionNameAtom, update.functionName);
+
+    // Set test case name (or null if not provided)
+    set(selectedTestCaseNameAtom, update.testCaseName ?? null);
+  }
+);
+
+/**
  * Function test snippet atom - generates test code template
  */
 export const functionTestSnippetAtom = (functionName: string) => atom((get) => {
@@ -389,14 +415,28 @@ export interface DiagnosticError {
 }
 
 /**
- * Compilation diagnostics (errors and warnings)
+ * Compilation diagnostics (errors and warnings) - derived from runtime
  */
-export const diagnosticsAtom = atom<DiagnosticError[]>([]);
+export const diagnosticsAtom = atom((get) => {
+  const runtime = get(runtimeInstanceAtom);
+  return runtime?.getDiagnostics() ?? [];
+});
 
 /**
- * Whether the current runtime is valid (no compilation errors)
+ * All functions extracted from BAML runtime - derived from runtime
  */
-export const lastValidRuntimeAtom = atom<boolean>(true);
+export const functionsAtom = atom((get) => {
+  const runtime = get(runtimeInstanceAtom);
+  return runtime?.getFunctions() ?? [];
+});
+
+/**
+ * Whether the current runtime is valid (no compilation errors) - derived from diagnostics
+ */
+export const isRuntimeValid = atom((get) => {
+  const diagnostics = get(diagnosticsAtom);
+  return !diagnostics.some((d) => d.type === 'error');
+});
 
 /**
  * Derived atom: count of errors and warnings
@@ -418,9 +458,12 @@ export interface GeneratedFile {
 }
 
 /**
- * Generated code files from BAML runtime
+ * Generated code files from BAML runtime - derived from runtime
  */
-export const generatedFilesAtom = atom<GeneratedFile[]>([]);
+export const generatedFilesAtom = atom((get) => {
+  const runtime = get(runtimeInstanceAtom);
+  return runtime?.getGeneratedFiles() ?? [];
+});
 
 /**
  * Generated files filtered by language using atomFamily
@@ -506,10 +549,22 @@ export const envVarsAtom = atom<Record<string, string>>({});
 // ============================================================================
 
 /**
- * WASM module state
- * Contains the loaded WASM instance
+ * WASM Runtime instance - derived from runtimeInstanceAtom
+ * Contains the WasmRuntime instance (recreated on file changes)
  */
-export const wasmAtom = atom<any | undefined>(undefined);
+export const wasmAtom = atom<typeof import('@gloo-ai/baml-schema-wasm-web/baml_schema_build') | undefined>(undefined);
+
+/**
+ * Last valid WASM Runtime instance (without errors)
+ * Stores the most recent error-free WasmRuntime for fallback use
+ */
+const lastValidWasmAtomInternal = atom<WasmRuntime | undefined>(undefined);
+export const lastValidWasmAtom = atom(
+  (get) => get(lastValidWasmAtomInternal),
+  (get, set, update: WasmRuntime | undefined) => {
+    set(lastValidWasmAtomInternal, update);
+  }
+);
 
 /**
  * Current BAML files being tracked
@@ -518,22 +573,19 @@ export const filesAtom = atom<Record<string, string>>({});
 
 /**
  * Runtime state with diagnostics and last valid runtime
- * Mimics the old runtimeAtom structure
+ * Mimics the old runtimeAtom structure for backward compatibility
  */
-export const runtimeAtom = atom<{
-  rt: any | undefined;
-  diags: any | undefined;
-  lastValidRt: any | undefined;
-}>((get) => {
+export const runtimeAtom = atom((get) => {
   const diagnostics = get(diagnosticsAtom);
+  const wasm = get(wasmAtom);
+  const lastValidWasm = get(lastValidWasmAtom);
   const hasErrors = diagnostics.some((d) => d.type === 'error');
 
-  // TODO: This needs to be properly integrated with the SDK's runtime
-  // For now, return a structure compatible with old code
+  // Return structure compatible with old code
   return {
-    rt: undefined, // Will be set by SDK
-    diags: undefined,
-    lastValidRt: undefined,
+    rt: hasErrors ? undefined : wasm,
+    diags: diagnostics,
+    lastValidRt: hasErrors && lastValidWasm ? lastValidWasm : wasm,
   };
 });
 
@@ -548,7 +600,9 @@ export const ctxAtom = atom<any | undefined>(undefined);
 // ============================================================================
 
 /**
- * BAML runtime version
- * Set by the runtime during initialization
+ * BAML runtime version - derived from runtime
  */
-export const versionAtom = atom<string>("Loading...");
+export const versionAtom = atom((get) => {
+  const runtime = get(runtimeInstanceAtom);
+  return runtime?.getVersion() ?? "Loading...";
+});

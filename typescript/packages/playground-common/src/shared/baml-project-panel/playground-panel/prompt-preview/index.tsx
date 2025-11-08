@@ -4,12 +4,10 @@ import { SidebarInset, SidebarProvider } from '@baml/ui/sidebar';
 import { useAtomValue } from 'jotai';
 import { ApiKeysDialog } from '../../../../components/api-keys-dialog/dialog';
 import { StatusBar } from '../../../../components/status-bar';
-import { wasmAtom } from '../../atoms';
 import { vscode } from '../../vscode';
 import { functionTestSnippetAtom, selectionAtom } from '../atoms';
 import { PreviewToolbar } from '../preview-toolbar';
 import { TestingSidebar } from '../side-bar';
-import { Loader } from './components';
 import { PromptRenderWrapper } from './prompt-render-wrapper';
 import { TestPanel } from './test-panel';
 
@@ -69,40 +67,35 @@ export const NoTestsContent = () => {
 };
 
 export const PromptPreview = () => {
-  const wasm = useAtomValue(wasmAtom);
   const { selectedTc } = useAtomValue(selectionAtom);
 
   return (
     <>
       <SidebarProvider defaultOpen={vscode.isVscode()} className="h-full min-h-0">
         <SidebarInset>
-          {wasm ? (
-            <div className="h-full flex flex-col overflow-hidden relative">
-              {/* Header - always at top */}
-              <div className="flex-shrink-0 px-4 py-2 min-w-0 overflow-hidden">
-                <PreviewToolbar />
-              </div>
-
-              {/* Scrollable Body - takes remaining space */}
-              <div className="flex-1 overflow-y-scroll min-h-0 pb-14 px-1 min-w-0">
-                {selectedTc ? (
-                  <>
-                    <PromptRenderWrapper />
-                    <TestPanel />
-                  </>
-                ) : (
-                  <NoTestsContent />
-                )}
-              </div>
-
-              {/* Footer - always at bottom */}
-              <div className="flex-shrink-0 absolute bottom-0 left-0 right-0 flex">
-                <StatusBar />
-              </div>
+          <div className="h-full flex flex-col overflow-hidden relative">
+            {/* Header - always at top */}
+            <div className="flex-shrink-0 px-4 py-2 min-w-0 overflow-hidden">
+              <PreviewToolbar />
             </div>
-          ) : (
-            <Loader message="Loading..." />
-          )}
+
+            {/* Scrollable Body - takes remaining space */}
+            <div className="flex-1 overflow-y-scroll min-h-0 pb-14 px-1 min-w-0">
+              {selectedTc ? (
+                <>
+                  <PromptRenderWrapper />
+                  <TestPanel />
+                </>
+              ) : (
+                <NoTestsContent />
+              )}
+            </div>
+
+            {/* Footer - always at bottom */}
+            <div className="flex-shrink-0 absolute bottom-0 left-0 right-0 flex">
+              <StatusBar />
+            </div>
+          </div>
         </SidebarInset>
         <TestingSidebar />
       </SidebarProvider>

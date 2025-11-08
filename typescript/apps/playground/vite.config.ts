@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import wasm from 'vite-plugin-wasm';
 import { viteStaticCopy } from 'vite-plugin-static-copy'
-
+import { consoleForwardPlugin } from "vite-console-forward-plugin";
 const isWatchMode = process.argv.includes('--watch');
 const srcPath = normalizePath(path.resolve(__dirname, './dist/'));
 const destPath = normalizePath(path.resolve(__dirname, '../vscode-ext/dist/playground'));
@@ -26,9 +26,11 @@ export default defineConfig({
           dest: destPath
         }
       ]
-    })
+    }),
+    // Forward browser console logs to the terminal in dev mode
+    // !isWatchMode && consoleForwardPlugin(),
     // topLevelAwait(),
-  ],
+  ].filter(Boolean),
   // root: path.resolve(process.cwd(), './src'),
   server: {
     strictPort: true, // Allow fallback to next available port

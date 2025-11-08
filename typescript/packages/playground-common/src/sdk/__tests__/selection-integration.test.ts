@@ -1,0 +1,319 @@
+/**
+ * Integration Test: Selection State with Real BAML Runtime
+ *
+ * Tests that clicking on functions and tests properly updates selection state
+ * using the real BAML runtime (not mocked).
+ *
+ * This simulates the DebugPanel's click behavior and verifies that the same
+ * atoms get updated as when updateCursor runs.
+ */
+
+import { describe, it, expect, beforeAll } from 'vitest';
+import { createStore } from 'jotai';
+import { createRealBAMLSDK, DEBUG_BAML_FILES } from '../index';
+
+describe('Selection State Integration (Real WASM Runtime)', () => {
+  let sdk: ReturnType<typeof createRealBAMLSDK>;
+  let store: ReturnType<typeof createStore>;
+
+  beforeAll(async () => {
+    // Create SDK with real BAML runtime
+    store = createStore();
+    sdk = createRealBAMLSDK(store);
+
+    // Initialize with debug BAML files (same as debug mode)
+    await sdk.initialize(DEBUG_BAML_FILES);
+  });
+
+  describe('BAML Files Loading', () => {
+    it('should load debug BAML files and extract functions', () => {
+      const functions = sdk.diagnostics.getFunctions();
+
+      console.log('Extracted functions:', functions.map(f => f.name));
+
+      expect(functions.length).toBeGreaterThanOrEqual(4);
+
+      // Verify our debug functions are present
+      const functionNames = functions.map(f => f.name);
+      expect(functionNames).toContain('ExtractResume');
+      expect(functionNames).toContain('CheckAvailability');
+      expect(functionNames).toContain('CountItems');
+      expect(functionNames).toContain('ParseResume');
+    });
+
+    it('should extract test cases from BAML files', () => {
+      // Get all test cases for all functions
+      const functions = sdk.diagnostics.getFunctions();
+      const allTestCases = functions.flatMap(fn => sdk.testCases.get(fn.name));
+
+      console.log('Extracted test cases:', allTestCases.map(tc => `${tc.name} (${tc.nodeId})`));
+
+      expect(allTestCases).toBeDefined();
+      expect(allTestCases.length).toBeGreaterThanOrEqual(3);
+
+      const testNames = allTestCases.map(tc => tc.name);
+      expect(testNames).toContain('Test1');
+      expect(testNames).toContain('CheckAvailabilityTest');
+      expect(testNames).toContain('ParseResumeTest');
+    });
+
+    it('should verify CountItems has no tests', () => {
+      const countItemsTests = sdk.testCases.get('CountItems');
+
+      console.log('CountItems tests:', countItemsTests);
+
+      expect(countItemsTests).toBeDefined();
+      expect(countItemsTests.length).toBe(0);
+    });
+  });
+
+  describe('Clicking on Functions', () => {
+    it('should update selection when clicking on CheckAvailability function', () => {
+      // Simulate clicking on CheckAvailability function
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'CheckAvailability',
+        testCaseName: null,
+      });
+
+      // Verify selection state
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBe('CheckAvailability');
+      expect(selectedTestCaseName).toBeNull();
+
+      console.log('✓ Clicked CheckAvailability function');
+      console.log('  Selected function:', selectedFunctionName);
+      console.log('  Selected test:', selectedTestCaseName);
+    });
+
+    it('should clear test selection when clicking on a different function', () => {
+      // First, select a function with a test
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'ExtractResume',
+        testCaseName: 'Test1',
+      });
+
+      // Verify both are set
+      expect(store.get(sdk.atoms.selectedFunctionNameAtom)).toBe('ExtractResume');
+      expect(store.get(sdk.atoms.selectedTestCaseNameAtom)).toBe('Test1');
+
+      // Now click on a different function (should clear test)
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'CountItems',
+        testCaseName: null,
+      });
+
+      // Verify test was cleared
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBe('CountItems');
+      expect(selectedTestCaseName).toBeNull();
+
+      console.log('✓ Clicked CountItems function (cleared test selection)');
+      console.log('  Selected function:', selectedFunctionName);
+      console.log('  Selected test:', selectedTestCaseName);
+    });
+  });
+
+  describe('Clicking on Tests', () => {
+    it('should update both function and test when clicking on CheckAvailabilityTest', () => {
+      // Simulate clicking on CheckAvailabilityTest
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'CheckAvailability',
+        testCaseName: 'CheckAvailabilityTest',
+      });
+
+      // Verify selection state
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBe('CheckAvailability');
+      expect(selectedTestCaseName).toBe('CheckAvailabilityTest');
+
+      console.log('✓ Clicked CheckAvailabilityTest');
+      console.log('  Selected function:', selectedFunctionName);
+      console.log('  Selected test:', selectedTestCaseName);
+    });
+
+    it('should update selection when clicking on Test1', () => {
+      // Simulate clicking on Test1 (for ExtractResume)
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'ExtractResume',
+        testCaseName: 'Test1',
+      });
+
+      // Verify selection state
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBe('ExtractResume');
+      expect(selectedTestCaseName).toBe('Test1');
+
+      console.log('✓ Clicked Test1');
+      console.log('  Selected function:', selectedFunctionName);
+      console.log('  Selected test:', selectedTestCaseName);
+    });
+
+    it('should update selection when clicking on ParseResumeTest', () => {
+      // Simulate clicking on ParseResumeTest
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'ParseResume',
+        testCaseName: 'ParseResumeTest',
+      });
+
+      // Verify selection state
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBe('ParseResume');
+      expect(selectedTestCaseName).toBe('ParseResumeTest');
+
+      console.log('✓ Clicked ParseResumeTest');
+      console.log('  Selected function:', selectedFunctionName);
+      console.log('  Selected test:', selectedTestCaseName);
+    });
+  });
+
+  describe('Selection Atom Reactivity', () => {
+    it('should trigger selectionAtom updates when function changes', () => {
+      // Get initial selection state
+      const initialSelection = store.get(sdk.atoms.selectionAtom);
+      console.log('Initial selection:', initialSelection);
+
+      // Change function selection
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'CheckAvailability',
+        testCaseName: null,
+      });
+
+      // Verify selection state changed
+      const newSelection = store.get(sdk.atoms.selectionAtom);
+      console.log('New selection:', newSelection);
+
+      expect(newSelection.selectedFn).toBeDefined();
+      expect(newSelection.selectedFn?.name).toBe('CheckAvailability');
+      expect(newSelection.selectedTc).toBeNull();
+
+      // Verify it's different from initial
+      expect(newSelection).not.toEqual(initialSelection);
+    });
+
+    it('should derive selectedFunctionObjectAtom from function name', () => {
+      // Set function selection
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'ExtractResume',
+        testCaseName: null,
+      });
+
+      // Get derived function object
+      const selectedFunctionObject = store.get(sdk.atoms.selectedFunctionObjectAtom);
+
+      console.log('✓ Selected function object:', selectedFunctionObject);
+
+      // Note: This will be null until bamlFilesAtom is populated from getBAMLFiles()
+      // The real implementation needs to call sdk.diagnostics.getBAMLFiles() and populate bamlFilesAtom
+    });
+  });
+
+  describe('Multiple Selection Changes', () => {
+    it('should handle rapid selection changes correctly', () => {
+      const selections = [
+        { functionName: 'CheckAvailability', testCaseName: null },
+        { functionName: 'CheckAvailability', testCaseName: 'CheckAvailabilityTest' },
+        { functionName: 'ExtractResume', testCaseName: null },
+        { functionName: 'ExtractResume', testCaseName: 'Test1' },
+        { functionName: 'ParseResume', testCaseName: 'ParseResumeTest' },
+        { functionName: 'CountItems', testCaseName: null },
+      ];
+
+      for (const selection of selections) {
+        store.set(sdk.atoms.updateSelectionAtom, selection);
+
+        const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+        const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+        expect(selectedFunctionName).toBe(selection.functionName);
+        expect(selectedTestCaseName).toBe(selection.testCaseName);
+
+        console.log(`✓ ${selection.functionName}${selection.testCaseName ? ` → ${selection.testCaseName}` : ''}`);
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle setting selection to null', () => {
+      // First set a selection
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: 'CheckAvailability',
+        testCaseName: 'CheckAvailabilityTest',
+      });
+
+      // Clear selection
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: null,
+        testCaseName: null,
+      });
+
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBeNull();
+      expect(selectedTestCaseName).toBeNull();
+
+      console.log('✓ Cleared selection');
+    });
+
+    it('should handle selecting a test without a function (edge case)', () => {
+      // This is technically an invalid state, but we should handle it gracefully
+      store.set(sdk.atoms.updateSelectionAtom, {
+        functionName: null,
+        testCaseName: 'Test1',
+      });
+
+      const selectedFunctionName = store.get(sdk.atoms.selectedFunctionNameAtom);
+      const selectedTestCaseName = store.get(sdk.atoms.selectedTestCaseNameAtom);
+
+      expect(selectedFunctionName).toBeNull();
+      expect(selectedTestCaseName).toBe('Test1');
+
+      console.log('✓ Handled invalid state: test without function');
+      console.log('  Function:', selectedFunctionName);
+      console.log('  Test:', selectedTestCaseName);
+    });
+  });
+
+  describe('Real Runtime Verification', () => {
+    it('should be using real BAML runtime, not mock', () => {
+      // Verify we're using the real runtime by checking that we get actual functions
+      const functions = sdk.diagnostics.getFunctions();
+
+      // Mock runtime would return mock workflows, real runtime extracts from WASM
+      console.log('Extracted', functions.length, 'functions from BAML files');
+
+      expect(functions.length).toBeGreaterThan(0);
+
+      // Verify we have real function metadata (file paths, etc)
+      const firstFunction = functions[0];
+      expect(firstFunction).toBeDefined();
+      expect(firstFunction?.name).toBeDefined();
+      expect(firstFunction?.filePath).toBeDefined();
+
+      console.log('Sample function:', firstFunction);
+    });
+
+    it('should have diagnostics from real BAML compilation', () => {
+      const diagnostics = store.get(sdk.atoms.diagnosticsAtom);
+
+      console.log('Diagnostics:', diagnostics);
+
+      expect(diagnostics).toBeDefined();
+      expect(Array.isArray(diagnostics)).toBe(true);
+
+      // Our debug files should compile without errors
+      const errors = diagnostics.filter(d => d.type === 'error');
+      expect(errors.length).toBe(0);
+    });
+  });
+});

@@ -25,7 +25,7 @@ import {
 import { useActiveNode, useDetailPanel, useNodeInputSources, useSelectedInputSource } from '../../../sdk/hooks';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type { GraphNode, NodeExecution, InputSource } from '../../../sdk/types';
-import { useBAMLSDK } from '@/sdk';
+import { useBAMLSDK } from '../../../sdk';
 
 // Tab Component Props
 interface IOTabProps {

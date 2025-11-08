@@ -31,7 +31,7 @@ export const showApiKeyDialogAtom = atom(
 
     // Check if ALL required vars are missing
     const hasMissingVars =
-      requiredVars.length > 0 && requiredVars.every((key) => !envVars[key])
+      requiredVars.length > 0 && requiredVars.every((key: string) => !envVars[key])
 
     const hasShownDialog = get(hasShownApiKeyDialogAtom)
     if (hasShownDialog) return apiKeyDialogOpen
@@ -195,14 +195,17 @@ export const apiKeysAtom = atom(
 );
 
 export const requiredApiKeysAtom = atom((get) => {
-  const { rt } = get(runtimeAtom);
-  if (rt === undefined) {
+  const { rt, lastValidRt } = get(runtimeAtom);
+  const runtime = rt || lastValidRt;
+
+  if (!runtime) {
     return [];
   }
-  const requiredEnvVars = rt.required_env_vars();
+
+  const requiredEnvVars = runtime.required_env_vars();
   const defaultEnvVars = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'];
   for (const e of defaultEnvVars) {
-    if (!requiredEnvVars.find((envVar) => e === envVar)) {
+    if (!requiredEnvVars.find((envVar: string) => e === envVar)) {
       requiredEnvVars.push(e);
     }
   }
@@ -279,7 +282,7 @@ export const areApiKeysMissingAtom = atom((get) => {
   const isVscode = vscode.isVscode()
   if (!isVscode) return false
   const envVars = get(apiKeysAtom)
-  return requiredVars.length > 0 && requiredVars.some((key) => !envVars[key])
+  return requiredVars.length > 0 && requiredVars.some((key: string) => !envVars[key])
 })
 
 // Local state atoms for API key management
@@ -317,11 +320,11 @@ export const renderedApiKeysAtom = atom((get) => {
   );
 
   const missingVars = requiredApiKeys.filter(
-    (apiKey) => !(apiKey in localApiKeys),
+    (apiKey: string) => !(apiKey in localApiKeys),
   );
 
   vars.push(
-    ...missingVars.map((apiKey) => ({
+    ...missingVars.map((apiKey: string) => ({
       key: apiKey,
       value: undefined,
       required: true,

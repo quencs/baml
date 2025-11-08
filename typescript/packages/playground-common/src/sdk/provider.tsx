@@ -16,6 +16,7 @@ import {
   persistRuntimeMode,
   type RuntimeMode,
 } from './DebugBanner';
+import { DEBUG_BAML_FILES } from './debugFixtures';
 
 const BAMLSDKContext = createContext<BAMLSDK | null>(null);
 
@@ -89,11 +90,13 @@ export function BAMLSDKProvider({ children, mode: initialMode = 'mock' }: BAMLSD
 
       console.log('⏳ Initializing SDK with mode:', runtimeMode);
 
-      // Initialize with empty files for mock mode
-      const initialFiles = {
-        'workflows/simple.baml': '// Mock workflow file',
-        'workflows/conditional.baml': '// Mock conditional workflow',
-      };
+      // Use debug fixtures when in debug mode, otherwise use empty files
+      const initialFiles = debugMode
+        ? DEBUG_BAML_FILES
+        : {
+            'workflows/simple.baml': '// Mock workflow file',
+            'workflows/conditional.baml': '// Mock conditional workflow',
+          };
 
       await sdkRef.current.initialize(initialFiles);
 
@@ -110,7 +113,7 @@ export function BAMLSDKProvider({ children, mode: initialMode = 'mock' }: BAMLSD
     return () => {
       mounted = false;
     };
-  }, [runtimeMode]); // Reinitialize when runtime mode changes
+  }, [runtimeMode, debugMode]); // Reinitialize when runtime mode changes
 
   // Show loading state while SDK initializes
   if (!isInitialized) {
@@ -150,5 +153,6 @@ export function useBAMLSDK(): BAMLSDK {
   return sdk;
 }
 
-// Re-export RuntimeMode type for convenience
+// Re-export RuntimeMode type and debug utilities for convenience
 export type { RuntimeMode } from './DebugBanner';
+export { isDebugMode } from './DebugBanner';

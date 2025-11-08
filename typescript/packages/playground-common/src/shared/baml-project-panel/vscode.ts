@@ -468,9 +468,10 @@ class VSCodeAPIWrapper {
   private postMessageToHost(message: unknown) {
     if (this.vsCodeApi) {
       this.vsCodeApi.postMessage(message)
-    } else {
+    } else if (typeof window !== 'undefined') {
       window.postMessage(message)
     }
+    // In non-browser environments (like tests), silently ignore
   }
 
   private async httpPostRpc<TRequest, TResponse>(data: TRequest): Promise<TResponse> {

@@ -93,7 +93,7 @@ const EditWorkFlow = () => {
         },
       }))
     );
-  }, [activeWorkflowId, sdk.store, setNodes]);
+  }, [activeWorkflowId, setNodes]);
 
   const handleResetLayout = async () => {
     // Re-run the layout algorithm from scratch without resetting viewport

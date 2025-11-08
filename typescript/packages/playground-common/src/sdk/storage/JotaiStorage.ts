@@ -16,6 +16,7 @@ import type {
 
 // Import atoms directly from core.atoms.ts (no barrel exports)
 import {
+  runtimeInstanceAtom,
   workflowsAtom,
   activeWorkflowIdAtom,
   workflowExecutionsAtomFamily,
@@ -25,8 +26,11 @@ import {
   getCacheKey,
   versionAtom,
   diagnosticsAtom,
-  lastValidRuntimeAtom,
+  functionsAtom,
+  isRuntimeValid,
   generatedFilesAtom,
+  wasmAtom,
+  lastValidWasmAtom,
   wasmPanicAtom,
   featureFlagsAtom,
   envVarsAtom,
@@ -62,9 +66,23 @@ import type {
   WatchNotification,
   FlashRange,
 } from '../atoms/test.atoms';
+import { BamlRuntimeInterface, FunctionDefinition } from '../runtime/BamlRuntimeInterface';
+import { WasmRuntime } from '@gloo-ai/baml-schema-wasm-web';
 
 export class JotaiStorage implements SDKStorage {
-  constructor(private store: ReturnType<typeof createStore>) {}
+  constructor(private store: ReturnType<typeof createStore>) { }
+
+  // ============================================================================
+  // Runtime Instance (source of truth for derived state)
+  // ============================================================================
+
+  setRuntime(runtime: BamlRuntimeInterface | null) {
+    this.store.set(runtimeInstanceAtom, runtime);
+  }
+
+  getRuntime() {
+    return this.store.get(runtimeInstanceAtom);
+  }
 
   // ============================================================================
   // Workflows
@@ -209,44 +227,38 @@ export class JotaiStorage implements SDKStorage {
   // Version
   // ============================================================================
 
-  setVersion(version: string) {
-    this.store.set(versionAtom, version);
-  }
-
   getVersion() {
     return this.store.get(versionAtom);
-  }
-
-  // ============================================================================
-  // Diagnostics
-  // ============================================================================
-
-  setDiagnostics(diagnostics: DiagnosticError[]) {
-    this.store.set(diagnosticsAtom, diagnostics);
   }
 
   getDiagnostics() {
     return this.store.get(diagnosticsAtom);
   }
 
-  setLastValidRuntime(valid: boolean) {
-    this.store.set(lastValidRuntimeAtom, valid);
-  }
 
-  getLastValidRuntime() {
-    return this.store.get(lastValidRuntimeAtom);
+
+  getFunctions() {
+    return this.store.get(functionsAtom);
   }
 
   // ============================================================================
   // Generated Files
   // ============================================================================
 
-  setGeneratedFiles(files: GeneratedFile[]) {
-    this.store.set(generatedFilesAtom, files);
-  }
-
   getGeneratedFiles() {
     return this.store.get(generatedFilesAtom);
+  }
+
+  // ============================================================================
+  // WASM Instance
+  // ============================================================================
+
+  setWasmRuntime(wasm: WasmRuntime | undefined) {
+    this.store.set(lastValidWasmAtom, wasm);
+  }
+
+  getWasmRuntime() {
+    return this.store.get(lastValidWasmAtom);
   }
 
   // ============================================================================
