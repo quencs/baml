@@ -2,7 +2,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import type React from 'react';
 import { displaySettingsAtom } from '../preview-toolbar';
 import { showTokensAtom } from './render-text';
-import type { WasmChatMessagePart } from '@gloo-ai/baml-schema-wasm-web';
+import type { ChatMessagePart } from '../../../../sdk/interface';
 import { useState, useEffect, useMemo } from 'react';
 import { imageStatsMapAtom } from './image-stats-atom';
 import useSWR from 'swr';
@@ -17,7 +17,7 @@ interface ImageStats {
 
 export const PromptStats: React.FC<{
   text: string;
-  parts?: WasmChatMessagePart[];
+  parts?: ChatMessagePart[];
 }> = ({ text, parts }) => {
   const showTokenCounts = useAtomValue(showTokensAtom);
   const setDisplaySettings = useSetAtom(displaySettingsAtom);
@@ -60,30 +60,27 @@ export const PromptStats: React.FC<{
     if (!parts || !wasm) return { totalTokens: 0, imageCount: 0, audioCount: 0, pdfCount: 0, videoCount: 0, totalMediaCount: 0 };
 
     parts.forEach(part => {
-      if (part.is_image?.()) {
-        const media = part.as_media();
-        if (media) {
-          const url = media.content;
-          const stats = imageStatsMap.get(url);
-          if (stats) {
-            // Use the same calculation as in webview-media
-            const tokens = Math.ceil((stats.width * stats.height) / 750);
-            totalTokens += tokens;
-          } else {
-            // Default estimate if dimensions not yet loaded
-            totalTokens += 85;
-          }
-          imageCount++;
+      if (part.type === 'image') {
+        const url = part.content;
+        const stats = imageStatsMap.get(url);
+        if (stats) {
+          // Use the same calculation as in webview-media
+          const tokens = Math.ceil((stats.width * stats.height) / 750);
+          totalTokens += tokens;
+        } else {
+          // Default estimate if dimensions not yet loaded
+          totalTokens += 85;
         }
-      } else if (part.is_audio?.()) {
+        imageCount++;
+      } else if (part.type === 'audio') {
         // Audio default token estimate
         totalTokens += 50;
         audioCount++;
-      } else if (part.is_pdf?.()) {
+      } else if (part.type === 'pdf') {
         // PDF default token estimate (higher due to potential text content)
         totalTokens += 200;
         pdfCount++;
-      } else if (part.is_video?.()) {
+      } else if (part.type === 'video') {
         // Video default token estimate (higher due to visual content)
         totalTokens += 150;
         videoCount++;

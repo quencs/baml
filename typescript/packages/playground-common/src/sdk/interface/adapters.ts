@@ -137,10 +137,9 @@ export class WasmTypeAdapter {
     // Get client name if LLM function
     const clientName = type === 'llm_function' ? wasmFn.client_name(runtime) : undefined;
 
-    // Get orchestration graph
-    const orchestrationGraph = wasmFn.orchestration_graph(runtime).map(scope =>
-      this.convertOrchestrationScope(scope)
-    );
+    // TODO: Re-enable orchestration graph when needed
+    // Temporarily disabled - orchestration graph needs migration
+    const orchestrationGraph = undefined;
 
     return {
       name: wasmFn.name,

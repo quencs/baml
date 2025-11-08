@@ -19,7 +19,7 @@ export const NoTestsContent = () => {
 
   // Check if the function has any valid test cases
   const hasValidTestCases =
-    selectedFn?.test_cases && selectedFn.test_cases.length > 0;
+    selectedFn?.testCases && selectedFn.testCases.length > 0;
 
   const message = hasValidTestCases
     ? 'Add a test to see the preview!'

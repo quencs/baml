@@ -40,7 +40,7 @@ const functionsAtom = atom((get) => {
   }
   return runtimeState.functions.map((f) => ({
     name: f.name,
-    tests: f.test_cases.map((t) => t.name),
+    tests: f.testCases.map((t) => t.name),
   }));
 });
 

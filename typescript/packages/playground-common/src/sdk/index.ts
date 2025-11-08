@@ -416,17 +416,25 @@ export class BAMLSDK {
       const testCases = this.runtime.getTestCases(nodeId);
       return testCases
         .filter((tc): tc is import('./interface').TestCaseMetadata & { source: 'test' } => tc.source === 'test')
-        .map(tc => ({
-          id: tc.id,
-          name: tc.name,
-          source: 'test' as const,
-          functionId: tc.functionId,
-          filePath: tc.filePath,
-          inputs: tc.inputs,
-          expectedOutput: undefined,
-          status: undefined,
-          lastRun: undefined,
-        }));
+        .map(tc => {
+          // Convert ParameterInfo[] to Record<string, any>
+          const inputs: Record<string, any> = {};
+          for (const param of tc.inputs) {
+            inputs[param.name] = param.value;
+          }
+
+          return {
+            id: tc.id,
+            name: tc.name,
+            source: 'test' as const,
+            functionId: tc.functionId,
+            filePath: tc.filePath,
+            inputs,
+            expectedOutput: undefined,
+            status: undefined,
+            lastRun: undefined,
+          };
+        });
     },
   };
 

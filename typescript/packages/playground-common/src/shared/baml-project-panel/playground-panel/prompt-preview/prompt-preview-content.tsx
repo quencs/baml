@@ -1,4 +1,3 @@
-import type { WasmError, WasmPrompt } from '@gloo-ai/baml-schema-wasm-web';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { useMemo } from 'react';
@@ -10,11 +9,13 @@ import { Loader } from './components';
 import { vscode } from '../../vscode';
 import { RenderPrompt } from './render-prompt';
 import { EnhancedErrorRenderer } from './test-panel/components/EnhancedErrorRenderer';
+import { runtimeInstanceAtom } from '../../../../sdk/atoms/core.atoms';
+import type { PromptInfo } from '../../../../sdk/interface';
 
-export const renderedPromptAtom = atom<WasmPrompt | undefined>(undefined);
+export const renderedPromptAtom = atom<PromptInfo | undefined>(undefined);
 
 export const PromptPreviewContent = () => {
-  const { rt } = useAtomValue(runtimeAtom);
+  const runtime = useAtomValue(runtimeInstanceAtom);
   const apiKeys = useAtomValue(apiKeysAtom);
   const ctx = useAtomValue(ctxAtom);
   const files = useAtomValue(filesAtom);
@@ -27,7 +28,7 @@ export const PromptPreviewContent = () => {
   const generatePreview = useMemo(
     () => async () => {
       if (
-        rt === undefined ||
+        runtime === null ||
         ctx === undefined ||
         selectedFn === undefined ||
         selectedTc === undefined
@@ -35,25 +36,27 @@ export const PromptPreviewContent = () => {
 
         return;
       }
-      console.log('[PromptPreview] Attempt render_prompt_for_test', {
+      console.log('[PromptPreview] Attempt renderPromptForTest', {
         functionName: selectedFn.name,
         testCaseName: selectedTc.name,
-        hasExprTests: selectedFn.test_cases?.length ?? 0,
+        hasTests: selectedFn.testCases?.length ?? 0,
       });
       try {
-        const newPreview = await selectedFn.render_prompt_for_test(
-          rt,
+        // Use runtime interface method instead of calling WASM directly
+        const newPreview = await runtime.renderPromptForTest(
+          selectedFn.name,
           selectedTc.name,
-          ctx,
-          vscode.loadMediaFile,
-          apiKeys,
+          {
+            apiKeys,
+            loadMediaFile: vscode.loadMediaFile,
+          }
         );
 
         setLastKnownPreview(newPreview);
         setPromptData(newPreview);
         return newPreview;
       } catch (error) {
-        console.error('[PromptPreview] render_prompt_for_test failed', {
+        console.error('[PromptPreview] renderPromptForTest failed', {
           functionName: selectedFn.name,
           testCaseName: selectedTc.name,
           error,
@@ -61,11 +64,11 @@ export const PromptPreviewContent = () => {
         throw error;
       }
     },
-    [rt, ctx, selectedFn, selectedTc, apiKeys, files, setPromptData],
+    [runtime, ctx, selectedFn, selectedTc, apiKeys, files, setPromptData],
   );
 
   const [lastKnownPreview, setLastKnownPreview] = useState<
-    WasmPrompt | undefined
+    PromptInfo | undefined
   >();
 
 
@@ -75,7 +78,7 @@ export const PromptPreviewContent = () => {
     isLoading,
   } = useSWR(
     // Include file content in the key so updates trigger when typing
-    rt && ctx && selectedFn && selectedTc
+    runtime && ctx && selectedFn && selectedTc
       ? [
         'prompt-preview',
         selectedFn.name,

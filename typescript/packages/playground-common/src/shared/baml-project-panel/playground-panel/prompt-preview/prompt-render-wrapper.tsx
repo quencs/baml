@@ -25,7 +25,7 @@ const FunctionMetadata: React.FC = () => {
   if (!selectedFn) return null;
   if (!rt) return null;
 
-  const clientName = selectedFn?.client_name(rt);
+  const clientName = selectedFn?.clientName;
 
   // Hide text when sidebar is open or on smaller screens
   const getButtonTextClass = () => {
@@ -129,15 +129,20 @@ export const PromptRenderWrapper = () => {
 
     // Otherwise copy the human-readable prompt preview
     if (!renderedPrompt) return;
-    navigator.clipboard.writeText(
-      renderedPrompt
-        .as_chat()
-        ?.map(
+
+    let textToCopy = '';
+    if (renderedPrompt.type === 'chat' && renderedPrompt.messages) {
+      textToCopy = renderedPrompt.messages
+        .map(
           (msg) =>
-            `${msg.role}:\n${msg.parts.map((part) => part.as_text()).join('\n')}`,
+            `${msg.role}:\n${msg.parts.map((part) => part.content).join('\n')}`,
         )
-        .join('\n\n') ?? '',
-    );
+        .join('\n\n');
+    } else if (renderedPrompt.type === 'completion' && renderedPrompt.text) {
+      textToCopy = renderedPrompt.text;
+    }
+
+    navigator.clipboard.writeText(textToCopy);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 1500);
   };

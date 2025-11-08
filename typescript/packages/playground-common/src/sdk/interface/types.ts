@@ -257,7 +257,7 @@ export interface WatchNotification {
 export interface TestExecutionContext {
   apiKeys?: Record<string, string>;
   abortSignal?: AbortSignal;
-  loadMediaFile?: (path: string) => Promise<string>;
+  loadMediaFile?: (path: string) => Promise<Uint8Array>;
   onPartialResponse?: (response: unknown) => void;
   onWatchNotification?: (notification: WatchNotification) => void;
   onHighlight?: (spans: SpanInfo[]) => void;

@@ -1,7 +1,6 @@
 'use client';
 import { Button } from '@baml/ui/button';
 // import Link from "next/link";
-import type { WasmChatMessagePartMedia } from '@gloo-ai/baml-schema-wasm-web';
 /* eslint-disable @typescript-eslint/require-await */
 import { useAtom, useAtomValue } from 'jotai';
 import {
@@ -26,9 +25,14 @@ import { mediaCollapsedMapAtom } from './media-collapsed-atom';
 import { PdfViewer } from './pdf-viewer';
 import { showTokensAtom } from './render-text';
 
+export interface MediaInfo {
+  content: string;
+  type?: number; // Optional: WASM media type (File/Url/Error)
+}
+
 interface WebviewMediaProps {
   bamlMediaType: 'image' | 'audio' | 'pdf' | 'video';
-  media: WasmChatMessagePartMedia;
+  media: MediaInfo;
 }
 
 // Helper function to convert base64 data URL to blob URL for better performance
@@ -169,6 +173,11 @@ export const WebviewMedia: React.FC<WebviewMediaProps> = ({
     async () => {
       if (!wasm) {
         throw new Error('wasm not loaded');
+      }
+
+      // If type is undefined, assume it's a file path (from unified types)
+      if (media.type === undefined) {
+        return `${media.content}`;
       }
 
       switch (media.type) {

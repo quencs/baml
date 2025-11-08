@@ -46,6 +46,7 @@ import {
   selectedFunctionObjectAtom,
   selectedTestCaseAtom,
   runtimeAtom,
+  functionsAtom,
 } from '../sdk/atoms/core.atoms';
 import { selectedTestHistoryAtom } from '../sdk/atoms/test.atoms';
 
@@ -121,31 +122,18 @@ export const testCaseResponseAtom = atom((get) => {
 
 /**
  * @deprecated Use SDK functionsAtom instead
- * This is a compatibility shim for old code
+ * This is a compatibility shim for old code that returns unified FunctionWithCallGraph[] types
  */
 export const runtimeStateAtom = atom((get) => {
   const runtime = get(runtimeAtom);
+  const functions = get(functionsAtom);
 
-  if (!runtime.rt) {
-    // No current runtime, check if we have a last valid one
-    if (!runtime.lastValidRt) {
-      return { functions: [], stale: false };
-    }
-    // Use last valid runtime (stale)
-    const llmFunctions = runtime.lastValidRt.list_functions?.() || [];
-    const exprFunctions = runtime.lastValidRt.list_expr_fns?.() || [];
-    return {
-      functions: [...llmFunctions, ...exprFunctions],
-      stale: true
-    };
-  }
+  // Determine if runtime is stale (has errors but last valid runtime exists)
+  const hasErrors = !runtime.rt && !!runtime.lastValidRt;
 
-  // Current runtime is valid
-  const llmFunctions = runtime.rt.list_functions?.() || [];
-  const exprFunctions = runtime.rt.list_expr_fns?.() || [];
   return {
-    functions: [...llmFunctions, ...exprFunctions],
-    stale: false
+    functions, // FunctionWithCallGraph[] from unified types
+    stale: hasErrors
   };
 });
 

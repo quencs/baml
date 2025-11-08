@@ -126,7 +126,7 @@ export const testcaseObjectAtom = atomFamily(
       if (!fn) {
         return undefined;
       }
-      const tc = fn.test_cases?.find((tc) => tc.name === params.testcaseName);
+      const tc = fn.testCases?.find((tc) => tc.name === params.testcaseName);
       if (!tc) {
         return undefined;
       }
@@ -231,9 +231,9 @@ export const selectionAtom = atom((get) => {
     console.debug('No function selected');
   }
 
-  let selectedTc = selectedFn?.test_cases?.at(0);
+  let selectedTc = selectedFn?.testCases?.at(0);
   if (selectedTestcase !== undefined) {
-    const foundTc = selectedFn?.test_cases?.find(
+    const foundTc = selectedFn?.testCases?.find(
       (tc) => tc.name === selectedTestcase,
     );
     if (foundTc) {
@@ -273,7 +273,7 @@ export const testCaseAtom = atomFamily(
     atom((get) => {
       const { functions } = get(runtimeStateAtom);
       const fn = functions.find((f) => f.name === params.functionName);
-      const tc = fn?.test_cases?.find((tc) => tc.name === params.testName);
+      const tc = fn?.testCases?.find((tc) => tc.name === params.testName);
       if (!fn || !tc) {
         return undefined;
       }
@@ -288,7 +288,7 @@ export const functionTestSnippetAtom = atomFamily((functionName: string) =>
     if (!fn) {
       return undefined;
     }
-    return fn.test_snippet;
+    return fn.testSnippet;
   }),
 );
 
