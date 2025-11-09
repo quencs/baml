@@ -1,15 +1,16 @@
 'use client';
 import { CopyButton } from '@baml/ui/custom/copy-button';
 import { SidebarInset, SidebarProvider } from '@baml/ui/sidebar';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@baml/ui/resizable';
 import { useAtomValue } from 'jotai';
 import { ApiKeysDialog } from '../../../../components/api-keys-dialog/dialog';
 import { StatusBar } from '../../../../components/status-bar';
 import { vscode } from '../../vscode';
-import { functionTestSnippetAtom, selectionAtom } from '../atoms';
+import { functionTestSnippetAtom, selectionAtom, detailPanelStateAtom } from '../atoms';
 import { PreviewToolbar } from '../preview-toolbar';
 import { TestingSidebar } from '../side-bar';
-import { PromptRenderWrapper } from './prompt-render-wrapper';
-import { TestPanel } from './test-panel';
+import { UnifiedPromptPreview } from './unified-prompt-preview';
+import { AdaptiveBottomPanel } from './adaptive-bottom-panel';
 
 export const NoTestsContent = () => {
   const { selectedFn } = useAtomValue(selectionAtom);
@@ -68,6 +69,7 @@ export const NoTestsContent = () => {
 
 export const PromptPreview = () => {
   const { selectedTc } = useAtomValue(selectionAtom);
+  const detailPanelState = useAtomValue(detailPanelStateAtom);
 
   return (
     <>
@@ -79,15 +81,31 @@ export const PromptPreview = () => {
               <PreviewToolbar />
             </div>
 
-            {/* Scrollable Body - takes remaining space */}
-            <div className="flex-1 overflow-y-scroll min-h-0 pb-14 px-1 min-w-0">
+            {/* Resizable Layout - Main Content + Bottom Panel */}
+            <div className="flex-1 min-h-0">
               {selectedTc ? (
-                <>
-                  <PromptRenderWrapper />
-                  <TestPanel />
-                </>
+                <ResizablePanelGroup direction="vertical" id="unified-layout">
+                  {/* Main Panel - Unified Prompt Preview with tabs */}
+                  <ResizablePanel defaultSize={detailPanelState.isOpen ? 60 : 100} minSize={30}>
+                    <div className="h-full overflow-y-auto px-1">
+                      <UnifiedPromptPreview />
+                    </div>
+                  </ResizablePanel>
+
+                  {/* Bottom Panel - Adaptive (TestPanel or DetailPanel) */}
+                  {detailPanelState.isOpen && (
+                    <>
+                      <ResizableHandle />
+                      <ResizablePanel defaultSize={40} minSize={20} maxSize={70}>
+                        <AdaptiveBottomPanel />
+                      </ResizablePanel>
+                    </>
+                  )}
+                </ResizablePanelGroup>
               ) : (
-                <NoTestsContent />
+                <div className="overflow-y-scroll h-full px-1">
+                  <NoTestsContent />
+                </div>
               )}
             </div>
 

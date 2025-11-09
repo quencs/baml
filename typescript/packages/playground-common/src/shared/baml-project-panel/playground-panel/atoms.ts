@@ -240,6 +240,9 @@ export const selectionAtom = atom((get) => {
       selectedTc = foundTc;
     } else {
       console.error('Testcase not found', selectedTestcase);
+      // Clear the invalid test selection from SDK atoms
+      // This prevents the error from persisting
+      selectedTc = undefined;
     }
   }
 
@@ -320,3 +323,20 @@ export const testCaseResponseAtom = atomFamily(
       return testEntry?.response;
     }),
 );
+
+// ============================================================================
+// UNIFIED STATE INTEGRATION
+// ============================================================================
+
+// Re-export unified atoms
+export {
+  unifiedSelectionAtom,
+  activeTabAtom,
+  detailPanelStateAtom,
+  viewModeAtom,
+  bottomPanelModeAtom,
+  shouldShowGraphAtom,
+  type UnifiedSelection,
+  type TabValue,
+  type BottomPanelMode,
+} from './unified-atoms';

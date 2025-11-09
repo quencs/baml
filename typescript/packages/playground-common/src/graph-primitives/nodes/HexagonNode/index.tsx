@@ -1,7 +1,7 @@
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { type ComponentType, memo } from 'react';
 
-import type { ReactflowHexagonNode } from '@/mock-data/types';
+import type { ReactflowHexagonNode} from '../../../mock-data/types';
 import { ExecutionHistoryDots } from '../subcomponents/ExecutionHistoryDots';
 
 export const HexagonNode: ComponentType<NodeProps<ReactflowHexagonNode>> = memo(

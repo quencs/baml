@@ -1,10 +1,10 @@
 import { deepClone, deepEqual, lastOf } from '@del-wang/utils';
 import { getBezierPath, type Position } from '@xyflow/react';
 
-import { flowStore } from '@/states/reactflow';
+import { flowStore } from '../../../../states/reactflow';
 
-import { getMarkerColors } from '@/graph-primitives/edges/Marker';
-import type { EdgeLayout, ReactflowEdgeWithData } from '@/mock-data/types';
+import { getMarkerColors } from '../../../../graph-primitives/edges/Marker';
+import type { EdgeLayout, ReactflowEdgeWithData } from '../../../../mock-data/types';
 import { getBasePath } from '.';
 import { getPathWithRoundCorners } from './edge';
 

@@ -1,10 +1,10 @@
 import { BaseEdge as _BaseEdge, type EdgeProps } from '@xyflow/react';
 import { type ComponentType, memo } from 'react';
 
-import type { ReactflowEdgeWithData } from '@/mock-data/types';
-import { isConnectionBackward } from '@/features/graph/layout/edge/edge';
-import { getEdgeStyles, layoutEdge } from '@/features/graph/layout/edge/style';
-import { flowStore } from '@/states/reactflow';
+import type { ReactflowEdgeWithData } from '../../../mock-data/types';
+import { isConnectionBackward } from '../../../features/graph/layout/edge/edge';
+import { getEdgeStyles, layoutEdge } from '../../../features/graph/layout/edge/style';
+import { flowStore } from '../../../states/reactflow';
 
 // import { EdgeControllers } from '../EdgeController';
 import { useRebuildEdge } from './useRebuildEdge';

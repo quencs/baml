@@ -8,7 +8,8 @@
       "Bash(while read file)",
       "Bash(do sed -i '' \"s|from [''''\"\"]\\./atoms[''''\"\"]|from ''''../../atoms''''|g\" \"$file\" sed -i '' \"s|from [''''\"\"]\\.\\./ atoms[''''\"\"]|from ''''../../../atoms''''|g\" \"$file\" sed -i '' \"s|from [''''\"\"]\\.\\./../atoms[''''\"\"]|from ''''../../../../atoms''''|g\" \"$file\" done echo \"Updated imports\")",
       "Bash(pnpm add:*)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(pnpm test:*)"
     ],
     "deny": [],
     "ask": []

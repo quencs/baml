@@ -1,7 +1,7 @@
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { type ComponentType, memo } from 'react';
 
-import type { ReactflowDiamondNode } from '@/mock-data/types';
+import type { ReactflowDiamondNode } from '../../../mock-data/types';
 // import { ExecutionHistoryDots } from '../subcomponents/ExecutionHistoryDots';
 
 export const DiamondNode: ComponentType<NodeProps<ReactflowDiamondNode>> = memo(

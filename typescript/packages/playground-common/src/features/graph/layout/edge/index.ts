@@ -1,6 +1,6 @@
-import { flowStore } from '@/states/reactflow';
+import { flowStore } from '../../../../states/reactflow';
 
-import type { EdgeLayout } from '@/mock-data/types';
+import type { EdgeLayout } from '../../../../mock-data/types';
 import { type GetControlPointsParams, getControlPoints } from './algorithms';
 import { getLabelPosition, getPathWithRoundCorners } from './edge';
 
