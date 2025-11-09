@@ -16,7 +16,7 @@ import { useEffect, useId, useState } from 'react';
 import { DetailPanel } from './features/detail-panel';
 import { WorkflowToolbar, WorkflowIndicator } from './features/workflow/components';
 import { LLMOnlyPanel, LLMTestPanel } from './features/llm/components';
-import { DebugPanel } from './features/debug';
+import { DebugPanel } from './features/debug-panel';
 import { kEdgeTypes, ColorfulMarkerDefinitions, kNodeTypes } from './graph-primitives';
 import { ReactflowInstance } from './features/graph/components';
 import { useAutoLayout } from './features/graph/layout/useAutoLayout';
@@ -180,7 +180,7 @@ const EditWorkFlow = () => {
                 onNodeClick={handleNodeClick}
                 panOnScroll
                 selectionOnDrag
-                panOnDrag={[1,2]}
+                panOnDrag={[1, 2]}
                 selectionMode={SelectionMode.Partial}
 
                 colorMode={isDarkMode ? 'dark' : 'light'}

@@ -7,4 +7,4 @@ export * from './detail-panel';
 export * from './llm';
 
 // Debug features
-export * from './debug';
+export * from './debug-panel';

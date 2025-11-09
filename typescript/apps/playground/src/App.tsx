@@ -15,7 +15,7 @@ import { PromptPreview } from '@baml/playground-common/prompt-preview';
 import { ThemeProvider } from 'next-themes';
 import { useWasmPanicHandler } from '@baml/playground-common/baml-project-panel/atoms';
 import { WasmPanicNotification } from '@baml/playground-common/baml-project-panel/WasmPanicNotification';
-import { DebugPanel } from '@baml/playground-common/features/debug';
+import { DebugPanel } from '@baml/playground-common/features/debug-panel';
 
 function AppContent() {
   useFeedbackWidget();
