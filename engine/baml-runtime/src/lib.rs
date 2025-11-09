@@ -50,7 +50,7 @@ use cfg_if::cfg_if;
 #[cfg(not(target_arch = "wasm32"))]
 pub use cli::RuntimeCliDefaults;
 use client_registry::{ClientProperty, ClientRegistry};
-use control_flow::{build_from_hir, ControlFlowVisualization};
+use control_flow::{build_from_hir, flatten::flatten_control_flow, ControlFlowVisualization};
 use futures::{
     channel::mpsc,
     future::{join, join_all},
@@ -2048,7 +2048,8 @@ impl InternalRuntimeInterface for BamlRuntime {
     ) -> Result<ControlFlowVisualization> {
         let ast = self.db.ast();
         let hir = hir::Hir::from_ast(&ast);
-        build_from_hir(&hir, function_name)
+        let viz = build_from_hir(&hir, function_name)?;
+        Ok(flatten_control_flow(&viz).into())
     }
 
     fn features(&self) -> internal::ir_features::IrFeatures {

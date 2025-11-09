@@ -27,6 +27,15 @@ impl From<ControlFlowVisualization> for FlattenedControlFlowVisualization {
     }
 }
 
+impl From<FlattenedControlFlowVisualization> for ControlFlowVisualization {
+    fn from(value: FlattenedControlFlowVisualization) -> Self {
+        ControlFlowVisualization {
+            nodes: value.nodes,
+            edges_by_src: value.edges_by_src,
+        }
+    }
+}
+
 /// Run the three-pass flattening pipeline described in goal5b.
 pub fn flatten_control_flow(viz: &ControlFlowVisualization) -> FlattenedControlFlowVisualization {
     let pass_one = remove_implicit_nodes(viz);
