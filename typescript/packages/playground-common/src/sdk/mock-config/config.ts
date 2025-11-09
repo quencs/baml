@@ -294,6 +294,19 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
         span: mockSpan,
         parentFunctions: [{ name: 'processData', start: 0, end: 100 }],
       },
+      {
+        id: 'test_processData_empty',
+        name: 'empty_input',
+        source: 'test' as const,
+        functionId: 'processData',
+        filePath: 'tests/processData.test.ts',
+        inputs: [
+          { name: 'data', value: JSON.stringify({}) },
+          { name: 'format', value: 'json' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'processData', start: 0, end: 100 }],
+      },
     ],
     validateInput: [
       {
@@ -308,11 +321,23 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
         span: mockSpan,
         parentFunctions: [{ name: 'validateInput', start: 0, end: 100 }],
       },
+      {
+        id: 'test_validateInput_invalid_email',
+        name: 'invalid_email',
+        source: 'test' as const,
+        functionId: 'validateInput',
+        filePath: 'tests/validateInput.test.ts',
+        inputs: [
+          { name: 'data', value: JSON.stringify({ email: 'not-an-email', age: 25 }) },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'validateInput', start: 0, end: 100 }],
+      },
     ],
     handleSuccess: [
       {
-        id: 'test_handleSuccess_analysis',
-        name: 'success_analysis',
+        id: 'test_handleSuccess_normal',
+        name: 'normal',
         source: 'test' as const,
         functionId: 'handleSuccess',
         filePath: 'tests/handleSuccess.test.ts',
@@ -433,12 +458,6 @@ function createOutputGenerators(): Record<string, NodeOutputGenerator> {
       status: 'failure',
       message: 'Condition not met, skipping subgraph',
       reason: 'Below threshold',
-    }),
-
-    checkCondition: () => ({
-      conditionMet: Math.random() > 0.5,
-      branch: Math.random() > 0.5 ? 'success' : 'failure',
-      evaluatedAt: Date.now(),
     }),
 
     subgraph_process: () => ({
@@ -565,10 +584,11 @@ function createBAMLFiles(): BAMLFile[] {
         createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
       ],
       tests: [
-        { name: 'test_simpleWorkflow_one', functionName: 'simpleWorkflow', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
-        { name: 'test_simpleWorkflow_two', functionName: 'simpleWorkflow', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
+        // Function-level tests (matching old app structure)
         { name: 'test_fetchData_success', functionName: 'fetchData', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
+        { name: 'test_fetchData_timeout', functionName: 'fetchData', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
         { name: 'test_processData_valid', functionName: 'processData', filePath: 'workflows/simple.baml', nodeType: 'llm_function' as const },
+        { name: 'test_processData_empty', functionName: 'processData', filePath: 'workflows/simple.baml', nodeType: 'llm_function' as const },
       ],
     },
     {
@@ -576,17 +596,18 @@ function createBAMLFiles(): BAMLFile[] {
       functions: [
         createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml', testCases['conditionalWorkflow'] || []),
         createMockFunction('validateInput', 'function', 'workflows/conditional.baml', testCases['validateInput'] || []),
-        createMockFunction('checkCondition', 'function', 'workflows/conditional.baml'),
+        // Note: checkCondition is NOT included as a clickable function (it's a conditional node in the graph)
+        // This matches the old baml-graph app behavior where conditional nodes are not directly clickable
         createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml', testCases['handleSuccess'] || []),
         createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
-        createMockFunction('subgraph_process', 'function', 'workflows/conditional.baml', testCases['subgraph_process'] || []),
-        createMockFunction('subgraph_validate', 'function', 'workflows/conditional.baml'),
+        // Note: subgraph nodes are NOT included as clickable functions
+        // They are internal to the PROCESSING_SUBGRAPH group node
       ],
       tests: [
-        { name: 'test_conditionalWorkflow_success', functionName: 'conditionalWorkflow', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
+        // Function-level tests (matching old app structure)
         { name: 'test_validateInput_valid_email', functionName: 'validateInput', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
-        { name: 'test_handleSuccess_analysis', functionName: 'handleSuccess', filePath: 'workflows/conditional.baml', nodeType: 'llm_function' as const },
-        { name: 'test_subgraph_process_data', functionName: 'subgraph_process', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
+        { name: 'test_validateInput_invalid_email', functionName: 'validateInput', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
+        { name: 'test_handleSuccess_normal', functionName: 'handleSuccess', filePath: 'workflows/conditional.baml', nodeType: 'llm_function' as const },
       ],
     },
     {

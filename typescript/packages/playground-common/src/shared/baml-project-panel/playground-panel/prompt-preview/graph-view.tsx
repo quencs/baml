@@ -18,10 +18,8 @@ import type { Node } from '@xyflow/react';
 // Import graph primitives and components from WorkflowApp
 import { kEdgeTypes, ColorfulMarkerDefinitions, kNodeTypes } from '../../../../graph-primitives';
 import { ReactflowInstance } from '../../../../features/graph/components';
-import { useAutoLayout } from '../../../../features/graph/layout/useAutoLayout';
 import { useDetailPanel, useActiveWorkflow, useLayoutDirection, useSelectedNode } from '../../../../sdk/hooks';
 import { flowStore } from '../../../../states/reactflow';
-import { useBAMLSDK } from '../../../../sdk/provider';
 import { Loader as Spinner } from '@baml/ui/custom/loader';
 import { useGraphSync } from '../../../../features/graph/hooks';
 import { useSetAtom } from 'jotai';
@@ -47,7 +45,6 @@ export const GraphView = () => {
   const detailPanel = useDetailPanel();
   const { activeWorkflowId } = useActiveWorkflow();
   const [direction] = useLayoutDirection();
-  const sdk = useBAMLSDK();
 
   // Sync detail panel state with unified atoms
   const setDetailPanelState = useSetAtom(detailPanelStateAtom);
@@ -56,7 +53,6 @@ export const GraphView = () => {
   }, [detailPanel.isOpen, setDetailPanelState]);
 
   const { getEdges, setNodes } = useReactFlow();
-  const { layout } = useAutoLayout();
 
   // UI state
   const backgroundId = useId();
@@ -77,18 +73,6 @@ export const GraphView = () => {
       }))
     );
   }, [activeWorkflowId, setNodes]);
-
-  const handleResetLayout = async () => {
-    // Re-run the layout algorithm from scratch without resetting viewport
-    if (!convertedGraph) return;
-
-    await layout({
-      nodes: convertedGraph.nodes,
-      edges: convertedGraph.edges,
-      direction,
-      skipFitView: true
-    });
-  };
 
   // Recalculate edge routing when a node is being dragged or moved
   const handleNodeDrag = () => {

@@ -10,6 +10,7 @@ import { bamlConfig } from "./bamlConfig";
 import { VscodeToWebviewCommand } from "./vscode-to-webview-rpc";
 import { handleIDEMessage, handleLSPMessage } from "./message-handlers";
 import { useBAMLSDK } from "../sdk";
+import { useCodeNavigation } from "../features/navigation/hooks";
 
 // ============================================================================
 // EventListener-specific atoms (not managed by SDK)
@@ -40,6 +41,9 @@ export const EventListener: React.FC = () => {
   // Get SDK instance (guaranteed to be initialized by provider)
   const sdk = useBAMLSDK();
   const isVSCodeWebview = vscode.isVscode();
+
+  // Always keep navigation listener alive, even outside WorkflowApp
+  useCodeNavigation();
 
   // Non-core state atoms (not managed by SDK)
   const setBamlCliVersion = useSetAtom(bamlCliVersionAtom);

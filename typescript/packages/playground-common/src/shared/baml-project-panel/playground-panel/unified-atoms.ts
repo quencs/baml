@@ -10,6 +10,8 @@ import { selectionAtom as originalSelectionAtom } from './atoms';
 import {
   selectedFunctionNameAtom,
   selectedTestCaseNameAtom,
+  activeWorkflowIdAtom,
+  selectedNodeIdAtom,
 } from '../../../sdk/atoms/core.atoms';
 
 // ============================================================================
@@ -31,31 +33,37 @@ export interface UnifiedSelection {
   selectedNodeId: string | null;
 }
 
-// Internal state atom
-const unifiedSelectionStateAtom = atom<UnifiedSelection>({
-  functionName: null,
-  testName: null,
-  activeWorkflowId: null,
-  selectedNodeId: null,
-});
-
 /**
  * Unified selection atom - syncs with SDK atoms
  * When you update this atom, it also updates the SDK selectedFunctionNameAtom and selectedTestCaseNameAtom
  */
 export const unifiedSelectionAtom = atom(
-  (get) => get(unifiedSelectionStateAtom),
+  (get): UnifiedSelection => ({
+    functionName: get(selectedFunctionNameAtom),
+    testName: get(selectedTestCaseNameAtom),
+    activeWorkflowId: get(activeWorkflowIdAtom),
+    selectedNodeId: get(selectedNodeIdAtom),
+  }),
   (get, set, update: UnifiedSelection | ((prev: UnifiedSelection) => UnifiedSelection)) => {
-    const newValue = typeof update === 'function' ? update(get(unifiedSelectionStateAtom)) : update;
+    const current: UnifiedSelection = {
+      functionName: get(selectedFunctionNameAtom),
+      testName: get(selectedTestCaseNameAtom),
+      activeWorkflowId: get(activeWorkflowIdAtom),
+      selectedNodeId: get(selectedNodeIdAtom),
+    };
 
-    console.log('📝 Unified Selection Updated:', newValue);
+    const next = typeof update === 'function' ? update(current) : update;
+    const finalValue: UnifiedSelection = {
+      ...current,
+      ...next,
+    };
 
-    // Update internal state
-    set(unifiedSelectionStateAtom, newValue);
+    console.log('📝 Unified Selection Updated:', finalValue);
 
-    // Sync to SDK atoms
-    set(selectedFunctionNameAtom, newValue.functionName);
-    set(selectedTestCaseNameAtom, newValue.testName);
+    set(selectedFunctionNameAtom, finalValue.functionName);
+    set(selectedTestCaseNameAtom, finalValue.testName);
+    set(activeWorkflowIdAtom, finalValue.activeWorkflowId);
+    set(selectedNodeIdAtom, finalValue.selectedNodeId);
   }
 );
 
@@ -90,10 +98,10 @@ export const viewModeAtom = atom((get) => {
   const isLLMFunction = selectedFn?.type === 'llm_function';
 
   return {
-    showTabs: isLLMFunction,  // Only LLM functions get tabs
-    showGraphTab: isInWorkflow,  // Only show Graph tab if in workflow
-    defaultTab: (isInWorkflow ? 'graph' : 'preview') as TabValue,  // Smart default
-    showTabBar: isLLMFunction || isInWorkflow,  // Hide tab bar only for non-LLM standalone
+    showTabs: isLLMFunction, // Only LLM functions get tabs
+    showGraphTab: isLLMFunction && isInWorkflow,
+    defaultTab: (isLLMFunction && isInWorkflow ? 'graph' : 'preview') as TabValue,
+    showTabBar: isLLMFunction, // Non-LLM workflow nodes show graph-only view
   };
 });
 

@@ -8,11 +8,12 @@
 import { useAtom, useSetAtom } from 'jotai';
 import { Play, FileCode, Folder, FolderOpen, ChevronRight, ChevronDown, Plus, Edit } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { bamlFilesAtom, activeCodeClickAtom, updateSelectionAtom } from '../../../sdk/atoms/core.atoms';
+import { bamlFilesAtom, activeCodeClickAtom } from '../../../sdk/atoms/core.atoms';
 import type { BAMLFunction, BAMLTest, CodeClickEvent } from '../../../sdk/types';
 import { useBAMLSDK } from '../../../sdk/provider';
 import type { VscodeToWebviewCommand } from '../../../baml_wasm_web/vscode-to-webview-rpc';
 import { useRunBamlTests } from '../../../shared/baml-project-panel/playground-panel/prompt-preview/test-panel/test-runner';
+import { unifiedSelectionAtom } from '../../../shared/baml-project-panel/playground-panel/unified-atoms';
 
 export function DebugPanel() {
   const sdk = useBAMLSDK();
@@ -20,7 +21,7 @@ export function DebugPanel() {
   const [bamlFiles, setBAMLFiles] = useAtom(bamlFilesAtom);
   const setActiveCodeClick = useSetAtom(activeCodeClickAtom);
   const [activeCodeClick] = useAtom(activeCodeClickAtom);
-  const updateSelection = useSetAtom(updateSelectionAtom);
+  const setUnifiedSelection = useSetAtom(unifiedSelectionAtom);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   // Load BAML files on mount
@@ -57,8 +58,12 @@ export function DebugPanel() {
     setActiveCodeClick(event);
     console.log('🔍 Simulated function click:', event);
 
-    // Update selection atoms (same logic as updateCursor)
-    updateSelection({ functionName: func.name, testCaseName: null });
+    // Update unified selection (mirrors SDK atoms)
+    setUnifiedSelection((prev) => ({
+      ...prev,
+      functionName: func.name,
+      testName: null,
+    }));
   };
 
   const handleTestClick = (test: BAMLTest) => {
@@ -72,8 +77,11 @@ export function DebugPanel() {
     setActiveCodeClick(event);
     console.log('🔍 Simulated test click:', event);
 
-    // Update selection atoms (same logic as updateCursor)
-    updateSelection({ functionName: test.functionName, testCaseName: test.name });
+    setUnifiedSelection((prev) => ({
+      ...prev,
+      functionName: test.functionName,
+      testName: test.name,
+    }));
   };
 
   const handleTestRun = async (test: BAMLTest, e: React.MouseEvent) => {
