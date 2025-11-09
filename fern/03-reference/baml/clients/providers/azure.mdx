@@ -20,10 +20,186 @@ client<llm> MyClient {
 }
 ```
 
+
 <Warning>
   `api_version` is required. Azure will return not found if the version is not specified.
 </Warning>
 
+## Authentication
+
+### Default Authentication
+
+When no authentication is specified, BAML defaults to using Azure's DefaultAzureCredential chain, which tries multiple authentication methods in order:
+
+```baml BAML
+client<llm> AzureSimple {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    // No auth specified - defaults to auth { type "default" }
+    // Tries credentials in order:
+    // 1. Environment variables (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)
+    // 2. Managed Identity (for Azure-hosted resources)
+    // 3. Azure CLI (if logged in via 'az login')
+    // 4. AZURE_OPENAI_API_KEY environment variable (for easy migration)
+  }
+}
+```
+
+### Using an API Key
+
+To explicitly use an API key:
+
+```baml BAML
+client<llm> AzureApiKey {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    api_key env.AZURE_OPENAI_API_KEY
+  }
+}
+```
+
+The API key is sent via the `api-key` header with each request.
+
+You can also explicitly specify API key authentication:
+
+```baml BAML
+client<llm> AzureApiKeyExplicit {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    auth {
+      type "api_key"
+      key env.AZURE_OPENAI_API_KEY
+    }
+  }
+}
+```
+
+### Using Azure AD Authentication (OAuth)
+
+<Tip>
+  Azure AD (Entra ID) authentication provides better security through OAuth 2.0 tokens and integrates with your organization's identity management.
+</Tip>
+
+BAML supports multiple Azure AD authentication methods:
+
+#### Azure CLI Authentication
+
+For local development, you can use Azure CLI credentials:
+
+```baml BAML
+client<llm> AzureCLI {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    auth {
+      type "azure_cli"
+    }
+  }
+}
+```
+
+Before using this, ensure you're logged in:
+```bash
+az login
+```
+
+#### Service Principal Authentication
+
+For production environments and CI/CD pipelines, use a service principal:
+
+```baml BAML
+client<llm> AzureServicePrincipal {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    auth {
+      type "service_principal"
+      tenant_id env.AZURE_TENANT_ID
+      client_id env.AZURE_CLIENT_ID
+      client_secret env.AZURE_CLIENT_SECRET
+    }
+  }
+}
+```
+
+#### Managed Identity Authentication
+
+For Azure-hosted resources (VMs, App Service, Functions, etc.), use managed identity:
+
+```baml BAML
+client<llm> AzureManagedIdentity {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    auth {
+      type "managed_identity"
+      // Optional: specify client_id for user-assigned identity
+      client_id "your-user-assigned-identity-client-id"
+    }
+  }
+}
+```
+
+#### Default Azure Credential
+
+Uses Azure's DefaultAzureCredential chain to automatically find available credentials:
+
+```baml BAML
+client<llm> AzureDefault {
+  provider azure-openai
+  options {
+    resource_name "my-resource-name"
+    deployment_id "my-deployment-id"
+    api_version "2024-02-01"
+    auth {
+      type "default"
+      // Tries in order:
+      // 1. Environment variables (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)
+      // 2. Managed Identity (for Azure-hosted resources)
+      // 3. Azure CLI (if logged in via 'az login')
+      // 4. AZURE_OPENAI_API_KEY environment variable (for easy migration)
+    }
+  }
+}
+```
+
+### Requirements
+
+For Azure AD authentication, ensure your identity has the "Cognitive Services OpenAI User" role on the Azure OpenAI resource.
+
+### Playground
+
+To use Azure AD authentication in the BAML playground:
+- For Azure CLI: Run `az login` in your terminal before starting the playground
+- For Service Principal: Set the environment variables in the "API Keys" dialog
+
+## Debugging
+
+<Accordion title='Authentication'>
+
+If you're having authentication issues, set `BAML_INTERNAL_LOG=debug` to see detailed logs.
+
+Common issues:
+- "Azure CLI not found" - Install Azure CLI and ensure it's in your PATH
+- "Please run 'az login'" - You need to authenticate with Azure CLI first
+- "Unauthorized" - Check that your identity has the correct role assignment
+
+</Accordion>
 
 The options are passed through directly to the API, barring a few. Here's a shorthand of the options:
 
@@ -32,14 +208,114 @@ These unique parameters (aka `options`) modify the API request sent to the provi
 
 You can use this to modify the azure api key, base url, and api version for example.
 
+<ParamField
+  path="auth"
+  type="object"
+>
+  Authentication configuration. If not specified, defaults to `{ type "default" }`.
+
+  The `auth` object must contain a `type` field that specifies the authentication method:
+
+  <Accordion title="type: 'api_key'">
+    Uses an API key for authentication.
+
+    ```baml
+    auth {
+      type "api_key"
+      key env.AZURE_OPENAI_API_KEY
+    }
+    ```
+
+    **Fields:**
+    - `key` (string): The API key. Default: `env.AZURE_OPENAI_API_KEY`
+  </Accordion>
+
+  <Accordion title="type: 'azure_cli'">
+    Uses Azure CLI credentials.
+
+    ```baml
+    auth {
+      type "azure_cli"
+    }
+    ```
+
+    No additional fields required. Ensure you're logged in with `az login`.
+  </Accordion>
+
+  <Accordion title="type: 'service_principal'">
+    Uses OAuth 2.0 client credentials flow.
+
+    ```baml
+    auth {
+      type "service_principal"
+      tenant_id env.AZURE_TENANT_ID
+      client_id env.AZURE_CLIENT_ID
+      client_secret env.AZURE_CLIENT_SECRET
+    }
+    ```
+
+    **Fields:**
+    - `tenant_id` (string): Azure AD tenant ID. Default: `env.AZURE_TENANT_ID`
+    - `client_id` (string): Application (client) ID. Default: `env.AZURE_CLIENT_ID`
+    - `client_secret` (string): Client secret. Default: `env.AZURE_CLIENT_SECRET`
+  </Accordion>
+
+  <Accordion title="type: 'managed_identity'">
+    Uses Managed Identity for Azure-hosted resources.
+
+    ```baml
+    auth {
+      type "managed_identity"
+      // Optional for user-assigned identity
+      client_id "user-assigned-identity-client-id"
+    }
+    ```
+
+    **Fields:**
+    - `client_id` (string, optional): Client ID for user-assigned identity
+  </Accordion>
+
+  <Accordion title="type: 'default'">
+    Uses Azure's DefaultAzureCredential chain.
+
+    ```baml
+    auth {
+      type "default"
+    }
+    ```
+
+    Tries in order:
+    1. Environment variables (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)
+    2. Managed Identity
+    3. Azure CLI
+    4. AZURE_OPENAI_API_KEY environment variable (for easy migration)
+  </Accordion>
+</ParamField>
 
 <ParamField
   path="api_key"
   type="string"
 >
-  Will be injected via the header `API-KEY`. **Default: `env.AZURE_OPENAI_API_KEY`**
+  API key for authentication. Will be injected via the header `API-KEY`.
 
   `API-KEY: $api_key`
+
+  When specified, this overrides the default authentication behavior and uses the provided API key instead.
+
+  ```baml
+  // Pattern 1: Top-level api_key (backward compatible)
+  options {
+    api_key env.AZURE_OPENAI_API_KEY
+  }
+
+  // Pattern 2: Nested auth object (supports OAuth and other methods)
+  options {
+    auth {
+      type "api_key"
+      key env.AZURE_OPENAI_API_KEY
+    }
+  }
+  ```
 </ParamField>
 
 <ParamField
