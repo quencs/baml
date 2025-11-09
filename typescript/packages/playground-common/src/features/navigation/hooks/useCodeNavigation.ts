@@ -13,7 +13,7 @@ import {
   determineNavigationAction,
   getCurrentNavigationState,
 } from '../../../sdk/navigationHeuristic';
-import { useDetailPanel, useSelectedInputSource } from '../../../sdk/hooks';
+import { useDetailPanel, useSelectedInputSource, useSelectedNode } from '../../../sdk/hooks';
 import { flowStore } from '../../../states/reactflow';
 import { panToNodeIfNeeded } from '../../../utils/cameraPan';
 import {
@@ -30,6 +30,7 @@ export function useCodeNavigation() {
   const sdk = useBAMLSDK();
   const { open: openDetailPanel } = useDetailPanel();
   const { selectSource } = useSelectedInputSource();
+  const [, setSelectedNodeId] = useSelectedNode();
 
   // Unified state setters
   const setUnifiedSelection = useSetAtom(unifiedSelectionAtom);
@@ -64,6 +65,7 @@ export function useCodeNavigation() {
             activeWorkflowId: action.workflowId,
             selectedNodeId: null,
           }));
+          setSelectedNodeId(null);
           setActiveTab('graph');
         } else {
           console.error(`❌ Cannot switch to workflow: "${action.workflowId}" not found`);
@@ -73,6 +75,7 @@ export function useCodeNavigation() {
             activeWorkflowId: null,
             selectedNodeId: null,
           });
+          setSelectedNodeId(null);
         }
         break;
       }
@@ -90,6 +93,7 @@ export function useCodeNavigation() {
           testName: action.testId ?? null,
           activeWorkflowId: action.workflowId,
         }));
+        setSelectedNodeId(action.nodeId);
         openDetailPanel();
 
         // Update unified state
@@ -139,6 +143,7 @@ export function useCodeNavigation() {
           activeWorkflowId: action.workflowId,
           selectedNodeId: null,
         });
+        setSelectedNodeId(null);
         setActiveTab('graph');
 
         // Wait for workflow to load before selecting node
@@ -148,6 +153,7 @@ export function useCodeNavigation() {
             ...prev,
             selectedNodeId: action.nodeId,
           }));
+          setSelectedNodeId(action.nodeId);
           openDetailPanel();
 
           // Update unified state with selected node
@@ -179,6 +185,7 @@ export function useCodeNavigation() {
           activeWorkflowId: null,
           selectedNodeId: null,
         });
+        setSelectedNodeId(null);
         setActiveTab('preview'); // Show prompt preview for standalone LLM function
         setDetailPanelState({ isOpen: false }); // Close detail panel for standalone view
 
@@ -200,6 +207,7 @@ export function useCodeNavigation() {
           activeWorkflowId: null,
           selectedNodeId: null,
         });
+        setSelectedNodeId(null);
         setActiveTab('preview');
         setDetailPanelState({ isOpen: false });
         break;
@@ -217,5 +225,6 @@ export function useCodeNavigation() {
     setUnifiedSelection,
     setActiveTab,
     setDetailPanelState,
+    setSelectedNodeId,
   ]);
 }

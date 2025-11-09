@@ -23,7 +23,7 @@ import { flowStore } from '../../../../states/reactflow';
 import { Loader as Spinner } from '@baml/ui/custom/loader';
 import { useGraphSync } from '../../../../features/graph/hooks';
 import { useAtom, useSetAtom } from 'jotai';
-import { detailPanelStateAtom, graphControlsTipDismissedAtom } from '../atoms';
+import { detailPanelStateAtom, graphControlsTipDismissedAtom, unifiedSelectionAtom } from '../atoms';
 import { MousePointer2, ZoomIn, X } from 'lucide-react';
 
 /**
@@ -42,19 +42,31 @@ export const GraphView = () => {
   const { convertedGraph, isLayoutLoading } = useGraphSync();
 
   // SDK hooks
-  const [, setSelectedNodeId] = useSelectedNode();
+  const [selectedNodeId, setSelectedNodeId] = useSelectedNode();
   const detailPanel = useDetailPanel();
   const { activeWorkflowId } = useActiveWorkflow();
   const [direction] = useLayoutDirection();
 
   // Sync detail panel state with unified atoms
   const setDetailPanelState = useSetAtom(detailPanelStateAtom);
+  const setUnifiedSelection = useSetAtom(unifiedSelectionAtom);
   const [graphTipDismissed, setGraphTipDismissed] = useAtom(
     graphControlsTipDismissedAtom
   );
   useEffect(() => {
     setDetailPanelState({ isOpen: detailPanel.isOpen });
   }, [detailPanel.isOpen, setDetailPanelState]);
+
+  useEffect(() => {
+    const nodes = flowStore.value.getNodes?.() ?? [];
+    if (!nodes.length) return;
+    const updated = nodes.map((node) =>
+      node.selected === (node.id === selectedNodeId)
+        ? node
+        : { ...node, selected: node.id === selectedNodeId }
+    );
+    flowStore.value.setNodes?.(updated);
+  }, [selectedNodeId]);
 
   const { getEdges, setNodes } = useReactFlow();
 
@@ -101,6 +113,13 @@ export const GraphView = () => {
   // Handle node click - select the node and open detail panel
   const handleNodeClick = (_event: React.MouseEvent, node: Node) => {
     console.log('Node clicked:', node.id);
+    setUnifiedSelection((prev) => ({
+      ...prev,
+      functionName: node.id,
+      testName: null,
+      selectedNodeId: node.id,
+      activeWorkflowId: prev.activeWorkflowId ?? activeWorkflowId ?? null,
+    }));
     setSelectedNodeId(node.id);
     detailPanel.open();
   };
