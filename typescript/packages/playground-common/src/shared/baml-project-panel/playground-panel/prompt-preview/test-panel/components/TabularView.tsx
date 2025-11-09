@@ -142,6 +142,8 @@ export const TabularView: React.FC<TabularViewProps> = ({ currentRun }) => {
 
   const selectedRowRef = React.useRef<HTMLTableRowElement>(null)
 
+
+
   React.useEffect(() => {
     if (selectedItem && selectedRowRef.current) {
       selectedRowRef.current.scrollIntoView({

@@ -58,7 +58,7 @@ const TestResult = ({ testId, historicalResponse }: TestResultProps) => {
         block: 'nearest',
       })
     }
-  }, [isSelected])
+  }, [isSelected, displayResponse?.status])
 
   if (!displayResponse) {
     console.log('no display response')
