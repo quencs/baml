@@ -70,19 +70,6 @@ export function panToNodeIfNeeded(
   const nodeCenterX = (node.position.x + nodeWidth / 2) * viewport.zoom + viewport.x;
   const nodeCenterY = (node.position.y + nodeHeight / 2) * viewport.zoom + viewport.y;
 
-  console.log('📹 Camera pan check:', {
-    nodeId: node.id,
-    viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
-    viewportSize: { width: viewportWidth, height: viewportHeight },
-    nodeCenterScreen: { x: nodeCenterX, y: nodeCenterY },
-    deadzone: {
-      left: deadzoneLeft,
-      right: deadzoneRight,
-      top: deadzoneTop,
-      bottom: deadzoneBottom,
-    },
-  });
-
   // Check if node is outside deadzone
   let panX = 0;
   let panY = 0;
@@ -93,52 +80,26 @@ export function panToNodeIfNeeded(
   const isAboveDeadzone = nodeCenterY < deadzoneTop;
   const isBelowDeadzone = nodeCenterY > deadzoneBottom;
 
-  console.log('📹 Deadzone check:', {
-    nodeId: node.id,
-    nodeCenterX,
-    nodeCenterY,
-    checks: {
-      isLeftOfDeadzone,
-      isRightOfDeadzone,
-      isAboveDeadzone,
-      isBelowDeadzone,
-    },
-    thresholds: {
-      deadzoneLeft,
-      deadzoneRight,
-      deadzoneTop,
-      deadzoneBottom,
-    },
-  });
 
   if (isLeftOfDeadzone) {
     // Node is too far left, pan camera right to bring it into view
     panX = deadzoneLeft - nodeCenterX;
-    console.log('📹 Node is LEFT of deadzone, panX:', panX);
   } else if (isRightOfDeadzone) {
     // Node is too far right, pan camera left to bring it into view
     panX = deadzoneRight - nodeCenterX;
-    console.log('📹 Node is RIGHT of deadzone, panX:', panX);
   }
 
   if (isAboveDeadzone) {
     // Node is too far up, pan camera down to bring it into view
     panY = deadzoneTop - nodeCenterY;
-    console.log('📹 Node is ABOVE deadzone, panY:', panY);
   } else if (isBelowDeadzone) {
     // Node is too far down, pan camera up to bring it into view
     panY = deadzoneBottom - nodeCenterY;
-    console.log('📹 Node is BELOW deadzone, panY:', panY);
   }
 
   // Only pan if node is outside deadzone
   if (panX !== 0 || panY !== 0) {
-    console.log('📹 Panning camera:', {
-      nodeId: node.id,
-      panDelta: { panX, panY },
-      oldViewport: { x: viewport.x, y: viewport.y },
-      newViewport: { x: viewport.x + panX, y: viewport.y + panY },
-    });
+
 
     flowInstance.setViewport(
       {
@@ -187,11 +148,6 @@ export function panToNodeCenter(
   const panX = viewportCenterX - nodeCenterX * viewport.zoom;
   const panY = viewportCenterY - nodeCenterY * viewport.zoom;
 
-  console.log('📹 Centering camera on node:', {
-    nodeId: node.id,
-    panX,
-    panY,
-  });
 
   flowInstance.setViewport(
     {

@@ -112,10 +112,7 @@ export function layoutEdge({
     if (needReBuildPath || !layout?.path) {
       // Generate path from ELK points
       layout!.path = getPathWithRoundCorners(layout!.points, borderRadius);
-      console.log(
-        `🎨 Edge ${id}: Generated path from ELK points:`,
-        layout!.path.substring(0, 100) + '...',
-      );
+
     }
 
     const relayoutDeps = [sourceX, sourceY, targetX, targetY];

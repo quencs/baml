@@ -154,7 +154,6 @@ const measureNodeLabels = (
     document.body.removeChild(temp);
   }
 
-  console.log('🎯 Measured', labelMeasurements.size, 'node labels');
   return labelMeasurements;
 };
 
@@ -171,9 +170,6 @@ const buildHierarchicalElkNodes = (
   // Filter nodes that belong to this parent level (like Mermaid line 134)
   const siblings = allNodes.filter((node) => node.parentId === parentId);
 
-  console.log(
-    `🎯 Building nodes for parent "${parentId || 'root'}", found ${siblings.length} siblings`,
-  );
 
   const elkNodes: ElkNode[] = [];
 
@@ -249,9 +245,6 @@ const buildHierarchicalElkNodes = (
       );
       nodeEntry.effectiveWidth = effectiveWidth;
 
-      console.log(
-        `🎯 Group "${node.id}": nodeWidth=${widthWithDefault}, labelWidth=${labelDims.width}, effectiveWidth=${effectiveWidth}`,
-      );
 
       // Set initial width with padding (line 810)
       nodeEntry.width = effectiveWidth;
@@ -289,7 +282,6 @@ const buildHierarchicalElkNodes = (
 
       if (children.length > 0) {
         elkNode.children = children;
-        console.log(`🎯 Node "${node.id}" has ${children.length} children`);
       }
     }
 
@@ -404,12 +396,8 @@ export const layoutELKMermaid = async (
   // Cast nodes to extended type
   const extendedNodes = nodes as ReactFlowNodeExtended[];
 
-  console.log('🎯 ELK Mermaid V2 Layout - Input nodes:', extendedNodes.length);
-  console.log('🎯 ELK Mermaid V2 Layout - Input edges:', edges.length);
-
   // Build parent-child lookup database (Mermaid's addSubGraphs)
   const parentLookupDb = buildParentLookupDb(extendedNodes);
-  console.log('🎯 Parent lookup DB:', parentLookupDb);
 
   // Measure all node labels separately (like Mermaid's labelHelper)
   const labelMeasurements = measureNodeLabels(extendedNodes);
@@ -454,9 +442,7 @@ export const layoutELKMermaid = async (
     ) {
       // Edge crosses subgraph boundary - find common ancestor
       const ancestorId = findCommonAncestor(source, target, parentLookupDb);
-      // console.log(
-      //   `🎯 Edge ${edge.id} crosses boundary, ancestor: ${ancestorId}`,
-      // );
+
 
       // Set hierarchy policy recursively (Mermaid's approach)
       setIncludeChildrenPolicy(source, ancestorId, nodeDb);
@@ -540,9 +526,6 @@ export const layoutELKMermaid = async (
         width: elkNode.width,
         height: elkNode.height,
       });
-      console.log(
-        `🎯 ELK calculated dimensions for "${elkNode.id}": ${elkNode.width}x${elkNode.height}${isRoot ? ' (root)' : ' (child, relative)'}`,
-      );
 
       // CRITICAL: Store offset in nodeDb for edge routing (like Mermaid)
       const nodeEntry = nodeDb[elkNode.id];
@@ -574,11 +557,7 @@ export const layoutELKMermaid = async (
     extractNodeData(child, 0, 0, 0, true); // Root-level nodes are "root", depth 0
   }
 
-  console.log('🎯 Node positions:', Array.from(nodePositionMap.entries()));
-  console.log(
-    '🎯 Node dimensions from ELK:',
-    Array.from(nodeDimensionMap.entries()),
-  );
+
 
   // Apply positions AND dimensions to ReactFlow nodes
   const layoutedNodes = nodes.map((node) => {
@@ -644,7 +623,6 @@ export const layoutELKMermaid = async (
   }
 
   collectElkEdges(layoutedGraph);
-  console.log('🎯 Collected', elkEdgeMap.size, 'ELK edges with routing data');
 
   // Apply edge routing from ELK data (COMPLETE MERMAID PIPELINE)
   const layoutedEdges = edges.map((edge) => {
@@ -711,9 +689,6 @@ export const layoutELKMermaid = async (
       // 3. The edge routing from ELK is already correct
       //
       // We keep the points as-is from ELK (with offset applied)
-      console.log(
-        `🎯 Edge ${edge.id}: Using ELK routing directly (no intersection needed)`,
-      );
 
       // STEP 6: Validate and clean (Mermaid lines 1043-1053)
       const hasNaN = (pts: P[]) =>
@@ -745,10 +720,7 @@ export const layoutELKMermaid = async (
       }
       points = deduped;
 
-      console.log(
-        `✅ Edge ${edge.id}: ${points.length} final routing points (offset: ${offset.x},${offset.y})`,
-        points,
-      );
+
 
       // STEP 8: Convert to React Flow format
       const edgePoints = points.map((p, i) => ({
@@ -789,17 +761,10 @@ export const layoutELKMermaid = async (
     }
 
     // No routing data from ELK, use default
-    console.log(`⚠️ Edge ${edge.id}: No ELK routing data, using default`);
     return getEdgeLayouted({ edge, visibility });
   });
 
-  console.log(
-    '✅ Layout V2 complete! Returning',
-    layoutedNodes.length,
-    'nodes and',
-    layoutedEdges.length,
-    'edges',
-  );
+
 
   return {
     nodes: layoutedNodes,

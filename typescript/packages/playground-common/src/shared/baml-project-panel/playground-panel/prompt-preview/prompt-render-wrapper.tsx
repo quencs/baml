@@ -14,7 +14,6 @@ import { PromptPreviewContent } from './prompt-preview-content';
 import { renderedPromptAtom } from './prompt-preview-content';
 import { PromptPreviewCurl, curlAtom } from './prompt-preview-curl';
 import { ClientGraphView } from './test-panel/components/ClientGraphView';
-import { MermaidGraphView } from './test-panel/components/MermaidGraphView';
 
 // FunctionMetadata component
 const FunctionMetadata: React.FC = () => {
@@ -206,11 +205,7 @@ export const PromptRenderWrapper = () => {
       <TabsContent value="client-graph" className="flex-1 min-h-0">
         <ClientGraphView />
       </TabsContent>
-      {isBetaEnabled && (
-        <TabsContent value="mermaid-graph" className="flex-1 min-h-0">
-          <MermaidGraphView />
-        </TabsContent>
-      )}
+
     </Tabs>
   );
 };
