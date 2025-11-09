@@ -574,9 +574,10 @@ export const lastValidWasmAtom = atom(
 );
 
 /**
- * Current BAML files being tracked
+ * Current BAML files being tracked (derived from bamlFilesTrackedAtom)
+ * This ensures the atom updates when files change via sdk.files.update()
  */
-export const filesAtom = atom<Record<string, string>>({});
+export const filesAtom = atom((get) => get(bamlFilesTrackedAtom));
 
 /**
  * Current WasmRuntime instance - derived from runtimeInstanceAtom

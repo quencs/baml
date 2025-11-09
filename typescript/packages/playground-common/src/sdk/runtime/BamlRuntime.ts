@@ -113,6 +113,7 @@ async function getWasmModule(): Promise<BamlWasmModule> {
 
     console.log('[BamlRuntime] WASM module loaded and cached ✓');
   }
+  console.log('loaded wasm from cache');
 
   return wasmModuleCache;
 }
@@ -169,7 +170,9 @@ export class BamlRuntime implements BamlRuntimeInterface {
     let diagnostics: DiagnosticError[] = [];
 
     try {
-      // Create runtime with env vars and feature flags
+      console.log('[BamlRuntime] Creating runtime with env vars and feature flags', { envVars, featureFlags });
+      // Create runtime with env vars and feature 
+      // flags
       wasmRuntime = wasmProject.runtime(envVars, featureFlags);
 
       // Get diagnostics from project
