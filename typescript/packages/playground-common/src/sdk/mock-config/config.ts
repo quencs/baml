@@ -356,11 +356,14 @@ function createOutputGenerators(): Record<string, NodeOutputGenerator> {
 function createMockFunction(
   name: string,
   type: 'function' | 'llm_function' | 'block',
-  filePath: string
+  filePath: string,
+  testCases: TestCaseMetadata[] = []
 ): FunctionWithCallGraph {
   // Convert block to workflow for the base function generator
   const functionType = type === 'block' ? 'workflow' : type;
-  const baseFunction = createMockFunctionUnified(name, functionType, filePath);
+  const baseFunction = createMockFunctionUnified(name, functionType, filePath, {
+    testCases,
+  });
 
   // Call graph type should match the input type
   const callGraphType = type;
@@ -417,13 +420,16 @@ function createMockTestCase(
  * Create mock BAML files
  */
 function createBAMLFiles(): BAMLFile[] {
+  // Create test cases first so we can attach them to functions
+  const testCases = createMockTestCases();
+
   return [
     {
       path: 'workflows/simple.baml',
       functions: [
         createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml'),
-        createMockFunction('fetchData', 'function', 'workflows/simple.baml'),
-        createMockFunction('processData', 'llm_function', 'workflows/simple.baml'),
+        createMockFunction('fetchData', 'function', 'workflows/simple.baml', testCases['fetchData'] || []),
+        createMockFunction('processData', 'llm_function', 'workflows/simple.baml', testCases['processData'] || []),
         createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
       ],
       tests: [
@@ -435,7 +441,7 @@ function createBAMLFiles(): BAMLFile[] {
       path: 'workflows/conditional.baml',
       functions: [
         createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml'),
-        createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
+        createMockFunction('validateInput', 'function', 'workflows/conditional.baml', testCases['validateInput'] || []),
         createMockFunction('checkCondition', 'function', 'workflows/conditional.baml'),
         createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
         createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
@@ -450,7 +456,7 @@ function createBAMLFiles(): BAMLFile[] {
       path: 'workflows/shared.baml',
       functions: [
         createMockFunction('sharedWorkflow', 'block', 'workflows/shared.baml'),
-        createMockFunction('aggregateData', 'function', 'workflows/shared.baml'),
+        createMockFunction('aggregateData', 'function', 'workflows/shared.baml', testCases['aggregateData'] || []),
       ],
       tests: [
         { name: 'test_aggregateData_multiple', functionName: 'aggregateData', filePath: 'workflows/shared.baml', nodeType: 'function' as const },
