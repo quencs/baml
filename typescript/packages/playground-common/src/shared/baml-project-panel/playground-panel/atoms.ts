@@ -14,7 +14,7 @@ import type {
   WasmFunctionResponse,
   WasmTestResponse,
 } from '@gloo-ai/baml-schema-wasm-web';
-import { atomFamily } from 'jotai/utils';
+import { atomFamily, atomWithStorage } from 'jotai/utils';
 
 // ============================================================================
 // SDK Atoms - Direct Re-exports
@@ -77,6 +77,11 @@ export const selectedTestcaseAtom = atom(
   (get, set, value: string | undefined) => {
     set(selectedTestCaseNameAtom, value ?? null);
   }
+);
+
+export const graphControlsTipDismissedAtom = atomWithStorage(
+  'playground:graphControlsTipDismissed',
+  false
 );
 
 // ============================================================================

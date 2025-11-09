@@ -5,7 +5,7 @@
  * Handles graph changes and ensures proper rendering.
  */
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { useCurrentGraph, useLayoutDirection } from '../../../sdk/hooks';
 import { sdkGraphToReactflow } from '../../../sdk/adapter';
 import { useAutoLayout } from '../layout/useAutoLayout';
@@ -18,6 +18,7 @@ export function useGraphSync() {
   const [direction] = useLayoutDirection();
   const { layout } = useAutoLayout();
   const [isLayoutLoading, setIsLayoutLoading] = useState(false);
+  const lastLayoutKeyRef = useRef<string | null>(null);
 
   // Convert SDK graph to ReactFlow format
   const convertedGraph = useMemo(() => {
@@ -41,6 +42,15 @@ export function useGraphSync() {
   // to avoid infinite loops from layout function recreation
   useEffect(() => {
     if (!convertedGraph) return;
+
+    const layoutKey = `${currentGraph.workflow?.id ?? 'standalone'}|${convertedGraph.nodes
+      .map((node) => node.id)
+      .join(',')}|${convertedGraph.edges.length}`;
+
+    if (lastLayoutKeyRef.current === layoutKey) {
+      return;
+    }
+    lastLayoutKeyRef.current = layoutKey;
 
     console.log('📐 Running layout for', convertedGraph.nodes.length, 'nodes');
     setIsLayoutLoading(true);

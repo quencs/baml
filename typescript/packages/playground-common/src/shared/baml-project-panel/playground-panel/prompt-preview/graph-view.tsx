@@ -22,8 +22,9 @@ import { useDetailPanel, useActiveWorkflow, useLayoutDirection, useSelectedNode 
 import { flowStore } from '../../../../states/reactflow';
 import { Loader as Spinner } from '@baml/ui/custom/loader';
 import { useGraphSync } from '../../../../features/graph/hooks';
-import { useSetAtom } from 'jotai';
-import { detailPanelStateAtom } from '../atoms';
+import { useAtom, useSetAtom } from 'jotai';
+import { detailPanelStateAtom, graphControlsTipDismissedAtom } from '../atoms';
+import { MousePointer2, ZoomIn, X } from 'lucide-react';
 
 /**
  * GraphView - ReactFlow graph component for the Graph tab
@@ -48,6 +49,9 @@ export const GraphView = () => {
 
   // Sync detail panel state with unified atoms
   const setDetailPanelState = useSetAtom(detailPanelStateAtom);
+  const [graphTipDismissed, setGraphTipDismissed] = useAtom(
+    graphControlsTipDismissedAtom
+  );
   useEffect(() => {
     setDetailPanelState({ isOpen: detailPanel.isOpen });
   }, [detailPanel.isOpen, setDetailPanelState]);
@@ -100,6 +104,7 @@ export const GraphView = () => {
     setSelectedNodeId(node.id);
     detailPanel.open();
   };
+  console.log('graphtipdismissed', graphTipDismissed);
 
   return (
     <div className="relative w-full h-full">
@@ -140,6 +145,29 @@ export const GraphView = () => {
         <ReactflowInstance />
         <Controls />
       </ReactFlow>
+
+      {!graphTipDismissed && (
+        <div className="absolute top-4 left-4 z-20 max-w-xs rounded-md border border-border bg-background/95 shadow-lg p-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 mb-2 text-[11px] font-semibold text-foreground">
+            <span>Navigate like Figma</span>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setGraphTipDismissed(true)}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 mb-1">
+            <MousePointer2 className="w-3.5 h-3.5 text-primary" />
+            <span>Right-click + drag to pan</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ZoomIn className="w-3.5 h-3.5 text-primary" />
+            <span>⌘ + scroll to zoom</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

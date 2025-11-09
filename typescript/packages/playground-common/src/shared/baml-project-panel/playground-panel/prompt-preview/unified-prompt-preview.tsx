@@ -17,6 +17,14 @@ import { PromptPreviewCurl, curlAtom } from './prompt-preview-curl';
 import { GraphView } from './graph-view';
 import { ReactFlowProvider } from '@xyflow/react';
 
+const GraphHost = () => (
+  <div className="h-full">
+    <ReactFlowProvider>
+      <GraphView />
+    </ReactFlowProvider>
+  </div>
+);
+
 // Function Metadata component (client info badge)
 const FunctionMetadata: React.FC = () => {
   const { selectedFn } = useAtomValue(selectionAtom);
@@ -144,77 +152,77 @@ export const UnifiedPromptPreview = () => {
   };
 
   // If no tabs should be shown (non-LLM function in workflow), render graph directly
-  if (!viewMode.showTabBar) {
-    return (
-      <div className="flex-1 min-h-0 h-full">
-        <ReactFlowProvider>
-          <GraphView />
-        </ReactFlowProvider>
-      </div>
-    );
-  }
-
   return (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col min-h-0">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TabsList>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="curl">cURL</TabsTrigger>
-            {viewMode.showGraphTab && (
-              <TabsTrigger value="graph">Graph</TabsTrigger>
-            )}
-          </TabsList>
-          <FunctionMetadata />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2 text-muted-foreground/70 hover:text-foreground"
-            onClick={handleCopy}
+    <div className="relative h-full">
+      <GraphHost />
+      {viewMode.showTabBar && (
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as any)}
+          className="absolute inset-0 flex flex-col pointer-events-none"
+        >
+          <div className="pointer-events-auto flex items-center justify-between gap-2 bg-background/90 px-2 py-1">
+            <div className="flex items-center gap-2">
+              <TabsList>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+                <TabsTrigger value="curl">cURL</TabsTrigger>
+                {viewMode.showGraphTab && (
+                  <TabsTrigger value="graph">Graph</TabsTrigger>
+                )}
+              </TabsList>
+              <FunctionMetadata />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 text-muted-foreground/70 hover:text-foreground"
+                onClick={handleCopy}
+              >
+                {showCopied ? (
+                  <Check className="size-4 flex-shrink-0" />
+                ) : (
+                  <Copy className="size-4 flex-shrink-0" />
+                )}
+                <span className={getButtonTextClass()}>
+                  {showCopied ? 'Copied!' : activeTab === 'curl' ? 'Copy cURL' : 'Copy Prompt'}
+                </span>
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 text-muted-foreground/70 hover:text-foreground"
+                onClick={() =>
+                  setDisplaySettings((prev) => ({
+                    ...prev,
+                    showTokens: !prev.showTokens,
+                  }))
+                }
+              >
+                <BarChart2 className="size-4" />
+                <span className={getButtonTextClass()}>
+                  {displaySettings.showTokens ? 'Hide Tokens' : 'Show Tokens'}
+                </span>
+              </Button>
+            </div>
+          </div>
+          <TabsContent
+            value="preview"
+            className="flex-1 pointer-events-auto bg-background/95 mt-2 overflow-auto px-2"
           >
-            {showCopied ? (
-              <Check className="size-4 flex-shrink-0" />
-            ) : (
-              <Copy className="size-4 flex-shrink-0" />
-            )}
-            <span className={getButtonTextClass()}>
-              {showCopied ? 'Copied!' : activeTab === 'curl' ? 'Copy cURL' : 'Copy Prompt'}
-            </span>
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2 text-muted-foreground/70 hover:text-foreground"
-            onClick={() =>
-              setDisplaySettings((prev) => ({
-                ...prev,
-                showTokens: !prev.showTokens,
-              }))
-            }
+            <PromptPreviewContent />
+          </TabsContent>
+          <TabsContent
+            value="curl"
+            className="flex-1 pointer-events-auto bg-background/95 mt-2 overflow-auto px-2"
           >
-            <BarChart2 className="size-4" />
-            <span className={getButtonTextClass()}>
-              {displaySettings.showTokens ? 'Hide Tokens' : 'Show Tokens'}
-            </span>
-          </Button>
-        </div>
-      </div>
-      <TabsContent value="preview">
-        <PromptPreviewContent />
-      </TabsContent>
-      <TabsContent value="curl">
-        <PromptPreviewCurl />
-      </TabsContent>
-      {viewMode.showGraphTab && (
-        <TabsContent value="graph" className="flex-1 min-h-0 h-full">
-          <ReactFlowProvider>
-            <GraphView />
-          </ReactFlowProvider>
-        </TabsContent>
+            <PromptPreviewCurl />
+          </TabsContent>
+          {viewMode.showGraphTab && (
+            <TabsContent value="graph" className="flex-1 pointer-events-none" />
+          )}
+        </Tabs>
       )}
-    </Tabs>
+    </div>
   );
 };

@@ -6,11 +6,13 @@ import { useAtomValue } from 'jotai';
 import { ApiKeysDialog } from '../../../../components/api-keys-dialog/dialog';
 import { StatusBar } from '../../../../components/status-bar';
 import { vscode } from '../../vscode';
-import { functionTestSnippetAtom, selectionAtom, detailPanelStateAtom } from '../atoms';
+import { functionTestSnippetAtom, selectionAtom, detailPanelStateAtom, viewModeAtom } from '../atoms';
 import { PreviewToolbar } from '../preview-toolbar';
 import { TestingSidebar } from '../side-bar';
 import { UnifiedPromptPreview } from './unified-prompt-preview';
 import { AdaptiveBottomPanel } from './adaptive-bottom-panel';
+// disable the react-flow handle CSS
+import '../../../../workflow-styles.css';
 
 export const NoTestsContent = () => {
   const { selectedFn } = useAtomValue(selectionAtom);
@@ -70,6 +72,9 @@ export const NoTestsContent = () => {
 export const PromptPreview = () => {
   const { selectedTc } = useAtomValue(selectionAtom);
   const detailPanelState = useAtomValue(detailPanelStateAtom);
+  const viewMode = useAtomValue(viewModeAtom);
+
+  const shouldRenderGraphLayout = !viewMode.showTabBar || viewMode.showGraphTab || !!selectedTc;
 
   return (
     <>
@@ -83,7 +88,7 @@ export const PromptPreview = () => {
 
             {/* Resizable Layout - Main Content + Bottom Panel */}
             <div className="flex-1 min-h-0">
-              {selectedTc ? (
+              {shouldRenderGraphLayout ? (
                 <ResizablePanelGroup direction="vertical" id="unified-layout">
                   {/* Main Panel - Unified Prompt Preview with tabs */}
                   <ResizablePanel defaultSize={detailPanelState.isOpen ? 60 : 100} minSize={30}>
