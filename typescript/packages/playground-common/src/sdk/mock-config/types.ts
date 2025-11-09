@@ -25,8 +25,8 @@ export type NodeOutputGenerator = (
  * Now uses unified types from interface layer
  */
 export interface MockRuntimeConfig {
-  // Workflows discovered by the runtime
-  workflows: WorkflowDefinition[];
+  // Workflows are FunctionWithCallGraph with WorkflowDefinition compatibility
+  workflows: FunctionWithCallGraph[];
 
   // Standalone functions (not in workflows)
   functions: FunctionWithCallGraph[];

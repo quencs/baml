@@ -6,15 +6,40 @@
 
 import { describe, it, expect } from 'vitest';
 import { determineNavigationAction, type NavigationState } from './navigationHeuristic';
-import type { CodeClickEvent, WorkflowDefinition, BAMLFile, BAMLTest } from './types';
+import type { CodeClickEvent, BAMLFile, BAMLTest } from './types';
 import type { FunctionWithCallGraph, SpanInfo } from './interface';
 
 // ============================================================================
 // Test Data Setup
 // ============================================================================
 
-const mockWorkflows: WorkflowDefinition[] = [
+// Helper to create a minimal mock span
+function createMockSpan(filePath: string): SpanInfo {
+  return {
+    filePath,
+    start: 0,
+    end: 0,
+    startLine: 0,
+    startColumn: 0,
+    endLine: 0,
+    endColumn: 0,
+  };
+}
+
+const mockWorkflows: FunctionWithCallGraph[] = [
   {
+    // FunctionMetadata fields
+    name: 'simpleWorkflow',
+    type: 'workflow',
+    span: createMockSpan('workflows/simple.baml'),
+    signature: 'function simpleWorkflow() {}',
+    testSnippet: '',
+    testCases: [],
+    // Call graph fields
+    callGraph: { id: 'simpleWorkflow', type: 'block', children: [] },
+    isRoot: true,
+    callGraphDepth: 1,
+    // Workflow compatibility fields
     id: 'simpleWorkflow',
     displayName: 'Simple Workflow',
     filePath: 'workflows/simple.baml',
@@ -39,6 +64,18 @@ const mockWorkflows: WorkflowDefinition[] = [
     ],
   },
   {
+    // FunctionMetadata fields
+    name: 'conditionalWorkflow',
+    type: 'workflow',
+    span: createMockSpan('workflows/conditional.baml'),
+    signature: 'function conditionalWorkflow() {}',
+    testSnippet: '',
+    testCases: [],
+    // Call graph fields
+    callGraph: { id: 'conditionalWorkflow', type: 'block', children: [] },
+    isRoot: true,
+    callGraphDepth: 1,
+    // Workflow compatibility fields
     id: 'conditionalWorkflow',
     displayName: 'Conditional Workflow',
     filePath: 'workflows/conditional.baml',
@@ -287,7 +324,19 @@ describe('Navigation Heuristic - Test Click Events', () => {
 
   it('should stay in current workflow when test targets a function that exists in both current and other workflows', () => {
     // Setup: Create a scenario where fetchData exists in both simpleWorkflow and sharedWorkflow
-    const sharedWorkflow: WorkflowDefinition = {
+    const sharedWorkflow: FunctionWithCallGraph = {
+      // FunctionMetadata fields
+      name: 'sharedWorkflow',
+      type: 'workflow',
+      span: createMockSpan('shared/workflows/shared.baml'),
+      signature: 'function sharedWorkflow() {}',
+      testSnippet: '',
+      testCases: [],
+      // Call graph fields
+      callGraph: { id: 'sharedWorkflow', type: 'block', children: [] },
+      isRoot: true,
+      callGraphDepth: 1,
+      // Workflow compatibility fields
       id: 'sharedWorkflow',
       displayName: 'Shared Workflow',
       filePath: 'shared/workflows/shared.baml',

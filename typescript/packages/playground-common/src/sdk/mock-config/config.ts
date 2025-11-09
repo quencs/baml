@@ -4,7 +4,7 @@
  * All mock workflows, test cases, and output generators in one place
  */
 
-import type { WorkflowDefinition, GraphNode, GraphEdge, TestCaseInput, BAMLFile } from '../types';
+import type { GraphNode, GraphEdge, TestCaseInput, BAMLFile } from '../types';
 import type { MockRuntimeConfig, NodeOutputGenerator } from './types';
 import {
   createMockFunction as createMockFunctionUnified,
@@ -32,7 +32,7 @@ function createWorkflow(
     parameters?: Array<{ name: string; type: string; optional: boolean }>;
     returnType?: string;
   }
-): WorkflowDefinition {
+): FunctionWithCallGraph {
   const graphNodes: GraphNode[] = nodes.map((n) => ({
     id: n.id,
     type: n.type || 'function',
@@ -51,10 +51,35 @@ function createWorkflow(
     label: e.label,
   }));
 
+  const filePath = `/mock/${id}.baml`;
+  const displayName = id.replace(/([A-Z])/g, ' $1').trim();
+
   return {
+    // FunctionMetadata fields
+    name: id,
+    type: 'workflow',
+    span: createMockSpan(filePath),
+    signature: `function ${id}(...)`,
+    testSnippet: '',
+    testCases: [],
+
+    // Call graph fields
+    callGraph: {
+      id,
+      type: 'block',
+      children: nodes.map((n) => ({
+        id: n.id,
+        type: n.type === 'llm_function' ? 'llm_function' : 'function',
+        children: [],
+      })),
+    },
+    isRoot: true,
+    callGraphDepth: 1,
+
+    // Workflow compatibility fields (id, displayName, nodes, edges, etc.)
     id,
-    displayName: id.replace(/([A-Z])/g, ' $1').trim(),
-    filePath: `/mock/${id}.baml`,
+    displayName,
+    filePath,
     startLine: 1,
     endLine: 100,
     nodes: graphNodes,
@@ -73,7 +98,7 @@ function createWorkflow(
 /**
  * Create mock workflows
  */
-function createMockWorkflows(): WorkflowDefinition[] {
+function createMockWorkflows(): FunctionWithCallGraph[] {
   return [
     // 1. Simple Linear Workflow
     createWorkflow(
@@ -343,7 +368,7 @@ function createMockFunction(
   // Add call graph and workflow compatibility fields
   return {
     ...baseFunction,
-    // WorkflowDefinition compatibility
+    // Workflow compatibility (FunctionWithCallGraph extends FunctionMetadata with workflow fields)
     id: name,
     displayName: name,
     filePath: baseFunction.span.filePath,
@@ -411,11 +436,24 @@ function createBAMLFiles(): BAMLFile[] {
       functions: [
         createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml'),
         createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
+        createMockFunction('checkCondition', 'function', 'workflows/conditional.baml'),
         createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
         createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
+        createMockFunction('subgraph_process', 'function', 'workflows/conditional.baml'),
+        createMockFunction('subgraph_validate', 'function', 'workflows/conditional.baml'),
       ],
       tests: [
         { name: 'test_validateInput_valid_email', functionName: 'validateInput', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
+      ],
+    },
+    {
+      path: 'workflows/shared.baml',
+      functions: [
+        createMockFunction('sharedWorkflow', 'block', 'workflows/shared.baml'),
+        createMockFunction('aggregateData', 'function', 'workflows/shared.baml'),
+      ],
+      tests: [
+        { name: 'test_aggregateData_multiple', functionName: 'aggregateData', filePath: 'workflows/shared.baml', nodeType: 'function' as const },
       ],
     },
   ];

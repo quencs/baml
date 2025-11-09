@@ -6,7 +6,6 @@
  */
 
 import type {
-  WorkflowDefinition,
   ExecutionSnapshot,
   NodeExecutionState,
   NodeExecution,
@@ -50,8 +49,8 @@ export interface SDKStorage {
   // Workflows
   // ============================================================================
 
-  setWorkflows(workflows: WorkflowDefinition[]): void;
-  getWorkflows(): WorkflowDefinition[];
+  setWorkflows(workflows: FunctionWithCallGraph[]): void;
+  getWorkflows(): FunctionWithCallGraph[];
   setActiveWorkflowId(id: string | null): void;
   getActiveWorkflowId(): string | null;
 

@@ -19,7 +19,6 @@
  */
 
 import type {
-  WorkflowDefinition,
   TestCaseInput,
   BAMLFile,
   LogEntry,

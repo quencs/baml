@@ -4,7 +4,7 @@
  * Uses centralized mock configuration (static, doesn't change with files)
  */
 
-import type { WorkflowDefinition, TestCaseInput, BAMLFile } from '../types';
+import type { TestCaseInput, BAMLFile } from '../types';
 import type {
   BamlRuntimeInterface,
   ExecutionOptions,
@@ -61,9 +61,8 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
   }
 
   getWorkflows(): FunctionWithCallGraph[] {
-    // Workflows are just root functions with call graphs
-    // For now, return all functions (naive implementation)
-    return this.getFunctions();
+    // Workflows are FunctionWithCallGraph objects with workflow compatibility fields (nodes, edges, etc.)
+    return this.config.workflows;
   }
 
   getCallGraph(functionName: string): CallGraphNode | undefined {
@@ -73,16 +72,26 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
   }
 
   getFunctions(): FunctionWithCallGraph[] {
-    // Cast config functions to FunctionWithCallGraph
-    // They should already have the right shape if properly configured
-    return this.config.functions as unknown as FunctionWithCallGraph[];
+    // Collect all functions from BAML files
+    const allFunctions: FunctionWithCallGraph[] = [];
+
+    for (const file of this.config.bamlFiles) {
+      allFunctions.push(...file.functions);
+    }
+
+    // Also include any standalone functions from config
+    if (this.config.functions.length > 0) {
+      allFunctions.push(...this.config.functions);
+    }
+
+    return allFunctions;
   }
 
   getTestCases(functionName?: string): TestCaseMetadata[] {
     if (!functionName) {
-      return Object.values(this.config.testCases).flat() as unknown as TestCaseMetadata[];
+      return Object.values(this.config.testCases).flat();
     }
-    return (this.config.testCases[functionName] || []) as unknown as TestCaseMetadata[];
+    return this.config.testCases[functionName] || [];
   }
 
   getBAMLFiles(): BAMLFile[] {

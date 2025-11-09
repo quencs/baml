@@ -8,7 +8,6 @@
 import { atom } from 'jotai';
 import { atomFamily } from 'jotai/utils';
 import type {
-  WorkflowDefinition,
   ExecutionSnapshot,
   NodeExecutionState,
   CacheEntry,
@@ -34,7 +33,7 @@ export const runtimeInstanceAtom = atom<BamlRuntimeInterface | null>(null);
 export const workflowsAtom = atom((get) => {
   const runtime = get(runtimeInstanceAtom);
   return runtime?.getWorkflows() ?? [];
-}, (get, set, update: WorkflowDefinition[]) => {
+}, (get, set, update: FunctionWithCallGraph[]) => {
   set(workflowsAtom, update);
 });
 

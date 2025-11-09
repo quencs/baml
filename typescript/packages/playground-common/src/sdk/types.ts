@@ -135,21 +135,10 @@ export interface Parameter {
 // Workflow Definition
 // ============================================================================
 
-export interface WorkflowDefinition {
-  id: string; // Function name
-  displayName: string;
-  filePath: string;
-  startLine: number;
-  endLine: number;
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  entryPoint: string; // Node ID
-  parameters: Parameter[];
-  returnType: string;
-  childFunctions: string[];
-  lastModified: number;
-  codeHash: string;
-}
+// WorkflowDefinition is deprecated - use FunctionWithCallGraph instead
+// Workflows are now just FunctionWithCallGraph objects with workflow compatibility fields
+// (id, displayName, nodes, edges, entryPoint, parameters, returnType, childFunctions, etc.)
+export type WorkflowDefinition = FunctionWithCallGraph;
 
 // ============================================================================
 // Execution & Node Execution
@@ -238,8 +227,8 @@ export interface CodePosition {
 
 export type BAMLEvent =
   // Workflow events
-  | { type: 'workflow.discovered'; workflow: WorkflowDefinition }
-  | { type: 'workflow.updated'; workflow: WorkflowDefinition; changes: string[] }
+  | { type: 'workflow.discovered'; workflow: FunctionWithCallGraph }
+  | { type: 'workflow.updated'; workflow: FunctionWithCallGraph; changes: string[] }
   | { type: 'workflow.deleted'; workflowId: string }
   | { type: 'workflow.selected'; workflowId: string }
 

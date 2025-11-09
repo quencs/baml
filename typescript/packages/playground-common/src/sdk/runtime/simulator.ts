@@ -9,8 +9,8 @@
  * - Logging
  */
 
-import type { WorkflowDefinition, GraphNode } from '../types';
-import type { RichExecutionEvent } from '../interface';
+import type { GraphNode } from '../types';
+import type { RichExecutionEvent, FunctionWithCallGraph } from '../interface';
 import type { MockRuntimeConfig } from '../mock-config/types';
 import type { LogEntry } from '../types';
 
@@ -18,7 +18,7 @@ import type { LogEntry } from '../types';
  * Simulate workflow execution following the graph structure
  */
 export async function* simulateExecution(
-  workflow: WorkflowDefinition,
+  workflow: FunctionWithCallGraph,
   config: MockRuntimeConfig,
   inputs: Record<string, unknown>,
   executionId: string,
@@ -116,7 +116,7 @@ async function* executeNode(
   node: GraphNode,
   executionId: string,
   context: Record<string, unknown>,
-  workflow: WorkflowDefinition,
+  workflow: FunctionWithCallGraph,
   config: MockRuntimeConfig
 ): AsyncGenerator<
   RichExecutionEvent,
@@ -233,7 +233,7 @@ async function* executeNode(
  */
 function generateOutputs(
   node: GraphNode,
-  workflow: WorkflowDefinition,
+  workflow: FunctionWithCallGraph,
   context: Record<string, unknown>,
   config: MockRuntimeConfig
 ): Record<string, unknown> {

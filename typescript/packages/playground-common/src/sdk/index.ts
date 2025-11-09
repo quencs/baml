@@ -11,7 +11,6 @@ import type { SDKStorage } from './storage/SDKStorage';
 import type { BamlRuntimeInterface, BamlRuntimeFactory } from './runtime/BamlRuntimeInterface';
 import type { FunctionWithCallGraph } from './interface';
 import type {
-  WorkflowDefinition,
   ExecutionSnapshot,
   NodeExecution,
   CacheEntry,
@@ -221,13 +220,13 @@ export class BAMLSDK {
   // ============================================================================
 
   workflows = {
-    getAll: (): WorkflowDefinition[] => this.storage.getWorkflows(),
+    getAll: (): FunctionWithCallGraph[] => this.storage.getWorkflows(),
 
-    getById: (id: string): WorkflowDefinition | null => {
+    getById: (id: string): FunctionWithCallGraph | null => {
       return this.storage.getWorkflows().find((w) => w.id === id) ?? null;
     },
 
-    getActive: (): WorkflowDefinition | null => {
+    getActive: (): FunctionWithCallGraph | null => {
       const id = this.storage.getActiveWorkflowId();
       if (!id) return null;
       return this.workflows.getById(id);

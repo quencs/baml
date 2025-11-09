@@ -7,7 +7,6 @@
 import type { createStore } from 'jotai';
 import type { SDKStorage } from './SDKStorage';
 import type {
-  WorkflowDefinition,
   ExecutionSnapshot,
   NodeExecutionState,
   NodeExecution,
@@ -97,7 +96,7 @@ export class JotaiStorage implements SDKStorage {
   // Workflows
   // ============================================================================
 
-  setWorkflows(workflows: WorkflowDefinition[]) {
+  setWorkflows(workflows: FunctionWithCallGraph[]) {
     this.store.set(workflowsAtom, workflows);
   }
 

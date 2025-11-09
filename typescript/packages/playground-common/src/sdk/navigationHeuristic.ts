@@ -74,7 +74,8 @@
  * ```
  */
 
-import type { CodeClickEvent, WorkflowDefinition, BAMLFile } from './types';
+import type { CodeClickEvent, BAMLFile } from './types';
+import type { FunctionWithCallGraph } from './interface';
 
 /**
  * Navigation action types that can result from the heuristic
@@ -93,7 +94,7 @@ export interface NavigationState {
   /** Currently active workflow (if any) */
   activeWorkflowId: string | null;
   /** All available workflows */
-  workflows: WorkflowDefinition[];
+  workflows: FunctionWithCallGraph[];
   /** All BAML files with functions and tests */
   bamlFiles: BAMLFile[];
 }
@@ -244,7 +245,7 @@ function handleFunctionClick(
  */
 function functionExistsInWorkflow(
   functionName: string,
-  workflow: WorkflowDefinition
+  workflow: FunctionWithCallGraph
 ): boolean {
   return workflow.nodes.some(node => node.id === functionName);
 }
@@ -254,8 +255,8 @@ function functionExistsInWorkflow(
  */
 function findWorkflowContaining(
   functionName: string,
-  workflows: WorkflowDefinition[]
-): WorkflowDefinition | null {
+  workflows: FunctionWithCallGraph[]
+): FunctionWithCallGraph | null {
   return workflows.find(workflow =>
     workflow.nodes.some(node => node.id === functionName)
   ) ?? null;
@@ -287,14 +288,14 @@ function findTestsForFunction(
  */
 export function getCurrentNavigationState(
   sdk: {
-    workflows: { getAll: () => WorkflowDefinition[], getActive: () => WorkflowDefinition | null },
-    mockData?: { getBAMLFiles: () => BAMLFile[] }
+    workflows: { getAll: () => FunctionWithCallGraph[], getActive: () => FunctionWithCallGraph | null },
+    diagnostics: { getBAMLFiles: () => BAMLFile[] }
   }
 ): NavigationState {
   const activeWorkflow = sdk.workflows.getActive();
   return {
     activeWorkflowId: activeWorkflow?.id ?? null,
     workflows: sdk.workflows.getAll(),
-    bamlFiles: sdk.mockData?.getBAMLFiles() ?? [],
+    bamlFiles: sdk.diagnostics.getBAMLFiles(),
   };
 }

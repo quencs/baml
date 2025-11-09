@@ -28,7 +28,6 @@ import type {
   ExecutionOptions,
 } from './BamlRuntimeInterface';
 import type {
-  WorkflowDefinition,
   TestCaseInput,
   BAMLFile,
   BAMLTest,
