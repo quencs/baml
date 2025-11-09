@@ -27,7 +27,7 @@ export function DebugPanel() {
   useEffect(() => {
     console.log('[DebugPanel] Mounted, loading BAML files...');
     const files = sdk.diagnostics.getBAMLFiles();
-    console.log('[DebugPanel] Loaded files:', files);
+    // console.log('[DebugPanel] Loaded files:', files);
     setBAMLFiles(files);
     // Expand all files by default
     setExpandedFiles(new Set(files.map((f: any) => f.path)));

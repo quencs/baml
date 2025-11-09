@@ -5,7 +5,7 @@
  */
 
 import type { createStore } from 'jotai';
-import { BAMLSDK, createBAMLSDK } from '.';
+import { BAMLSDK } from './index';
 import { JotaiStorage } from './storage/JotaiStorage';
 import { MockBamlRuntime } from './runtime/MockBamlRuntime';
 import { BamlRuntime } from './runtime/BamlRuntime';
@@ -39,7 +39,7 @@ export function createMockSDK(
   const storage = new JotaiStorage(store);
 
   // Create SDK
-  return createBAMLSDK(runtimeFactory, storage);
+  return new BAMLSDK(runtimeFactory, storage);
 }
 
 /**
@@ -88,5 +88,5 @@ export function createRealBAMLSDK(store: ReturnType<typeof createStore>): BAMLSD
 
 
   // Create SDK
-  return createBAMLSDK(runtimeFactory, storage);
+  return new BAMLSDK(runtimeFactory, storage);
 }

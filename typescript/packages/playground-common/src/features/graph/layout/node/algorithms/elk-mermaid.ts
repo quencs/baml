@@ -414,11 +414,7 @@ export const layoutELKMermaid = async (
     nodeDb,
     labelMeasurements,
   );
-  console.log(
-    '🎯 Built',
-    elkNodes.length,
-    'root-level ELK nodes (hierarchical)',
-  );
+
 
   // Build ELK edges
   const elkEdges = edges.map((edge) => {
@@ -477,7 +473,6 @@ export const layoutELKMermaid = async (
   // Run ELK layout
   let layoutedGraph: ElkNode | undefined;
   try {
-    console.log('🎯 Running ELK layout...');
     layoutedGraph = await elk.layout(elkGraph);
     console.log('✅ ELK layout completed!');
     // console.log('🎯 Layouted result:', JSON.stringify(layoutedGraph, null, 2));

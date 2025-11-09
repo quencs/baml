@@ -7,7 +7,7 @@
 
 import { Provider as JotaiProvider, createStore } from 'jotai';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { BAMLSDK } from '.';
+import type { BAMLSDK } from './index';
 import { createMockSDK, createRealBAMLSDK } from './factory';
 import {
   DebugBanner,
@@ -52,7 +52,7 @@ export function BAMLSDKProvider({ children, mode: initialMode = 'mock' }: BAMLSD
 
   // Create or recreate SDK when mode changes
   if (!sdkRef.current || currentSDKModeRef.current !== runtimeMode) {
-    console.log('🚀 Creating BAML SDK with mode:', runtimeMode);
+    console.log('🚀 Creating BAML SDK with mode: ', runtimeMode);
     if (runtimeMode === 'mock') {
       sdkRef.current = createMockSDK(storeRef.current);
     } else if (runtimeMode === 'wasm') {
@@ -94,9 +94,9 @@ export function BAMLSDKProvider({ children, mode: initialMode = 'mock' }: BAMLSD
       const initialFiles = debugMode
         ? DEBUG_BAML_FILES
         : {
-            'workflows/simple.baml': '// Mock workflow file',
-            'workflows/conditional.baml': '// Mock conditional workflow',
-          };
+          'workflows/simple.baml': '// Mock workflow file',
+          'workflows/conditional.baml': '// Mock conditional workflow',
+        };
 
       await sdkRef.current.initialize(initialFiles);
 

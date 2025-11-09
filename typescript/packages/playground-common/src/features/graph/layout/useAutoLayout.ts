@@ -24,12 +24,6 @@ const layoutWithFlush = async (options: ILayoutReactflow) => {
   // Get layouted nodes and edges
   const { nodes, edges } = flowStore.value.getNodesAndEdges();
 
-  // Log measured sizes for debugging
-  console.log('📏 Measured node sizes:', nodes.slice(0, 3).map(n => ({
-    id: n.id,
-    measured: n.measured,
-    computed: { width: n.width, height: n.height }
-  })));
 
   return { layout, nodes, edges };
 };

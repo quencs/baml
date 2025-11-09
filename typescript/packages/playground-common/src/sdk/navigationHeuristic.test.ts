@@ -4,197 +4,24 @@
  * Tests all scenarios described in navigationHeuristic.ts documentation
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { determineNavigationAction, type NavigationState } from './navigationHeuristic';
-import type { CodeClickEvent, BAMLFile, BAMLTest } from './types';
-import type { FunctionWithCallGraph, SpanInfo } from './interface';
+import type { CodeClickEvent, BAMLFile } from './types';
+import type { FunctionWithCallGraph } from './interface';
+import { createMockRuntimeConfig } from './mock-config/config';
 
 // ============================================================================
-// Test Data Setup
+// Test Data Setup - Using Centralized Mock Config
 // ============================================================================
 
-// Helper to create a minimal mock span
-function createMockSpan(filePath: string): SpanInfo {
-  return {
-    filePath,
-    start: 0,
-    end: 0,
-    startLine: 0,
-    startColumn: 0,
-    endLine: 0,
-    endColumn: 0,
-  };
-}
+let mockWorkflows: FunctionWithCallGraph[];
+let mockBAMLFiles: BAMLFile[];
 
-const mockWorkflows: FunctionWithCallGraph[] = [
-  {
-    // FunctionMetadata fields
-    name: 'simpleWorkflow',
-    type: 'workflow',
-    span: createMockSpan('workflows/simple.baml'),
-    signature: 'function simpleWorkflow() {}',
-    testSnippet: '',
-    testCases: [],
-    // Call graph fields
-    callGraph: { id: 'simpleWorkflow', type: 'block', children: [] },
-    isRoot: true,
-    callGraphDepth: 1,
-    // Workflow compatibility fields
-    id: 'simpleWorkflow',
-    displayName: 'Simple Workflow',
-    filePath: 'workflows/simple.baml',
-    startLine: 1,
-    endLine: 100,
-    codeHash: 'hash1',
-    entryPoint: 'simpleWorkflow',
-    parameters: [],
-    returnType: 'any',
-    childFunctions: ['fetchData', 'processData', 'saveResult'],
-    lastModified: Date.now(),
-    nodes: [
-      { id: 'simpleWorkflow', type: 'function', label: 'Start', position: { x: 0, y: 0 }, codeHash: 'hash1', lastModified: Date.now() },
-      { id: 'fetchData', type: 'function', label: 'Fetch Data', position: { x: 0, y: 100 }, codeHash: 'hash1', lastModified: Date.now() },
-      { id: 'processData', type: 'llm_function', label: 'Process Data', position: { x: 0, y: 200 }, codeHash: 'hash1', lastModified: Date.now() },
-      { id: 'saveResult', type: 'function', label: 'Save Result', position: { x: 0, y: 300 }, codeHash: 'hash1', lastModified: Date.now() },
-    ],
-    edges: [
-      { id: 'e1', source: 'simpleWorkflow', target: 'fetchData' },
-      { id: 'e2', source: 'fetchData', target: 'processData' },
-      { id: 'e3', source: 'processData', target: 'saveResult' },
-    ],
-  },
-  {
-    // FunctionMetadata fields
-    name: 'conditionalWorkflow',
-    type: 'workflow',
-    span: createMockSpan('workflows/conditional.baml'),
-    signature: 'function conditionalWorkflow() {}',
-    testSnippet: '',
-    testCases: [],
-    // Call graph fields
-    callGraph: { id: 'conditionalWorkflow', type: 'block', children: [] },
-    isRoot: true,
-    callGraphDepth: 1,
-    // Workflow compatibility fields
-    id: 'conditionalWorkflow',
-    displayName: 'Conditional Workflow',
-    filePath: 'workflows/conditional.baml',
-    startLine: 1,
-    endLine: 100,
-    codeHash: 'hash2',
-    entryPoint: 'conditionalWorkflow',
-    parameters: [],
-    returnType: 'any',
-    childFunctions: ['validateInput', 'handleSuccess', 'handleFailure'],
-    lastModified: Date.now(),
-    nodes: [
-      { id: 'conditionalWorkflow', type: 'function', label: 'Start', position: { x: 0, y: 0 }, codeHash: 'hash2', lastModified: Date.now() },
-      { id: 'validateInput', type: 'function', label: 'Validate', position: { x: 0, y: 100 }, codeHash: 'hash2', lastModified: Date.now() },
-      { id: 'handleSuccess', type: 'llm_function', label: 'Success Handler', position: { x: -100, y: 200 }, codeHash: 'hash2', lastModified: Date.now() },
-      { id: 'handleFailure', type: 'function', label: 'Failure Handler', position: { x: 100, y: 200 }, codeHash: 'hash2', lastModified: Date.now() },
-    ],
-    edges: [
-      { id: 'e1', source: 'conditionalWorkflow', target: 'validateInput' },
-      { id: 'e2', source: 'validateInput', target: 'handleSuccess', label: 'success' },
-      { id: 'e3', source: 'validateInput', target: 'handleFailure', label: 'failure' },
-    ],
-  },
-];
-
-// Helper functions for creating mock data
-function createMockFunction(
-  name: string,
-  type: 'function' | 'llm_function' | 'block',
-  filePath: string
-): FunctionWithCallGraph {
-  const span: SpanInfo = {
-    filePath,
-    start: 0,
-    end: 0,
-    startLine: 0,
-    startColumn: 0,
-    endLine: 0,
-    endColumn: 0,
-  };
-
-  return {
-    name,
-    type: type === 'block' ? 'workflow' : type,
-    span,
-    testSnippet: `test ${name}_test {}`,
-    signature: `function ${name}() {}`,
-    testCases: [],
-    // Call graph fields
-    callGraph: {
-      id: name,
-      type,
-      children: [],
-    },
-    isRoot: true,
-    callGraphDepth: 1,
-    // Workflow compatibility fields
-    id: name,
-    displayName: name,
-    filePath,
-    startLine: 0,
-    endLine: 0,
-    nodes: [],
-    edges: [],
-    entryPoint: name,
-    parameters: [],
-    returnType: 'any',
-    childFunctions: [],
-    lastModified: Date.now(),
-    codeHash: '',
-  };
-}
-
-function createMockTestCase(name: string, parentFunctionName: string, filePath: string): BAMLTest {
-  return {
-    name,
-    functionName: parentFunctionName,
-    filePath,
-    nodeType: 'llm_function', // Default to llm_function for tests
-  };
-}
-
-const mockBAMLFiles: BAMLFile[] = [
-  {
-    path: 'workflows/simple.baml',
-    functions: [
-      createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml'),
-      createMockFunction('fetchData', 'function', 'workflows/simple.baml'),
-      createMockFunction('processData', 'llm_function', 'workflows/simple.baml'),
-      createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
-    ],
-    tests: [
-      createMockTestCase('test_simple_success', 'simpleWorkflow', 'workflows/simple.baml'),
-      createMockTestCase('test_simple_with_invalid_data', 'simpleWorkflow', 'workflows/simple.baml'),
-    ],
-  },
-  {
-    path: 'workflows/conditional.baml',
-    functions: [
-      createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml'),
-      createMockFunction('validateInput', 'function', 'workflows/conditional.baml'),
-      createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
-      createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
-    ],
-    tests: [
-      createMockTestCase('test_conditional_success_path', 'conditionalWorkflow', 'workflows/conditional.baml'),
-    ],
-  },
-  {
-    path: 'functions/utils.baml',
-    functions: [
-      createMockFunction('extractUser', 'llm_function', 'functions/utils.baml'),
-      createMockFunction('helperFunction', 'function', 'functions/utils.baml'),
-    ],
-    tests: [
-      createMockTestCase('test_extract_valid_user', 'extractUser', 'functions/utils.baml'),
-    ],
-  },
-];
+beforeAll(() => {
+  const mockConfig = createMockRuntimeConfig();
+  mockWorkflows = mockConfig.workflows;
+  mockBAMLFiles = mockConfig.bamlFiles;
+});
 
 // ============================================================================
 // Test Suites
@@ -323,53 +150,18 @@ describe('Navigation Heuristic - Test Click Events', () => {
   });
 
   it('should stay in current workflow when test targets a function that exists in both current and other workflows', () => {
-    // Setup: Create a scenario where fetchData exists in both simpleWorkflow and sharedWorkflow
-    const sharedWorkflow: FunctionWithCallGraph = {
-      // FunctionMetadata fields
-      name: 'sharedWorkflow',
-      type: 'workflow',
-      span: createMockSpan('shared/workflows/shared.baml'),
-      signature: 'function sharedWorkflow() {}',
-      testSnippet: '',
-      testCases: [],
-      // Call graph fields
-      callGraph: { id: 'sharedWorkflow', type: 'block', children: [] },
-      isRoot: true,
-      callGraphDepth: 1,
-      // Workflow compatibility fields
-      id: 'sharedWorkflow',
-      displayName: 'Shared Workflow',
-      filePath: 'shared/workflows/shared.baml',
-      startLine: 1,
-      endLine: 100,
-      codeHash: 'hash3',
-      entryPoint: 'sharedWorkflow',
-      parameters: [],
-      returnType: 'any',
-      childFunctions: ['aggregateData', 'fetchData'],
-      lastModified: Date.now(),
-      nodes: [
-        { id: 'sharedWorkflow', type: 'function', label: 'Start', position: { x: 0, y: 0 }, codeHash: 'hash', lastModified: Date.now() },
-        { id: 'aggregateData', type: 'function', label: 'Aggregate Data', position: { x: 0, y: 100 }, codeHash: 'hash', lastModified: Date.now() },
-        { id: 'fetchData', type: 'function', label: 'Fetch Data', position: { x: 0, y: 200 }, codeHash: 'hash', lastModified: Date.now() },
-      ],
-      edges: [
-        { id: 'e1', source: 'sharedWorkflow', target: 'aggregateData' },
-        { id: 'e2', source: 'aggregateData', target: 'fetchData' },
-      ],
-    };
-
+    // Setup: fetchData exists in both simpleWorkflow and sharedWorkflow (from mock config)
     const event: CodeClickEvent = {
       type: 'test',
       testName: 'test_fetchData_in_shared',
       functionName: 'fetchData',
-      filePath: 'shared/workflows/shared.baml',
+      filePath: '/mock/sharedWorkflow.baml',
       nodeType: 'function',
     };
 
     const state: NavigationState = {
       activeWorkflowId: 'sharedWorkflow', // Currently viewing sharedWorkflow
-      workflows: [...mockWorkflows, sharedWorkflow], // fetchData exists in simpleWorkflow and sharedWorkflow
+      workflows: mockWorkflows, // fetchData exists in simpleWorkflow and sharedWorkflow
       bamlFiles: mockBAMLFiles,
     };
 

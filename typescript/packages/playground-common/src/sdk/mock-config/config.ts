@@ -31,18 +31,31 @@ function createWorkflow(
   options?: {
     parameters?: Array<{ name: string; type: string; optional: boolean }>;
     returnType?: string;
+    filePath?: string; // Allow explicit file path specification
   }
 ): FunctionWithCallGraph {
-  const graphNodes: GraphNode[] = nodes.map((n) => ({
-    id: n.id,
-    type: n.type || 'function',
-    label: n.label,
-    functionName: n.id,
-    parent: n.parent,
-    llmClient: n.llmClient,
-    codeHash: `hash_${n.id}_${Date.now()}`,
-    lastModified: Date.now(),
-  }));
+  const graphNodes: GraphNode[] = [
+    // Add the workflow itself as the first node (entry point)
+    {
+      id,
+      type: 'function',
+      label: id,
+      functionName: id,
+      codeHash: `hash_${id}_${Date.now()}`,
+      lastModified: Date.now(),
+    },
+    ...nodes.map((n) => ({
+      id: n.id,
+      type: n.type || 'function',
+      label: n.label,
+      functionName: n.id,
+      // Only set parent for explicitly defined parent-child relationships (like subgraphs)
+      parent: n.parent,
+      llmClient: n.llmClient,
+      codeHash: `hash_${n.id}_${Date.now()}`,
+      lastModified: Date.now(),
+    })),
+  ];
 
   const graphEdges: GraphEdge[] = edges.map((e, idx) => ({
     id: `edge_${idx}`,
@@ -51,7 +64,7 @@ function createWorkflow(
     label: e.label,
   }));
 
-  const filePath = `/mock/${id}.baml`;
+  const filePath = options?.filePath || `/mock/${id}.baml`;
   const displayName = id.replace(/([A-Z])/g, ' $1').trim();
 
   return {
@@ -84,12 +97,12 @@ function createWorkflow(
     endLine: 100,
     nodes: graphNodes,
     edges: graphEdges,
-    entryPoint: nodes[0]?.id || '',
+    entryPoint: id,
     parameters: options?.parameters || [
       { name: 'input', type: 'any', optional: false },
     ],
     returnType: options?.returnType || 'any',
-    childFunctions: nodes.map((n) => n.id),
+    childFunctions: [id, ...nodes.map((n) => n.id)],
     lastModified: Date.now(),
     codeHash: `hash_${id}`,
   };
@@ -114,12 +127,14 @@ function createMockWorkflows(): FunctionWithCallGraph[] {
         { id: 'saveResult', label: 'Save Result', type: 'function' },
       ],
       [
+        { from: 'simpleWorkflow', to: 'fetchData' },
         { from: 'fetchData', to: 'processData' },
         { from: 'processData', to: 'saveResult' },
       ],
       {
         parameters: [{ name: 'input', type: 'string', optional: false }],
         returnType: '{ result: string; processed: boolean }',
+        filePath: 'workflows/simple.baml',
       }
     ),
 
@@ -153,6 +168,7 @@ function createMockWorkflows(): FunctionWithCallGraph[] {
         },
       ],
       [
+        { from: 'conditionalWorkflow', to: 'validateInput' },
         { from: 'validateInput', to: 'checkCondition' },
         { from: 'checkCondition', to: 'handleSuccess', label: 'success' },
         { from: 'checkCondition', to: 'handleFailure', label: 'failure' },
@@ -165,6 +181,7 @@ function createMockWorkflows(): FunctionWithCallGraph[] {
           { name: 'threshold', type: 'number', optional: true },
         ],
         returnType: '{ success: boolean; result?: any }',
+        filePath: 'workflows/conditional.baml',
       }
     ),
 
@@ -175,10 +192,14 @@ function createMockWorkflows(): FunctionWithCallGraph[] {
         { id: 'aggregateData', label: 'Aggregate Data', type: 'function' },
         { id: 'fetchData', label: 'Fetch Data', type: 'function' },
       ],
-      [{ from: 'aggregateData', to: 'fetchData' }],
+      [
+        { from: 'sharedWorkflow', to: 'aggregateData' },
+        { from: 'aggregateData', to: 'fetchData' },
+      ],
       {
         parameters: [{ name: 'sources', type: 'string[]', optional: false }],
         returnType: '{ aggregated: any; count: number }',
+        filePath: 'workflows/shared.baml',
       }
     ),
   ];
@@ -191,6 +212,46 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
   const mockSpan = createMockSpan('tests/mock.test.ts');
 
   return {
+    simpleWorkflow: [
+      {
+        id: 'test_simpleWorkflow_one',
+        name: 'test_one',
+        source: 'test' as const,
+        functionId: 'simpleWorkflow',
+        filePath: 'tests/simpleWorkflow.test.ts',
+        inputs: [
+          { name: 'input', value: 'test data' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'simpleWorkflow', start: 0, end: 100 }],
+      },
+      {
+        id: 'test_simpleWorkflow_two',
+        name: 'test_two',
+        source: 'test' as const,
+        functionId: 'simpleWorkflow',
+        filePath: 'tests/simpleWorkflow.test.ts',
+        inputs: [
+          { name: 'input', value: 'different test data' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'simpleWorkflow', start: 0, end: 100 }],
+      },
+    ],
+    conditionalWorkflow: [
+      {
+        id: 'test_conditionalWorkflow_success',
+        name: 'success_path',
+        source: 'test' as const,
+        functionId: 'conditionalWorkflow',
+        filePath: 'tests/conditionalWorkflow.test.ts',
+        inputs: [
+          { name: 'data', value: JSON.stringify({ valid: true }) },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'conditionalWorkflow', start: 0, end: 100 }],
+      },
+    ],
     fetchData: [
       {
         id: 'test_fetchData_success',
@@ -248,6 +309,34 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
         parentFunctions: [{ name: 'validateInput', start: 0, end: 100 }],
       },
     ],
+    handleSuccess: [
+      {
+        id: 'test_handleSuccess_analysis',
+        name: 'success_analysis',
+        source: 'test' as const,
+        functionId: 'handleSuccess',
+        filePath: 'tests/handleSuccess.test.ts',
+        inputs: [
+          { name: 'result', value: JSON.stringify({ status: 'valid' }) },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'handleSuccess', start: 0, end: 100 }],
+      },
+    ],
+    subgraph_process: [
+      {
+        id: 'test_subgraph_process_data',
+        name: 'process_data',
+        source: 'test' as const,
+        functionId: 'subgraph_process',
+        filePath: 'tests/subgraph.test.ts',
+        inputs: [
+          { name: 'data', value: 'test data' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'subgraph_process', start: 0, end: 100 }],
+      },
+    ],
     aggregateData: [
       {
         id: 'test_aggregateData_multiple',
@@ -262,6 +351,20 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
         parentFunctions: [{ name: 'aggregateData', start: 0, end: 100 }],
       },
     ],
+    extractUser: [
+      {
+        id: 'test_extract_valid_user',
+        name: 'valid_user',
+        source: 'test' as const,
+        functionId: 'extractUser',
+        filePath: 'tests/extractUser.test.ts',
+        inputs: [
+          { name: 'text', value: 'John Doe, age 30, email: john@example.com' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'extractUser', start: 0, end: 100 }],
+      },
+    ],
   };
 }
 
@@ -270,6 +373,20 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
  */
 function createOutputGenerators(): Record<string, NodeOutputGenerator> {
   return {
+    // Workflow entry points
+    simpleWorkflow: (ctx) => ({
+      initialized: true,
+      input: ctx.input || 'default',
+      workflowStarted: Date.now(),
+    }),
+
+    conditionalWorkflow: (ctx) => ({
+      initialized: true,
+      data: ctx.data || {},
+      threshold: ctx.threshold || 0.5,
+      workflowStarted: Date.now(),
+    }),
+
     // Simple workflow outputs
     fetchData: (ctx, inputs) => ({
       data: {
@@ -318,6 +435,12 @@ function createOutputGenerators(): Record<string, NodeOutputGenerator> {
       reason: 'Below threshold',
     }),
 
+    checkCondition: () => ({
+      conditionMet: Math.random() > 0.5,
+      branch: Math.random() > 0.5 ? 'success' : 'failure',
+      evaluatedAt: Date.now(),
+    }),
+
     subgraph_process: () => ({
       subgraphResult: 'processed in subgraph',
       operations: ['transform', 'validate', 'enrich'],
@@ -346,6 +469,15 @@ function createOutputGenerators(): Record<string, NodeOutputGenerator> {
         dataSize: Math.floor(Math.random() * 5000) + 1000,
       };
     },
+
+    // Standalone function outputs
+    extractUser: (ctx) => ({
+      name: 'John Doe',
+      age: 30,
+      email: 'john@example.com',
+      confidence: 0.95,
+      extracted: true,
+    }),
   };
 }
 
@@ -427,12 +559,14 @@ function createBAMLFiles(): BAMLFile[] {
     {
       path: 'workflows/simple.baml',
       functions: [
-        createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml'),
+        createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml', testCases['simpleWorkflow'] || []),
         createMockFunction('fetchData', 'function', 'workflows/simple.baml', testCases['fetchData'] || []),
         createMockFunction('processData', 'llm_function', 'workflows/simple.baml', testCases['processData'] || []),
         createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
       ],
       tests: [
+        { name: 'test_simpleWorkflow_one', functionName: 'simpleWorkflow', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
+        { name: 'test_simpleWorkflow_two', functionName: 'simpleWorkflow', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
         { name: 'test_fetchData_success', functionName: 'fetchData', filePath: 'workflows/simple.baml', nodeType: 'function' as const },
         { name: 'test_processData_valid', functionName: 'processData', filePath: 'workflows/simple.baml', nodeType: 'llm_function' as const },
       ],
@@ -440,16 +574,19 @@ function createBAMLFiles(): BAMLFile[] {
     {
       path: 'workflows/conditional.baml',
       functions: [
-        createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml'),
+        createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml', testCases['conditionalWorkflow'] || []),
         createMockFunction('validateInput', 'function', 'workflows/conditional.baml', testCases['validateInput'] || []),
         createMockFunction('checkCondition', 'function', 'workflows/conditional.baml'),
-        createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml'),
+        createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml', testCases['handleSuccess'] || []),
         createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
-        createMockFunction('subgraph_process', 'function', 'workflows/conditional.baml'),
+        createMockFunction('subgraph_process', 'function', 'workflows/conditional.baml', testCases['subgraph_process'] || []),
         createMockFunction('subgraph_validate', 'function', 'workflows/conditional.baml'),
       ],
       tests: [
+        { name: 'test_conditionalWorkflow_success', functionName: 'conditionalWorkflow', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
         { name: 'test_validateInput_valid_email', functionName: 'validateInput', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
+        { name: 'test_handleSuccess_analysis', functionName: 'handleSuccess', filePath: 'workflows/conditional.baml', nodeType: 'llm_function' as const },
+        { name: 'test_subgraph_process_data', functionName: 'subgraph_process', filePath: 'workflows/conditional.baml', nodeType: 'function' as const },
       ],
     },
     {
@@ -460,6 +597,16 @@ function createBAMLFiles(): BAMLFile[] {
       ],
       tests: [
         { name: 'test_aggregateData_multiple', functionName: 'aggregateData', filePath: 'workflows/shared.baml', nodeType: 'function' as const },
+      ],
+    },
+    {
+      path: 'functions/utils.baml',
+      functions: [
+        createMockFunction('extractUser', 'llm_function', 'functions/utils.baml', testCases['extractUser'] || []),
+        createMockFunction('helperFunction', 'function', 'functions/utils.baml'),
+      ],
+      tests: [
+        { name: 'test_extract_valid_user', functionName: 'extractUser', filePath: 'functions/utils.baml', nodeType: 'llm_function' as const },
       ],
     },
   ];

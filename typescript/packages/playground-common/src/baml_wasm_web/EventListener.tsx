@@ -1,12 +1,12 @@
 "use client";
 
-import { vscode } from "@baml/playground-common";
+import { vscode } from "../shared/baml-project-panel/vscode";
 import { useDebounceCallback } from "@react-hook/debounce";
 import { atom, useSetAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { useEffect } from "react";
 import { vscodeLocalStorageStore } from "./JotaiProvider";
-import { type BamlConfigAtom, bamlConfig } from "./bamlConfig";
+import { bamlConfig } from "./bamlConfig";
 import { VscodeToWebviewCommand } from "./vscode-to-webview-rpc";
 import { handleIDEMessage, handleLSPMessage } from "./message-handlers";
 import { useBAMLSDK } from "../sdk";
@@ -14,7 +14,6 @@ import { useBAMLSDK } from "../sdk";
 // ============================================================================
 // EventListener-specific atoms (not managed by SDK)
 // ============================================================================
-
 export const hasClosedEnvVarsDialogAtom = atomWithStorage<boolean>(
   "has-closed-env-vars-dialog",
   false,
@@ -91,7 +90,7 @@ export const EventListener: React.FC = () => {
   useEffect(() => {
     const handler = async (event: MessageEvent<VscodeToWebviewCommand>) => {
       const { source, payload } = event.data;
-      console.debug('[EventListener] Handling command', { source, payload });
+      console.debug('[EventListener] Handling command:', { source, payload });
 
       try {
         switch (source) {

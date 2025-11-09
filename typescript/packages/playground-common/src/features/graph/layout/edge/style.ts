@@ -97,10 +97,6 @@ export function layoutEdge({
   const hasElkRouting = layout?.inputPoints && layout.inputPoints.length > 1;
 
   if (hasElkRouting) {
-    console.log(
-      `🎨 Edge ${id}: Using ELK routing with ${layout!.points.length} points`,
-      layout!.points,
-    );
 
     // Use ELK routing - only rebuild path if points changed
     const reBuildPathDeps = layout?.points;

@@ -1211,13 +1211,3 @@ export class BAMLSDK {
     this.activeExecutions.clear();
   }
 }
-
-/**
- * Create a new BAML SDK instance
- */
-export function createBAMLSDK(
-  runtimeFactory: BamlRuntimeFactory,
-  storage: SDKStorage
-): BAMLSDK {
-  return new BAMLSDK(runtimeFactory, storage);
-}

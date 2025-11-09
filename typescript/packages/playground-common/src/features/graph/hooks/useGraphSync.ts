@@ -23,11 +23,11 @@ export function useGraphSync() {
   const convertedGraph = useMemo(() => {
     if (!currentGraph.nodes.length) return null;
 
-    console.log('🔄 Converting graph:', {
-      nodes: currentGraph.nodes.length,
-      edges: currentGraph.edges.length,
-      isSnapshot: currentGraph.isSnapshot,
-    });
+    // console.log('🔄 Converting graph:', {
+    //   nodes: currentGraph.nodes.length,
+    //   edges: currentGraph.edges.length,
+    //   isSnapshot: currentGraph.isSnapshot,
+    // });
 
     return sdkGraphToReactflow(
       currentGraph.nodes,

@@ -4,7 +4,7 @@ import { AlertCircle, RefreshCw, ExternalLink, WifiOff, ChevronDown, ChevronUp, 
 import { Button } from '@baml/ui/button';
 import { useAtomValue } from 'jotai';
 import { ErrorWarningDialog } from '../../../../../../components/ErrorWarningDialog';
-import { diagnosticsAtom } from '@baml/playground-common';
+import { diagnosticsAtom } from '../../../../../../sdk/atoms/core.atoms';
 
 
 // Type definitions for error handlers
