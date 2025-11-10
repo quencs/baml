@@ -224,30 +224,23 @@ export const selectionAtom = atom((get) => {
 
   const { functions } = get(runtimeStateAtom);
 
-  let selectedFn = functions.at(0);
+  type FunctionType = (typeof functions)[number];
+  let selectedFn: FunctionType | undefined = undefined;
   if (selectedFunction !== undefined) {
     const foundFn = functions.find((f) => f.name === selectedFunction);
     if (foundFn) {
       selectedFn = foundFn;
     } else {
-      console.error('Function not found', selectedFunction);
+      console.warn('Function not found', selectedFunction);
     }
-  } else {
-    console.debug('No function selected');
   }
 
-  let selectedTc = selectedFn?.testCases?.at(0);
-  if (selectedTestcase !== undefined) {
-    const foundTc = selectedFn?.testCases?.find(
-      (tc) => tc.name === selectedTestcase,
-    );
-    if (foundTc) {
-      selectedTc = foundTc;
-    } else {
-      console.error('Testcase not found', selectedTestcase);
-      // Clear the invalid test selection from SDK atoms
-      // This prevents the error from persisting
-      selectedTc = undefined;
+  type TestType = FunctionType['testCases'][number];
+  let selectedTc: TestType | undefined = undefined;
+  if (selectedFn && selectedTestcase !== undefined) {
+    selectedTc = selectedFn.testCases?.find((tc) => tc.name === selectedTestcase);
+    if (!selectedTc) {
+      console.warn('Testcase not found', selectedTestcase);
     }
   }
 

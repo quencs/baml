@@ -158,12 +158,9 @@ function LLMNodeContent({ node, execution }: IOTabProps) {
 
   // Fetch test cases and merge with execution inputs
   const allInputSources = useMemo(() => {
-    const activeWorkflow = sdk.workflows.getActive();
-    if (!activeWorkflow) return executionInputSources;
-
-    const testCases = sdk.testCases.get(node.id);
+    const testCases = sdk.testCases.get(node.functionName ?? node.id);
     return [...testCases, ...executionInputSources] as InputSource[];
-  }, [sdk, node.id, executionInputSources]);
+  }, [sdk, node.functionName, node.id, executionInputSources]);
 
   // If a test case is selected in unified state, prefer that source
   useEffect(() => {
@@ -473,12 +470,9 @@ function StandardNodeContent({ node, execution }: IOTabProps) {
 
   // Fetch test cases and merge with execution inputs
   const allInputSources = useMemo(() => {
-    const activeWorkflow = sdk.workflows.getActive();
-    if (!activeWorkflow) return executionInputSources;
-
-    const testCases = sdk.testCases.get(node.id);
+    const testCases = sdk.testCases.get(node.functionName ?? node.id);
     return [...testCases, ...executionInputSources] as InputSource[];
-  }, [sdk, node.id, executionInputSources]);
+  }, [sdk, node.functionName, node.id, executionInputSources]);
 
   // Auto-select the latest available input source
   useEffect(() => {

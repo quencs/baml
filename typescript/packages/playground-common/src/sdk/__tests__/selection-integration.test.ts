@@ -11,10 +11,19 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createStore } from 'jotai';
 import { createRealBAMLSDK, DEBUG_BAML_FILES } from '../index';
+import {
+  selectedFunctionNameAtom,
+  selectedTestCaseNameAtom,
+  activeWorkflowIdAtom,
+  selectedNodeIdAtom,
+} from '../atoms/core.atoms';
+import { determineNavigationAction, type NavigationState, type NavigationAction } from '../navigationHeuristic';
+import type { CodeClickEvent } from '../types';
 
 describe('Selection State Integration (Real WASM Runtime)', () => {
   let sdk: ReturnType<typeof createRealBAMLSDK>;
   let store: ReturnType<typeof createStore>;
+  let conditionalWorkflowHeaderId: string;
 
   beforeAll(async () => {
     // Create SDK with real BAML runtime
@@ -23,6 +32,18 @@ describe('Selection State Integration (Real WASM Runtime)', () => {
 
     // Initialize with debug BAML files (same as debug mode)
     await sdk.initialize(DEBUG_BAML_FILES);
+
+     const conditionalWorkflow = sdk.workflows.getById('ConditionalWorkflow');
+     if (!conditionalWorkflow) {
+       throw new Error('ConditionalWorkflow not found in real runtime');
+     }
+     const headerNode = conditionalWorkflow.nodes.find((node) =>
+       node.label === 'check summary confidence'
+     );
+     if (!headerNode) {
+       throw new Error('Header node for "check summary confidence" not found');
+     }
+     conditionalWorkflowHeaderId = headerNode.id;
   });
 
   describe('BAML Files Loading', () => {
@@ -64,6 +85,137 @@ describe('Selection State Integration (Real WASM Runtime)', () => {
 
       expect(countItemsTests).toBeDefined();
       expect(countItemsTests.length).toBe(0);
+    });
+  });
+
+  describe('Navigation Heuristic with real runtime data', () => {
+    const resetSelectionAtoms = () => {
+      store.set(selectedFunctionNameAtom, null);
+      store.set(selectedTestCaseNameAtom, null);
+      store.set(activeWorkflowIdAtom, null);
+      store.set(selectedNodeIdAtom, null);
+    };
+
+    const getSelectionSnapshot = () => ({
+      functionName: store.get(selectedFunctionNameAtom),
+      testName: store.get(selectedTestCaseNameAtom),
+      activeWorkflowId: store.get(activeWorkflowIdAtom),
+      selectedNodeId: store.get(selectedNodeIdAtom),
+    });
+
+    const applyNavigationAction = (action: NavigationAction) => {
+      switch (action.type) {
+        case 'switch-workflow':
+          store.set(selectedFunctionNameAtom, action.workflowId);
+          store.set(selectedTestCaseNameAtom, null);
+          store.set(activeWorkflowIdAtom, action.workflowId);
+          store.set(selectedNodeIdAtom, null);
+          break;
+        case 'switch-and-select':
+          store.set(selectedFunctionNameAtom, action.nodeId);
+          store.set(selectedTestCaseNameAtom, action.testId ?? null);
+          store.set(activeWorkflowIdAtom, action.workflowId);
+          store.set(selectedNodeIdAtom, action.nodeId);
+          break;
+        case 'select-node':
+          store.set(selectedFunctionNameAtom, action.nodeId);
+          store.set(selectedTestCaseNameAtom, action.testId ?? store.get(selectedTestCaseNameAtom));
+          store.set(activeWorkflowIdAtom, action.workflowId);
+          store.set(selectedNodeIdAtom, action.nodeId);
+          break;
+        case 'show-function-tests':
+          store.set(selectedFunctionNameAtom, action.functionName);
+          store.set(selectedTestCaseNameAtom, action.tests[0] ?? null);
+          store.set(activeWorkflowIdAtom, null);
+          store.set(selectedNodeIdAtom, action.functionName);
+          break;
+        case 'empty-state':
+        default:
+          store.set(selectedFunctionNameAtom, null);
+          store.set(selectedTestCaseNameAtom, null);
+          store.set(activeWorkflowIdAtom, null);
+          store.set(selectedNodeIdAtom, null);
+          break;
+      }
+    };
+
+    const buildNavState = (): NavigationState => ({
+      activeWorkflowId: store.get(activeWorkflowIdAtom),
+      workflows: sdk.workflows.getAll(),
+      bamlFiles: sdk.diagnostics.getBAMLFiles(),
+    });
+
+    const simulateCodeClick = (event: CodeClickEvent) => {
+      const action = determineNavigationAction(event, buildNavState());
+      applyNavigationAction(action);
+      return action;
+    };
+
+    it('should show the bug where selectedNodeId becomes null after clicking CheckCondition then header', () => {
+      resetSelectionAtoms();
+
+      const llmEvent: CodeClickEvent = {
+        type: 'function',
+        functionName: 'CheckCondition',
+        functionType: 'llm_function',
+        filePath: 'baml_src/workflows/conditional.baml',
+      };
+
+      const headerEvent: CodeClickEvent = {
+        type: 'function',
+        functionName: conditionalWorkflowHeaderId,
+        functionType: 'group',
+        filePath: 'baml_src/workflows/conditional.baml',
+      };
+
+      simulateCodeClick(llmEvent);
+      const afterLLM = getSelectionSnapshot();
+      expect(afterLLM.activeWorkflowId).toBe('CheckCondition');
+      expect(afterLLM.selectedNodeId).toBe('CheckCondition');
+
+      simulateCodeClick(headerEvent);
+      const afterHeader = getSelectionSnapshot();
+      expect(afterHeader.activeWorkflowId).toBe('ConditionalWorkflow');
+      expect(afterHeader.selectedNodeId).toBe(conditionalWorkflowHeaderId);
+    });
+
+    it('updates atoms when toggling between workflow header and root nodes', () => {
+      resetSelectionAtoms();
+
+      const headerEvent: CodeClickEvent = {
+        type: 'function',
+        functionName: conditionalWorkflowHeaderId,
+        functionType: 'function',
+        filePath: 'baml_src/workflows/conditional.baml',
+      };
+
+      const workflowEvent: CodeClickEvent = {
+        type: 'function',
+        functionName: 'ConditionalWorkflow',
+        functionType: 'workflow',
+        filePath: 'baml_src/workflows/conditional.baml',
+      };
+
+      const action1 = simulateCodeClick(headerEvent);
+      expect(action1.type).toBe('switch-and-select');
+      expect(getSelectionSnapshot()).toMatchObject({
+        activeWorkflowId: 'ConditionalWorkflow',
+        selectedNodeId: conditionalWorkflowHeaderId,
+      });
+
+      const action2 = simulateCodeClick(workflowEvent);
+      expect(action2.type).toBe('select-node');
+      expect(getSelectionSnapshot()).toMatchObject({
+        activeWorkflowId: 'ConditionalWorkflow',
+        selectedNodeId: 'ConditionalWorkflow',
+      });
+
+      const action3 = simulateCodeClick(headerEvent);
+      expect(action3.type).toBe('select-node');
+      expect(getSelectionSnapshot()).toMatchObject({
+        activeWorkflowId: 'ConditionalWorkflow',
+        selectedNodeId: conditionalWorkflowHeaderId,
+      });
     });
   });
 

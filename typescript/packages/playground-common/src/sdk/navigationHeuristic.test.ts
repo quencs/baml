@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { determineNavigationAction, type NavigationState } from './navigationHeuristic';
+import { determineNavigationAction, type NavigationState, type NavigationAction } from './navigationHeuristic';
 import type { CodeClickEvent, BAMLFile } from './types';
 import type { FunctionWithCallGraph } from './interface';
 import { createMockRuntimeConfig } from './mock-config/config';
@@ -22,6 +22,57 @@ beforeAll(() => {
   mockWorkflows = mockConfig.workflows;
   mockBAMLFiles = mockConfig.bamlFiles;
 });
+
+type SelectionSnapshot = {
+  functionName: string | null;
+  testName: string | null;
+  activeWorkflowId: string | null;
+  selectedNodeId: string | null;
+};
+
+const applyActionToSelection = (
+  prev: SelectionSnapshot,
+  action: NavigationAction
+): SelectionSnapshot => {
+  switch (action.type) {
+    case 'switch-workflow':
+      return {
+        functionName: action.workflowId,
+        testName: null,
+        activeWorkflowId: action.workflowId,
+        selectedNodeId: null,
+      };
+    case 'select-node':
+      return {
+        functionName: action.nodeId,
+        testName: action.testId ?? prev.testName ?? null,
+        activeWorkflowId: action.workflowId,
+        selectedNodeId: action.nodeId,
+      };
+    case 'switch-and-select':
+      return {
+        functionName: action.nodeId,
+        testName: action.testId ?? null,
+        activeWorkflowId: action.workflowId,
+        selectedNodeId: action.nodeId,
+      };
+    case 'show-function-tests':
+      return {
+        functionName: action.functionName,
+        testName: action.tests[0] ?? null,
+        activeWorkflowId: null,
+        selectedNodeId: action.functionName,
+      };
+    case 'empty-state':
+    default:
+      return {
+        functionName: null,
+        testName: null,
+        activeWorkflowId: null,
+        selectedNodeId: null,
+      };
+  }
+};
 
 // ============================================================================
 // Test Suites
@@ -478,4 +529,91 @@ describe('Navigation Heuristic - Complex Scenarios', () => {
       nodeId: 'simpleWorkflow',
     });
   });
+
+  it('should repeatedly select nodes when toggling between workflow and child nodes', () => {
+    const initialState: NavigationState = {
+      activeWorkflowId: null,
+      workflows: mockWorkflows,
+      bamlFiles: mockBAMLFiles,
+    };
+
+    let selection: SelectionSnapshot = {
+      functionName: null,
+      testName: null,
+      activeWorkflowId: null,
+      selectedNodeId: null,
+    };
+
+    const switchAction = determineNavigationAction(
+      {
+        type: 'function',
+        functionName: 'checkCondition',
+        functionType: 'conditional',
+        filePath: 'workflows/conditional.baml',
+      },
+      initialState
+    );
+
+    expect(switchAction).toEqual({
+      type: 'switch-and-select',
+      workflowId: 'conditionalWorkflow',
+      nodeId: 'checkCondition',
+    });
+
+    selection = applyActionToSelection(selection, switchAction);
+    expect(selection).toMatchObject({
+      activeWorkflowId: 'conditionalWorkflow',
+      selectedNodeId: 'checkCondition',
+    });
+
+    const stateAfterSwitch: NavigationState = {
+      ...initialState,
+      activeWorkflowId: 'conditionalWorkflow',
+    };
+
+    const workflowAction = determineNavigationAction(
+      {
+        type: 'function',
+        functionName: 'conditionalWorkflow',
+        functionType: 'workflow',
+        filePath: 'workflows/conditional.baml',
+      },
+      stateAfterSwitch
+    );
+
+    expect(workflowAction).toEqual({
+      type: 'select-node',
+      workflowId: 'conditionalWorkflow',
+      nodeId: 'conditionalWorkflow',
+    });
+
+    selection = applyActionToSelection(selection, workflowAction);
+    expect(selection).toMatchObject({
+      activeWorkflowId: 'conditionalWorkflow',
+      selectedNodeId: 'conditionalWorkflow',
+    });
+
+    const backToChild = determineNavigationAction(
+      {
+        type: 'function',
+        functionName: 'checkCondition',
+        functionType: 'conditional',
+        filePath: 'workflows/conditional.baml',
+      },
+      stateAfterSwitch
+    );
+
+    expect(backToChild).toEqual({
+      type: 'select-node',
+      workflowId: 'conditionalWorkflow',
+      nodeId: 'checkCondition',
+    });
+
+    selection = applyActionToSelection(selection, backToChild);
+    expect(selection).toMatchObject({
+      activeWorkflowId: 'conditionalWorkflow',
+      selectedNodeId: 'checkCondition',
+    });
+  });
+
 });

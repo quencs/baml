@@ -12,6 +12,7 @@ import {
   selectedTestCaseNameAtom,
   activeWorkflowIdAtom,
   selectedNodeIdAtom,
+  activeWorkflowAtom,
 } from '../../../sdk/atoms/core.atoms';
 
 // ============================================================================
@@ -90,16 +91,25 @@ export const detailPanelStateAtom = atom({
 export const viewModeAtom = atom((get) => {
   const selection = get(unifiedSelectionAtom);
   const { selectedFn } = get(originalSelectionAtom);
+  const activeWorkflow = get(activeWorkflowAtom);
 
   // Is the selected function part of a workflow?
   const isInWorkflow = selection.activeWorkflowId !== null;
 
+  console.log(selection, selectedFn, activeWorkflow, isInWorkflow);
   const isLLMFunction = selectedFn?.type === 'llm_function';
-  const isWorkflow = selectedFn?.type === 'workflow';
-  const showGraph = isWorkflow || isInWorkflow;
+  const hasWorkflowStructure =
+    selectedFn?.type === 'workflow' && (selectedFn.nodes?.length ?? 0) > 1;
+  const activeWorkflowHasStructure =
+    activeWorkflow?.nodes && activeWorkflow.nodes.length > 1;
+  // HACK: Treat single-node workflows as LLM-only so the UI doesn't expose the graph view
+  // until we have richer structure from the runtime.
+  const shouldShowWorkflow = hasWorkflowStructure;
+  const showGraph =
+    shouldShowWorkflow || (isInWorkflow && !!activeWorkflowHasStructure);
 
   return {
-    showTabs: isLLMFunction || showGraph,
+    showTabs: isLLMFunction, //|| showGraph,
     showGraphTab: showGraph,
     defaultTab: (showGraph ? 'graph' : 'preview') as TabValue,
     showTabBar: isLLMFunction || showGraph,

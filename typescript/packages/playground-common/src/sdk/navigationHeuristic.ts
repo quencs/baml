@@ -133,7 +133,7 @@ function handleTestClick(
   // Check if target is a workflow itself
   const workflow = state.workflows.find(w => w.id === targetFunction);
 
-  if (workflow) {
+  if (isWorkflowWithStructure(workflow)) {
     // Test is for a workflow - just switch to it
     console.log('✅ Test targets workflow:', workflow.id);
     return { type: 'switch-workflow', workflowId: workflow.id };
@@ -142,7 +142,7 @@ function handleTestClick(
   // Priority 1: Check if function exists in current workflow (stay in context)
   if (state.activeWorkflowId) {
     const currentWorkflow = state.workflows.find(w => w.id === state.activeWorkflowId);
-    if (currentWorkflow && functionExistsInWorkflow(targetFunction, currentWorkflow)) {
+    if (isWorkflowWithStructure(currentWorkflow) && functionExistsInWorkflow(targetFunction, currentWorkflow)) {
       console.log('✅ Test targets function in current workflow, selecting node:', targetFunction, 'test:', event.testName);
       return {
         type: 'select-node',
@@ -156,7 +156,7 @@ function handleTestClick(
   // Priority 2: Check if target is a node within a different workflow
   const workflowWithFunction = findWorkflowContaining(targetFunction, state.workflows);
 
-  if (workflowWithFunction) {
+  if (isWorkflowWithStructure(workflowWithFunction)) {
     // Test is for a function node in a different workflow - switch and select
     console.log('✅ Test targets function in different workflow:', workflowWithFunction.id, '->', targetFunction, 'test:', event.testName);
     return {
@@ -199,11 +199,11 @@ function handleFunctionClick(
   // Priority 1: Check if function exists in current workflow
   if (state.activeWorkflowId) {
     const currentWorkflow = state.workflows.find(w => w.id === state.activeWorkflowId);
-    if (currentWorkflow && functionExistsInWorkflow(targetFunction, currentWorkflow)) {
+    if (functionExistsInWorkflow(targetFunction, currentWorkflow)) {
       console.log('✅ Function exists in current workflow, selecting node');
       return {
         type: 'select-node',
-        workflowId: currentWorkflow.id,
+        workflowId: currentWorkflow!.id,
         nodeId: targetFunction,
       };
     }
@@ -245,9 +245,9 @@ function handleFunctionClick(
  */
 function functionExistsInWorkflow(
   functionName: string,
-  workflow: FunctionWithCallGraph
-): boolean {
-  return workflow.nodes.some(node => node.id === functionName);
+  workflow?: FunctionWithCallGraph | null
+): workflow is FunctionWithCallGraph {
+  return Boolean(workflow && workflow.nodes?.some(node => node.id === functionName));
 }
 
 /**
@@ -257,9 +257,11 @@ function findWorkflowContaining(
   functionName: string,
   workflows: FunctionWithCallGraph[]
 ): FunctionWithCallGraph | null {
-  return workflows.find(workflow =>
-    workflow.nodes.some(node => node.id === functionName)
-  ) ?? null;
+  return (
+    workflows.find(workflow =>
+      workflow.nodes?.some(node => node.id === functionName)
+    ) ?? null
+  );
 }
 
 /**
@@ -294,8 +296,12 @@ export function getCurrentNavigationState(
 ): NavigationState {
   const activeWorkflow = sdk.workflows.getActive();
   return {
-    activeWorkflowId: activeWorkflow?.id ?? null,
-    workflows: sdk.workflows.getAll(),
+    activeWorkflowId: isWorkflowWithStructure(activeWorkflow) ? activeWorkflow!.id : null,
+    workflows: sdk.workflows.getAll().filter(isWorkflowWithStructure),
     bamlFiles: sdk.diagnostics.getBAMLFiles(),
   };
+}
+
+function isWorkflowWithStructure(workflow?: FunctionWithCallGraph | null): workflow is FunctionWithCallGraph {
+  return Boolean(workflow && workflow.type === 'workflow' && (workflow.nodes?.length ?? 0) > 1);
 }

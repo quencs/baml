@@ -119,7 +119,6 @@ export function useCodeNavigation() {
           action.testId ? `with test: ${action.testId}` : ''
         );
 
-        // Check if workflow exists before switching
         const workflowToSwitch = sdk.workflows.getById(action.workflowId);
         if (!workflowToSwitch) {
           console.error(`❌ Cannot switch to workflow: "${action.workflowId}" not found`);
@@ -132,42 +131,55 @@ export function useCodeNavigation() {
           break;
         }
 
+        const resolveNodeId = () => {
+          const directMatch = workflowToSwitch.nodes.find((node) => node.id === action.nodeId);
+          if (directMatch) return directMatch.id;
+          const labelMatch = workflowToSwitch.nodes.find((node) => node.label === action.nodeId);
+          if (labelMatch) return labelMatch.id;
+          const rootMatch = workflowToSwitch.nodes.find((node) => node.id.startsWith(`${action.nodeId}|`));
+          if (rootMatch) return rootMatch.id;
+          return action.nodeId;
+        };
+        const targetNodeId = resolveNodeId();
+
         // Clear node to exit LLM-only mode but remember pending target
         setUnifiedSelection({
           functionName: action.nodeId,
           testName: action.testId ?? null,
           activeWorkflowId: action.workflowId,
-          selectedNodeId: null,
+          selectedNodeId: action.nodeId,
         });
         setActiveTab('graph');
 
-        // Wait for workflow to load before selecting node
-        timeouts.push(setTimeout(() => {
-          console.log('🎯 Selecting node in workflow:', action.nodeId);
-          setUnifiedSelection((prev) => ({
-            ...prev,
-            selectedNodeId: action.nodeId,
-          }));
-          openDetailPanel();
-
-          // Update unified state with selected node
-          setDetailPanelState({ isOpen: true });
-
-          // If a testId is provided, select that test case in the details panel
-          if (action.testId) {
-            console.log('🎯 Selecting test case:', action.testId);
-            selectSource(action.nodeId, 'test', action.testId);
+        const selectWhenReady = (attemptsLeft: number) => {
+          const node = flowStore.value.getNode(targetNodeId);
+          if (!node) {
+            if (attemptsLeft <= 0) {
+              console.warn('⚠️ Node not found in ReactFlow after switching:', targetNodeId);
+              return;
+            }
+            timeouts.push(setTimeout(() => selectWhenReady(attemptsLeft - 1), 100));
+            return;
           }
 
-          timeouts.push(setTimeout(() => {
-            const node = flowStore.value.getNode(action.nodeId);
-            if (node) {
-              panToNodeIfNeeded(node, flowStore.value);
-            } else {
-              console.warn('⚠️ Node not found in ReactFlow after switching:', action.nodeId);
-            }
-          }, 100));
-        }, 400));
+          console.log('🎯 Selecting node in workflow:', targetNodeId);
+          setUnifiedSelection((prev) => ({
+            ...prev,
+            selectedNodeId: targetNodeId,
+          }));
+          openDetailPanel();
+          setDetailPanelState({ isOpen: true });
+
+          if (action.testId) {
+            console.log('🎯 Selecting test case:', action.testId);
+            selectSource(targetNodeId, 'test', action.testId);
+          }
+
+          panToNodeIfNeeded(node, flowStore.value);
+        };
+
+        // wait a tick for workflow graph to mount before polling
+        timeouts.push(setTimeout(() => selectWhenReady(20), 150));
         break;
       }
 

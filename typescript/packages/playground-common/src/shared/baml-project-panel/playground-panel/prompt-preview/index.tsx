@@ -75,7 +75,10 @@ export const PromptPreview = () => {
   const detailPanelState = useAtomValue(detailPanelStateAtom);
   const viewMode = useAtomValue(viewModeAtom);
 
-  const shouldRenderGraphLayout = !viewMode.showTabBar || viewMode.showGraphTab || !!selectedTc;
+  console.log('viewMode', viewMode);
+  console.log('selectedTc', selectedTc);
+  const shouldRenderGraphLayout = viewMode.showGraphTab || !!selectedTc;
+  console.log('shouldRenderGraphLayout', shouldRenderGraphLayout);
 
   return (
     <>

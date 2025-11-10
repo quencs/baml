@@ -498,7 +498,6 @@ export class BamlRuntime implements BamlRuntimeInterface {
     try {
       const llmFunctions: WasmFunction[] = this.wasmRuntime.list_functions();
       const exprFunctions: WasmFunction[] = this.wasmRuntime.list_expr_fns?.() ?? [];
-      console.log('[BamlRuntime] expr functions', exprFunctions.map((fn) => fn.name));
       const seen = new Set<string>();
       const combined: FunctionWithCallGraph[] = [];
 
@@ -558,9 +557,22 @@ export class BamlRuntime implements BamlRuntimeInterface {
       throw new Error(`[BamlRuntime] Missing span information for ${fn.name}`);
     })();
 
-    const finalType: FunctionMetadata['type'] = controlFlow.rootType === 'workflow'
+    let finalType: FunctionMetadata['type'] = controlFlow.rootType === 'workflow'
       ? 'workflow'
       : metadata.type;
+
+    // if (finalType === 'workflow' && controlFlow.nodes.length <= 1) {
+    //   // HACK: Treat single-node “workflows” (pure LLM calls) as llm_functions until
+    //   // the runtime can return richer structure for them.
+    //   finalType = 'llm_function';
+    // }
+
+    // if (finalType !== 'workflow') {
+    //   controlFlow = createFallbackControlFlowArtifacts(
+    //     { ...metadata, type: finalType },
+    //     timestamp
+    //   );
+    // }
 
     return {
       ...metadata,
@@ -625,11 +637,10 @@ export class BamlRuntime implements BamlRuntimeInterface {
       const functionTypeByName = new Map(functions.map(fn => [fn.name, fn.type]));
 
       for (const fn of functions) {
-      if (!fn.span) {
-        console.warn('[BamlRuntime] Missing span for function while grouping files:', fn.name);
-      }
-      const filePath = fn.span?.filePath || 'unknown.baml';
-      console.log('[BamlRuntime] grouping function -> file', fn.name, filePath);
+        if (!fn.span) {
+          console.warn('[BamlRuntime] Missing span for function while grouping files:', fn.name);
+        }
+        const filePath = fn.span?.filePath || 'unknown.baml';
         if (!fileMap.has(filePath)) {
           fileMap.set(filePath, { functions: [], tests: [] });
         }
