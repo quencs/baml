@@ -140,10 +140,7 @@ flattening:
             start: 177
             end: 195
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"BranchArm: if (true)\"]\n        direction TB\n        n4[\"Then Statement\"]\n      end\n      subgraph n5[\"BranchArm: else\"]\n        direction TB\n        n6[\"Else Statement\"]\n      end\n    end\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
-    expr:
+    json:
       nodes:
         "0":
           label: BasicIf
@@ -208,11 +205,149 @@ flattening:
             file: src/control_flow/testdata/BasicIf.baml
             start: 177
             end: 195
+      edges: {}
+    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"BranchArm: if (true)\"]\n        direction TB\n        n4[\"Then Statement\"]\n      end\n      subgraph n5[\"BranchArm: else\"]\n        direction TB\n        n6[\"Else Statement\"]\n      end\n    end\n  end\nend\n"
+  pass2_expand_branch_groups:
+    label: Expand branch groups
+    expr:
+      nodes:
+        "0":
+          label: BasicIf
+          lexical_id: "BasicIf|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 16
+            end: 222
+        "1":
+          label: This is a named statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 64
+            end: 93
+        "2":
+          label: if (true)
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0"
+          node_type: branch-group
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 106
+            end: 212
+        "3":
+          label: if (true)
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:if-true:0"
+          node_type: branch-arm
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 116
+            end: 161
+        "4":
+          label: Then Statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:if-true:0|hdr:then-statement:0"
+          node_type: header
+          parent: "3"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 126
+            end: 144
+        "5":
+          label: else
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:else:1"
+          node_type: branch-arm
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 167
+            end: 212
+        "6":
+          label: Else Statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:else:1|hdr:else-statement:0"
+          node_type: header
+          parent: "5"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 177
+            end: 195
       edges:
         "2":
           - "3"
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"BranchArm: if (true)\"]\n        direction TB\n        n4[\"Then Statement\"]\n      end\n      subgraph n5[\"BranchArm: else\"]\n        direction TB\n        n6[\"Else Statement\"]\n      end\n    end\n    n2 --> n3\n    n2 --> n5\n  end\nend\n"
+    json:
+      nodes:
+        "0":
+          label: BasicIf
+          lexical_id: "BasicIf|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 16
+            end: 222
+        "1":
+          label: This is a named statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 64
+            end: 93
+        "2":
+          label: if (true)
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0"
+          node_type: branch-group
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 106
+            end: 212
+        "3":
+          label: if (true)
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:if-true:0"
+          node_type: branch-arm
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 116
+            end: 161
+        "4":
+          label: Then Statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:if-true:0|hdr:then-statement:0"
+          node_type: header
+          parent: "3"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 126
+            end: 144
+        "5":
+          label: else
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:else:1"
+          node_type: branch-arm
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 167
+            end: 212
+        "6":
+          label: Else Statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:else:1|hdr:else-statement:0"
+          node_type: header
+          parent: "5"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 177
+            end: 195
+      edges:
+        "2":
+          - "3"
+          - "5"
+    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    n2[\"BranchGroup: if (true)\"]\n    subgraph n3[\"BranchArm: if (true)\"]\n      direction TB\n      n4[\"Then Statement\"]\n    end\n    subgraph n5[\"BranchArm: else\"]\n      direction TB\n      n6[\"Else Statement\"]\n    end\n    n2 --> n3\n    n2 --> n5\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -248,7 +383,7 @@ flattening:
           label: Then Statement
           lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:if-true:0|hdr:then-statement:0"
           node_type: header
-          parent: "2"
+          parent: "0"
           span:
             file: src/control_flow/testdata/BasicIf.baml
             start: 126
@@ -257,7 +392,7 @@ flattening:
           label: Else Statement
           lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:else:1|hdr:else-statement:0"
           node_type: header
-          parent: "2"
+          parent: "0"
           span:
             file: src/control_flow/testdata/BasicIf.baml
             start: 177
@@ -266,4 +401,55 @@ flattening:
         "2":
           - "4"
           - "6"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      n3[\"Then Statement\"]\n      n4[\"Else Statement\"]\n    end\n    n2 --> n3\n    n2 --> n4\n  end\nend\n"
+    json:
+      nodes:
+        "0":
+          label: BasicIf
+          lexical_id: "BasicIf|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 16
+            end: 222
+        "1":
+          label: This is a named statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 64
+            end: 93
+        "2":
+          label: if (true)
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0"
+          node_type: branch-group
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 106
+            end: 212
+        "4":
+          label: Then Statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:if-true:0|hdr:then-statement:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 126
+            end: 144
+        "6":
+          label: Else Statement
+          lexical_id: "BasicIf|root:0|hdr:this-is-a-named-statement:0|bg:if-true:0|arm:else:1|hdr:else-statement:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/BasicIf.baml
+            start: 177
+            end: 195
+      edges:
+        "2":
+          - "4"
+          - "6"
+    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    n2[\"BranchGroup: if (true)\"]\n    n2 --> n3\n    n2 --> n4\n  end\n  n3[\"Then Statement\"]\n  n4[\"Else Statement\"]\nend\n"

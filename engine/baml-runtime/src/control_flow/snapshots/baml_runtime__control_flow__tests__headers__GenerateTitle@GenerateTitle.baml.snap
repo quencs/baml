@@ -43,6 +43,18 @@ flattening:
             start: 61
             end: 188
       edges: {}
+    json:
+      nodes:
+        "0":
+          label: GenerateTitle
+          lexical_id: "GenerateTitle|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/GenerateTitle.baml
+            start: 61
+            end: 188
+      edges: {}
     mermaid: "flowchart TD\nn0[\"GenerateTitle\"]\n"
   pass2_expand_branch_groups:
     label: Expand branch groups
@@ -58,10 +70,34 @@ flattening:
             start: 61
             end: 188
       edges: {}
+    json:
+      nodes:
+        "0":
+          label: GenerateTitle
+          lexical_id: "GenerateTitle|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/GenerateTitle.baml
+            start: 61
+            end: 188
+      edges: {}
     mermaid: "flowchart TD\nn0[\"GenerateTitle\"]\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
+      nodes:
+        "0":
+          label: GenerateTitle
+          lexical_id: "GenerateTitle|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/GenerateTitle.baml
+            start: 61
+            end: 188
+      edges: {}
+    json:
       nodes:
         "0":
           label: GenerateTitle

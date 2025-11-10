@@ -144,9 +144,11 @@ fn test_snapshots() {
 }
 
 fn flatten_stage_snapshot(stage: &str, viz: &ControlFlowVisualization) -> Value {
+    let viz_json = viz_snapshot(viz);
     json!({
         "label": stage,
-        "expr": viz_snapshot(viz),
+        "expr": viz_json.clone(),
+        "json": viz_json,
         "mermaid": to_mermaid(viz),
     })
 }

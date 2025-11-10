@@ -50,6 +50,27 @@ flattening:
             start: 38
             end: 53
       edges: {}
+    json:
+      nodes:
+        "0":
+          label: SimpleTest
+          lexical_id: "SimpleTest|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/SimpleTest.baml
+            start: 0
+            end: 82
+        "1":
+          label: Main Header
+          lexical_id: "SimpleTest|root:0|hdr:main-header:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/SimpleTest.baml
+            start: 38
+            end: 53
+      edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"
   pass2_expand_branch_groups:
     label: Expand branch groups
@@ -74,10 +95,52 @@ flattening:
             start: 38
             end: 53
       edges: {}
+    json:
+      nodes:
+        "0":
+          label: SimpleTest
+          lexical_id: "SimpleTest|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/SimpleTest.baml
+            start: 0
+            end: 82
+        "1":
+          label: Main Header
+          lexical_id: "SimpleTest|root:0|hdr:main-header:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/SimpleTest.baml
+            start: 38
+            end: 53
+      edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
+      nodes:
+        "0":
+          label: SimpleTest
+          lexical_id: "SimpleTest|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/SimpleTest.baml
+            start: 0
+            end: 82
+        "1":
+          label: Main Header
+          lexical_id: "SimpleTest|root:0|hdr:main-header:0"
+          node_type: header
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/SimpleTest.baml
+            start: 38
+            end: 53
+      edges: {}
+    json:
       nodes:
         "0":
           label: SimpleTest

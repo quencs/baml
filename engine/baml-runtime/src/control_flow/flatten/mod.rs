@@ -3,13 +3,13 @@ use std::collections::{HashMap, HashSet};
 
 use crate::control_flow::{ControlFlowVisualization, Edge, Node, NodeId};
 
-mod expand_branch_groups;
-mod flatten_scopes;
-mod remove_implicit;
+mod step1_remove_implicit;
+mod step2_expand_branch_groups;
+mod step3_flatten_scopes;
 
-pub use expand_branch_groups::expand_branch_groups;
-pub use flatten_scopes::flatten_branch_arms_and_scopes;
-pub use remove_implicit::remove_implicit_nodes;
+pub use step1_remove_implicit::remove_implicit_nodes;
+pub use step2_expand_branch_groups::expand_branch_groups;
+pub use step3_flatten_scopes::flatten_branch_arms_and_scopes;
 
 /// Result of flattening a `ControlFlowVisualization`.
 #[derive(Clone, Debug, Default)]

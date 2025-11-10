@@ -90,6 +90,47 @@ flattening:
       edges:
         "2":
           - "3"
+    json:
+      nodes:
+        "0":
+          label: SingleNestedChildMultiItems
+          lexical_id: "SingleNestedChildMultiItems|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 11
+            end: 211
+        "1":
+          label: for (item in items)
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0"
+          node_type: loop
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 94
+            end: 197
+        "2":
+          label: First
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:first:0"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 128
+            end: 138
+        "3":
+          label: Second
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:second:1"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 170
+            end: 181
+      edges:
+        "2":
+          - "3"
     mermaid: "flowchart TD\nsubgraph n0[\"SingleNestedChildMultiItems\"]\n  direction TB\n  subgraph n1[\"Loop: for (item in items)\"]\n    direction TB\n    n2[\"First\"]\n    n3[\"Second\"]\n    n2 --> n3\n  end\nend\n"
   pass2_expand_branch_groups:
     label: Expand branch groups
@@ -134,10 +175,92 @@ flattening:
       edges:
         "2":
           - "3"
+    json:
+      nodes:
+        "0":
+          label: SingleNestedChildMultiItems
+          lexical_id: "SingleNestedChildMultiItems|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 11
+            end: 211
+        "1":
+          label: for (item in items)
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0"
+          node_type: loop
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 94
+            end: 197
+        "2":
+          label: First
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:first:0"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 128
+            end: 138
+        "3":
+          label: Second
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:second:1"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 170
+            end: 181
+      edges:
+        "2":
+          - "3"
     mermaid: "flowchart TD\nsubgraph n0[\"SingleNestedChildMultiItems\"]\n  direction TB\n  subgraph n1[\"Loop: for (item in items)\"]\n    direction TB\n    n2[\"First\"]\n    n3[\"Second\"]\n    n2 --> n3\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
+      nodes:
+        "0":
+          label: SingleNestedChildMultiItems
+          lexical_id: "SingleNestedChildMultiItems|root:0"
+          node_type: function
+          parent: ~
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 11
+            end: 211
+        "1":
+          label: for (item in items)
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0"
+          node_type: loop
+          parent: "0"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 94
+            end: 197
+        "2":
+          label: First
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:first:0"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 128
+            end: 138
+        "3":
+          label: Second
+          lexical_id: "SingleNestedChildMultiItems|root:0|loop:for-item-in-items:0|hdr:second:1"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/SingleNestedChildMultiItems.baml
+            start: 170
+            end: 181
+      edges:
+        "2":
+          - "3"
+    json:
       nodes:
         "0":
           label: SingleNestedChildMultiItems
