@@ -171,7 +171,10 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     testName: string,
     context: TestExecutionContext
   ): Promise<PromptInfo> {
-    // Mock implementation - return fake prompt
+    const template = this.config.functionPrompts?.[functionName];
+    if (template) {
+      return template.prompt;
+    }
     return createMockPrompt('chat', 'mock-client');
   }
 
@@ -185,7 +188,12 @@ export class MockBamlRuntime implements BamlRuntimeInterface {
     },
     context: TestExecutionContext
   ): Promise<string> {
-    // Mock implementation - return fake curl command
+    const template = this.config.functionPrompts?.[functionName];
+    if (template) {
+      return options?.exposeSecrets
+        ? template.curl.withSecrets
+        : template.curl.withoutSecrets;
+    }
     return `curl -X POST https://mock-api.example.com/${functionName} -d '{"test": "${testName}"}'`;
   }
 

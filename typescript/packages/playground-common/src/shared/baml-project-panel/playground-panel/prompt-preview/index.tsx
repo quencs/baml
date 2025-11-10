@@ -11,6 +11,7 @@ import { PreviewToolbar } from '../preview-toolbar';
 import { TestingSidebar } from '../side-bar';
 import { UnifiedPromptPreview } from './unified-prompt-preview';
 import { AdaptiveBottomPanel } from './adaptive-bottom-panel';
+import { SelectionBridge } from '../SelectionBridge';
 // disable the react-flow handle CSS
 import '../../../../workflow-styles.css';
 
@@ -78,6 +79,7 @@ export const PromptPreview = () => {
 
   return (
     <>
+      <SelectionBridge />
       <SidebarProvider defaultOpen={vscode.isVscode()} className="h-full min-h-0">
         <SidebarInset>
           <div className="h-full flex flex-col overflow-hidden relative">

@@ -6,14 +6,192 @@
  */
 
 import { useAtom, useSetAtom } from 'jotai';
-import { Play, FileCode, Folder, FolderOpen, ChevronRight, ChevronDown, Plus, Edit } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Play, FileCode, Folder, FolderOpen, ChevronRight, ChevronDown, Plus, Edit, GitBranch, RefreshCw, Layers, CornerDownLeft, Square } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { bamlFilesAtom, activeCodeClickAtom } from '../../../sdk/atoms/core.atoms';
-import type { BAMLFunction, BAMLTest, CodeClickEvent } from '../../../sdk/types';
+import type { BAMLTest, CodeClickEvent, BAMLFile } from '../../../sdk/types';
 import { useBAMLSDK } from '../../../sdk/provider';
 import type { VscodeToWebviewCommand } from '../../../baml_wasm_web/vscode-to-webview-rpc';
 import { useRunBamlTests } from '../../../shared/baml-project-panel/playground-panel/prompt-preview/test-panel/test-runner';
 import { unifiedSelectionAtom } from '../../../shared/baml-project-panel/playground-panel/unified-atoms';
+import type { FunctionWithCallGraph, NodeType } from '../../../sdk/interface';
+
+type DebugNodeType = NodeType | 'workflow';
+
+interface DebugNode {
+  id: string;
+  label: string;
+  nodeType: DebugNodeType;
+  filePath: string;
+  origin: 'function' | 'workflow-node';
+  workflowId?: string;
+}
+
+function mapNodeTypeToEventType(nodeType: DebugNodeType): CodeClickEvent['functionType'] {
+  switch (nodeType) {
+    case 'workflow':
+      return 'workflow';
+    case 'llm_function':
+      return 'llm_function';
+    case 'conditional':
+      return 'conditional';
+    case 'loop':
+      return 'loop';
+    case 'group':
+      return 'group';
+    case 'return':
+      return 'return';
+    case 'block':
+      return 'block';
+    default:
+      return 'function';
+  }
+}
+
+function buildNodesByFile(
+  files: BAMLFile[],
+  workflows: FunctionWithCallGraph[],
+): Record<string, DebugNode[]> {
+  const workflowsByFile = workflows.reduce<Map<string, FunctionWithCallGraph[]>>((acc, workflow) => {
+    const filePath = workflow.filePath || workflow.span?.filePath;
+    if (!filePath) {
+      return acc;
+    }
+    if (!acc.has(filePath)) {
+      acc.set(filePath, []);
+    }
+    acc.get(filePath)!.push(workflow);
+    return acc;
+  }, new Map());
+
+  const nodesByFile: Record<string, DebugNode[]> = {};
+
+  const addNode = (filePath: string, node: DebugNode) => {
+    if (!nodesByFile[filePath]) {
+      nodesByFile[filePath] = [];
+    }
+    const existingIndex = nodesByFile[filePath].findIndex((n) => n.id === node.id);
+    if (existingIndex === -1) {
+      nodesByFile[filePath].push(node);
+    } else {
+      // Prefer workflow metadata (gives us nodeType + workflow id)
+      const existing = nodesByFile[filePath][existingIndex];
+      nodesByFile[filePath][existingIndex] = {
+        ...existing,
+        ...node,
+        label: node.label || existing.label,
+        origin: existing.origin === 'workflow-node' ? existing.origin : node.origin,
+      };
+    }
+  };
+
+  for (const file of files) {
+    for (const func of file.functions as FunctionWithCallGraph[]) {
+      addNode(file.path, {
+        id: func.name,
+        label: func.name,
+        nodeType: func.type === 'workflow' ? 'workflow' : func.type,
+        filePath: file.path,
+        origin: 'function',
+      });
+    }
+
+    const relatedWorkflows = workflowsByFile.get(file.path) ?? [];
+    for (const workflow of relatedWorkflows) {
+      for (const node of workflow.nodes ?? []) {
+        if (!node?.id) continue;
+        addNode(file.path, {
+          id: node.id,
+          label: node.label || node.id,
+          nodeType: node.type ?? 'function',
+          filePath: file.path,
+          origin: 'workflow-node',
+          workflowId: workflow.id,
+        });
+      }
+    }
+  }
+
+  // Ensure workflows without explicit file entries still surface their nodes
+  for (const workflow of workflows) {
+    const filePath = workflow.filePath || workflow.span?.filePath;
+    if (!filePath) continue;
+    if (!nodesByFile[filePath]) {
+      nodesByFile[filePath] = [];
+    }
+    for (const node of workflow.nodes ?? []) {
+      if (!node?.id) continue;
+      const exists = nodesByFile[filePath].some((n) => n.id === node.id);
+      if (!exists) {
+        nodesByFile[filePath].push({
+          id: node.id,
+          label: node.label || node.id,
+          nodeType: node.type ?? 'function',
+          filePath,
+          origin: 'workflow-node',
+          workflowId: workflow.id,
+        });
+      }
+    }
+  }
+
+  Object.values(nodesByFile).forEach((nodes) => {
+    nodes.sort((a, b) => a.label.localeCompare(b.label));
+  });
+
+  return nodesByFile;
+}
+
+function NodeIcon({ nodeType }: { nodeType: DebugNodeType }) {
+  const className = 'w-3 h-3 text-muted-foreground';
+  switch (nodeType) {
+    case 'workflow':
+    case 'conditional':
+      return <GitBranch className={className} />;
+    case 'loop':
+      return <RefreshCw className={className} />;
+    case 'group':
+      return <Layers className={className} />;
+    case 'return':
+      return <CornerDownLeft className={className} />;
+    case 'block':
+      return <Square className={className} />;
+    default:
+      return <FileCode className={className} />;
+  }
+}
+
+function NodeTag({ nodeType }: { nodeType: DebugNodeType }) {
+  if (nodeType === 'llm_function') {
+    return (
+      <span className="ml-auto text-[8px] px-1 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
+        LLM
+      </span>
+    );
+  }
+  if (nodeType === 'conditional') {
+    return (
+      <span className="ml-auto text-[8px] px-1 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-200 rounded">
+        IF
+      </span>
+    );
+  }
+  if (nodeType === 'loop') {
+    return (
+      <span className="ml-auto text-[8px] px-1 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">
+        LOOP
+      </span>
+    );
+  }
+  if (nodeType === 'group') {
+    return (
+      <span className="ml-auto text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded">
+        GROUP
+      </span>
+    );
+  }
+  return null;
+}
 
 export function DebugPanel() {
   const sdk = useBAMLSDK();
@@ -23,6 +201,7 @@ export function DebugPanel() {
   const [activeCodeClick] = useAtom(activeCodeClickAtom);
   const setUnifiedSelection = useSetAtom(unifiedSelectionAtom);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const [workflows, setWorkflows] = useState<FunctionWithCallGraph[]>([]);
 
   // Load BAML files on mount
   useEffect(() => {
@@ -33,6 +212,16 @@ export function DebugPanel() {
     // Expand all files by default
     setExpandedFiles(new Set(files.map((f: any) => f.path)));
   }, [sdk, setBAMLFiles]);
+
+  useEffect(() => {
+    const allWorkflows = sdk.workflows.getAll();
+    setWorkflows(allWorkflows);
+  }, [sdk, bamlFiles]);
+
+  const nodesByFile = useMemo(
+    () => buildNodesByFile((bamlFiles as BAMLFile[]) ?? [], workflows),
+    [bamlFiles, workflows]
+  );
 
   console.log('[DebugPanel] Rendering with', bamlFiles.length, 'files');
 
@@ -48,12 +237,12 @@ export function DebugPanel() {
     });
   };
 
-  const handleFunctionClick = (func: BAMLFunction) => {
+  const handleNodeClick = (node: DebugNode) => {
     const event: CodeClickEvent = {
       type: 'function',
-      functionName: func.name,
-      functionType: func.type,
-      filePath: func.filePath,
+      functionName: node.id,
+      functionType: mapNodeTypeToEventType(node.nodeType),
+      filePath: node.filePath,
     };
     setActiveCodeClick(event);
     console.log('🔍 Simulated function click:', event);
@@ -61,7 +250,7 @@ export function DebugPanel() {
     // Update unified selection (mirrors SDK atoms)
     setUnifiedSelection((prev) => ({
       ...prev,
-      functionName: func.name,
+      functionName: node.id,
       testName: null,
     }));
   };
@@ -94,15 +283,12 @@ export function DebugPanel() {
     await runBamlTests([{ functionName: test.functionName, testName: test.name }]);
   };
 
-  const isActive = (item: BAMLFunction | BAMLTest, type: 'function' | 'test') => {
-    if (!activeCodeClick) return false;
-    if (type === 'function' && activeCodeClick.type === 'function') {
-      return activeCodeClick.functionName === (item as BAMLFunction).name;
-    }
-    if (type === 'test' && activeCodeClick.type === 'test') {
-      return activeCodeClick.testName === (item as BAMLTest).name;
-    }
-    return false;
+  const isNodeActive = (node: DebugNode) => {
+    return activeCodeClick?.type === 'function' && activeCodeClick.functionName === node.id;
+  };
+
+  const isTestActive = (test: BAMLTest) => {
+    return activeCodeClick?.type === 'test' && activeCodeClick.testName === test.name;
   };
 
   // Simulate adding a new file with CheckAvailability function
@@ -257,6 +443,7 @@ Date: ${dateTime}`
         ) : (
           bamlFiles.map((file) => {
             const isExpanded = expandedFiles.has(file.path);
+            const nodes = nodesByFile[file.path] ?? [];
             return (
               <div key={file.path} className="mb-1">
                 {/* File Header */}
@@ -280,26 +467,20 @@ Date: ${dateTime}`
                 {/* File Contents */}
                 {isExpanded && (
                   <div className="ml-4 mt-0.5 space-y-1">
-                    {/* Functions Section - exclude workflow functions */}
-                    {file.functions.filter((func: BAMLFunction) => func.type !== 'workflow').length > 0 && (
+                    {nodes.length > 0 && (
                       <div>
                         <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide px-1 py-0.5">
-                          Functions
+                          Nodes
                         </div>
-                        {file.functions.filter((func: BAMLFunction) => func.type !== 'workflow').map((func: BAMLFunction) => (
+                        {nodes.map((node) => (
                           <button
-                            key={func.name}
-                            onClick={() => handleFunctionClick(func)}
-                            className={`w-full flex items-center gap-1 px-1 py-0.5 text-[10px] hover:bg-muted/50 rounded transition-colors ${isActive(func, 'function') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : ''
-                              }`}
+                            key={`${file.path}-${node.id}`}
+                            onClick={() => handleNodeClick(node)}
+                            className={`w-full flex items-center gap-1 px-1 py-0.5 text-[10px] hover:bg-muted/50 rounded transition-colors ${isNodeActive(node) ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : ''}`}
                           >
-                            <FileCode className="w-3 h-3 text-muted-foreground" />
-                            <span className="truncate">{func.name}</span>
-                            {func.type === 'llm_function' && (
-                              <span className="ml-auto text-[8px] px-1 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
-                                LLM
-                              </span>
-                            )}
+                            <NodeIcon nodeType={node.nodeType} />
+                            <span className="truncate">{node.label}</span>
+                            <NodeTag nodeType={node.nodeType} />
                           </button>
                         ))}
                       </div>
@@ -315,7 +496,7 @@ Date: ${dateTime}`
                           <div
                             key={test.name}
                             onClick={() => handleTestClick(test)}
-                            className={`w-full flex items-center gap-1 px-1 py-0.5 text-[10px] hover:bg-muted/50 rounded transition-colors group cursor-pointer ${isActive(test, 'test') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : ''
+                            className={`w-full flex items-center gap-1 px-1 py-0.5 text-[10px] hover:bg-muted/50 rounded transition-colors group cursor-pointer ${isTestActive(test) ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : ''
                               }`}
                           >
                             <Play className="w-3 h-3 text-muted-foreground" />

@@ -339,7 +339,7 @@ export interface BAMLFile {
 export type CodeClickEvent = {
   type: 'function';
   functionName: string;
-  functionType: 'workflow' | 'function' | 'llm_function';
+  functionType: 'workflow' | 'function' | 'llm_function' | 'conditional' | 'loop' | 'group' | 'return' | 'block';
   filePath: string;
 } | {
   type: 'test';

@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@baml/ui/tooltip';
 import { TooltipProvider } from '@baml/ui/tooltip';
 import { useSidebar } from '@baml/ui/sidebar';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { BarChart2, Check, Copy, Server } from 'lucide-react';
+import { BarChart2, Check, Copy, Server, Eye, Code2, Network } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { runtimeAtom, betaFeatureEnabledAtom } from '../../atoms';
 import { selectionAtom, activeTabAtom, viewModeAtom } from '../atoms';
@@ -159,15 +159,24 @@ export const UnifiedPromptPreview = () => {
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as any)}
-          className="absolute inset-0 flex flex-col pointer-events-none"
+          className="absolute inset-0 flex flex-col pointer-events-none gap-0"
         >
-          <div className="pointer-events-auto flex items-center justify-between gap-2 bg-background/90 px-2 py-1">
+          <div className="pointer-events-auto flex items-center justify-between gap-2 bg-background/90 px-2 py-0">
             <div className="flex items-center gap-2">
               <TabsList>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-                <TabsTrigger value="curl">cURL</TabsTrigger>
+                <TabsTrigger value="preview">
+                  <Eye className="size-3.5" />
+                  <span className="ml-1">Prompt</span>
+                </TabsTrigger>
+                <TabsTrigger value="curl">
+                  <Code2 className="size-3.5" />
+                  <span className="ml-1">cURL</span>
+                </TabsTrigger>
                 {viewMode.showGraphTab && (
-                  <TabsTrigger value="graph">Graph</TabsTrigger>
+                  <TabsTrigger value="graph">
+                    <Network className="size-3.5" />
+                    <span className="ml-1">Workflow</span>
+                  </TabsTrigger>
                 )}
               </TabsList>
               <FunctionMetadata />
@@ -208,13 +217,13 @@ export const UnifiedPromptPreview = () => {
           </div>
           <TabsContent
             value="preview"
-            className="flex-1 pointer-events-auto bg-background/95 mt-2 overflow-auto px-2"
+            className="flex-1 pointer-events-auto bg-background/95 mt-0 pt-1 overflow-auto px-2"
           >
             <PromptPreviewContent />
           </TabsContent>
           <TabsContent
             value="curl"
-            className="flex-1 pointer-events-auto bg-background/95 mt-2 overflow-auto px-2"
+            className="flex-1 pointer-events-auto bg-background/95 mt-0 pt-1 overflow-auto px-2"
           >
             <PromptPreviewCurl />
           </TabsContent>

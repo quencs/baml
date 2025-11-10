@@ -633,6 +633,62 @@ function createBAMLFiles(): BAMLFile[] {
   ];
 }
 
+function createFunctionPrompts() {
+  const makeChatPrompt = (
+    clientName: string,
+    system: string,
+    userExample: string
+  ) => ({
+    type: 'chat' as const,
+    clientName,
+    messages: [
+      {
+        role: 'system',
+        parts: [{ type: 'text', content: system }],
+      },
+      {
+        role: 'user',
+        parts: [{ type: 'text', content: userExample }],
+      },
+    ],
+  });
+
+  const makeCurl = (
+    model: string,
+    prompt: string
+  ) => ({
+    withoutSecrets: `curl https://api.openai.com/v1/chat/completions \\\n  -H "Authorization: Bearer ****" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"system","content":"${prompt.replace(/"/g, '\\"')}"}]}'`,
+    withSecrets: `curl https://api.openai.com/v1/chat/completions \\\n  -H "Authorization: Bearer sk-mock" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"system","content":"${prompt.replace(/"/g, '\\"')}"}]}'`,
+  });
+
+  return {
+    processData: {
+      prompt: makeChatPrompt(
+        'GPT-4o',
+        'You are a data normalization agent. Clean up and summarize incoming JSON payloads.',
+        'Dataset: {"orders": [...]}\nThreshold: 0.8'
+      ),
+      curl: makeCurl('gpt-4o-mini', 'Normalize the provided dataset and call out anomalies.'),
+    },
+    handleSuccess: {
+      prompt: makeChatPrompt(
+        'Claude-3',
+        'You turn successful workflow outputs into short human-readable blurbs.',
+        'Success payload: {"result":"widgets created","confidence":0.92}'
+      ),
+      curl: makeCurl('claude-3-sonnet', 'Summarize the success payload in one sentence with confidence.'),
+    },
+    extractUser: {
+      prompt: makeChatPrompt(
+        'GPT-4-turbo',
+        'You extract structured user info from resumes.',
+        'Resume text: Jane Doe, Senior PM at Example Inc...'
+      ),
+      curl: makeCurl('gpt-4-turbo', 'Return JSON fields full_name, title, skills extracted from resume.'),
+    },
+  };
+}
+
 /**
  * Create default mock runtime configuration
  */
@@ -661,5 +717,6 @@ export function createMockRuntimeConfig(
       },
     },
     bamlFiles: createBAMLFiles(),
+    functionPrompts: createFunctionPrompts(),
   };
 }

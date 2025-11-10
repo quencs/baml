@@ -29,11 +29,10 @@ export const PromptPreviewContent = () => {
     () => async () => {
       if (
         runtime === null ||
-        ctx === undefined ||
         selectedFn === undefined ||
         selectedTc === undefined
       ) {
-
+        console.log('[PromptPreview] no runtime or selectedFn or selectedTc');
         return;
       }
       console.log('[PromptPreview] Attempt renderPromptForTest', {
@@ -78,7 +77,7 @@ export const PromptPreviewContent = () => {
     isLoading,
   } = useSWR(
     // Include file content in the key so updates trigger when typing
-    runtime && ctx && selectedFn && selectedTc
+    runtime && selectedFn && selectedTc
       ? [
         'prompt-preview',
         selectedFn.name,

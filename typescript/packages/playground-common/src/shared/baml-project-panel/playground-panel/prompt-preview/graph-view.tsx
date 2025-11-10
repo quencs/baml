@@ -18,11 +18,11 @@ import type { Node } from '@xyflow/react';
 // Import graph primitives and components from WorkflowApp
 import { kEdgeTypes, ColorfulMarkerDefinitions, kNodeTypes } from '../../../../graph-primitives';
 import { ReactflowInstance } from '../../../../features/graph/components';
-import { useDetailPanel, useActiveWorkflow, useLayoutDirection, useSelectedNode } from '../../../../sdk/hooks';
+import { useDetailPanel, useActiveWorkflow, useLayoutDirection } from '../../../../sdk/hooks';
 import { flowStore } from '../../../../states/reactflow';
 import { Loader as Spinner } from '@baml/ui/custom/loader';
 import { useGraphSync } from '../../../../features/graph/hooks';
-import { useAtom, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { detailPanelStateAtom, graphControlsTipDismissedAtom, unifiedSelectionAtom } from '../atoms';
 import { MousePointer2, ZoomIn, X } from 'lucide-react';
 
@@ -42,7 +42,6 @@ export const GraphView = () => {
   const { convertedGraph, isLayoutLoading } = useGraphSync();
 
   // SDK hooks
-  const [selectedNodeId, setSelectedNodeId] = useSelectedNode();
   const detailPanel = useDetailPanel();
   const { activeWorkflowId } = useActiveWorkflow();
   const [direction] = useLayoutDirection();
@@ -53,13 +52,14 @@ export const GraphView = () => {
   const [graphTipDismissed, setGraphTipDismissed] = useAtom(
     graphControlsTipDismissedAtom
   );
+  const selectedNodeId = useAtomValue(unifiedSelectionAtom).selectedNodeId;
   useEffect(() => {
     setDetailPanelState({ isOpen: detailPanel.isOpen });
   }, [detailPanel.isOpen, setDetailPanelState]);
 
   useEffect(() => {
-    const nodes = flowStore.value.getNodes?.() ?? [];
-    if (!nodes.length) return;
+    const nodes = flowStore.value.getNodes?.();
+    if (!nodes || !nodes.length) return;
     const updated = nodes.map((node) =>
       node.selected === (node.id === selectedNodeId)
         ? node
@@ -120,10 +120,8 @@ export const GraphView = () => {
       selectedNodeId: node.id,
       activeWorkflowId: prev.activeWorkflowId ?? activeWorkflowId ?? null,
     }));
-    setSelectedNodeId(node.id);
     detailPanel.open();
   };
-  console.log('graphtipdismissed', graphTipDismissed);
 
   return (
     <div className="relative w-full h-full">

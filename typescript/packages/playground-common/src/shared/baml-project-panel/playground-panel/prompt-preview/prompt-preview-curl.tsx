@@ -30,7 +30,9 @@ const baseCurlAtom = atom<Promise<CurlResult>>(async (get) => {
   const files = get(filesAtom); // Add files dependency to track content changes
   const { selectedFn, selectedTc } = get(selectionAtom);
 
-  if (!selectedFn || !runtime || !selectedTc || !ctx) {
+
+  if (!selectedFn || !runtime || !selectedTc) {
+    console.log('[curl] no selectedFn or runtime or selectedTc');
     return undefined;
   }
 
@@ -61,6 +63,7 @@ const baseCurlAtom = atom<Promise<CurlResult>>(async (get) => {
       }
     );
 
+
     curlTextWithSecrets = await runtime.renderCurlForTest(
       selectedFn.name,
       selectedTc.name,
@@ -75,6 +78,7 @@ const baseCurlAtom = atom<Promise<CurlResult>>(async (get) => {
       }
     );
   } catch (error) {
+    console.error('[curl] error', error);
     return error as Error;
   }
 
@@ -147,7 +151,7 @@ const SyntaxHighlightedCurl = memo(({ text }: { text: string }) => {
 
   return (
     <div
-      className="w-full rounded-lg border bg-accent p-4 font-mono overflow-auto"
+      className="w-full rounded-lg border bg-accent p-4 font-mono overflow-auto text-xs"
       style={
         {
           // Use VSCode-themed CSS variables from globals.css
@@ -237,6 +241,7 @@ export const PromptPreviewCurl = () => {
     | { curlTextWithoutSecrets: string; curlTextWithSecrets: string }
     | undefined
   >(undefined);
+
 
   useEffect(() => {
     if (curl.state === 'hasData' && curl.data && !(curl.data instanceof Error)) {

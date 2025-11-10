@@ -115,7 +115,7 @@ export const CollapsibleMessage: React.FC<CollapsibleMessageProps> = ({
               key={`${partIndex}-${
                 // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
                 index
-              }`}
+                }`}
               className="min-w-0"
             >
               <RenderPart part={part} testCase={testCase} />

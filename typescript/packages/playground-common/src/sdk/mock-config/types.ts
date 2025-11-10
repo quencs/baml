@@ -8,7 +8,7 @@ import type {
   WorkflowDefinition,
   BAMLFile,
 } from '../types';
-import type { FunctionWithCallGraph, TestCaseMetadata } from '../interface';
+import type { FunctionWithCallGraph, TestCaseMetadata, PromptInfo } from '../interface';
 
 
 /**
@@ -49,4 +49,16 @@ export interface MockRuntimeConfig {
 
   // BAML files (for debug panel)
   bamlFiles: BAMLFile[];
+
+  // Prompt + cURL templates for LLM functions
+  functionPrompts: Record<
+    string,
+    {
+      prompt: PromptInfo;
+      curl: {
+        withSecrets: string;
+        withoutSecrets: string;
+      };
+    }
+  >;
 }
