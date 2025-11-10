@@ -73,7 +73,6 @@ export const GraphView = () => {
   const viewport = useViewport();
   const containerRef = useRef<HTMLDivElement>(null);
   const [indicatorPosition, setIndicatorPosition] = useState<{ x: number; y: number } | null>(null);
-  const [indicatorOffset, setIndicatorOffset] = useState(0);
 
   // UI state
   const backgroundId = useId();
@@ -152,15 +151,6 @@ export const GraphView = () => {
     });
   }, [selectedNodeId, viewport.x, viewport.y, viewport.zoom, nodes]);
 
-  useEffect(() => {
-    if (!indicatorPosition) return;
-    setIndicatorOffset(16);
-    const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setIndicatorOffset(0));
-    });
-    return () => cancelAnimationFrame(id);
-  }, [indicatorPosition]);
-
   return (
     <div ref={containerRef} className="relative w-full h-full">
       <ColorfulMarkerDefinitions />
@@ -212,13 +202,7 @@ export const GraphView = () => {
             transform: `translate(${indicatorPosition.x}px, ${indicatorPosition.y}px)`,
           }}
         >
-          <div
-            className="flex items-center justify-center rounded-md bg-primary px-1.5 py-0.5  shadow-lg shadow-primary/40"
-            style={{
-              transform: `translate(-${indicatorOffset}px, -50%)`,
-              transition: 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
-            }}
-          >
+          <div className="-translate-y-1/2 flex items-center justify-center rounded-md bg-primary px-1.5 py-0.5 shadow-lg shadow-primary/40">
             <ChevronLeft className="h-3.5 w-3.5 text-background" strokeWidth={3} />
           </div>
         </div>
