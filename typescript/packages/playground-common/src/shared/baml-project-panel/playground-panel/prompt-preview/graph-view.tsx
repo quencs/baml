@@ -11,8 +11,9 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  useViewport,
 } from '@xyflow/react';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { Node } from '@xyflow/react';
 
 // Import graph primitives and components from WorkflowApp
@@ -24,7 +25,7 @@ import { Loader as Spinner } from '@baml/ui/custom/loader';
 import { useGraphSync } from '../../../../features/graph/hooks';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { detailPanelStateAtom, graphControlsTipDismissedAtom, unifiedSelectionAtom } from '../atoms';
-import { MousePointer2, ZoomIn, X } from 'lucide-react';
+import { MousePointer2, ZoomIn, X, ChevronLeft } from 'lucide-react';
 
 /**
  * GraphView - ReactFlow graph component for the Graph tab
@@ -69,6 +70,10 @@ export const GraphView = () => {
   }, [selectedNodeId]);
 
   const { getEdges, setNodes } = useReactFlow();
+  const viewport = useViewport();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [indicatorPosition, setIndicatorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [indicatorOffset, setIndicatorOffset] = useState(0);
 
   // UI state
   const backgroundId = useId();
@@ -123,8 +128,41 @@ export const GraphView = () => {
     detailPanel.open();
   };
 
+  useLayoutEffect(() => {
+    if (!selectedNodeId) {
+      setIndicatorPosition(null);
+      return;
+    }
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const nodeElement = container.querySelector<HTMLElement>(`[data-id="${selectedNodeId}"]`);
+    if (!nodeElement) {
+      setIndicatorPosition(null);
+      return;
+    }
+
+    const nodeRect = nodeElement.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    setIndicatorPosition({
+      x: nodeRect.right - containerRect.left + 8,
+      y: nodeRect.top - containerRect.top + nodeRect.height / 2,
+    });
+  }, [selectedNodeId, viewport.x, viewport.y, viewport.zoom, nodes]);
+
+  useEffect(() => {
+    if (!indicatorPosition) return;
+    setIndicatorOffset(16);
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setIndicatorOffset(0));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [indicatorPosition]);
+
   return (
-    <div className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full">
       <ColorfulMarkerDefinitions />
 
       {/* Loading overlay */}
@@ -148,6 +186,8 @@ export const GraphView = () => {
         onNodeDrag={handleNodeDrag}
         onNodeClick={handleNodeClick}
         panOnScroll
+        // by making this true note sometimes clicks wont register since it will think you are dragging.
+        nodesDraggable={false}
         selectionOnDrag
         panOnDrag={[1, 2]}
         selectionMode={SelectionMode.Partial}
@@ -160,8 +200,29 @@ export const GraphView = () => {
           variant={BackgroundVariant.Dots}
         />
         <ReactflowInstance />
-        <Controls />
+        <Controls showInteractive={false} />
       </ReactFlow>
+
+      {indicatorPosition && (
+        <div
+          className="pointer-events-none absolute z-50"
+          style={{
+            left: 0,
+            top: 0,
+            transform: `translate(${indicatorPosition.x}px, ${indicatorPosition.y}px)`,
+          }}
+        >
+          <div
+            className="flex items-center justify-center rounded-md bg-primary px-1.5 py-0.5  shadow-lg shadow-primary/40"
+            style={{
+              transform: `translate(-${indicatorOffset}px, -50%)`,
+              transition: 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
+            }}
+          >
+            <ChevronLeft className="h-3.5 w-3.5 text-background" strokeWidth={3} />
+          </div>
+        </div>
+      )}
 
       {!graphTipDismissed && (
         <div className="absolute top-4 left-4 z-20 max-w-xs rounded-md border border-border bg-background/95 shadow-lg p-3 text-xs text-muted-foreground">

@@ -135,7 +135,7 @@ export const DiamondNode: ComponentType<NodeProps<ReactflowDiamondNode>> = memo(
         <div className={`
           relative
           flex items-center justify-center
-          w-full h-full
+          h-[90px] w-[90px]
           ${currentStyle.bg} border-2 ${currentStyle.border}
           shadow-sm hover:shadow-md transition-all
           ${selected ? 'font-bold border-primary border-[3px] shadow-lg' : ''}

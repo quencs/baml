@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { useActiveNode, useDetailPanel, useNodeInputSources, useSelectedInputSource } from '../../../sdk/hooks';
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useAtomValue } from 'jotai';
+import { unifiedSelectionAtom } from '../../../shared/baml-project-panel/playground-panel/atoms';
 import type { GraphNode, NodeExecution, InputSource } from '../../../sdk/types';
 import { useBAMLSDK } from '../../../sdk';
 
@@ -152,6 +154,7 @@ function LLMNodeContent({ node, execution }: IOTabProps) {
   const { selectedSource, selectSource } = useSelectedInputSource();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { testName } = useAtomValue(unifiedSelectionAtom);
 
   // Fetch test cases and merge with execution inputs
   const allInputSources = useMemo(() => {
@@ -161,6 +164,27 @@ function LLMNodeContent({ node, execution }: IOTabProps) {
     const testCases = sdk.testCases.get(node.id);
     return [...testCases, ...executionInputSources] as InputSource[];
   }, [sdk, node.id, executionInputSources]);
+
+  // If a test case is selected in unified state, prefer that source
+  useEffect(() => {
+    if (!testName) return;
+    if (selectedSource?.nodeId === node.id && selectedSource.sourceType === 'test') {
+      const current = allInputSources.find((s) => s.id === selectedSource.sourceId);
+      if (current && (current.name === testName || current.id === testName || current.id.endsWith(`_${testName}`))) {
+        return;
+      }
+    }
+
+    const matchingSource = allInputSources.find(
+      (source) =>
+        source.source === 'test' &&
+        (source.name === testName || source.id === testName || source.id.endsWith(`_${testName}`))
+    );
+
+    if (matchingSource) {
+      selectSource(node.id, 'test', matchingSource.id);
+    }
+  }, [testName, allInputSources, node.id, selectSource, selectedSource]);
 
   // Auto-select the latest available input source
   useEffect(() => {

@@ -255,7 +255,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
     fetchData: [
       {
         id: 'test_fetchData_success',
-        name: 'success_case',
+        name: 'test_fetchData_success',
         source: 'test' as const,
         functionId: 'fetchData',
         filePath: 'tests/fetchData.test.ts',
@@ -268,7 +268,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
       },
       {
         id: 'test_fetchData_timeout',
-        name: 'timeout_case',
+        name: 'test_fetchData_timeout',
         source: 'test' as const,
         functionId: 'fetchData',
         filePath: 'tests/fetchData.test.ts',
@@ -283,7 +283,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
     processData: [
       {
         id: 'test_processData_valid',
-        name: 'valid_input',
+        name: 'test_processData_valid',
         source: 'test' as const,
         functionId: 'processData',
         filePath: 'tests/processData.test.ts',
@@ -296,7 +296,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
       },
       {
         id: 'test_processData_empty',
-        name: 'empty_input',
+        name: 'test_processData_empty',
         source: 'test' as const,
         functionId: 'processData',
         filePath: 'tests/processData.test.ts',
@@ -311,7 +311,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
     validateInput: [
       {
         id: 'test_validateInput_valid_email',
-        name: 'valid_email',
+        name: 'test_validateInput_valid_email',
         source: 'test' as const,
         functionId: 'validateInput',
         filePath: 'tests/validateInput.test.ts',
@@ -323,7 +323,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
       },
       {
         id: 'test_validateInput_invalid_email',
-        name: 'invalid_email',
+        name: 'test_validateInput_invalid_email',
         source: 'test' as const,
         functionId: 'validateInput',
         filePath: 'tests/validateInput.test.ts',
@@ -337,7 +337,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
     handleSuccess: [
       {
         id: 'test_handleSuccess_normal',
-        name: 'normal',
+        name: 'test_handleSuccess_normal',
         source: 'test' as const,
         functionId: 'handleSuccess',
         filePath: 'tests/handleSuccess.test.ts',
@@ -365,7 +365,7 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
     aggregateData: [
       {
         id: 'test_aggregateData_multiple',
-        name: 'multiple_sources',
+        name: 'test_aggregateData_multiple',
         source: 'test' as const,
         functionId: 'aggregateData',
         filePath: 'tests/aggregateData.test.ts',
@@ -376,10 +376,24 @@ function createMockTestCases(): Record<string, TestCaseMetadata[]> {
         parentFunctions: [{ name: 'aggregateData', start: 0, end: 100 }],
       },
     ],
+    standaloneLlmFunction: [
+      {
+        id: 'test_standalone_llm_function',
+        name: 'test_standalone_llm_function',
+        source: 'test' as const,
+        functionId: 'standaloneLlmFunction',
+        filePath: 'tests/standaloneLlmFunction.test.ts',
+        inputs: [
+          { name: 'prompt', value: 'Say hello to the user.' },
+        ],
+        span: mockSpan,
+        parentFunctions: [{ name: 'standaloneLlmFunction', start: 0, end: 100 }],
+      },
+    ],
     extractUser: [
       {
         id: 'test_extract_valid_user',
-        name: 'valid_user',
+        name: 'test_extract_valid_user',
         source: 'test' as const,
         functionId: 'extractUser',
         filePath: 'tests/extractUser.test.ts',
@@ -570,17 +584,19 @@ function createMockTestCase(
 /**
  * Create mock BAML files
  */
-function createBAMLFiles(): BAMLFile[] {
-  // Create test cases first so we can attach them to functions
-  const testCases = createMockTestCases();
+function createBAMLFiles(
+  testCases: Record<string, TestCaseMetadata[]> = createMockTestCases()
+): BAMLFile[] {
+  // Keep a single source of truth for testCases so validations can compare data structures.
+  const localTestCases = testCases;
 
   return [
     {
       path: 'workflows/simple.baml',
       functions: [
-        createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml', testCases['simpleWorkflow'] || []),
-        createMockFunction('fetchData', 'function', 'workflows/simple.baml', testCases['fetchData'] || []),
-        createMockFunction('processData', 'llm_function', 'workflows/simple.baml', testCases['processData'] || []),
+        createMockFunction('simpleWorkflow', 'block', 'workflows/simple.baml', localTestCases['simpleWorkflow'] || []),
+        createMockFunction('fetchData', 'function', 'workflows/simple.baml', localTestCases['fetchData'] || []),
+        createMockFunction('processData', 'llm_function', 'workflows/simple.baml', localTestCases['processData'] || []),
         createMockFunction('saveResult', 'function', 'workflows/simple.baml'),
       ],
       tests: [
@@ -594,11 +610,11 @@ function createBAMLFiles(): BAMLFile[] {
     {
       path: 'workflows/conditional.baml',
       functions: [
-        createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml', testCases['conditionalWorkflow'] || []),
-        createMockFunction('validateInput', 'function', 'workflows/conditional.baml', testCases['validateInput'] || []),
+        createMockFunction('conditionalWorkflow', 'block', 'workflows/conditional.baml', localTestCases['conditionalWorkflow'] || []),
+        createMockFunction('validateInput', 'function', 'workflows/conditional.baml', localTestCases['validateInput'] || []),
         // Note: checkCondition is NOT included as a clickable function (it's a conditional node in the graph)
         // This matches the old baml-graph app behavior where conditional nodes are not directly clickable
-        createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml', testCases['handleSuccess'] || []),
+        createMockFunction('handleSuccess', 'llm_function', 'workflows/conditional.baml', localTestCases['handleSuccess'] || []),
         createMockFunction('handleFailure', 'function', 'workflows/conditional.baml'),
         // Note: subgraph nodes are NOT included as clickable functions
         // They are internal to the PROCESSING_SUBGRAPH group node
@@ -614,7 +630,7 @@ function createBAMLFiles(): BAMLFile[] {
       path: 'workflows/shared.baml',
       functions: [
         createMockFunction('sharedWorkflow', 'block', 'workflows/shared.baml'),
-        createMockFunction('aggregateData', 'function', 'workflows/shared.baml', testCases['aggregateData'] || []),
+        createMockFunction('aggregateData', 'function', 'workflows/shared.baml', localTestCases['aggregateData'] || []),
       ],
       tests: [
         { name: 'test_aggregateData_multiple', functionName: 'aggregateData', filePath: 'workflows/shared.baml', nodeType: 'function' as const },
@@ -623,11 +639,23 @@ function createBAMLFiles(): BAMLFile[] {
     {
       path: 'functions/utils.baml',
       functions: [
-        createMockFunction('extractUser', 'llm_function', 'functions/utils.baml', testCases['extractUser'] || []),
+        createMockFunction('extractUser', 'llm_function', 'functions/utils.baml', localTestCases['extractUser'] || []),
+        createMockFunction(
+          'standaloneLlmFunction',
+          'llm_function',
+          'functions/utils.baml',
+          localTestCases['standaloneLlmFunction'] || []
+        ),
         createMockFunction('helperFunction', 'function', 'functions/utils.baml'),
       ],
       tests: [
         { name: 'test_extract_valid_user', functionName: 'extractUser', filePath: 'functions/utils.baml', nodeType: 'llm_function' as const },
+        {
+          name: 'test_standalone_llm_function',
+          functionName: 'standaloneLlmFunction',
+          filePath: 'functions/utils.baml',
+          nodeType: 'llm_function' as const,
+        },
       ],
     },
   ];
@@ -686,6 +714,14 @@ function createFunctionPrompts() {
       ),
       curl: makeCurl('gpt-4-turbo', 'Return JSON fields full_name, title, skills extracted from resume.'),
     },
+    standaloneLlmFunction: {
+      prompt: makeChatPrompt(
+        'GPT-4o-mini',
+        'You answer short standalone user prompts with brief helpful replies.',
+        'User: Give me a friendly greeting.'
+      ),
+      curl: makeCurl('gpt-4o-mini', 'Respond succinctly to the provided user prompt.'),
+    },
   };
 }
 
@@ -700,10 +736,12 @@ export function createMockRuntimeConfig(
     speedMultiplier?: number;
   }
 ): MockRuntimeConfig {
-  return {
+  const testCases = createMockTestCases();
+
+  const config: MockRuntimeConfig = {
     workflows: createMockWorkflows(),
     functions: [], // No standalone functions in this config
-    testCases: createMockTestCases(),
+    testCases,
     nodeOutputs: createOutputGenerators(),
     executionBehavior: {
       cacheHitRate: options?.cacheHitRate ?? 0.3,
@@ -716,7 +754,34 @@ export function createMockRuntimeConfig(
         conditional: () => 300 + Math.random() * 200,
       },
     },
-    bamlFiles: createBAMLFiles(),
+    bamlFiles: createBAMLFiles(testCases),
     functionPrompts: createFunctionPrompts(),
   };
+
+  validateMockRuntimeConfig(config);
+
+  return config;
+}
+
+// Ensure every declared test references an existing mock test case payload.
+function validateMockRuntimeConfig(config: MockRuntimeConfig): void {
+  const missingTestCaseBindings: string[] = [];
+
+  for (const file of config.bamlFiles) {
+    for (const test of file.tests ?? []) {
+      const linkedTestCases = config.testCases[test.functionName] || [];
+      const hasMatchingTest = linkedTestCases.some((tc) => tc.name === test.name);
+      if (!hasMatchingTest) {
+        missingTestCaseBindings.push(
+          `${test.functionName} (${file.path} -> ${test.name})`
+        );
+      }
+    }
+  }
+
+  if (missingTestCaseBindings.length) {
+    throw new Error(
+      `[mock-config] Missing mock test cases for: ${missingTestCaseBindings.join(', ')}`
+    );
+  }
 }
