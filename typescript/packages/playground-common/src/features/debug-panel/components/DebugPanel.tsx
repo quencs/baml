@@ -16,7 +16,8 @@ import { useRunBamlTests } from '../../../shared/baml-project-panel/playground-p
 import { unifiedSelectionAtom } from '../../../shared/baml-project-panel/playground-panel/unified-atoms';
 import type { FunctionWithCallGraph, NodeType } from '../../../sdk/interface';
 
-type DebugNodeType = NodeType | 'workflow';
+type DebugNodeType = NodeType | 'workflow' | 'block';
+type FunctionEventType = Extract<CodeClickEvent, { type: 'function' }>['functionType'];
 
 interface DebugNode {
   id: string;
@@ -27,7 +28,7 @@ interface DebugNode {
   workflowId?: string;
 }
 
-function mapNodeTypeToEventType(nodeType: DebugNodeType): CodeClickEvent['functionType'] {
+function mapNodeTypeToEventType(nodeType: DebugNodeType): FunctionEventType {
   switch (nodeType) {
     case 'workflow':
       return 'workflow';
@@ -76,6 +77,10 @@ function buildNodesByFile(
     } else {
       // Prefer workflow metadata (gives us nodeType + workflow id)
       const existing = nodesByFile[filePath][existingIndex];
+      if (!existing) {
+        nodesByFile[filePath][existingIndex] = node;
+        return;
+      }
       nodesByFile[filePath][existingIndex] = {
         ...existing,
         ...node,

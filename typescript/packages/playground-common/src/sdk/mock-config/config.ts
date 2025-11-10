@@ -13,6 +13,7 @@ import {
   type FunctionMetadata,
   type FunctionWithCallGraph,
   type TestCaseMetadata,
+  type PromptInfo,
 } from '../interface';
 
 /**
@@ -661,22 +662,25 @@ function createBAMLFiles(
   ];
 }
 
-function createFunctionPrompts() {
+function createFunctionPrompts(): Record<
+  string,
+  { prompt: PromptInfo; curl: { withSecrets: string; withoutSecrets: string } }
+> {
   const makeChatPrompt = (
     clientName: string,
     system: string,
     userExample: string
-  ) => ({
-    type: 'chat' as const,
+  ): PromptInfo => ({
+    type: 'chat',
     clientName,
     messages: [
       {
         role: 'system',
-        parts: [{ type: 'text', content: system }],
+        parts: [{ type: 'text' as const, content: system }],
       },
       {
         role: 'user',
-        parts: [{ type: 'text', content: userExample }],
+        parts: [{ type: 'text' as const, content: userExample }],
       },
     ],
   });
