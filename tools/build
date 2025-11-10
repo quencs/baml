@@ -78,6 +78,25 @@ echo "Building in REPO${_path} (cwd: $(pwd))"
 
 case "$_path" in
 
+  /engine/baml-runtime/src/control_flow | /engine/baml-runtime/src/control_flow/* )
+    command="INSTA_UPDATE=always cargo test -p baml-runtime control_flow::tests"
+
+    if [ "$_watch_mode" -eq 1 ]; then
+      npx nodemon \
+        --ext rs,ts,json,j2,hb,hbs,toml,baml,rb \
+        --watch "${_repo_root}/engine" \
+        --ignore 'target' \
+        --ignore 'index.d.ts' \
+        --ignore 'index.js' \
+        --ignore 'dist' \
+        --ignore 'tmp' \
+        --verbose \
+        --exec "${command}"
+    else
+      eval "${command}"
+    fi
+    ;;
+
   /engine/language_client_typescript | /engine/language_client_typescript/* )
     command="pnpm build:debug; date"
     command="${command} && BAML_LOG=debug node cli.js generate --from ../../integ-tests/baml_src --to integ-tests-ts-v2"

@@ -6,6 +6,7 @@ packages:
   - engine
   - engine/*
   - engine/baml-lib/baml/tests/validation_files/headers/mermaid-sandbox/
+  - engine/baml-runtime/src/control_flow/mermaid-sandbox/
   - engine/baml-schema-wasm/*
   - fern
   - examples/internal/vaibhav/*
