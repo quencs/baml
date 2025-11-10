@@ -85,7 +85,8 @@ describe('viewModeAtom', () => {
     });
 
     const graphNodeView = store.get(viewModeAtom);
-    expect(graphNodeView.showTabBar).toBe(false);
+    expect(graphNodeView.showTabBar).toBe(true);
+    expect(graphNodeView.showGraphTab).toBe(true);
 
     store.set(unifiedSelectionAtom, {
       functionName: 'processData',

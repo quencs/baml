@@ -129,13 +129,18 @@ export class WasmTypeAdapter {
   // ============================================================================
 
   convertFunction(wasmFn: WasmFunction, runtime: WasmRuntime): FunctionMetadata {
-    // Determine function type
-    // Note: WASM doesn't expose function type directly, so we infer from context
-    // In future, WasmFunction might have a type field
-    const type: FunctionMetadata['type'] = 'llm_function'; // Default assumption
+    let type: FunctionMetadata['type'] = 'llm_function';
+    let clientName: string | undefined;
 
-    // Get client name if LLM function
-    const clientName = type === 'llm_function' ? wasmFn.client_name(runtime) : undefined;
+    try {
+      const rawClient = wasmFn.client_name(runtime);
+      clientName = rawClient || undefined;
+      if (!clientName) {
+        type = 'workflow';
+      }
+    } catch {
+      type = 'workflow';
+    }
 
     // TODO: Re-enable orchestration graph when needed
     // Temporarily disabled - orchestration graph needs migration
@@ -150,6 +155,19 @@ export class WasmTypeAdapter {
       testCases: wasmFn.test_cases.map(tc => this.convertTestCase(tc)),
       clientName,
       orchestrationGraph,
+    };
+  }
+
+  convertExprFunction(wasmFn: WasmFunction): FunctionMetadata {
+    return {
+      name: wasmFn.name,
+      type: 'workflow',
+      span: this.convertSpan(wasmFn.span),
+      signature: wasmFn.signature,
+      testSnippet: wasmFn.test_snippet,
+      testCases: wasmFn.test_cases.map(tc => this.convertTestCase(tc)),
+      clientName: undefined,
+      orchestrationGraph: undefined,
     };
   }
 

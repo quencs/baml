@@ -11,15 +11,18 @@
  * - Execute workflows via WASM runtime
  */
 
-import type {
-  WasmProject,
-  WasmRuntime,
-  WasmDiagnosticError,
-  WasmFunction,
-  WasmTestCase,
-  WasmError,
-  WasmSpan,
-  WasmTestResponse,
+import {
+  WasmControlFlowNodeType,
+  type WasmProject,
+  type WasmRuntime,
+  type WasmDiagnosticError,
+  type WasmFunction,
+  type WasmTestCase,
+  type WasmError,
+  type WasmSpan,
+  type WasmTestResponse,
+  type WasmControlFlowGraph,
+  type WasmControlFlowNode,
 } from '@gloo-ai/baml-schema-wasm-web/baml_schema_build';
 import type {
   BamlRuntimeInterface,
@@ -39,10 +42,12 @@ import { vscode } from '../../shared/baml-project-panel/vscode';
 import {
   WasmTypeAdapter,
   type FunctionWithCallGraph,
+  type FunctionMetadata,
   type TestCaseMetadata,
   type CallGraphNode,
   type GraphNode,
   type GraphEdge,
+  type BlockType,
   type PromptInfo,
   type RichExecutionEvent,
   type TestExecutionContext,
@@ -115,6 +120,246 @@ async function getWasmModule(): Promise<BamlWasmModule> {
   console.log('loaded wasm from cache');
 
   return wasmModuleCache;
+}
+
+type ControlFlowArtifacts = {
+  callGraph: CallGraphNode;
+  callGraphDepth: number;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  rootType: FunctionMetadata['type'];
+};
+
+export type ControlFlowOptions = {
+  rootName: string;
+  rootType: FunctionMetadata['type'];
+  llmClient?: string;
+  timestamp: number;
+};
+
+export function createFallbackControlFlowArtifacts(
+  metadata: FunctionMetadata,
+  timestamp: number
+): ControlFlowArtifacts {
+  const nodeType: GraphNode['type'] =
+    metadata.type === 'llm_function'
+      ? 'llm_function'
+      : metadata.type === 'workflow'
+        ? 'group'
+        : 'function';
+  const callGraphType: CallGraphNode['type'] = (() => {
+    if (metadata.type === 'llm_function') return 'llm_function';
+    if (metadata.type === 'workflow') return 'block';
+    return 'function';
+  })();
+  const callGraph: CallGraphNode = {
+    id: metadata.name,
+    type: callGraphType,
+    children: [],
+    span: metadata.span,
+  };
+
+  const fallbackNode: GraphNode = {
+    id: metadata.name,
+    type: nodeType,
+    label: metadata.name,
+    functionName: metadata.name,
+    codeHash: '',
+    lastModified: timestamp,
+    llmClient: metadata.clientName,
+  };
+
+  return {
+    callGraph,
+    callGraphDepth: 1,
+    nodes: [fallbackNode],
+    edges: [],
+    rootType: metadata.type,
+  };
+}
+
+export function buildControlFlowArtifacts(
+  graph: WasmControlFlowGraph,
+  adapter: WasmTypeAdapter,
+  options: ControlFlowOptions
+): ControlFlowArtifacts | null {
+  const nodes = graph.nodes ?? [];
+  if (nodes.length === 0) {
+    return null;
+  }
+
+  const hasStructure = nodes.some(
+    (node) => node.node_type !== WasmControlFlowNodeType.FunctionRoot
+  );
+  const normalizedRootType: FunctionMetadata['type'] = hasStructure
+    ? 'workflow'
+    : options.rootType;
+
+  const nodeById = new Map<number, WasmControlFlowNode>();
+  const nodeKeyById = new Map<number, string>();
+  const childrenByParent = new Map<number, WasmControlFlowNode[]>();
+
+  for (const node of nodes) {
+    nodeById.set(node.id, node);
+    const key = node.parent_id === undefined
+      ? options.rootName
+      : deriveNodeKey(node, options.rootName);
+    nodeKeyById.set(node.id, key);
+    if (node.parent_id !== undefined) {
+      const siblings = childrenByParent.get(node.parent_id) ?? [];
+      siblings.push(node);
+      childrenByParent.set(node.parent_id, siblings);
+    }
+  }
+
+  const rootNode = nodes.find((node) => node.parent_id === undefined);
+  if (!rootNode) {
+    return null;
+  }
+
+  const toCallGraphNode = (node: WasmControlFlowNode): CallGraphNode => {
+    const children = (childrenByParent.get(node.id) ?? []).map((child) => toCallGraphNode(child));
+    return {
+      id: nodeKeyById.get(node.id)!,
+      type: mapNodeTypeToCallGraphType(node.node_type, normalizedRootType),
+      blockType: mapNodeTypeToBlockType(node.node_type),
+      annotation: node.label || undefined,
+      children,
+      span: adapter.convertSpan(node.span),
+    };
+  };
+
+  const callGraph = toCallGraphNode(rootNode);
+  const callGraphDepth = computeCallGraphDepth(callGraph);
+
+  const graphNodes: GraphNode[] = nodes.map((node) => {
+    const id = nodeKeyById.get(node.id)!;
+    return {
+      id,
+      type: mapNodeTypeToGraphNodeType(node.node_type, normalizedRootType),
+      label: node.label || id,
+      functionName: options.rootName,
+      parent: node.parent_id !== undefined ? nodeKeyById.get(node.parent_id) : undefined,
+      codeHash: '',
+      lastModified: options.timestamp,
+      llmClient: node.node_type === WasmControlFlowNodeType.FunctionRoot ? options.llmClient : undefined,
+      metadata: {
+        wasmNodeId: node.id,
+        lexicalId: node.lexical_id,
+        controlFlowType: WasmControlFlowNodeType[node.node_type] ?? 'Unknown',
+      },
+    };
+  });
+
+  const graphEdges: GraphEdge[] = (graph.edges ?? []).flatMap((edge) => {
+    const source = nodeKeyById.get(edge.src);
+    const target = nodeKeyById.get(edge.dst);
+    if (!source || !target) {
+      return [];
+    }
+
+    const srcNode = nodeById.get(edge.src);
+    const dstNode = nodeById.get(edge.dst);
+    // For conditional structures, the branch group already owns its arm headers via the parent
+    // pointer. Emitting an edge from the group to its direct child duplicates that relationship
+    // and causes the UI confusion the user reported. Skip only those edges while leaving
+    // everything else (e.g., sequential headers) untouched.
+    if (
+      srcNode?.node_type === WasmControlFlowNodeType.BranchGroup &&
+      dstNode?.parent_id === edge.src
+    ) {
+      return [];
+    }
+
+    const graphEdge: GraphEdge = {
+      id: `${source}->${target}`,
+      source,
+      target,
+    };
+
+    const label = dstNode?.label;
+    if (label) {
+      graphEdge.label = label;
+    }
+
+    return [graphEdge];
+  });
+
+  return {
+    callGraph,
+    callGraphDepth,
+    nodes: graphNodes,
+    edges: graphEdges,
+    rootType: normalizedRootType,
+  };
+}
+
+function mapNodeTypeToCallGraphType(
+  nodeType: WasmControlFlowNodeType,
+  rootType: FunctionMetadata['type']
+): CallGraphNode['type'] {
+  if (nodeType === WasmControlFlowNodeType.FunctionRoot) {
+    if (rootType === 'llm_function') return 'llm_function';
+    if (rootType === 'workflow') return 'block';
+    return 'function';
+  }
+  return 'block';
+}
+
+function mapNodeTypeToGraphNodeType(
+  nodeType: WasmControlFlowNodeType,
+  rootType: FunctionMetadata['type']
+): GraphNode['type'] {
+  if (nodeType === WasmControlFlowNodeType.FunctionRoot) {
+    if (rootType === 'llm_function') return 'llm_function';
+    if (rootType === 'workflow') return 'group';
+    return 'function';
+  }
+  switch (nodeType) {
+    case WasmControlFlowNodeType.Loop:
+      return 'loop';
+    case WasmControlFlowNodeType.BranchGroup:
+      return 'conditional';
+    case WasmControlFlowNodeType.BranchArm:
+    case WasmControlFlowNodeType.HeaderContextEnter:
+    case WasmControlFlowNodeType.OtherScope:
+    default:
+      return 'group';
+  }
+}
+
+function mapNodeTypeToBlockType(nodeType: WasmControlFlowNodeType): BlockType | undefined {
+  switch (nodeType) {
+    case WasmControlFlowNodeType.BranchGroup:
+      return 'if';
+    case WasmControlFlowNodeType.Loop:
+      return 'loop';
+    case WasmControlFlowNodeType.BranchArm:
+    case WasmControlFlowNodeType.HeaderContextEnter:
+    case WasmControlFlowNodeType.OtherScope:
+      return 'expression';
+    default:
+      return undefined;
+  }
+}
+
+function deriveNodeKey(node: WasmControlFlowNode, rootName: string): string {
+  const lexical = node.lexical_id?.trim();
+  if (lexical) {
+    return lexical;
+  }
+  return `${rootName}_${node.id}`;
+}
+
+function computeCallGraphDepth(node: CallGraphNode | undefined): number {
+  if (!node) {
+    return 0;
+  }
+  if (!node.children || node.children.length === 0) {
+    return 1;
+  }
+  const childDepths = node.children.map((child) => computeCallGraphDepth(child));
+  return 1 + Math.max(...childDepths);
 }
 
 /**
@@ -251,60 +496,95 @@ export class BamlRuntime implements BamlRuntimeInterface {
     }
 
     try {
-      const functions: WasmFunction[] = this.wasmRuntime.list_functions();
-      return functions.map((fn) => {
-        // Convert WASM function to unified type using adapter
+      const llmFunctions: WasmFunction[] = this.wasmRuntime.list_functions();
+      const exprFunctions: WasmFunction[] = this.wasmRuntime.list_expr_fns?.() ?? [];
+      console.log('[BamlRuntime] expr functions', exprFunctions.map((fn) => fn.name));
+      const seen = new Set<string>();
+      const combined: FunctionWithCallGraph[] = [];
+
+      const pushFn = (fn: WasmFunction, metadata: FunctionMetadata) => {
+        if (seen.has(fn.name)) {
+          return;
+        }
+        combined.push(this.buildFunctionRecord(fn, metadata));
+        seen.add(fn.name);
+      };
+
+      for (const fn of llmFunctions) {
         const metadata = this.adapter.convertFunction(fn, this.wasmRuntime!);
+        pushFn(fn, metadata);
+      }
 
-        // Build call graph (for now, create a simple node)
-        // TODO: Extract proper call graph from orchestration_graph()
-        const callGraph: CallGraphNode = {
-          id: fn.name,
-          type: 'llm_function',
-          children: [],
-        };
+      for (const fn of exprFunctions) {
+        const metadata = this.adapter.convertExprFunction(fn);
+        pushFn(fn, metadata);
+      }
 
-        // Convert call graph to nodes and edges for backward compatibility
-        const nodes: GraphNode[] = [{
-          id: fn.name,
-          type: 'llm_function',
-          label: fn.name,
-          functionName: fn.name,
-          codeHash: '', // TODO: Generate hash
-          lastModified: Date.now(),
-          llmClient: metadata.clientName,
-        }];
-
-        const edges: GraphEdge[] = [];
-
-        // For now, treat all functions as root functions
-        // TODO: Analyze call relationships to determine actual roots
-        return {
-          ...metadata,
-          callGraph,
-          isRoot: true,
-          callGraphDepth: 1,
-
-          // Backward compatibility fields
-          id: fn.name,
-          displayName: fn.name,
-          filePath: metadata.span.filePath,
-          startLine: metadata.span.startLine,
-          endLine: metadata.span.endLine,
-          nodes,
-          edges,
-          entryPoint: fn.name,
-          parameters: [], // TODO: Parse from signature
-          returnType: '', // TODO: Parse from signature
-          childFunctions: [],
-          lastModified: Date.now(),
-          codeHash: '', // TODO: Generate hash
-        };
-      });
+      return combined;
     } catch (e) {
       console.error('[BamlRuntime] Error getting functions:', e);
       return [];
     }
+  }
+
+  private buildFunctionRecord(
+    fn: WasmFunction,
+    metadata: FunctionMetadata
+  ): FunctionWithCallGraph {
+    const timestamp = Date.now();
+    let controlFlow = createFallbackControlFlowArtifacts(metadata, timestamp);
+    try {
+      const wasmGraph = fn.function_graph_v2(this.wasmRuntime!);
+      const converted = buildControlFlowArtifacts(wasmGraph, this.adapter, {
+        rootName: fn.name,
+        rootType: metadata.type,
+        llmClient: metadata.clientName,
+        timestamp,
+      });
+      if (converted) {
+        controlFlow = converted;
+      }
+    } catch (graphErr) {
+      console.warn(
+        `[BamlRuntime] Failed to build control flow graph for ${fn.name}`,
+        graphErr
+      );
+    }
+
+    const resolvedSpan = (() => {
+      if (metadata.span) {
+        return metadata.span;
+      }
+      throw new Error(`[BamlRuntime] Missing span information for ${fn.name}`);
+    })();
+
+    const finalType: FunctionMetadata['type'] = controlFlow.rootType === 'workflow'
+      ? 'workflow'
+      : metadata.type;
+
+    return {
+      ...metadata,
+      type: finalType,
+      span: resolvedSpan,
+      callGraph: controlFlow.callGraph,
+      isRoot: finalType === 'workflow' ? true : controlFlow.callGraphDepth === 1,
+      callGraphDepth: controlFlow.callGraphDepth,
+
+      // Backward compatibility fields
+      id: fn.name,
+      displayName: fn.name,
+      filePath: resolvedSpan.filePath,
+      startLine: resolvedSpan.startLine,
+      endLine: resolvedSpan.endLine,
+      nodes: controlFlow.nodes,
+      edges: controlFlow.edges,
+      entryPoint: fn.name,
+      parameters: [],
+      returnType: '',
+      childFunctions: [],
+      lastModified: timestamp,
+      codeHash: '',
+    };
   }
 
   getTestCases(functionName?: string): TestCaseMetadata[] {
@@ -338,68 +618,39 @@ export class BamlRuntime implements BamlRuntimeInterface {
     }
 
     try {
-      // Get all functions and test cases
-      const functions: WasmFunction[] = this.wasmRuntime.list_functions();
+      const functions: FunctionWithCallGraph[] = this.getFunctions();
       const testCases: WasmTestCase[] = this.wasmRuntime.list_testcases();
 
-      // Group by file path
       const fileMap = new Map<string, { functions: FunctionWithCallGraph[], tests: BAMLTest[] }>();
+      const functionTypeByName = new Map(functions.map(fn => [fn.name, fn.type]));
 
-      // Add functions to map
       for (const fn of functions) {
-        const filePath = fn.span?.file_path || 'unknown.baml';
+      if (!fn.span) {
+        console.warn('[BamlRuntime] Missing span for function while grouping files:', fn.name);
+      }
+      const filePath = fn.span?.filePath || 'unknown.baml';
+      console.log('[BamlRuntime] grouping function -> file', fn.name, filePath);
         if (!fileMap.has(filePath)) {
           fileMap.set(filePath, { functions: [], tests: [] });
         }
-        const fnWithType = fn as WasmFunction & { type?: string };
-        const functionType = fnWithType.type as 'function' | 'llm_function' | 'workflow';
-        const span = this.adapter.convertSpan(fn.span);
-
-        // Create FunctionWithCallGraph with minimal call graph data
-        const functionWithCallGraph: FunctionWithCallGraph = {
-          name: fn.name,
-          type: functionType,
-          span,
-          testSnippet: fn.test_snippet,
-          signature: fn.signature,
-          testCases: fn.test_cases.map(tc => this.adapter.convertTestCase(tc)),
-          // Call graph fields (minimal for getBAMLFiles)
-          callGraph: { id: fn.name, type: functionType === 'workflow' ? 'block' : functionType, children: [] },
-          isRoot: true,
-          callGraphDepth: 1,
-          // Workflow compatibility fields
-          id: fn.name,
-          displayName: fn.name,
-          filePath: span.filePath,
-          startLine: span.startLine,
-          endLine: span.endLine,
-          nodes: [],
-          edges: [],
-          entryPoint: fn.name,
-          parameters: [],
-          returnType: '',
-          childFunctions: [],
-          codeHash: '',
-          lastModified: Date.now(),
-        };
-
-        fileMap.get(filePath)!.functions.push(functionWithCallGraph);
+        fileMap.get(filePath)!.functions.push(fn);
       }
 
-      // Add tests to map - transform WasmTestCase to BAMLTest
       for (const tc of testCases) {
         const filePath = tc.span?.file_path || 'unknown.baml';
         if (!fileMap.has(filePath)) {
           fileMap.set(filePath, { functions: [], tests: [] });
         }
         const parentFn = tc.parent_functions[0];
+        const parentName = parentFn?.name || 'unknown';
+        const parentType = functionTypeByName.get(parentName) ?? 'function';
+        const nodeType: 'llm_function' | 'function' = parentType === 'llm_function' ? 'llm_function' : 'function';
 
-        // Transform WasmTestCase to BAMLTest
         const bamlTest: BAMLTest = {
           name: tc.name,
-          functionName: parentFn?.name || 'unknown',
-          filePath: filePath,
-          nodeType: (parentFn as any)?.type === 'llm_function' ? 'llm_function' : 'function',
+          functionName: parentName,
+          filePath,
+          nodeType,
         };
 
         fileMap.get(filePath)!.tests.push(bamlTest);

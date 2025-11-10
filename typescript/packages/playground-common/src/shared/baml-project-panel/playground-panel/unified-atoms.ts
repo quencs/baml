@@ -94,14 +94,15 @@ export const viewModeAtom = atom((get) => {
   // Is the selected function part of a workflow?
   const isInWorkflow = selection.activeWorkflowId !== null;
 
-  // Is the selected function an LLM function?
   const isLLMFunction = selectedFn?.type === 'llm_function';
+  const isWorkflow = selectedFn?.type === 'workflow';
+  const showGraph = isWorkflow || isInWorkflow;
 
   return {
-    showTabs: isLLMFunction, // Only LLM functions get tabs
-    showGraphTab: isLLMFunction && isInWorkflow,
-    defaultTab: (isLLMFunction && isInWorkflow ? 'graph' : 'preview') as TabValue,
-    showTabBar: isLLMFunction, // Non-LLM workflow nodes show graph-only view
+    showTabs: isLLMFunction || showGraph,
+    showGraphTab: showGraph,
+    defaultTab: (showGraph ? 'graph' : 'preview') as TabValue,
+    showTabBar: isLLMFunction || showGraph,
   };
 });
 

@@ -197,22 +197,24 @@ export const UnifiedPromptPreview = () => {
               </Button>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-2 text-muted-foreground/70 hover:text-foreground"
-                onClick={() =>
-                  setDisplaySettings((prev) => ({
-                    ...prev,
-                    showTokens: !prev.showTokens,
-                  }))
-                }
-              >
-                <BarChart2 className="size-4" />
-                <span className={getButtonTextClass()}>
-                  {displaySettings.showTokens ? 'Hide Tokens' : 'Show Tokens'}
-                </span>
-              </Button>
+              {activeTab === 'preview' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2 text-muted-foreground/70 hover:text-foreground"
+                  onClick={() =>
+                    setDisplaySettings((prev) => ({
+                      ...prev,
+                      showTokens: !prev.showTokens,
+                    }))
+                  }
+                >
+                  <BarChart2 className="size-4" />
+                  <span className={getButtonTextClass()}>
+                    {displaySettings.showTokens ? 'Hide Tokens' : 'Show Tokens'}
+                  </span>
+                </Button>
+              )}
             </div>
           </div>
           <TabsContent

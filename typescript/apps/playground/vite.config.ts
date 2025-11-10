@@ -27,7 +27,7 @@ export default defineConfig({
       ]
     }),
     // Forward browser console logs to the terminal in dev mode
-    !isWatchMode && consoleForwardPlugin(),
+    // !isWatchMode && consoleForwardPlugin(),
     tailwindcss(),
     // topLevelAwait(),
   ].filter(Boolean),

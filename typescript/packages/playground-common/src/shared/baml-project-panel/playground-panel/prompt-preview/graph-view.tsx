@@ -177,7 +177,7 @@ export const GraphView = () => {
         onNodeClick={handleNodeClick}
         panOnScroll
         // by making this true note sometimes clicks wont register since it will think you are dragging.
-        nodesDraggable={false}
+        nodesDraggable={true}
         selectionOnDrag
         panOnDrag={[1, 2]}
         selectionMode={SelectionMode.Partial}

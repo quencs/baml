@@ -13,6 +13,12 @@ import { graph2workflow, workflow2reactflow } from '../mock-data/convert';
  * Convert SDK graph format to data Graph format
  */
 function sdkToGraphFormat(sdkNodes: GraphNode[], sdkEdges: GraphEdge[]): Graph {
+  const parentIds = new Set(
+    sdkNodes
+      .map((node) => node.parent)
+      .filter((parentId): parentId is string => Boolean(parentId))
+  );
+
   // Convert SDK nodes to Graph nodes
   const graphNodes: Graph['nodes'] = sdkNodes.map((node) => {
     // Map SDK types to shapes
@@ -23,7 +29,7 @@ function sdkToGraphFormat(sdkNodes: GraphNode[], sdkEdges: GraphEdge[]): Graph {
     return {
       id: node.id,
       label: node.label,
-      kind: node.type === 'group' ? 'group' : 'item',
+      kind: parentIds.has(node.id) ? 'group' : 'item',
       ...(shape ? { shape } : {}),
       ...(node.parent ? { parent: node.parent } : {}),
     };

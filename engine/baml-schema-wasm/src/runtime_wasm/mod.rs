@@ -10,6 +10,7 @@ pub use baml_runtime::async_interpreter_runtime::BamlAsyncInterpreterRuntime as 
 #[cfg(not(feature = "thir-interpreter"))]
 pub use baml_runtime::async_vm_runtime::BamlAsyncVmRuntime as CoreBamlRuntime;
 use baml_runtime::{
+    control_flow::{ControlFlowVisualization, NodeType as RuntimeNodeType},
     internal::{
         llm_client::{
             orchestrator::{ExecutionScope, OrchestrationScope, OrchestratorNode},
@@ -370,6 +371,94 @@ impl WasmSpan {
         // existing behavior and handles file:// ambiguity
         self.file_path.as_str().ends_with(file_path)
             && ((self.start)..=(self.end)).contains(&cursor_idx)
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WasmControlFlowNodeType {
+    FunctionRoot,
+    HeaderContextEnter,
+    BranchGroup,
+    BranchArm,
+    Loop,
+    OtherScope,
+}
+
+#[wasm_bindgen(getter_with_clone, inspectable)]
+#[derive(Clone, Debug)]
+pub struct WasmControlFlowNode {
+    #[wasm_bindgen(readonly)]
+    pub id: u32,
+    #[wasm_bindgen(readonly)]
+    pub parent_id: Option<u32>,
+    #[wasm_bindgen(readonly)]
+    pub lexical_id: String,
+    #[wasm_bindgen(readonly)]
+    pub label: String,
+    #[wasm_bindgen(readonly)]
+    pub span: WasmSpan,
+    #[wasm_bindgen(readonly)]
+    pub node_type: WasmControlFlowNodeType,
+}
+
+#[wasm_bindgen(getter_with_clone, inspectable)]
+#[derive(Clone, Debug)]
+pub struct WasmControlFlowEdge {
+    #[wasm_bindgen(readonly)]
+    pub src: u32,
+    #[wasm_bindgen(readonly)]
+    pub dst: u32,
+}
+
+#[wasm_bindgen(getter_with_clone, inspectable)]
+#[derive(Clone, Debug, Default)]
+pub struct WasmControlFlowGraph {
+    #[wasm_bindgen(readonly)]
+    pub nodes: Vec<WasmControlFlowNode>,
+    #[wasm_bindgen(readonly)]
+    pub edges: Vec<WasmControlFlowEdge>,
+}
+
+impl From<&RuntimeNodeType> for WasmControlFlowNodeType {
+    fn from(value: &RuntimeNodeType) -> Self {
+        match value {
+            RuntimeNodeType::FunctionRoot => WasmControlFlowNodeType::FunctionRoot,
+            RuntimeNodeType::HeaderContextEnter => WasmControlFlowNodeType::HeaderContextEnter,
+            RuntimeNodeType::BranchGroup => WasmControlFlowNodeType::BranchGroup,
+            RuntimeNodeType::BranchArm => WasmControlFlowNodeType::BranchArm,
+            RuntimeNodeType::Loop => WasmControlFlowNodeType::Loop,
+            RuntimeNodeType::OtherScope => WasmControlFlowNodeType::OtherScope,
+        }
+    }
+}
+
+impl From<ControlFlowVisualization> for WasmControlFlowGraph {
+    fn from(viz: ControlFlowVisualization) -> Self {
+        let nodes = viz
+            .nodes
+            .values()
+            .map(|node| WasmControlFlowNode {
+                id: node.id.raw(),
+                parent_id: node.parent_node_id.map(|id| id.raw()),
+                lexical_id: node.lexical_id.clone(),
+                label: node.label.clone(),
+                span: (&node.span).into(),
+                node_type: WasmControlFlowNodeType::from(&node.node_type),
+            })
+            .collect();
+
+        let edges = viz
+            .edges_by_src
+            .values()
+            .flat_map(|edges| edges.iter())
+            .map(|edge| WasmControlFlowEdge {
+                src: edge.src.raw(),
+                dst: edge.dst.raw(),
+            })
+            .collect();
+
+        WasmControlFlowGraph { nodes, edges }
     }
 }
 
@@ -1006,7 +1095,10 @@ impl WasmRuntime {
 
                 let wasm_span = match f.span() {
                     Some(span) => span.into(),
-                    None => WasmSpan::default(),
+                    None => {
+                        log::warn!("[WasmRuntime] Missing span for function {}", f.name());
+                        WasmSpan::default()
+                    }
                 };
 
                 WasmFunction {
@@ -2624,6 +2716,28 @@ impl WasmFunction {
             graph.len()
         );
         Ok(graph)
+    }
+
+    #[wasm_bindgen]
+    pub fn function_graph_v2(&self, rt: &WasmRuntime) -> Result<WasmControlFlowGraph, JsValue> {
+        let rt = &rt.runtime;
+        let ctx = rt
+            .create_ctx_manager(BamlValue::String("wasm".to_string()), None)
+            .create_ctx_with_default();
+        log::info!(
+            "[wasm::function_graph_v2]: generating graph for function {}",
+            self.name
+        );
+        let graph = rt
+            .internal()
+            .function_graph_v2(&self.name, &ctx)
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+        log::info!(
+            "[wasm::function_graph_v2]: {} graph: {:#?}",
+            self.name,
+            graph
+        );
+        Ok(graph.into())
     }
 
     pub fn orchestration_graph(&self, rt: &WasmRuntime) -> Result<Vec<WasmScope>, JsValue> {

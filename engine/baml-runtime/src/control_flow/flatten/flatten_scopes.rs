@@ -65,10 +65,11 @@ pub fn flatten_branch_arms_and_scopes(viz: &ControlFlowVisualization) -> Control
     targets_sorted.sort_by(|a, b| b.depth.cmp(&a.depth));
 
     for info in &targets_sorted {
+        let resolved_parent = resolve_flatten_parent(&viz.nodes, info);
         if let Some(children) = children_map.get(&info.node_id) {
             for child_id in children.iter().copied() {
                 if let Some(child_node) = nodes.get_mut(&child_id) {
-                    child_node.parent_node_id = info.parent;
+                    child_node.parent_node_id = resolved_parent;
                 }
             }
         }
@@ -119,6 +120,21 @@ pub fn flatten_branch_arms_and_scopes(viz: &ControlFlowVisualization) -> Control
     ControlFlowVisualization {
         nodes,
         edges_by_src,
+    }
+}
+
+fn resolve_flatten_parent(nodes: &IndexMap<NodeId, Node>, info: &FlattenInfo) -> Option<NodeId> {
+    let node = match nodes.get(&info.node_id) {
+        Some(node) => node,
+        None => return info.parent,
+    };
+
+    match node.node_type {
+        NodeType::BranchArm => info
+            .parent
+            .and_then(|branch_group| nodes.get(&branch_group))
+            .and_then(|group| group.parent_node_id),
+        _ => info.parent,
     }
 }
 
@@ -230,7 +246,7 @@ mod tests {
         assert!(flattened.nodes.contains_key(&NodeId::new(3)));
 
         let header1 = flattened.nodes.get(&NodeId::new(4)).unwrap();
-        assert_eq!(header1.parent_node_id, Some(NodeId::new(1)));
+        assert_eq!(header1.parent_node_id, Some(NodeId::new(0)));
 
         let group_edges = flattened.edges_by_src.get(&NodeId::new(1)).unwrap();
         let destinations: Vec<_> = group_edges.iter().map(|edge| edge.dst.raw()).collect();

@@ -1,4 +1,5 @@
 import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { GitBranch } from 'lucide-react';
 import { type ComponentType, memo } from 'react';
 
 import type { ReactflowDiamondNode } from '../../../mock-data/types';
@@ -135,14 +136,19 @@ export const DiamondNode: ComponentType<NodeProps<ReactflowDiamondNode>> = memo(
         <div className={`
           relative
           flex items-center justify-center
-          h-[90px] w-[90px]
+          w-fit h-fit min-w-[110px]
+          px-4 py-3
           ${currentStyle.bg} border-2 ${currentStyle.border}
           shadow-sm hover:shadow-md transition-all
           ${selected ? 'font-bold border-primary border-[3px] shadow-lg' : ''}
         `}>
-          {/* Label - centered in diamond */}
-          <div className="text-xs font-medium text-card-foreground text-center px-4">
-            {data.label || data.id}
+          <div className="flex items-center gap-2 text-card-foreground text-left">
+            <span className="inline-flex items-center justify-center rounded bg-amber-100 dark:bg-amber-900 px-1.5 py-1">
+              <GitBranch className="w-4 h-4 text-amber-700 dark:text-amber-200" />
+            </span>
+            <div className="text-xs font-medium leading-tight">
+              {data.label || data.id}
+            </div>
           </div>
 
           {/* Execution History Dots - Commented out: UI is messed up for diamond nodes */}

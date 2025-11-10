@@ -626,23 +626,15 @@ button.woot-elements--right:nth-child(2) {
   }
 
   .react-flow__node-diamond {
-    @apply flex items-center justify-center aspect-square;
-    /* Don't apply transform here - React Flow uses it for positioning */
+    @apply flex items-center justify-center w-fit h-fit;
     overflow: visible !important;
   }
 
-  /* Inner wrapper that handles the diamond rotation */
   .react-flow__node-diamond > * {
     @apply flex items-center justify-center w-full h-full;
     @apply bg-card border-2 border-border;
     @apply transition-all;
-    transform: rotate(45deg);
     overflow: visible;
-  }
-
-  /* Counter-rotate the content inside */
-  .react-flow__node-diamond > * > * {
-    transform: rotate(-45deg);
   }
 
   .react-flow__node-diamond:hover > * {
