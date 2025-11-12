@@ -6,13 +6,15 @@ We build BAML -- a new programming language to build AI powered applications.
 
 Every computing paradigm, brought with a new language
 
-* Desktop Computer → Holepunching and ASM were far too inaccessible → C
-* Multiple OSs → Why write 3 variants of C → Java
-* A computer on every desk → Lets make software more readable → Python
-* Web browsers → Event driven / async native → JS
-* AI / Graphics → We need to do a lot of math, and fast → Cuda
-* Interactive Website → HTML + Logic is hard to do at scale → React
-* Non-determinism → My software is isn’t predictable because AI → ?????
+| Paradigm | Why? | Language | 
+| -- | -- | -- |
+| Desktop Computer | Holepunching and ASM were far too inaccessible | C |
+| Multiple OSs | Why write 3 variants of C | Java |
+| A computer on every desk | Lets make software more readable | Python |
+| Web browsers | Event driven / async native | JS |
+| AI / Graphics | We need to do a lot of math, and fast | Cuda |
+| Interactive Website | HTML + Logic is hard to do at scale | React |
+| Non-determinism | My software is isn’t predictable because AI | ????? |
 
 BAML is our answer, and it will let more developers than ever write AI pipelines without having to think about AI model reliability.
 
@@ -24,7 +26,7 @@ But every once in a generation, someone builds the next C, Java, Python, JS, Rea
 We’re trying to build that: a language for reasoning with AI.
 
 Most likely, we will fail spectacularly.
-But if we don’t, it’ll be because a small group of curious, fearless builders decided to bet on beauty and correctness in an age of chaos.
+But if we don’t, it’ll be because a small group of curious, fearless builders decided to bet on beauty and correctness in an age of chaos. When writing code becomes cheap / free, its the developer experience around reading and debugging systems that becomes the most valuable.
 
 If that excites you, then Boundary is your place.
 But don’t take our word for it, try BAML first.
@@ -49,7 +51,10 @@ This isn’t a trick question, we’re building a programming language, and comm
 [Past Examples](https://drive.google.com/file/d/1pFXmqQVnMmCdxdpcuF9Zwk6SRCMgJglL/view?usp=drive_link) from candidates we’ve hired. READ THESE so you know what we might look for. The best emails include metrics + links.
 
 Where to apply:
-[YC's Work At a Startup Portal](https://www.ycombinator.com/companies/boundary/jobs/f31pAPu-engineers-that-enjoy-hard-things-like-compilers)
+
+Preferred: [YC's Work At a Startup Portal](https://www.ycombinator.com/companies/boundary/jobs/f31pAPu-engineers-that-enjoy-hard-things-like-compilers)
+
+Acceptable: [vbv@boundaryml.com](mailto:vbv@boundaryml.com?subject=why%20i'm%20awesome)
 
 ## Our Tech Stack
 
@@ -65,9 +70,18 @@ Boundary Cloud - Rust backend, Typescript / Nextjs frontend
 
 **Do I need to know about programming languages / compilers?** No, we don’t need to hire language experts. We train language experts.
 
+**Do we really need a new programming language?** Watch this [conference talk](https://www.youtube.com/watch?v=2tWnjEGzRss)
+
+**Do people actually use BAML?** Yes, but don't trust us, we could be lying. ask around on [boudnaryml.com/discord](https://www.boundaryml.com/discord)
+
 Generally speaking, no prior knowledge needed, but you should be able to take any problem, and solve it. If graph / tree problems are stressful, Boundary is probably not a good fit. If questions like the following seem fun, this is gonna be a heck of ride.
 
 * what syntax ergonomics can make AI better at grepping for code?
 * how does LLVM work?
 * how does react’s re-rendering work?
 * how do I design a package manager?
+
+## Operational stuff
+* 5 days a week, in person, in Seattle (work should be fun, and in person is just more fun)
+* compensation range: 100k - 180k, 0.2-0.75% equity
+* Current team is all senior/staff level engineers (check out github contributors to stalk us)
