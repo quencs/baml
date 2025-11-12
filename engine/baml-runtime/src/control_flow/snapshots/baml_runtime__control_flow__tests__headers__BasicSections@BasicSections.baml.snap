@@ -65,7 +65,7 @@ expr:
       - "3"
     "4":
       - "5"
-mermaid: "flowchart TD\nsubgraph n0[\"BasicSections\"]\n  direction TB\n  subgraph n1[\"Main Processing\"]\n    direction TB\n    n2[\"Generate Summary\"]\n    subgraph n3[\"Make Space\"]\n      direction TB\n      n4[\"Prepare Final Output\"]\n      n5[\"Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: BasicSections\"]\n  direction TB\n  subgraph n1[\"1: Main Processing\"]\n    direction TB\n    n2[\"2: Generate Summary\"]\n    subgraph n3[\"3: Make Space\"]\n      direction TB\n      n4[\"4: Prepare Final Output\"]\n      n5[\"5: Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -191,7 +191,7 @@ flattening:
           - "3"
         "4":
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicSections\"]\n  direction TB\n  subgraph n1[\"Main Processing\"]\n    direction TB\n    n2[\"Generate Summary\"]\n    subgraph n3[\"Make Space\"]\n      direction TB\n      n4[\"Prepare Final Output\"]\n      n5[\"Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: BasicSections\"]\n  direction TB\n  subgraph n1[\"1: Main Processing\"]\n    direction TB\n    n2[\"2: Generate Summary\"]\n    subgraph n3[\"3: Make Space\"]\n      direction TB\n      n4[\"4: Prepare Final Output\"]\n      n5[\"5: Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -316,7 +316,7 @@ flattening:
           - "3"
         "4":
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicSections\"]\n  direction TB\n  subgraph n1[\"Main Processing\"]\n    direction TB\n    n2[\"Generate Summary\"]\n    subgraph n3[\"Make Space\"]\n      direction TB\n      n4[\"Prepare Final Output\"]\n      n5[\"Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: BasicSections\"]\n  direction TB\n  subgraph n1[\"1: Main Processing\"]\n    direction TB\n    n2[\"2: Generate Summary\"]\n    subgraph n3[\"3: Make Space\"]\n      direction TB\n      n4[\"4: Prepare Final Output\"]\n      n5[\"5: Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -441,4 +441,4 @@ flattening:
           - "3"
         "4":
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicSections\"]\n  direction TB\n  subgraph n1[\"Main Processing\"]\n    direction TB\n    n2[\"Generate Summary\"]\n    subgraph n3[\"Make Space\"]\n      direction TB\n      n4[\"Prepare Final Output\"]\n      n5[\"Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: BasicSections\"]\n  direction TB\n  subgraph n1[\"1: Main Processing\"]\n    direction TB\n    n2[\"2: Generate Summary\"]\n    subgraph n3[\"3: Make Space\"]\n      direction TB\n      n4[\"4: Prepare Final Output\"]\n      n5[\"5: Final Output\"]\n      n4 --> n5\n    end\n    n2 --> n3\n  end\nend\n"

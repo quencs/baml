@@ -132,7 +132,7 @@ impl<'a> MermaidRenderer<'a> {
 }
 
 fn format_label(node: &Node) -> String {
-    match node.node_type {
+    let base = match node.node_type {
         NodeType::FunctionRoot | NodeType::HeaderContextEnter => {
             if node.label.trim().is_empty() {
                 default_label_for(&node.node_type)
@@ -144,7 +144,8 @@ fn format_label(node: &Node) -> String {
         NodeType::BranchArm => prefixed_label("BranchArm", &node.label),
         NodeType::Loop => prefixed_label("Loop", &node.label),
         NodeType::OtherScope => prefixed_label("OtherScope", &node.label),
-    }
+    };
+    format!("{}: {base}", node.id.encode())
 }
 
 fn prefixed_label(prefix: &str, label: &str) -> String {

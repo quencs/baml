@@ -1,5 +1,5 @@
 //# Main Function
-function NestedIfStatements() -> int {
+function NestedIfs() -> int {
     //## If statement 1
     let e = if (true) {
 
@@ -29,25 +29,21 @@ function NestedIfStatements() -> int {
 
         2
     } else {
-        //### If statement 2.2
         let z = if (true) {
-            //### If statement 3.1
             let a = if (true) {
-                //### True
                 12
+            } else if (false) {
+                //### Second False
+                14
             } else {
-                //### Third False
                 13
             };
 
             242
         } else {
-            //### If statement 3.2
             let a = if (true) {
-                //### True
                 12
             } else {
-                //### Third False
                 13
             };
             13

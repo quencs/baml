@@ -132,7 +132,7 @@ expr:
       - "6"
     "6":
       - "8"
-mermaid: "flowchart TD\nsubgraph n0[\"SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"Setup context\"]\n    direction TB\n    subgraph n2[\"OtherScope\"]\n      direction TB\n      n3[\"In-scope configuration\"]\n    end\n    subgraph n4[\"Loop: while (true)\"]\n      direction TB\n      n5[\"wait for feature flags\"]\n    end\n    subgraph n6[\"OtherScope\"]\n      direction TB\n      n7[\"Boostrap schemas\"]\n    end\n    subgraph n8[\"BranchGroup: if (false)\"]\n      direction TB\n      subgraph n9[\"BranchArm: if (false)\"]\n        direction TB\n        n10[\"listen to SQS\"]\n      end\n      n11[\"BranchArm: else\"]\n    end\n    n2 --> n4\n    n4 --> n6\n    n6 --> n8\n  end\n  n12[\"Done\"]\n  n1 --> n12\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"1: Setup context\"]\n    direction TB\n    subgraph n2[\"2: OtherScope\"]\n      direction TB\n      n3[\"3: In-scope configuration\"]\n    end\n    subgraph n4[\"4: Loop: while (true)\"]\n      direction TB\n      n5[\"5: wait for feature flags\"]\n    end\n    subgraph n6[\"6: OtherScope\"]\n      direction TB\n      n7[\"7: Boostrap schemas\"]\n    end\n    subgraph n8[\"8: BranchGroup: if (false)\"]\n      direction TB\n      subgraph n9[\"9: BranchArm: if (false)\"]\n        direction TB\n        n10[\"10: listen to SQS\"]\n      end\n      n11[\"11: BranchArm: else\"]\n    end\n    n2 --> n4\n    n4 --> n6\n    n6 --> n8\n  end\n  n12[\"12: Done\"]\n  n1 --> n12\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -392,7 +392,7 @@ flattening:
           - "6"
         "6":
           - "8"
-    mermaid: "flowchart TD\nsubgraph n0[\"SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"Setup context\"]\n    direction TB\n    subgraph n2[\"OtherScope\"]\n      direction TB\n      n3[\"In-scope configuration\"]\n    end\n    subgraph n4[\"Loop: while (true)\"]\n      direction TB\n      n5[\"wait for feature flags\"]\n    end\n    subgraph n6[\"OtherScope\"]\n      direction TB\n      n7[\"Boostrap schemas\"]\n    end\n    subgraph n8[\"BranchGroup: if (false)\"]\n      direction TB\n      subgraph n9[\"BranchArm: if (false)\"]\n        direction TB\n        n10[\"listen to SQS\"]\n      end\n      n11[\"BranchArm: else\"]\n    end\n    n2 --> n4\n    n4 --> n6\n    n6 --> n8\n  end\n  n12[\"Done\"]\n  n1 --> n12\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"1: Setup context\"]\n    direction TB\n    subgraph n2[\"2: OtherScope\"]\n      direction TB\n      n3[\"3: In-scope configuration\"]\n    end\n    subgraph n4[\"4: Loop: while (true)\"]\n      direction TB\n      n5[\"5: wait for feature flags\"]\n    end\n    subgraph n6[\"6: OtherScope\"]\n      direction TB\n      n7[\"7: Boostrap schemas\"]\n    end\n    subgraph n8[\"8: BranchGroup: if (false)\"]\n      direction TB\n      subgraph n9[\"9: BranchArm: if (false)\"]\n        direction TB\n        n10[\"10: listen to SQS\"]\n      end\n      n11[\"11: BranchArm: else\"]\n    end\n    n2 --> n4\n    n4 --> n6\n    n6 --> n8\n  end\n  n12[\"12: Done\"]\n  n1 --> n12\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -657,7 +657,7 @@ flattening:
         "8":
           - "11"
           - "9"
-    mermaid: "flowchart TD\nsubgraph n0[\"SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"Setup context\"]\n    direction TB\n    subgraph n2[\"OtherScope\"]\n      direction TB\n      n3[\"In-scope configuration\"]\n    end\n    subgraph n4[\"Loop: while (true)\"]\n      direction TB\n      n5[\"wait for feature flags\"]\n    end\n    subgraph n6[\"OtherScope\"]\n      direction TB\n      n7[\"Boostrap schemas\"]\n    end\n    n8[\"BranchGroup: if (false)\"]\n    subgraph n9[\"BranchArm: if (false)\"]\n      direction TB\n      n10[\"listen to SQS\"]\n    end\n    n11[\"BranchArm: else\"]\n    n2 --> n4\n    n4 --> n6\n    n6 --> n8\n    n8 --> n9\n    n8 --> n11\n  end\n  n12[\"Done\"]\n  n1 --> n12\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"1: Setup context\"]\n    direction TB\n    subgraph n2[\"2: OtherScope\"]\n      direction TB\n      n3[\"3: In-scope configuration\"]\n    end\n    subgraph n4[\"4: Loop: while (true)\"]\n      direction TB\n      n5[\"5: wait for feature flags\"]\n    end\n    subgraph n6[\"6: OtherScope\"]\n      direction TB\n      n7[\"7: Boostrap schemas\"]\n    end\n    n8[\"8: BranchGroup: if (false)\"]\n    subgraph n9[\"9: BranchArm: if (false)\"]\n      direction TB\n      n10[\"10: listen to SQS\"]\n    end\n    n11[\"11: BranchArm: else\"]\n    n2 --> n4\n    n4 --> n6\n    n6 --> n8\n    n8 --> n9\n    n8 --> n11\n  end\n  n12[\"12: Done\"]\n  n1 --> n12\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -868,4 +868,4 @@ flattening:
         "8":
           - "10"
           - "11"
-    mermaid: "flowchart TD\nsubgraph n0[\"SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"Setup context\"]\n    direction TB\n    n2[\"In-scope configuration\"]\n    subgraph n3[\"Loop: while (true)\"]\n      direction TB\n      n4[\"wait for feature flags\"]\n    end\n    n5[\"Boostrap schemas\"]\n    n6[\"BranchGroup: if (false)\"]\n    n7[\"listen to SQS\"]\n    n8[\"BranchArm: else\"]\n    n3 --> n5\n    n6 --> n7\n    n6 --> n8\n    n2 --> n3\n    n5 --> n6\n  end\n  n9[\"Done\"]\n  n1 --> n9\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: SequentialImplicit\"]\n  direction TB\n  subgraph n1[\"1: Setup context\"]\n    direction TB\n    n2[\"3: In-scope configuration\"]\n    subgraph n3[\"4: Loop: while (true)\"]\n      direction TB\n      n4[\"5: wait for feature flags\"]\n    end\n    n5[\"7: Boostrap schemas\"]\n    n6[\"8: BranchGroup: if (false)\"]\n    n7[\"10: listen to SQS\"]\n    n8[\"11: BranchArm: else\"]\n    n3 --> n5\n    n6 --> n7\n    n6 --> n8\n    n2 --> n3\n    n5 --> n6\n  end\n  n9[\"12: Done\"]\n  n1 --> n9\nend\n"

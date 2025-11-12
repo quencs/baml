@@ -65,7 +65,7 @@ expr:
       - "2"
     "2":
       - "5"
-mermaid: "flowchart TD\nsubgraph n0[\"MultipleHeaderLevels\"]\n  direction TB\n  n1[\"Section One\"]\n  subgraph n2[\"Section Two\"]\n    direction TB\n    subgraph n3[\"Subsection 2.1\"]\n      direction TB\n      n4[\"Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: MultipleHeaderLevels\"]\n  direction TB\n  n1[\"1: Section One\"]\n  subgraph n2[\"2: Section Two\"]\n    direction TB\n    subgraph n3[\"3: Subsection 2.1\"]\n      direction TB\n      n4[\"4: Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"5: Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -191,7 +191,7 @@ flattening:
           - "2"
         "2":
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"MultipleHeaderLevels\"]\n  direction TB\n  n1[\"Section One\"]\n  subgraph n2[\"Section Two\"]\n    direction TB\n    subgraph n3[\"Subsection 2.1\"]\n      direction TB\n      n4[\"Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: MultipleHeaderLevels\"]\n  direction TB\n  n1[\"1: Section One\"]\n  subgraph n2[\"2: Section Two\"]\n    direction TB\n    subgraph n3[\"3: Subsection 2.1\"]\n      direction TB\n      n4[\"4: Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"5: Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -316,7 +316,7 @@ flattening:
           - "2"
         "2":
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"MultipleHeaderLevels\"]\n  direction TB\n  n1[\"Section One\"]\n  subgraph n2[\"Section Two\"]\n    direction TB\n    subgraph n3[\"Subsection 2.1\"]\n      direction TB\n      n4[\"Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: MultipleHeaderLevels\"]\n  direction TB\n  n1[\"1: Section One\"]\n  subgraph n2[\"2: Section Two\"]\n    direction TB\n    subgraph n3[\"3: Subsection 2.1\"]\n      direction TB\n      n4[\"4: Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"5: Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -441,4 +441,4 @@ flattening:
           - "2"
         "2":
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"MultipleHeaderLevels\"]\n  direction TB\n  n1[\"Section One\"]\n  subgraph n2[\"Section Two\"]\n    direction TB\n    subgraph n3[\"Subsection 2.1\"]\n      direction TB\n      n4[\"Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: MultipleHeaderLevels\"]\n  direction TB\n  n1[\"1: Section One\"]\n  subgraph n2[\"2: Section Two\"]\n    direction TB\n    subgraph n3[\"3: Subsection 2.1\"]\n      direction TB\n      n4[\"4: Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"5: Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"

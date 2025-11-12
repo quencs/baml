@@ -27,7 +27,7 @@ expr:
   edges:
     "0":
       - "1"
-mermaid: "flowchart TD\nsubgraph n0[\"GenerateTitle\"]\n  direction TB\n  n1[\"OtherScope: LLM client: GPT4\"]\nend\nn0 --> n1\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: GenerateTitle\"]\n  direction TB\n  n1[\"1: OtherScope: LLM client: GPT4\"]\nend\nn0 --> n1\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -55,7 +55,7 @@ flattening:
             start: 61
             end: 188
       edges: {}
-    mermaid: "flowchart TD\nn0[\"GenerateTitle\"]\n"
+    mermaid: "flowchart TD\nn0[\"0: GenerateTitle\"]\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -82,7 +82,7 @@ flattening:
             start: 61
             end: 188
       edges: {}
-    mermaid: "flowchart TD\nn0[\"GenerateTitle\"]\n"
+    mermaid: "flowchart TD\nn0[\"0: GenerateTitle\"]\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -109,4 +109,4 @@ flattening:
             start: 61
             end: 188
       edges: {}
-    mermaid: "flowchart TD\nn0[\"GenerateTitle\"]\n"
+    mermaid: "flowchart TD\nn0[\"0: GenerateTitle\"]\n"

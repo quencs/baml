@@ -25,7 +25,7 @@ expr:
         start: 38
         end: 53
   edges: {}
-mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: SimpleTest\"]\n  direction TB\n  n1[\"1: Main Header\"]\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -71,7 +71,7 @@ flattening:
             start: 38
             end: 53
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: SimpleTest\"]\n  direction TB\n  n1[\"1: Main Header\"]\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -116,7 +116,7 @@ flattening:
             start: 38
             end: 53
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: SimpleTest\"]\n  direction TB\n  n1[\"1: Main Header\"]\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -161,4 +161,4 @@ flattening:
             start: 38
             end: 53
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"SimpleTest\"]\n  direction TB\n  n1[\"Main Header\"]\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: SimpleTest\"]\n  direction TB\n  n1[\"1: Main Header\"]\nend\n"

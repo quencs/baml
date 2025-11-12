@@ -47,7 +47,7 @@ expr:
       - "2"
     "2":
       - "3"
-mermaid: "flowchart TD\nsubgraph n0[\"CallsDedup\"]\n  direction TB\n  n1[\"Step A\"]\n  n2[\"Step B\"]\n  n3[\"Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: CallsDedup\"]\n  direction TB\n  n1[\"1: Step A\"]\n  n2[\"2: Step B\"]\n  n3[\"3: Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -137,7 +137,7 @@ flattening:
           - "2"
         "2":
           - "3"
-    mermaid: "flowchart TD\nsubgraph n0[\"CallsDedup\"]\n  direction TB\n  n1[\"Step A\"]\n  n2[\"Step B\"]\n  n3[\"Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: CallsDedup\"]\n  direction TB\n  n1[\"1: Step A\"]\n  n2[\"2: Step B\"]\n  n3[\"3: Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -226,7 +226,7 @@ flattening:
           - "2"
         "2":
           - "3"
-    mermaid: "flowchart TD\nsubgraph n0[\"CallsDedup\"]\n  direction TB\n  n1[\"Step A\"]\n  n2[\"Step B\"]\n  n3[\"Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: CallsDedup\"]\n  direction TB\n  n1[\"1: Step A\"]\n  n2[\"2: Step B\"]\n  n3[\"3: Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -315,4 +315,4 @@ flattening:
           - "2"
         "2":
           - "3"
-    mermaid: "flowchart TD\nsubgraph n0[\"CallsDedup\"]\n  direction TB\n  n1[\"Step A\"]\n  n2[\"Step B\"]\n  n3[\"Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: CallsDedup\"]\n  direction TB\n  n1[\"1: Step A\"]\n  n2[\"2: Step B\"]\n  n3[\"3: Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"

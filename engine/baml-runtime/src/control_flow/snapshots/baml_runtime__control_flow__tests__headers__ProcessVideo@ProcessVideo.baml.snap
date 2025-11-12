@@ -92,7 +92,7 @@ expr:
       - "7"
     "7":
       - "8"
-mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      subgraph n3[\"BranchGroup: if (!title)\"]\n        direction TB\n        subgraph n4[\"BranchArm: if (!title)\"]\n          direction TB\n          n5[\"Generate Title\"]\n        end\n        n6[\"BranchArm: else\"]\n      end\n    end\n    n7[\"Generate Summary\"]\n    n8[\"Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: ProcessVideo\"]\n  direction TB\n  subgraph n1[\"1: Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"2: Test\"]\n      direction TB\n      subgraph n3[\"3: BranchGroup: if (!title)\"]\n        direction TB\n        subgraph n4[\"4: BranchArm: if (!title)\"]\n          direction TB\n          n5[\"5: Generate Title\"]\n        end\n        n6[\"6: BranchArm: else\"]\n      end\n    end\n    n7[\"7: Generate Summary\"]\n    n8[\"8: Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -272,7 +272,7 @@ flattening:
           - "7"
         "7":
           - "8"
-    mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      subgraph n3[\"BranchGroup: if (!title)\"]\n        direction TB\n        subgraph n4[\"BranchArm: if (!title)\"]\n          direction TB\n          n5[\"Generate Title\"]\n        end\n        n6[\"BranchArm: else\"]\n      end\n    end\n    n7[\"Generate Summary\"]\n    n8[\"Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: ProcessVideo\"]\n  direction TB\n  subgraph n1[\"1: Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"2: Test\"]\n      direction TB\n      subgraph n3[\"3: BranchGroup: if (!title)\"]\n        direction TB\n        subgraph n4[\"4: BranchArm: if (!title)\"]\n          direction TB\n          n5[\"5: Generate Title\"]\n        end\n        n6[\"6: BranchArm: else\"]\n      end\n    end\n    n7[\"7: Generate Summary\"]\n    n8[\"8: Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -457,7 +457,7 @@ flattening:
           - "6"
         "7":
           - "8"
-    mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      n3[\"BranchGroup: if (!title)\"]\n      subgraph n4[\"BranchArm: if (!title)\"]\n        direction TB\n        n5[\"Generate Title\"]\n      end\n      n6[\"BranchArm: else\"]\n      n3 --> n4\n      n3 --> n6\n    end\n    n7[\"Generate Summary\"]\n    n8[\"Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: ProcessVideo\"]\n  direction TB\n  subgraph n1[\"1: Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"2: Test\"]\n      direction TB\n      n3[\"3: BranchGroup: if (!title)\"]\n      subgraph n4[\"4: BranchArm: if (!title)\"]\n        direction TB\n        n5[\"5: Generate Title\"]\n      end\n      n6[\"6: BranchArm: else\"]\n      n3 --> n4\n      n3 --> n6\n    end\n    n7[\"7: Generate Summary\"]\n    n8[\"8: Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -624,4 +624,4 @@ flattening:
           - "6"
         "7":
           - "8"
-    mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      n3[\"BranchGroup: if (!title)\"]\n      n4[\"Generate Title\"]\n      n5[\"BranchArm: else\"]\n      n3 --> n4\n      n3 --> n5\n    end\n    n6[\"Generate Summary\"]\n    n7[\"Create Final Output\"]\n    n2 --> n6\n    n6 --> n7\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: ProcessVideo\"]\n  direction TB\n  subgraph n1[\"1: Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"2: Test\"]\n      direction TB\n      n3[\"3: BranchGroup: if (!title)\"]\n      n4[\"5: Generate Title\"]\n      n5[\"6: BranchArm: else\"]\n      n3 --> n4\n      n3 --> n5\n    end\n    n6[\"7: Generate Summary\"]\n    n7[\"8: Create Final Output\"]\n    n2 --> n6\n    n6 --> n7\n  end\nend\n"

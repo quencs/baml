@@ -79,7 +79,7 @@ expr:
         start: 227
         end: 250
   edges: {}
-mermaid: "flowchart TD\nsubgraph n0[\"NestedScopes\"]\n  direction TB\n  subgraph n1[\"Top Level\"]\n    direction TB\n    subgraph n2[\"First Section\"]\n      direction TB\n      subgraph n3[\"BranchGroup: if (x == hello)\"]\n        direction TB\n        subgraph n4[\"BranchArm: if (x == hello)\"]\n          direction TB\n          n5[\"Inside If Block\"]\n        end\n        subgraph n6[\"BranchArm: else\"]\n          direction TB\n          n7[\"Inside Else Block\"]\n        end\n      end\n    end\n  end\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: NestedScopes\"]\n  direction TB\n  subgraph n1[\"1: Top Level\"]\n    direction TB\n    subgraph n2[\"2: First Section\"]\n      direction TB\n      subgraph n3[\"3: BranchGroup: if (x == hello)\"]\n        direction TB\n        subgraph n4[\"4: BranchArm: if (x == hello)\"]\n          direction TB\n          n5[\"5: Inside If Block\"]\n        end\n        subgraph n6[\"6: BranchArm: else\"]\n          direction TB\n          n7[\"7: Inside Else Block\"]\n        end\n      end\n    end\n  end\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -233,7 +233,7 @@ flattening:
             start: 227
             end: 250
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"NestedScopes\"]\n  direction TB\n  subgraph n1[\"Top Level\"]\n    direction TB\n    subgraph n2[\"First Section\"]\n      direction TB\n      subgraph n3[\"BranchGroup: if (x == hello)\"]\n        direction TB\n        subgraph n4[\"BranchArm: if (x == hello)\"]\n          direction TB\n          n5[\"Inside If Block\"]\n        end\n        subgraph n6[\"BranchArm: else\"]\n          direction TB\n          n7[\"Inside Else Block\"]\n        end\n      end\n    end\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedScopes\"]\n  direction TB\n  subgraph n1[\"1: Top Level\"]\n    direction TB\n    subgraph n2[\"2: First Section\"]\n      direction TB\n      subgraph n3[\"3: BranchGroup: if (x == hello)\"]\n        direction TB\n        subgraph n4[\"4: BranchArm: if (x == hello)\"]\n          direction TB\n          n5[\"5: Inside If Block\"]\n        end\n        subgraph n6[\"6: BranchArm: else\"]\n          direction TB\n          n7[\"7: Inside Else Block\"]\n        end\n      end\n    end\n  end\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -392,7 +392,7 @@ flattening:
         "3":
           - "4"
           - "6"
-    mermaid: "flowchart TD\nsubgraph n0[\"NestedScopes\"]\n  direction TB\n  subgraph n1[\"Top Level\"]\n    direction TB\n    subgraph n2[\"First Section\"]\n      direction TB\n      n3[\"BranchGroup: if (x == hello)\"]\n      subgraph n4[\"BranchArm: if (x == hello)\"]\n        direction TB\n        n5[\"Inside If Block\"]\n      end\n      subgraph n6[\"BranchArm: else\"]\n        direction TB\n        n7[\"Inside Else Block\"]\n      end\n      n3 --> n4\n      n3 --> n6\n    end\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedScopes\"]\n  direction TB\n  subgraph n1[\"1: Top Level\"]\n    direction TB\n    subgraph n2[\"2: First Section\"]\n      direction TB\n      n3[\"3: BranchGroup: if (x == hello)\"]\n      subgraph n4[\"4: BranchArm: if (x == hello)\"]\n        direction TB\n        n5[\"5: Inside If Block\"]\n      end\n      subgraph n6[\"6: BranchArm: else\"]\n        direction TB\n        n7[\"7: Inside Else Block\"]\n      end\n      n3 --> n4\n      n3 --> n6\n    end\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -515,4 +515,4 @@ flattening:
         "3":
           - "5"
           - "7"
-    mermaid: "flowchart TD\nsubgraph n0[\"NestedScopes\"]\n  direction TB\n  subgraph n1[\"Top Level\"]\n    direction TB\n    subgraph n2[\"First Section\"]\n      direction TB\n      n3[\"BranchGroup: if (x == hello)\"]\n      n4[\"Inside If Block\"]\n      n5[\"Inside Else Block\"]\n      n3 --> n4\n      n3 --> n5\n    end\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedScopes\"]\n  direction TB\n  subgraph n1[\"1: Top Level\"]\n    direction TB\n    subgraph n2[\"2: First Section\"]\n      direction TB\n      n3[\"3: BranchGroup: if (x == hello)\"]\n      n4[\"5: Inside If Block\"]\n      n5[\"7: Inside Else Block\"]\n      n3 --> n4\n      n3 --> n5\n    end\n  end\nend\n"

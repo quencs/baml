@@ -70,7 +70,7 @@ expr:
         start: 177
         end: 195
   edges: {}
-mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"BranchArm: if (true)\"]\n        direction TB\n        n4[\"Then Statement\"]\n      end\n      subgraph n5[\"BranchArm: else\"]\n        direction TB\n        n6[\"Else Statement\"]\n      end\n    end\n  end\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: BasicIf\"]\n  direction TB\n  subgraph n1[\"1: This is a named statement\"]\n    direction TB\n    subgraph n2[\"2: BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"3: BranchArm: if (true)\"]\n        direction TB\n        n4[\"4: Then Statement\"]\n      end\n      subgraph n5[\"5: BranchArm: else\"]\n        direction TB\n        n6[\"6: Else Statement\"]\n      end\n    end\n  end\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -206,7 +206,7 @@ flattening:
             start: 177
             end: 195
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"BranchArm: if (true)\"]\n        direction TB\n        n4[\"Then Statement\"]\n      end\n      subgraph n5[\"BranchArm: else\"]\n        direction TB\n        n6[\"Else Statement\"]\n      end\n    end\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: BasicIf\"]\n  direction TB\n  subgraph n1[\"1: This is a named statement\"]\n    direction TB\n    subgraph n2[\"2: BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"3: BranchArm: if (true)\"]\n        direction TB\n        n4[\"4: Then Statement\"]\n      end\n      subgraph n5[\"5: BranchArm: else\"]\n        direction TB\n        n6[\"6: Else Statement\"]\n      end\n    end\n  end\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -347,7 +347,7 @@ flattening:
         "2":
           - "3"
           - "5"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    n2[\"BranchGroup: if (true)\"]\n    subgraph n3[\"BranchArm: if (true)\"]\n      direction TB\n      n4[\"Then Statement\"]\n    end\n    subgraph n5[\"BranchArm: else\"]\n      direction TB\n      n6[\"Else Statement\"]\n    end\n    n2 --> n3\n    n2 --> n5\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: BasicIf\"]\n  direction TB\n  subgraph n1[\"1: This is a named statement\"]\n    direction TB\n    n2[\"2: BranchGroup: if (true)\"]\n    subgraph n3[\"3: BranchArm: if (true)\"]\n      direction TB\n      n4[\"4: Then Statement\"]\n    end\n    subgraph n5[\"5: BranchArm: else\"]\n      direction TB\n      n6[\"6: Else Statement\"]\n    end\n    n2 --> n3\n    n2 --> n5\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -452,4 +452,4 @@ flattening:
         "2":
           - "4"
           - "6"
-    mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    n2[\"BranchGroup: if (true)\"]\n    n3[\"Then Statement\"]\n    n4[\"Else Statement\"]\n    n2 --> n3\n    n2 --> n4\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: BasicIf\"]\n  direction TB\n  subgraph n1[\"1: This is a named statement\"]\n    direction TB\n    n2[\"2: BranchGroup: if (true)\"]\n    n3[\"4: Then Statement\"]\n    n4[\"6: Else Statement\"]\n    n2 --> n3\n    n2 --> n4\n  end\nend\n"

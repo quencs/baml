@@ -74,7 +74,7 @@ expr:
       - "2"
     "3":
       - "6"
-mermaid: "flowchart TD\nsubgraph n0[\"IfThenOnlyHeader\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If\"]\n    direction TB\n    subgraph n3[\"BranchGroup: if (false)\"]\n      direction TB\n      n4[\"BranchArm: if (false)\"]\n      n5[\"BranchArm: else\"]\n    end\n    n6[\"After\"]\n    n3 --> n6\n  end\n  n1 --> n2\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: IfThenOnlyHeader\"]\n  direction TB\n  n1[\"1: Before\"]\n  subgraph n2[\"2: If\"]\n    direction TB\n    subgraph n3[\"3: BranchGroup: if (false)\"]\n      direction TB\n      n4[\"4: BranchArm: if (false)\"]\n      n5[\"5: BranchArm: else\"]\n    end\n    n6[\"6: After\"]\n    n3 --> n6\n  end\n  n1 --> n2\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -160,7 +160,7 @@ flattening:
       edges:
         "1":
           - "2"
-    mermaid: "flowchart TD\nsubgraph n0[\"IfThenOnlyHeader\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If\"]\n    direction TB\n    n3[\"After\"]\n  end\n  n1 --> n2\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: IfThenOnlyHeader\"]\n  direction TB\n  n1[\"1: Before\"]\n  subgraph n2[\"2: If\"]\n    direction TB\n    n3[\"6: After\"]\n  end\n  n1 --> n2\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -245,7 +245,7 @@ flattening:
       edges:
         "1":
           - "2"
-    mermaid: "flowchart TD\nsubgraph n0[\"IfThenOnlyHeader\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If\"]\n    direction TB\n    n3[\"After\"]\n  end\n  n1 --> n2\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: IfThenOnlyHeader\"]\n  direction TB\n  n1[\"1: Before\"]\n  subgraph n2[\"2: If\"]\n    direction TB\n    n3[\"6: After\"]\n  end\n  n1 --> n2\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -330,4 +330,4 @@ flattening:
       edges:
         "1":
           - "2"
-    mermaid: "flowchart TD\nsubgraph n0[\"IfThenOnlyHeader\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If\"]\n    direction TB\n    n3[\"After\"]\n  end\n  n1 --> n2\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: IfThenOnlyHeader\"]\n  direction TB\n  n1[\"1: Before\"]\n  subgraph n2[\"2: If\"]\n    direction TB\n    n3[\"6: After\"]\n  end\n  n1 --> n2\nend\n"

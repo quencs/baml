@@ -65,7 +65,7 @@ expr:
       - "5"
     "3":
       - "4"
-mermaid: "flowchart TD\nsubgraph n0[\"ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"Main Loop\"]\n    direction TB\n    subgraph n2[\"Loop: for (item in items)\"]\n      direction TB\n      n3[\"Item Processing\"]\n      n4[\"Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"Final Result\"]\n  n1 --> n5\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"1: Main Loop\"]\n    direction TB\n    subgraph n2[\"2: Loop: for (item in items)\"]\n      direction TB\n      n3[\"3: Item Processing\"]\n      n4[\"4: Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"5: Final Result\"]\n  n1 --> n5\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -191,7 +191,7 @@ flattening:
           - "5"
         "3":
           - "4"
-    mermaid: "flowchart TD\nsubgraph n0[\"ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"Main Loop\"]\n    direction TB\n    subgraph n2[\"Loop: for (item in items)\"]\n      direction TB\n      n3[\"Item Processing\"]\n      n4[\"Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"Final Result\"]\n  n1 --> n5\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"1: Main Loop\"]\n    direction TB\n    subgraph n2[\"2: Loop: for (item in items)\"]\n      direction TB\n      n3[\"3: Item Processing\"]\n      n4[\"4: Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"5: Final Result\"]\n  n1 --> n5\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -316,7 +316,7 @@ flattening:
           - "5"
         "3":
           - "4"
-    mermaid: "flowchart TD\nsubgraph n0[\"ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"Main Loop\"]\n    direction TB\n    subgraph n2[\"Loop: for (item in items)\"]\n      direction TB\n      n3[\"Item Processing\"]\n      n4[\"Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"Final Result\"]\n  n1 --> n5\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"1: Main Loop\"]\n    direction TB\n    subgraph n2[\"2: Loop: for (item in items)\"]\n      direction TB\n      n3[\"3: Item Processing\"]\n      n4[\"4: Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"5: Final Result\"]\n  n1 --> n5\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -441,4 +441,4 @@ flattening:
           - "5"
         "3":
           - "4"
-    mermaid: "flowchart TD\nsubgraph n0[\"ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"Main Loop\"]\n    direction TB\n    subgraph n2[\"Loop: for (item in items)\"]\n      direction TB\n      n3[\"Item Processing\"]\n      n4[\"Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"Final Result\"]\n  n1 --> n5\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: ForLoopWithTopLevelHeader\"]\n  direction TB\n  subgraph n1[\"1: Main Loop\"]\n    direction TB\n    subgraph n2[\"2: Loop: for (item in items)\"]\n      direction TB\n      n3[\"3: Item Processing\"]\n      n4[\"4: Accumulation\"]\n      n3 --> n4\n    end\n  end\n  n5[\"5: Final Result\"]\n  n1 --> n5\nend\n"

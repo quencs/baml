@@ -63,7 +63,7 @@ fn inline_node(
         return false;
     }
 
-    let entry_node = select_entry_node(&direct_children, viz).unwrap_or_else(|| direct_children[0]);
+    let entry_node = direct_children[0];
     let exit_nodes = collect_exit_nodes(node_id, children_map, viz);
 
     reparent_children(viz, parent, &direct_children);
@@ -73,19 +73,6 @@ fn inline_node(
 
     viz.nodes.shift_remove(&node_id);
     true
-}
-
-fn select_entry_node(children: &[NodeId], viz: &ControlFlowVisualization) -> Option<NodeId> {
-    children
-        .iter()
-        .copied()
-        .find(|child| {
-            viz.nodes
-                .get(child)
-                .map(|node| matches!(node.node_type, NodeType::HeaderContextEnter))
-                .unwrap_or(false)
-        })
-        .or_else(|| children.first().copied())
 }
 
 fn collect_exit_nodes(
@@ -539,5 +526,182 @@ mod tests {
         assert_eq!(edges(14), Vec::<u32>::new());
         assert_eq!(edges(13), Vec::<u32>::new());
         assert_eq!(edges(15), Vec::<u32>::new());
+    }
+
+    #[test]
+    fn nested_ifs_snapshot_integration() {
+        // Mirrors the pass-2 snapshot for NestedIfs.baml (subset relevant to pass 3)
+        let mut viz = ControlFlowVisualization::default();
+        viz.nodes.insert(
+            NodeId::new(0),
+            make_node(0, None, "NestedIfs", NodeType::FunctionRoot),
+        );
+        viz.nodes.insert(
+            NodeId::new(1),
+            make_node(1, Some(0), "If statement 1", NodeType::HeaderContextEnter),
+        );
+        viz.nodes.insert(
+            NodeId::new(2),
+            make_node(2, Some(1), "if (true)", NodeType::BranchGroup),
+        );
+        viz.nodes.insert(
+            NodeId::new(3),
+            make_node(3, Some(1), "if (true)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(4),
+            make_node(4, Some(3), "If statement 2.1", NodeType::HeaderContextEnter),
+        );
+        viz.nodes.insert(
+            NodeId::new(5),
+            make_node(5, Some(4), "if (true)", NodeType::BranchGroup),
+        );
+        viz.nodes.insert(
+            NodeId::new(6),
+            make_node(6, Some(4), "if (true)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(7),
+            make_node(7, Some(6), "If statement 3.1", NodeType::HeaderContextEnter),
+        );
+        viz.nodes.insert(
+            NodeId::new(8),
+            make_node(8, Some(7), "if (true)", NodeType::BranchGroup),
+        );
+        viz.nodes.insert(
+            NodeId::new(9),
+            make_node(9, Some(7), "if (true)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(10),
+            make_node(10, Some(9), "True 3.1", NodeType::HeaderContextEnter),
+        );
+        viz.nodes.insert(
+            NodeId::new(11),
+            make_node(11, Some(7), "else", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(12),
+            make_node(
+                12,
+                Some(11),
+                "Third False 3.1",
+                NodeType::HeaderContextEnter,
+            ),
+        );
+        viz.nodes.insert(
+            NodeId::new(13),
+            make_node(13, Some(4), "else", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(14),
+            make_node(
+                14,
+                Some(13),
+                "If statement 3.2",
+                NodeType::HeaderContextEnter,
+            ),
+        );
+        viz.nodes.insert(
+            NodeId::new(15),
+            make_node(15, Some(14), "if (true)", NodeType::BranchGroup),
+        );
+        viz.nodes.insert(
+            NodeId::new(16),
+            make_node(16, Some(14), "if (true)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(17),
+            make_node(17, Some(16), "True 3.2", NodeType::HeaderContextEnter),
+        );
+        viz.nodes.insert(
+            NodeId::new(18),
+            make_node(18, Some(14), "else", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(19),
+            make_node(
+                19,
+                Some(18),
+                "Third False 3.2",
+                NodeType::HeaderContextEnter,
+            ),
+        );
+        viz.nodes.insert(
+            NodeId::new(20),
+            make_node(20, Some(1), "else", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(21),
+            make_node(21, Some(20), "if (true) outer", NodeType::BranchGroup),
+        );
+        viz.nodes.insert(
+            NodeId::new(22),
+            make_node(22, Some(20), "if (true)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(23),
+            make_node(23, Some(22), "if (true) nested", NodeType::BranchGroup),
+        );
+        viz.nodes.insert(
+            NodeId::new(24),
+            make_node(24, Some(22), "if (true)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(25),
+            make_node(25, Some(22), "else if (false)", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(26),
+            make_node(26, Some(25), "Second False", NodeType::HeaderContextEnter),
+        );
+        viz.nodes.insert(
+            NodeId::new(27),
+            make_node(27, Some(22), "else", NodeType::BranchArm),
+        );
+        viz.nodes.insert(
+            NodeId::new(28),
+            make_node(28, Some(20), "else outer", NodeType::BranchArm),
+        );
+
+        add_edge(&mut viz, 2, 20);
+        add_edge(&mut viz, 2, 3);
+        add_edge(&mut viz, 5, 13);
+        add_edge(&mut viz, 5, 6);
+        add_edge(&mut viz, 8, 11);
+        add_edge(&mut viz, 8, 9);
+        add_edge(&mut viz, 15, 16);
+        add_edge(&mut viz, 15, 18);
+        add_edge(&mut viz, 21, 22);
+        add_edge(&mut viz, 21, 28);
+        add_edge(&mut viz, 23, 24);
+        add_edge(&mut viz, 23, 25);
+        add_edge(&mut viz, 23, 27);
+
+        let flattened = inline_branch_arms_and_scopes(&viz);
+
+        for removed in [3, 6, 9, 11, 13, 16, 18, 25] {
+            assert!(
+                !flattened.nodes.contains_key(&NodeId::new(removed)),
+                "node {removed} should be removed"
+            );
+        }
+
+        let edges = |src: u32| -> Vec<u32> {
+            let mut dsts: Vec<u32> = flattened
+                .edges_by_src
+                .get(&NodeId::new(src))
+                .map(|edges| edges.iter().map(|edge| edge.dst.raw()).collect())
+                .unwrap_or_else(Vec::new);
+            dsts.sort();
+            dsts
+        };
+
+        assert_eq!(vec![4, 21], edges(2));
+        assert_eq!(vec![7, 14], edges(5));
+        assert_eq!(vec![10, 12], edges(8));
+        assert_eq!(vec![17, 19], edges(15));
+        assert_eq!(vec![23, 28], edges(21));
+        assert_eq!(vec![24, 26, 27], edges(23));
     }
 }
