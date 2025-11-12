@@ -502,7 +502,7 @@ flattening:
           label: Generate Title
           lexical_id: "ProcessVideo|root:0|hdr:main-processing-pipeline:0|hdr:test:0|bg:if-title:0|arm:if-title:0|hdr:generate-title:0"
           node_type: header
-          parent: "1"
+          parent: "2"
           span:
             file: src/control_flow/testdata/ProcessVideo.baml
             start: 221
@@ -584,7 +584,7 @@ flattening:
           label: Generate Title
           lexical_id: "ProcessVideo|root:0|hdr:main-processing-pipeline:0|hdr:test:0|bg:if-title:0|arm:if-title:0|hdr:generate-title:0"
           node_type: header
-          parent: "1"
+          parent: "2"
           span:
             file: src/control_flow/testdata/ProcessVideo.baml
             start: 221
@@ -624,4 +624,4 @@ flattening:
           - "6"
         "7":
           - "8"
-    mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      n3[\"BranchGroup: if (!title)\"]\n      n5[\"BranchArm: else\"]\n      n3 --> n4\n      n3 --> n5\n    end\n    n4[\"Generate Title\"]\n    n6[\"Generate Summary\"]\n    n7[\"Create Final Output\"]\n    n2 --> n6\n    n6 --> n7\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      n3[\"BranchGroup: if (!title)\"]\n      n4[\"Generate Title\"]\n      n5[\"BranchArm: else\"]\n      n3 --> n4\n      n3 --> n5\n    end\n    n6[\"Generate Summary\"]\n    n7[\"Create Final Output\"]\n    n2 --> n6\n    n6 --> n7\n  end\nend\n"

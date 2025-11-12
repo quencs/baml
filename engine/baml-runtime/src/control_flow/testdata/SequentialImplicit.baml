@@ -17,6 +17,8 @@ function SequentialImplicit() -> int {
   if (false) {
     //# listen to SQS
     let listenToSqs = 30;
+  } else {
+    let k = 5;
   }
   //# Done
   let finish = 35;

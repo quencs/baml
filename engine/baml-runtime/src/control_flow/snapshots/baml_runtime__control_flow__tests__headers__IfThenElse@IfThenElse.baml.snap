@@ -502,7 +502,7 @@ flattening:
           label: "impossible: return 1"
           lexical_id: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:if-false:0|hdr:impossible-return-1:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/IfThenElse.baml
             start: 134
@@ -511,7 +511,7 @@ flattening:
           label: should always be 5
           lexical_id: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:else:1|hdr:should-always-be-5:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/IfThenElse.baml
             start: 191
@@ -575,7 +575,7 @@ flattening:
           label: "impossible: return 1"
           lexical_id: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:if-false:0|hdr:impossible-return-1:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/IfThenElse.baml
             start: 134
@@ -584,7 +584,7 @@ flattening:
           label: should always be 5
           lexical_id: "IfThenElse|root:0|hdr:if-should-always-do-else:1|bg:if-false:0|arm:else:1|hdr:should-always-be-5:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/IfThenElse.baml
             start: 191
@@ -606,4 +606,4 @@ flattening:
         "3":
           - "5"
           - "7"
-    mermaid: "flowchart TD\nsubgraph n0[\"IfThenElse\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If should always do else\"]\n    direction TB\n    n3[\"BranchGroup: if (false)\"]\n    n3 --> n4\n    n3 --> n5\n  end\n  n4[\"impossible: return 1\"]\n  n5[\"should always be 5\"]\n  n6[\"After\"]\n  n1 --> n2\n  n2 --> n6\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"IfThenElse\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If should always do else\"]\n    direction TB\n    n3[\"BranchGroup: if (false)\"]\n    n4[\"impossible: return 1\"]\n    n5[\"should always be 5\"]\n    n3 --> n4\n    n3 --> n5\n  end\n  n6[\"After\"]\n  n1 --> n2\n  n2 --> n6\nend\n"

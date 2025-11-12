@@ -1,0 +1,6 @@
+---
+source: baml-runtime/src/control_flow/tests.rs
+expression: snapshot_value
+input_file: baml-runtime/src/control_flow/testdata/IfElseChainNestedHeaders.baml
+---
+__error: "function `IfElseChainNestedHeaders` not found in fixture"

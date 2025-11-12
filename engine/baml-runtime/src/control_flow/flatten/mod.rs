@@ -5,11 +5,11 @@ use crate::control_flow::{ControlFlowVisualization, Edge, Node, NodeId};
 
 mod step1_remove_implicit;
 mod step2_hoist_branch_arms;
-mod step3_flatten_scopes;
+mod step3_inline_implicit_nodes;
 
 pub use step1_remove_implicit::remove_implicit_nodes;
 pub use step2_hoist_branch_arms::hoist_branch_arms;
-pub use step3_flatten_scopes::flatten_branch_arms_and_scopes;
+pub use step3_inline_implicit_nodes::inline_branch_arms_and_scopes;
 
 /// Result of flattening a `ControlFlowVisualization`.
 #[derive(Clone, Debug, Default)]
@@ -40,7 +40,7 @@ impl From<FlattenedControlFlowVisualization> for ControlFlowVisualization {
 pub fn flatten_control_flow(viz: &ControlFlowVisualization) -> FlattenedControlFlowVisualization {
     let pass_one = remove_implicit_nodes(viz);
     let pass_two = hoist_branch_arms(&pass_one);
-    let pass_three = flatten_branch_arms_and_scopes(&pass_two);
+    let pass_three = inline_branch_arms_and_scopes(&pass_two);
     pass_three.into()
 }
 

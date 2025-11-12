@@ -937,7 +937,7 @@ flattening:
           label: False other branch
           lexical_id: "ComplexHeaderTest|root:0|hdr:initialization:0|hdr:processing-loop:0|loop:for-item-in-items:0|hdr:markdown-header-tester:0|hdr:validation:1|bg:if-true:0|arm:else:1|hdr:false-other-branch:0"
           node_type: header
-          parent: "4"
+          parent: "6"
           span:
             file: src/control_flow/testdata/ComplexHeaderTest.baml
             start: 611
@@ -1036,7 +1036,7 @@ flattening:
           label: Markdown Header tester in statement
           lexical_id: "ComplexHeaderTest|root:0|hdr:initialization:0|hdr:processing-loop:0|loop:for-item-in-items:0|hdr:markdown-header-tester:0|hdr:validation:1|bg:if-true:0|arm:if-true:0|hdr:markdown-header-tester-in-statement:0"
           node_type: header
-          parent: "4"
+          parent: "6"
           span:
             file: src/control_flow/testdata/ComplexHeaderTest.baml
             start: 378
@@ -1097,7 +1097,7 @@ flattening:
           label: False other branch
           lexical_id: "ComplexHeaderTest|root:0|hdr:initialization:0|hdr:processing-loop:0|loop:for-item-in-items:0|hdr:markdown-header-tester:0|hdr:validation:1|bg:if-true:0|arm:else:1|hdr:false-other-branch:0"
           node_type: header
-          parent: "4"
+          parent: "6"
           span:
             file: src/control_flow/testdata/ComplexHeaderTest.baml
             start: 611
@@ -1196,7 +1196,7 @@ flattening:
           label: Markdown Header tester in statement
           lexical_id: "ComplexHeaderTest|root:0|hdr:initialization:0|hdr:processing-loop:0|loop:for-item-in-items:0|hdr:markdown-header-tester:0|hdr:validation:1|bg:if-true:0|arm:if-true:0|hdr:markdown-header-tester-in-statement:0"
           node_type: header
-          parent: "4"
+          parent: "6"
           span:
             file: src/control_flow/testdata/ComplexHeaderTest.baml
             start: 378
@@ -1215,4 +1215,4 @@ flattening:
         "7":
           - "13"
           - "9"
-    mermaid: "flowchart TD\nsubgraph n0[\"ComplexHeaderTest\"]\n  direction TB\n  subgraph n1[\"Initialization\"]\n    direction TB\n    subgraph n2[\"Processing Loop\"]\n      direction TB\n      subgraph n3[\"Loop: for (item in items)\"]\n        direction TB\n        subgraph n4[\"Markdown Header tester\"]\n          direction TB\n          n5[\"Item Analysis\"]\n          subgraph n6[\"Validation\"]\n            direction TB\n            n7[\"BranchGroup: if (true)\"]\n            n7 --> n8\n            n7 --> n11\n          end\n          subgraph n8[\"Markdown Header tester in statement\"]\n            direction TB\n            n9[\"another header in the statement\"]\n            n10[\"True totally\"]\n            n9 --> n10\n          end\n          n11[\"False other branch\"]\n          subgraph n12[\"very useful header\"]\n            direction TB\n            n13[\"Result\"]\n          end\n          n5 --> n6\n          n6 --> n12\n        end\n      end\n    end\n  end\n  n14[\"Final Processing\"]\n  n15[\"Return Result\"]\n  n1 --> n14\n  n14 --> n15\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"ComplexHeaderTest\"]\n  direction TB\n  subgraph n1[\"Initialization\"]\n    direction TB\n    subgraph n2[\"Processing Loop\"]\n      direction TB\n      subgraph n3[\"Loop: for (item in items)\"]\n        direction TB\n        subgraph n4[\"Markdown Header tester\"]\n          direction TB\n          n5[\"Item Analysis\"]\n          subgraph n6[\"Validation\"]\n            direction TB\n            n7[\"BranchGroup: if (true)\"]\n            subgraph n8[\"Markdown Header tester in statement\"]\n              direction TB\n              n9[\"another header in the statement\"]\n              n10[\"True totally\"]\n              n9 --> n10\n            end\n            n11[\"False other branch\"]\n            n7 --> n8\n            n7 --> n11\n          end\n          subgraph n12[\"very useful header\"]\n            direction TB\n            n13[\"Result\"]\n          end\n          n5 --> n6\n          n6 --> n12\n        end\n      end\n    end\n  end\n  n14[\"Final Processing\"]\n  n15[\"Return Result\"]\n  n1 --> n14\n  n14 --> n15\nend\n"

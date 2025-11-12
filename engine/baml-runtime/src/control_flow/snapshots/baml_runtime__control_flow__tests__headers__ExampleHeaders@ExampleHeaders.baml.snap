@@ -447,7 +447,7 @@ flattening:
           label: positive path
           lexical_id: "ExampleHeaders|root:0|hdr:branching:1|bg:if-x-0:0|arm:if-x-0:0|hdr:positive-path:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/ExampleHeaders.baml
             start: 122
@@ -456,7 +456,7 @@ flattening:
           label: non-positive path
           lexical_id: "ExampleHeaders|root:0|hdr:branching:1|bg:if-x-0:0|arm:else:1|hdr:non-positive-path:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/ExampleHeaders.baml
             start: 172
@@ -509,7 +509,7 @@ flattening:
           label: positive path
           lexical_id: "ExampleHeaders|root:0|hdr:branching:1|bg:if-x-0:0|arm:if-x-0:0|hdr:positive-path:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/ExampleHeaders.baml
             start: 122
@@ -518,7 +518,7 @@ flattening:
           label: non-positive path
           lexical_id: "ExampleHeaders|root:0|hdr:branching:1|bg:if-x-0:0|arm:else:1|hdr:non-positive-path:0"
           node_type: header
-          parent: "0"
+          parent: "2"
           span:
             file: src/control_flow/testdata/ExampleHeaders.baml
             start: 172
@@ -529,4 +529,4 @@ flattening:
         "3":
           - "5"
           - "7"
-    mermaid: "flowchart TD\nsubgraph n0[\"ExampleHeaders\"]\n  direction TB\n  n1[\"setup\"]\n  subgraph n2[\"branching\"]\n    direction TB\n    n3[\"BranchGroup: if (x > 0)\"]\n    n3 --> n4\n    n3 --> n5\n  end\n  n4[\"positive path\"]\n  n5[\"non-positive path\"]\n  n1 --> n2\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"ExampleHeaders\"]\n  direction TB\n  n1[\"setup\"]\n  subgraph n2[\"branching\"]\n    direction TB\n    n3[\"BranchGroup: if (x > 0)\"]\n    n4[\"positive path\"]\n    n5[\"non-positive path\"]\n    n3 --> n4\n    n3 --> n5\n  end\n  n1 --> n2\nend\n"

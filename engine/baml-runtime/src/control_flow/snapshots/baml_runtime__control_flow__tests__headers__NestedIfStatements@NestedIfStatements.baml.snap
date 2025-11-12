@@ -1760,7 +1760,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "6"
+          parent: "7"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 248
@@ -1769,7 +1769,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "6"
+          parent: "7"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 315
@@ -1778,7 +1778,7 @@ flattening:
           label: If statement 3.2
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0"
           node_type: header
-          parent: "3"
+          parent: "4"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 413
@@ -1796,7 +1796,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "13"
+          parent: "14"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 484
@@ -1805,7 +1805,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "13"
+          parent: "14"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 551
@@ -1823,7 +1823,7 @@ flattening:
           label: If statement 2.2
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0"
           node_type: header
-          parent: "0"
+          parent: "1"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 661
@@ -1841,7 +1841,7 @@ flattening:
           label: If statement 3.1
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0"
           node_type: header
-          parent: "20"
+          parent: "21"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 724
@@ -1859,7 +1859,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "23"
+          parent: "24"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 795
@@ -1868,7 +1868,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "23"
+          parent: "24"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 862
@@ -1877,7 +1877,7 @@ flattening:
           label: If statement 3.2
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0"
           node_type: header
-          parent: "20"
+          parent: "21"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 960
@@ -1895,7 +1895,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "30"
+          parent: "31"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 1031
@@ -1904,7 +1904,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "30"
+          parent: "31"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 1098
@@ -1913,7 +1913,7 @@ flattening:
           label: If statement 2.1
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
           node_type: header
-          parent: "0"
+          parent: "1"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 114
@@ -1931,7 +1931,7 @@ flattening:
           label: If statement 3.1
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0"
           node_type: header
-          parent: "3"
+          parent: "4"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 177
@@ -1991,7 +1991,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "6"
+          parent: "7"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 248
@@ -2000,7 +2000,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "6"
+          parent: "7"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 315
@@ -2009,7 +2009,7 @@ flattening:
           label: If statement 3.2
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0"
           node_type: header
-          parent: "3"
+          parent: "4"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 413
@@ -2027,7 +2027,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "13"
+          parent: "14"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 484
@@ -2036,7 +2036,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "13"
+          parent: "14"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 551
@@ -2054,7 +2054,7 @@ flattening:
           label: If statement 2.2
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0"
           node_type: header
-          parent: "0"
+          parent: "1"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 661
@@ -2072,7 +2072,7 @@ flattening:
           label: If statement 3.1
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0"
           node_type: header
-          parent: "20"
+          parent: "21"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 724
@@ -2090,7 +2090,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "23"
+          parent: "24"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 795
@@ -2099,7 +2099,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "23"
+          parent: "24"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 862
@@ -2108,7 +2108,7 @@ flattening:
           label: If statement 3.2
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0"
           node_type: header
-          parent: "20"
+          parent: "21"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 960
@@ -2126,7 +2126,7 @@ flattening:
           label: "True"
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:if-true:0|hdr:true:0"
           node_type: header
-          parent: "30"
+          parent: "31"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 1031
@@ -2135,7 +2135,7 @@ flattening:
           label: Third False
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|hdr:if-statement-2-2:0|bg:if-true:0|arm:else:1|hdr:if-statement-3-2:0|bg:if-true:0|arm:else:1|hdr:third-false:0"
           node_type: header
-          parent: "30"
+          parent: "31"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 1098
@@ -2144,7 +2144,7 @@ flattening:
           label: If statement 2.1
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
           node_type: header
-          parent: "0"
+          parent: "1"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 114
@@ -2162,7 +2162,7 @@ flattening:
           label: If statement 3.1
           lexical_id: "NestedIfStatements|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-3-1:0"
           node_type: header
-          parent: "3"
+          parent: "4"
           span:
             file: src/control_flow/testdata/NestedIfStatements.baml
             start: 177
@@ -2198,4 +2198,4 @@ flattening:
         "8":
           - "10"
           - "12"
-    mermaid: "flowchart TD\nsubgraph n0[\"NestedIfStatements\"]\n  direction TB\n  subgraph n1[\"If statement 1\"]\n    direction TB\n    n2[\"BranchGroup: if (true)\"]\n    n2 --> n3\n    n2 --> n13\n  end\n  subgraph n3[\"If statement 2.1\"]\n    direction TB\n    n4[\"BranchGroup: if (true)\"]\n    n4 --> n5\n    n4 --> n9\n  end\n  subgraph n13[\"If statement 2.2\"]\n    direction TB\n    n14[\"BranchGroup: if (true)\"]\n    n14 --> n15\n    n14 --> n19\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"NestedIfStatements\"]\n  direction TB\n  subgraph n1[\"If statement 1\"]\n    direction TB\n    n2[\"BranchGroup: if (true)\"]\n    subgraph n3[\"If statement 2.1\"]\n      direction TB\n      n4[\"BranchGroup: if (true)\"]\n      subgraph n5[\"If statement 3.1\"]\n        direction TB\n        n6[\"BranchGroup: if (true)\"]\n        n7[\"True\"]\n        n8[\"Third False\"]\n        n6 --> n7\n        n6 --> n8\n      end\n      subgraph n9[\"If statement 3.2\"]\n        direction TB\n        n10[\"BranchGroup: if (true)\"]\n        n11[\"True\"]\n        n12[\"Third False\"]\n        n10 --> n11\n        n10 --> n12\n      end\n      n4 --> n5\n      n4 --> n9\n    end\n    subgraph n13[\"If statement 2.2\"]\n      direction TB\n      n14[\"BranchGroup: if (true)\"]\n      subgraph n15[\"If statement 3.1\"]\n        direction TB\n        n16[\"BranchGroup: if (true)\"]\n        n17[\"True\"]\n        n18[\"Third False\"]\n        n16 --> n17\n        n16 --> n18\n      end\n      subgraph n19[\"If statement 3.2\"]\n        direction TB\n        n20[\"BranchGroup: if (true)\"]\n        n21[\"True\"]\n        n22[\"Third False\"]\n        n20 --> n21\n        n20 --> n22\n      end\n      n14 --> n15\n      n14 --> n19\n    end\n    n2 --> n3\n    n2 --> n13\n  end\nend\n"
