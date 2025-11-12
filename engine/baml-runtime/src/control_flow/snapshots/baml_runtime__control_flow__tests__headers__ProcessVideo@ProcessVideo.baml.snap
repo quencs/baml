@@ -273,8 +273,8 @@ flattening:
         "7":
           - "8"
     mermaid: "flowchart TD\nsubgraph n0[\"ProcessVideo\"]\n  direction TB\n  subgraph n1[\"Main Processing Pipeline\"]\n    direction TB\n    subgraph n2[\"Test\"]\n      direction TB\n      subgraph n3[\"BranchGroup: if (!title)\"]\n        direction TB\n        subgraph n4[\"BranchArm: if (!title)\"]\n          direction TB\n          n5[\"Generate Title\"]\n        end\n        n6[\"BranchArm: else\"]\n      end\n    end\n    n7[\"Generate Summary\"]\n    n8[\"Create Final Output\"]\n    n2 --> n7\n    n7 --> n8\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

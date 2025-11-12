@@ -56,8 +56,8 @@ flattening:
             end: 188
       edges: {}
     mermaid: "flowchart TD\nn0[\"GenerateTitle\"]\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

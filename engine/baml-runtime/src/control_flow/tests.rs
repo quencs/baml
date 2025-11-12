@@ -12,7 +12,7 @@ use insta::assert_yaml_snapshot;
 use serde_json::{json, Value};
 
 use super::{
-    flatten::{expand_branch_groups, flatten_branch_arms_and_scopes, remove_implicit_nodes},
+    flatten::{flatten_branch_arms_and_scopes, hoist_branch_arms, remove_implicit_nodes},
     mermaid::to_mermaid,
 };
 use crate::BamlRuntime;
@@ -115,7 +115,7 @@ fn test_snapshots() {
                         match build_from_hir(&hir, &target_name) {
                             Ok(viz) => {
                                 let pass1 = remove_implicit_nodes(&viz);
-                                let pass2 = expand_branch_groups(&pass1);
+                                let pass2 = hoist_branch_arms(&pass1);
                                 let pass3 = flatten_branch_arms_and_scopes(&pass2);
 
                                 json!({
@@ -124,7 +124,7 @@ fn test_snapshots() {
                                     "mermaid": to_mermaid(&viz),
                                     "flattening": {
                                         "pass1_remove_implicit": flatten_stage_snapshot("Remove implicit nodes", &pass1),
-                                        "pass2_expand_branch_groups": flatten_stage_snapshot("Expand branch groups", &pass2),
+                                        "pass2_hoist_branch_arms": flatten_stage_snapshot("Hoist branch arms", &pass2),
                                         "pass3_flatten_scopes": flatten_stage_snapshot("Flatten branch arms & scopes", &pass3),
                                     },
                                 })

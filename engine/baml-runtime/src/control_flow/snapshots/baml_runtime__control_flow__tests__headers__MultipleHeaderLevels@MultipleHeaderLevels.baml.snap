@@ -192,8 +192,8 @@ flattening:
         "2":
           - "5"
     mermaid: "flowchart TD\nsubgraph n0[\"MultipleHeaderLevels\"]\n  direction TB\n  n1[\"Section One\"]\n  subgraph n2[\"Section Two\"]\n    direction TB\n    subgraph n3[\"Subsection 2.1\"]\n      direction TB\n      n4[\"Subsubsection 2.1.1\"]\n    end\n  end\n  n5[\"Section Three\"]\n  n1 --> n2\n  n2 --> n5\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

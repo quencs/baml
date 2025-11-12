@@ -126,8 +126,8 @@ flattening:
             end: 208
       edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"UnicodeHeaders\"]\n  direction TB\n  subgraph n1[\"你好世界\"]\n    direction TB\n    subgraph n2[\"Émojis 🎉🎊\"]\n      direction TB\n      n3[\"Special «Characters» ™\"]\n    end\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

@@ -4,8 +4,8 @@ use crate::control_flow::{ControlFlowVisualization, Edge, NodeId, NodeType};
 
 use super::{build_children_map, node_depth};
 
-/// Pass 2: ensure BranchGroup / BranchArm nodes have the correct fan-out edges.
-pub fn expand_branch_groups(viz: &ControlFlowVisualization) -> ControlFlowVisualization {
+/// Pass 2: hoist BranchArm nodes and wire their edges directly.
+pub fn hoist_branch_arms(viz: &ControlFlowVisualization) -> ControlFlowVisualization {
     let children = build_children_map(&viz.nodes);
     let mut next = viz.clone();
 
@@ -165,7 +165,7 @@ mod tests {
     #[test]
     fn branch_group_edges_are_fanned_out() {
         let viz = branch_group_viz();
-        let expanded = expand_branch_groups(&viz);
+        let expanded = hoist_branch_arms(&viz);
         let group_edges = expanded
             .edges_by_src
             .get(&NodeId::new(1))
@@ -198,7 +198,7 @@ mod tests {
         let mut viz = branch_group_viz();
         viz.edges_by_src.shift_remove(&NodeId::new(1));
 
-        let expanded = expand_branch_groups(&viz);
+        let expanded = hoist_branch_arms(&viz);
 
         let group_edges = expanded
             .edges_by_src

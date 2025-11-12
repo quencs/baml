@@ -534,8 +534,8 @@ flattening:
         "6":
           - "14"
     mermaid: "flowchart TD\nsubgraph n0[\"ComplexHeaderTest\"]\n  direction TB\n  subgraph n1[\"Initialization\"]\n    direction TB\n    subgraph n2[\"Processing Loop\"]\n      direction TB\n      subgraph n3[\"Loop: for (item in items)\"]\n        direction TB\n        subgraph n4[\"Markdown Header tester\"]\n          direction TB\n          n5[\"Item Analysis\"]\n          subgraph n6[\"Validation\"]\n            direction TB\n            subgraph n7[\"BranchGroup: if (true)\"]\n              direction TB\n              subgraph n8[\"BranchArm: if (true)\"]\n                direction TB\n                subgraph n9[\"Markdown Header tester in statement\"]\n                  direction TB\n                  n10[\"another header in the statement\"]\n                  n11[\"True totally\"]\n                  n10 --> n11\n                end\n              end\n              subgraph n12[\"BranchArm: else\"]\n                direction TB\n                n13[\"False other branch\"]\n              end\n            end\n          end\n          subgraph n14[\"very useful header\"]\n            direction TB\n            n15[\"Result\"]\n          end\n          n5 --> n6\n          n6 --> n14\n        end\n      end\n    end\n  end\n  n16[\"Final Processing\"]\n  n17[\"Return Result\"]\n  n1 --> n16\n  n16 --> n17\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

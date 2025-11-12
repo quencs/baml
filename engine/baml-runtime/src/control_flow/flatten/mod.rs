@@ -4,11 +4,11 @@ use std::collections::{HashMap, HashSet};
 use crate::control_flow::{ControlFlowVisualization, Edge, Node, NodeId};
 
 mod step1_remove_implicit;
-mod step2_expand_branch_groups;
+mod step2_hoist_branch_arms;
 mod step3_flatten_scopes;
 
 pub use step1_remove_implicit::remove_implicit_nodes;
-pub use step2_expand_branch_groups::expand_branch_groups;
+pub use step2_hoist_branch_arms::hoist_branch_arms;
 pub use step3_flatten_scopes::flatten_branch_arms_and_scopes;
 
 /// Result of flattening a `ControlFlowVisualization`.
@@ -39,7 +39,7 @@ impl From<FlattenedControlFlowVisualization> for ControlFlowVisualization {
 /// Run the three-pass flattening pipeline described in goal5b.
 pub fn flatten_control_flow(viz: &ControlFlowVisualization) -> FlattenedControlFlowVisualization {
     let pass_one = remove_implicit_nodes(viz);
-    let pass_two = expand_branch_groups(&pass_one);
+    let pass_two = hoist_branch_arms(&pass_one);
     let pass_three = flatten_branch_arms_and_scopes(&pass_two);
     pass_three.into()
 }

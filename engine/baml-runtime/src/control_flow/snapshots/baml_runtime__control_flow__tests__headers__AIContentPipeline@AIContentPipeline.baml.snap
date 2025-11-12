@@ -741,8 +741,8 @@ flattening:
         "9":
           - "10"
     mermaid: "flowchart TD\nsubgraph n0[\"AIContentPipeline\"]\n  direction TB\n  subgraph n1[\"Fetch Resources\"]\n    direction TB\n    n2[\"Retrieve Emails and Posts from Database\"]\n    n3[\"Process and Load Video\"]\n    n2 --> n3\n  end\n  subgraph n4[\"Generate Content\"]\n    direction TB\n    subgraph n5[\"Video Summarization\"]\n      direction TB\n      subgraph n6[\"BranchGroup: if (has_transcript)\"]\n        direction TB\n        subgraph n7[\"BranchArm: if (has_transcript)\"]\n          direction TB\n          subgraph n8[\"Generate Summary\"]\n            direction TB\n            n9[\"Create Summary Text\"]\n            n10[\"Label Summary Category\"]\n            n9 --> n10\n          end\n          n11[\"Save Summary\"]\n          n8 --> n11\n        end\n        subgraph n12[\"BranchArm: else\"]\n          direction TB\n          n13[\"Skip Summarization\"]\n        end\n      end\n    end\n    subgraph n14[\"Generate Drafts for Posts\"]\n      direction TB\n      subgraph n15[\"Loop: for (kind in content_types)\"]\n        direction TB\n        n16[\"Get Content Type and Generate Draft\"]\n        n17[\"Save Draft\"]\n        n16 --> n17\n      end\n    end\n    n5 --> n14\n  end\n  subgraph n18[\"Prepare Pull Request\"]\n    direction TB\n    subgraph n19[\"BranchGroup: if (summary != no-transcript)\"]\n      direction TB\n      subgraph n20[\"BranchArm: if (summary != no-transcript)\"]\n        direction TB\n        n21[\"Create GitHub PR\"]\n      end\n      subgraph n22[\"BranchArm: else\"]\n        direction TB\n        n23[\"Missing Summary\"]\n      end\n    end\n  end\n  n24[\"Complete\"]\n  n1 --> n4\n  n4 --> n18\n  n18 --> n24\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

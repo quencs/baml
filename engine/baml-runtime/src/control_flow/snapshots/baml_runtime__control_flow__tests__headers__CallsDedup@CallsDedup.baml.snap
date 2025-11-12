@@ -138,8 +138,8 @@ flattening:
         "2":
           - "3"
     mermaid: "flowchart TD\nsubgraph n0[\"CallsDedup\"]\n  direction TB\n  n1[\"Step A\"]\n  n2[\"Step B\"]\n  n3[\"Step C\"]\n  n1 --> n2\n  n2 --> n3\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

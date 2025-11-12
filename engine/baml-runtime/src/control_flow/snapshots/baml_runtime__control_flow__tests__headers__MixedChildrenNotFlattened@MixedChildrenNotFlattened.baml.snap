@@ -126,8 +126,8 @@ flattening:
             end: 152
       edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"MixedChildrenNotFlattened\"]\n  direction TB\n  subgraph n1[\"MD Child\"]\n    direction TB\n    subgraph n2[\"Loop: for (item in items)\"]\n      direction TB\n      n3[\"Loop Child\"]\n    end\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

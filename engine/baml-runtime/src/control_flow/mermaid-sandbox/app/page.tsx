@@ -126,7 +126,7 @@ async function loadExamples(): Promise<ExampleRow[]> {
     if (flatteningValue && typeof flatteningValue === "object") {
       const stages: Array<[string, string]> = [
         ["pass1_remove_implicit", "Pass 1 – Remove implicit"],
-        ["pass2_expand_branch_groups", "Pass 2 – Expand branch groups"],
+        ["pass2_hoist_branch_arms", "Pass 2 – Hoist branch arms"],
         ["pass3_flatten_scopes", "Pass 3 – Flatten arms & scopes"],
       ];
 

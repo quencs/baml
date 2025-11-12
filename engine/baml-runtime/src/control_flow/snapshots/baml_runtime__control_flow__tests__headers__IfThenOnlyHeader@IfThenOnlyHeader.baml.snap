@@ -161,8 +161,8 @@ flattening:
         "1":
           - "2"
     mermaid: "flowchart TD\nsubgraph n0[\"IfThenOnlyHeader\"]\n  direction TB\n  n1[\"Before\"]\n  subgraph n2[\"If\"]\n    direction TB\n    n3[\"After\"]\n  end\n  n1 --> n2\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

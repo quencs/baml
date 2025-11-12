@@ -72,8 +72,8 @@ flattening:
             end: 81
       edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"TopLevelNotFlattened\"]\n  direction TB\n  n1[\"Only Child\"]\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

@@ -234,8 +234,8 @@ flattening:
             end: 250
       edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"NestedScopes\"]\n  direction TB\n  subgraph n1[\"Top Level\"]\n    direction TB\n    subgraph n2[\"First Section\"]\n      direction TB\n      subgraph n3[\"BranchGroup: if (x == hello)\"]\n        direction TB\n        subgraph n4[\"BranchArm: if (x == hello)\"]\n          direction TB\n          n5[\"Inside If Block\"]\n        end\n        subgraph n6[\"BranchArm: else\"]\n          direction TB\n          n7[\"Inside Else Block\"]\n        end\n      end\n    end\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

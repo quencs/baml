@@ -213,8 +213,8 @@ flattening:
         "2":
           - "6"
     mermaid: "flowchart TD\nsubgraph n0[\"ForLoopWithBodyHeaders\"]\n  direction TB\n  subgraph n1[\"Loop Processing\"]\n    direction TB\n    subgraph n2[\"Main Loop\"]\n      direction TB\n      subgraph n3[\"Loop: for (item in items)\"]\n        direction TB\n        subgraph n4[\"Item Processing\"]\n          direction TB\n          n5[\"Accumulation\"]\n        end\n      end\n    end\n    n6[\"Final Result\"]\n    n2 --> n6\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":

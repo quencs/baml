@@ -207,8 +207,8 @@ flattening:
             end: 195
       edges: {}
     mermaid: "flowchart TD\nsubgraph n0[\"BasicIf\"]\n  direction TB\n  subgraph n1[\"This is a named statement\"]\n    direction TB\n    subgraph n2[\"BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"BranchArm: if (true)\"]\n        direction TB\n        n4[\"Then Statement\"]\n      end\n      subgraph n5[\"BranchArm: else\"]\n        direction TB\n        n6[\"Else Statement\"]\n      end\n    end\n  end\nend\n"
-  pass2_expand_branch_groups:
-    label: Expand branch groups
+  pass2_hoist_branch_arms:
+    label: Hoist branch arms
     expr:
       nodes:
         "0":
