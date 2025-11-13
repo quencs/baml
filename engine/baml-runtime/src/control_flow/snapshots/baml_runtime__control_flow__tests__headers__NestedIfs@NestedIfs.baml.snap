@@ -3,7 +3,7 @@ source: baml-runtime/src/control_flow/tests.rs
 expression: snapshot_value
 input_file: baml-runtime/src/control_flow/testdata/NestedIfs.baml
 ---
-hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"If statement 1\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                        start: 52,\n                        end: 71,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"e\",\n                value: If {\n                    condition: BoolValue(\n                        true,\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                            start: 88,\n                            end: 92,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"If statement 2.1\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 105,\n                                            end: 127,\n                                        },\n                                    },\n                                ),\n                                DeclareAndAssign {\n                                    name: \"z\",\n                                    value: If {\n                                        condition: BoolValue(\n                                            true,\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                start: 148,\n                                                end: 152,\n                                            },\n                                        ),\n                                        if_branch: Block(\n                                            Block {\n                                                statements: [\n                                                    HeaderContextEnter(\n                                                        HeaderContext {\n                                                            level: 1,\n                                                            title: \"If statement 3.1\",\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 168,\n                                                                end: 190,\n                                                            },\n                                                        },\n                                                    ),\n                                                    DeclareAndAssign {\n                                                        name: \"a\",\n                                                        value: If {\n                                                            condition: BoolValue(\n                                                                true,\n                                                                Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 215,\n                                                                    end: 219,\n                                                                },\n                                                            ),\n                                                            if_branch: Block(\n                                                                Block {\n                                                                    statements: [\n                                                                        HeaderContextEnter(\n                                                                            HeaderContext {\n                                                                                level: 1,\n                                                                                title: \"True\",\n                                                                                span: Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 239,\n                                                                                    end: 249,\n                                                                                },\n                                                                            },\n                                                                        ),\n                                                                    ],\n                                                                    trailing_expr: Some(\n                                                                        NumericValue(\n                                                                            \"12\",\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 266,\n                                                                                end: 268,\n                                                                            },\n                                                                        ),\n                                                                    ),\n                                                                },\n                                                                Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 221,\n                                                                    end: 282,\n                                                                },\n                                                            ),\n                                                            else_branch: Some(\n                                                                Block(\n                                                                    Block {\n                                                                        statements: [\n                                                                            HeaderContextEnter(\n                                                                                HeaderContext {\n                                                                                    level: 1,\n                                                                                    title: \"Third False\",\n                                                                                    span: Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 306,\n                                                                                        end: 323,\n                                                                                    },\n                                                                                },\n                                                                            ),\n                                                                        ],\n                                                                        trailing_expr: Some(\n                                                                            NumericValue(\n                                                                                \"13\",\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 340,\n                                                                                    end: 342,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                    },\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 288,\n                                                                        end: 356,\n                                                                    },\n                                                                ),\n                                                            ),\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 211,\n                                                                end: 356,\n                                                            },\n                                                        },\n                                                        annotated_type: None,\n                                                        watch: None,\n                                                        span: Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                            start: 203,\n                                                            end: 358,\n                                                        },\n                                                    },\n                                                ],\n                                                trailing_expr: Some(\n                                                    NumericValue(\n                                                        \"242\",\n                                                        Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                            start: 371,\n                                                            end: 374,\n                                                        },\n                                                    ),\n                                                ),\n                                            },\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                start: 154,\n                                                end: 384,\n                                            },\n                                        ),\n                                        else_branch: Some(\n                                            Block(\n                                                Block {\n                                                    statements: [\n                                                        HeaderContextEnter(\n                                                            HeaderContext {\n                                                                level: 1,\n                                                                title: \"If statement 3.2\",\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 404,\n                                                                    end: 426,\n                                                                },\n                                                            },\n                                                        ),\n                                                        DeclareAndAssign {\n                                                            name: \"a\",\n                                                            value: If {\n                                                                condition: BoolValue(\n                                                                    true,\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 451,\n                                                                        end: 455,\n                                                                    },\n                                                                ),\n                                                                if_branch: Block(\n                                                                    Block {\n                                                                        statements: [\n                                                                            HeaderContextEnter(\n                                                                                HeaderContext {\n                                                                                    level: 1,\n                                                                                    title: \"True\",\n                                                                                    span: Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 475,\n                                                                                        end: 485,\n                                                                                    },\n                                                                                },\n                                                                            ),\n                                                                        ],\n                                                                        trailing_expr: Some(\n                                                                            NumericValue(\n                                                                                \"12\",\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 502,\n                                                                                    end: 504,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                    },\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 457,\n                                                                        end: 518,\n                                                                    },\n                                                                ),\n                                                                else_branch: Some(\n                                                                    Block(\n                                                                        Block {\n                                                                            statements: [\n                                                                                HeaderContextEnter(\n                                                                                    HeaderContext {\n                                                                                        level: 1,\n                                                                                        title: \"Third False\",\n                                                                                        span: Span {\n                                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                            start: 542,\n                                                                                            end: 559,\n                                                                                        },\n                                                                                    },\n                                                                                ),\n                                                                            ],\n                                                                            trailing_expr: Some(\n                                                                                NumericValue(\n                                                                                    \"13\",\n                                                                                    Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 576,\n                                                                                        end: 578,\n                                                                                    },\n                                                                                ),\n                                                                            ),\n                                                                        },\n                                                                        Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 524,\n                                                                            end: 592,\n                                                                        },\n                                                                    ),\n                                                                ),\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 447,\n                                                                    end: 592,\n                                                                },\n                                                            },\n                                                            annotated_type: None,\n                                                            watch: None,\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 439,\n                                                                end: 594,\n                                                            },\n                                                        },\n                                                    ],\n                                                    trailing_expr: Some(\n                                                        NumericValue(\n                                                            \"13\",\n                                                            Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 606,\n                                                                end: 608,\n                                                            },\n                                                        ),\n                                                    ),\n                                                },\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                    start: 390,\n                                                    end: 618,\n                                                },\n                                            ),\n                                        ),\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 144,\n                                            end: 618,\n                                        },\n                                    },\n                                    annotated_type: None,\n                                    watch: None,\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                        start: 136,\n                                        end: 620,\n                                    },\n                                },\n                            ],\n                            trailing_expr: Some(\n                                NumericValue(\n                                    \"2\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                        start: 629,\n                                        end: 630,\n                                    },\n                                ),\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                            start: 94,\n                            end: 636,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [\n                                    DeclareAndAssign {\n                                        name: \"z\",\n                                        value: If {\n                                            condition: BoolValue(\n                                                true,\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                    start: 664,\n                                                    end: 668,\n                                                },\n                                            ),\n                                            if_branch: Block(\n                                                Block {\n                                                    statements: [\n                                                        DeclareAndAssign {\n                                                            name: \"a\",\n                                                            value: If {\n                                                                condition: BoolValue(\n                                                                    true,\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 696,\n                                                                        end: 700,\n                                                                    },\n                                                                ),\n                                                                if_branch: Block(\n                                                                    Block {\n                                                                        statements: [],\n                                                                        trailing_expr: Some(\n                                                                            NumericValue(\n                                                                                \"12\",\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 720,\n                                                                                    end: 722,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                    },\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 702,\n                                                                        end: 736,\n                                                                    },\n                                                                ),\n                                                                else_branch: Some(\n                                                                    If {\n                                                                        condition: BoolValue(\n                                                                            false,\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 746,\n                                                                                end: 751,\n                                                                            },\n                                                                        ),\n                                                                        if_branch: Block(\n                                                                            Block {\n                                                                                statements: [\n                                                                                    HeaderContextEnter(\n                                                                                        HeaderContext {\n                                                                                            level: 1,\n                                                                                            title: \"Second False\",\n                                                                                            span: Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 771,\n                                                                                                end: 789,\n                                                                                            },\n                                                                                        },\n                                                                                    ),\n                                                                                ],\n                                                                                trailing_expr: Some(\n                                                                                    NumericValue(\n                                                                                        \"14\",\n                                                                                        Span {\n                                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                            start: 806,\n                                                                                            end: 808,\n                                                                                        },\n                                                                                    ),\n                                                                                ),\n                                                                            },\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 753,\n                                                                                end: 822,\n                                                                            },\n                                                                        ),\n                                                                        else_branch: Some(\n                                                                            Block(\n                                                                                Block {\n                                                                                    statements: [],\n                                                                                    trailing_expr: Some(\n                                                                                        NumericValue(\n                                                                                            \"13\",\n                                                                                            Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 846,\n                                                                                                end: 848,\n                                                                                            },\n                                                                                        ),\n                                                                                    ),\n                                                                                },\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 828,\n                                                                                    end: 862,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                        span: Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 742,\n                                                                            end: 862,\n                                                                        },\n                                                                    },\n                                                                ),\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 692,\n                                                                    end: 862,\n                                                                },\n                                                            },\n                                                            annotated_type: None,\n                                                            watch: None,\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 684,\n                                                                end: 864,\n                                                            },\n                                                        },\n                                                    ],\n                                                    trailing_expr: Some(\n                                                        NumericValue(\n                                                            \"242\",\n                                                            Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 877,\n                                                                end: 880,\n                                                            },\n                                                        ),\n                                                    ),\n                                                },\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                    start: 670,\n                                                    end: 890,\n                                                },\n                                            ),\n                                            else_branch: Some(\n                                                Block(\n                                                    Block {\n                                                        statements: [\n                                                            DeclareAndAssign {\n                                                                name: \"a\",\n                                                                value: If {\n                                                                    condition: BoolValue(\n                                                                        true,\n                                                                        Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 922,\n                                                                            end: 926,\n                                                                        },\n                                                                    ),\n                                                                    if_branch: Block(\n                                                                        Block {\n                                                                            statements: [],\n                                                                            trailing_expr: Some(\n                                                                                NumericValue(\n                                                                                    \"12\",\n                                                                                    Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 946,\n                                                                                        end: 948,\n                                                                                    },\n                                                                                ),\n                                                                            ),\n                                                                        },\n                                                                        Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 928,\n                                                                            end: 962,\n                                                                        },\n                                                                    ),\n                                                                    else_branch: Some(\n                                                                        Block(\n                                                                            Block {\n                                                                                statements: [],\n                                                                                trailing_expr: Some(\n                                                                                    NumericValue(\n                                                                                        \"13\",\n                                                                                        Span {\n                                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                            start: 986,\n                                                                                            end: 988,\n                                                                                        },\n                                                                                    ),\n                                                                                ),\n                                                                            },\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 968,\n                                                                                end: 1002,\n                                                                            },\n                                                                        ),\n                                                                    ),\n                                                                    span: Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 918,\n                                                                        end: 1002,\n                                                                    },\n                                                                },\n                                                                annotated_type: None,\n                                                                watch: None,\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 910,\n                                                                    end: 1004,\n                                                                },\n                                                            },\n                                                        ],\n                                                        trailing_expr: Some(\n                                                            NumericValue(\n                                                                \"13\",\n                                                                Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 1016,\n                                                                    end: 1018,\n                                                                },\n                                                            ),\n                                                        ),\n                                                    },\n                                                    Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                        start: 896,\n                                                        end: 1028,\n                                                    },\n                                                ),\n                                            ),\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                start: 660,\n                                                end: 1028,\n                                            },\n                                        },\n                                        annotated_type: None,\n                                        watch: None,\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 652,\n                                            end: 1030,\n                                        },\n                                    },\n                                ],\n                                trailing_expr: Some(\n                                    NumericValue(\n                                        \"13\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 1038,\n                                            end: 1040,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                start: 642,\n                                end: 1046,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                        start: 84,\n                        end: 1046,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                    start: 76,\n                    end: 1048,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"e\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                    start: 1053,\n                    end: 1054,\n                },\n            ),\n        ),\n    },\n)"
+hir: "Some(\n    Block {\n        statements: [\n            HeaderContextEnter(\n                HeaderContext {\n                    level: 1,\n                    title: \"If statement 1\",\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                        start: 52,\n                        end: 71,\n                    },\n                },\n            ),\n            DeclareAndAssign {\n                name: \"e\",\n                value: If {\n                    condition: BoolValue(\n                        true,\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                            start: 88,\n                            end: 92,\n                        },\n                    ),\n                    if_branch: Block(\n                        Block {\n                            statements: [\n                                HeaderContextEnter(\n                                    HeaderContext {\n                                        level: 1,\n                                        title: \"If statement 2.1\",\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 105,\n                                            end: 127,\n                                        },\n                                    },\n                                ),\n                                DeclareAndAssign {\n                                    name: \"z\",\n                                    value: If {\n                                        condition: BoolValue(\n                                            true,\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                start: 148,\n                                                end: 152,\n                                            },\n                                        ),\n                                        if_branch: Block(\n                                            Block {\n                                                statements: [\n                                                    HeaderContextEnter(\n                                                        HeaderContext {\n                                                            level: 1,\n                                                            title: \"If statement 3.1\",\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 168,\n                                                                end: 190,\n                                                            },\n                                                        },\n                                                    ),\n                                                    DeclareAndAssign {\n                                                        name: \"a\",\n                                                        value: If {\n                                                            condition: BoolValue(\n                                                                true,\n                                                                Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 215,\n                                                                    end: 219,\n                                                                },\n                                                            ),\n                                                            if_branch: Block(\n                                                                Block {\n                                                                    statements: [\n                                                                        HeaderContextEnter(\n                                                                            HeaderContext {\n                                                                                level: 1,\n                                                                                title: \"True\",\n                                                                                span: Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 239,\n                                                                                    end: 249,\n                                                                                },\n                                                                            },\n                                                                        ),\n                                                                    ],\n                                                                    trailing_expr: Some(\n                                                                        NumericValue(\n                                                                            \"12\",\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 266,\n                                                                                end: 268,\n                                                                            },\n                                                                        ),\n                                                                    ),\n                                                                },\n                                                                Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 221,\n                                                                    end: 282,\n                                                                },\n                                                            ),\n                                                            else_branch: Some(\n                                                                Block(\n                                                                    Block {\n                                                                        statements: [\n                                                                            HeaderContextEnter(\n                                                                                HeaderContext {\n                                                                                    level: 1,\n                                                                                    title: \"Third False\",\n                                                                                    span: Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 306,\n                                                                                        end: 323,\n                                                                                    },\n                                                                                },\n                                                                            ),\n                                                                        ],\n                                                                        trailing_expr: Some(\n                                                                            NumericValue(\n                                                                                \"13\",\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 340,\n                                                                                    end: 342,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                    },\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 288,\n                                                                        end: 356,\n                                                                    },\n                                                                ),\n                                                            ),\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 211,\n                                                                end: 356,\n                                                            },\n                                                        },\n                                                        annotated_type: None,\n                                                        watch: None,\n                                                        span: Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                            start: 203,\n                                                            end: 358,\n                                                        },\n                                                    },\n                                                ],\n                                                trailing_expr: Some(\n                                                    NumericValue(\n                                                        \"242\",\n                                                        Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                            start: 371,\n                                                            end: 374,\n                                                        },\n                                                    ),\n                                                ),\n                                            },\n                                            Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                start: 154,\n                                                end: 384,\n                                            },\n                                        ),\n                                        else_branch: Some(\n                                            Block(\n                                                Block {\n                                                    statements: [\n                                                        HeaderContextEnter(\n                                                            HeaderContext {\n                                                                level: 1,\n                                                                title: \"If statement 3.2\",\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 404,\n                                                                    end: 426,\n                                                                },\n                                                            },\n                                                        ),\n                                                        DeclareAndAssign {\n                                                            name: \"a\",\n                                                            value: If {\n                                                                condition: BoolValue(\n                                                                    true,\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 451,\n                                                                        end: 455,\n                                                                    },\n                                                                ),\n                                                                if_branch: Block(\n                                                                    Block {\n                                                                        statements: [\n                                                                            HeaderContextEnter(\n                                                                                HeaderContext {\n                                                                                    level: 1,\n                                                                                    title: \"True\",\n                                                                                    span: Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 475,\n                                                                                        end: 485,\n                                                                                    },\n                                                                                },\n                                                                            ),\n                                                                        ],\n                                                                        trailing_expr: Some(\n                                                                            NumericValue(\n                                                                                \"12\",\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 502,\n                                                                                    end: 504,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                    },\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 457,\n                                                                        end: 518,\n                                                                    },\n                                                                ),\n                                                                else_branch: Some(\n                                                                    Block(\n                                                                        Block {\n                                                                            statements: [\n                                                                                HeaderContextEnter(\n                                                                                    HeaderContext {\n                                                                                        level: 1,\n                                                                                        title: \"Third False\",\n                                                                                        span: Span {\n                                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                            start: 542,\n                                                                                            end: 559,\n                                                                                        },\n                                                                                    },\n                                                                                ),\n                                                                            ],\n                                                                            trailing_expr: Some(\n                                                                                NumericValue(\n                                                                                    \"13\",\n                                                                                    Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 576,\n                                                                                        end: 578,\n                                                                                    },\n                                                                                ),\n                                                                            ),\n                                                                        },\n                                                                        Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 524,\n                                                                            end: 592,\n                                                                        },\n                                                                    ),\n                                                                ),\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 447,\n                                                                    end: 592,\n                                                                },\n                                                            },\n                                                            annotated_type: None,\n                                                            watch: None,\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 439,\n                                                                end: 594,\n                                                            },\n                                                        },\n                                                    ],\n                                                    trailing_expr: Some(\n                                                        NumericValue(\n                                                            \"13\",\n                                                            Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 606,\n                                                                end: 608,\n                                                            },\n                                                        ),\n                                                    ),\n                                                },\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                    start: 390,\n                                                    end: 618,\n                                                },\n                                            ),\n                                        ),\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 144,\n                                            end: 618,\n                                        },\n                                    },\n                                    annotated_type: None,\n                                    watch: None,\n                                    span: Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                        start: 136,\n                                        end: 620,\n                                    },\n                                },\n                            ],\n                            trailing_expr: Some(\n                                NumericValue(\n                                    \"2\",\n                                    Span {\n                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                        start: 629,\n                                        end: 630,\n                                    },\n                                ),\n                            ),\n                        },\n                        Span {\n                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                            start: 94,\n                            end: 636,\n                        },\n                    ),\n                    else_branch: Some(\n                        Block(\n                            Block {\n                                statements: [\n                                    DeclareAndAssign {\n                                        name: \"z\",\n                                        value: If {\n                                            condition: BoolValue(\n                                                true,\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                    start: 664,\n                                                    end: 668,\n                                                },\n                                            ),\n                                            if_branch: Block(\n                                                Block {\n                                                    statements: [\n                                                        DeclareAndAssign {\n                                                            name: \"a\",\n                                                            value: If {\n                                                                condition: BoolValue(\n                                                                    true,\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 696,\n                                                                        end: 700,\n                                                                    },\n                                                                ),\n                                                                if_branch: Block(\n                                                                    Block {\n                                                                        statements: [],\n                                                                        trailing_expr: Some(\n                                                                            NumericValue(\n                                                                                \"12\",\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 720,\n                                                                                    end: 722,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                    },\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 702,\n                                                                        end: 736,\n                                                                    },\n                                                                ),\n                                                                else_branch: Some(\n                                                                    If {\n                                                                        condition: BoolValue(\n                                                                            false,\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 746,\n                                                                                end: 751,\n                                                                            },\n                                                                        ),\n                                                                        if_branch: Block(\n                                                                            Block {\n                                                                                statements: [\n                                                                                    HeaderContextEnter(\n                                                                                        HeaderContext {\n                                                                                            level: 1,\n                                                                                            title: \"Second False\",\n                                                                                            span: Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 771,\n                                                                                                end: 789,\n                                                                                            },\n                                                                                        },\n                                                                                    ),\n                                                                                ],\n                                                                                trailing_expr: Some(\n                                                                                    NumericValue(\n                                                                                        \"14\",\n                                                                                        Span {\n                                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                            start: 806,\n                                                                                            end: 808,\n                                                                                        },\n                                                                                    ),\n                                                                                ),\n                                                                            },\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 753,\n                                                                                end: 822,\n                                                                            },\n                                                                        ),\n                                                                        else_branch: Some(\n                                                                            Block(\n                                                                                Block {\n                                                                                    statements: [],\n                                                                                    trailing_expr: Some(\n                                                                                        NumericValue(\n                                                                                            \"13\",\n                                                                                            Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 846,\n                                                                                                end: 848,\n                                                                                            },\n                                                                                        ),\n                                                                                    ),\n                                                                                },\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 828,\n                                                                                    end: 862,\n                                                                                },\n                                                                            ),\n                                                                        ),\n                                                                        span: Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 742,\n                                                                            end: 862,\n                                                                        },\n                                                                    },\n                                                                ),\n                                                                span: Span {\n                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                    start: 692,\n                                                                    end: 862,\n                                                                },\n                                                            },\n                                                            annotated_type: None,\n                                                            watch: None,\n                                                            span: Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 684,\n                                                                end: 864,\n                                                            },\n                                                        },\n                                                    ],\n                                                    trailing_expr: Some(\n                                                        NumericValue(\n                                                            \"242\",\n                                                            Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 877,\n                                                                end: 880,\n                                                            },\n                                                        ),\n                                                    ),\n                                                },\n                                                Span {\n                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                    start: 670,\n                                                    end: 890,\n                                                },\n                                            ),\n                                            else_branch: Some(\n                                                If {\n                                                    condition: BoolValue(\n                                                        false,\n                                                        Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                            start: 900,\n                                                            end: 905,\n                                                        },\n                                                    ),\n                                                    if_branch: Block(\n                                                        Block {\n                                                            statements: [\n                                                                Expression {\n                                                                    expr: If {\n                                                                        condition: BoolValue(\n                                                                            true,\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 925,\n                                                                                end: 929,\n                                                                            },\n                                                                        ),\n                                                                        if_branch: Block(\n                                                                            Block {\n                                                                                statements: [\n                                                                                    HeaderContextEnter(\n                                                                                        HeaderContext {\n                                                                                            level: 1,\n                                                                                            title: \"standalone then\",\n                                                                                            span: Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 949,\n                                                                                                end: 968,\n                                                                                            },\n                                                                                        },\n                                                                                    ),\n                                                                                    DeclareAndAssign {\n                                                                                        name: \"standaloneThen\",\n                                                                                        value: NumericValue(\n                                                                                            \"18\",\n                                                                                            Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 1006,\n                                                                                                end: 1008,\n                                                                                            },\n                                                                                        ),\n                                                                                        annotated_type: None,\n                                                                                        watch: None,\n                                                                                        span: Span {\n                                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                            start: 985,\n                                                                                            end: 1010,\n                                                                                        },\n                                                                                    },\n                                                                                ],\n                                                                                trailing_expr: None,\n                                                                            },\n                                                                            Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 931,\n                                                                                end: 1023,\n                                                                            },\n                                                                        ),\n                                                                        else_branch: None,\n                                                                        span: Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 921,\n                                                                            end: 1023,\n                                                                        },\n                                                                    },\n                                                                    span: Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 921,\n                                                                        end: 1024,\n                                                                    },\n                                                                },\n                                                            ],\n                                                            trailing_expr: Some(\n                                                                NumericValue(\n                                                                    \"15\",\n                                                                    Span {\n                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                        start: 1036,\n                                                                        end: 1038,\n                                                                    },\n                                                                ),\n                                                            ),\n                                                        },\n                                                        Span {\n                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                            start: 907,\n                                                            end: 1048,\n                                                        },\n                                                    ),\n                                                    else_branch: Some(\n                                                        Block(\n                                                            Block {\n                                                                statements: [\n                                                                    DeclareAndAssign {\n                                                                        name: \"a\",\n                                                                        value: If {\n                                                                            condition: BoolValue(\n                                                                                true,\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 1079,\n                                                                                    end: 1083,\n                                                                                },\n                                                                            ),\n                                                                            if_branch: Block(\n                                                                                Block {\n                                                                                    statements: [],\n                                                                                    trailing_expr: Some(\n                                                                                        NumericValue(\n                                                                                            \"12\",\n                                                                                            Span {\n                                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                start: 1103,\n                                                                                                end: 1105,\n                                                                                            },\n                                                                                        ),\n                                                                                    ),\n                                                                                },\n                                                                                Span {\n                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                    start: 1085,\n                                                                                    end: 1119,\n                                                                                },\n                                                                            ),\n                                                                            else_branch: Some(\n                                                                                Block(\n                                                                                    Block {\n                                                                                        statements: [],\n                                                                                        trailing_expr: Some(\n                                                                                            NumericValue(\n                                                                                                \"13\",\n                                                                                                Span {\n                                                                                                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                                    start: 1143,\n                                                                                                    end: 1145,\n                                                                                                },\n                                                                                            ),\n                                                                                        ),\n                                                                                    },\n                                                                                    Span {\n                                                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                        start: 1125,\n                                                                                        end: 1159,\n                                                                                    },\n                                                                                ),\n                                                                            ),\n                                                                            span: Span {\n                                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                                start: 1075,\n                                                                                end: 1159,\n                                                                            },\n                                                                        },\n                                                                        annotated_type: None,\n                                                                        watch: None,\n                                                                        span: Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 1067,\n                                                                            end: 1161,\n                                                                        },\n                                                                    },\n                                                                ],\n                                                                trailing_expr: Some(\n                                                                    NumericValue(\n                                                                        \"13\",\n                                                                        Span {\n                                                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                            start: 1173,\n                                                                            end: 1175,\n                                                                        },\n                                                                    ),\n                                                                ),\n                                                            },\n                                                            Span {\n                                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                                start: 1053,\n                                                                end: 1185,\n                                                            },\n                                                        ),\n                                                    ),\n                                                    span: Span {\n                                                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                        start: 896,\n                                                        end: 1185,\n                                                    },\n                                                },\n                                            ),\n                                            span: Span {\n                                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                                start: 660,\n                                                end: 1185,\n                                            },\n                                        },\n                                        annotated_type: None,\n                                        watch: None,\n                                        span: Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 652,\n                                            end: 1187,\n                                        },\n                                    },\n                                ],\n                                trailing_expr: Some(\n                                    NumericValue(\n                                        \"13\",\n                                        Span {\n                                            file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                            start: 1195,\n                                            end: 1197,\n                                        },\n                                    ),\n                                ),\n                            },\n                            Span {\n                                file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                                start: 642,\n                                end: 1203,\n                            },\n                        ),\n                    ),\n                    span: Span {\n                        file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                        start: 84,\n                        end: 1203,\n                    },\n                },\n                annotated_type: None,\n                watch: None,\n                span: Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                    start: 76,\n                    end: 1205,\n                },\n            },\n        ],\n        trailing_expr: Some(\n            Identifier(\n                \"e\",\n                Span {\n                    file: SourceFile { path: \"src/control_flow/testdata/NestedIfs.baml\", contents: ... },\n                    start: 1210,\n                    end: 1211,\n                },\n            ),\n        ),\n    },\n)"
 expr:
   nodes:
     "0":
@@ -14,7 +14,7 @@ expr:
       span:
         file: src/control_flow/testdata/NestedIfs.baml
         start: 18
-        end: 1056
+        end: 1213
     "1":
       label: If statement 1
       lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -122,7 +122,7 @@ expr:
       span:
         file: src/control_flow/testdata/NestedIfs.baml
         start: 84
-        end: 1046
+        end: 1203
     "20":
       label: else
       lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1"
@@ -131,7 +131,7 @@ expr:
       span:
         file: src/control_flow/testdata/NestedIfs.baml
         start: 642
-        end: 1046
+        end: 1203
     "21":
       label: if (true)
       lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -140,7 +140,7 @@ expr:
       span:
         file: src/control_flow/testdata/NestedIfs.baml
         start: 660
-        end: 1028
+        end: 1185
     "22":
       label: if (true)
       lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0"
@@ -196,23 +196,23 @@ expr:
         start: 828
         end: 862
     "28":
-      label: else
-      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+      label: else if (false)
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1"
       node_type: branch-arm
       parent: "21"
       span:
         file: src/control_flow/testdata/NestedIfs.baml
-        start: 896
-        end: 1028
+        start: 907
+        end: 1048
     "29":
       label: if (true)
-      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1|bg:if-true:0"
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
       node_type: branch-group
       parent: "28"
       span:
         file: src/control_flow/testdata/NestedIfs.baml
-        start: 918
-        end: 1002
+        start: 921
+        end: 1023
     "3":
       label: if (true)
       lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0"
@@ -224,22 +224,67 @@ expr:
         end: 636
     "30":
       label: if (true)
-      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0"
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0"
       node_type: branch-arm
       parent: "29"
       span:
         file: src/control_flow/testdata/NestedIfs.baml
-        start: 928
-        end: 962
+        start: 931
+        end: 1023
     "31":
+      label: standalone then
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+      node_type: header
+      parent: "30"
+      span:
+        file: src/control_flow/testdata/NestedIfs.baml
+        start: 949
+        end: 968
+    "32":
       label: else
-      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
       node_type: branch-arm
       parent: "29"
       span:
         file: src/control_flow/testdata/NestedIfs.baml
-        start: 968
-        end: 1002
+        start: 921
+        end: 1023
+    "33":
+      label: else
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+      node_type: branch-arm
+      parent: "21"
+      span:
+        file: src/control_flow/testdata/NestedIfs.baml
+        start: 1053
+        end: 1185
+    "34":
+      label: if (true)
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2|bg:if-true:0"
+      node_type: branch-group
+      parent: "33"
+      span:
+        file: src/control_flow/testdata/NestedIfs.baml
+        start: 1075
+        end: 1159
+    "35":
+      label: if (true)
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2|bg:if-true:0|arm:if-true:0"
+      node_type: branch-arm
+      parent: "34"
+      span:
+        file: src/control_flow/testdata/NestedIfs.baml
+        start: 1085
+        end: 1119
+    "36":
+      label: else
+      lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2|bg:if-true:0|arm:else:1"
+      node_type: branch-arm
+      parent: "34"
+      span:
+        file: src/control_flow/testdata/NestedIfs.baml
+        start: 1125
+        end: 1159
     "4":
       label: If statement 2.1
       lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -295,7 +340,7 @@ expr:
         start: 221
         end: 282
   edges: {}
-mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    subgraph n2[\"2: BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"3: BranchArm: if (true)\"]\n        direction TB\n        subgraph n4[\"4: If statement 2.1\"]\n          direction TB\n          subgraph n5[\"5: BranchGroup: if (true)\"]\n            direction TB\n            subgraph n6[\"6: BranchArm: if (true)\"]\n              direction TB\n              subgraph n7[\"7: If statement 3.1\"]\n                direction TB\n                subgraph n8[\"8: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n9[\"9: BranchArm: if (true)\"]\n                    direction TB\n                    n10[\"10: True\"]\n                  end\n                  subgraph n11[\"11: BranchArm: else\"]\n                    direction TB\n                    n12[\"12: Third False\"]\n                  end\n                end\n              end\n            end\n            subgraph n13[\"13: BranchArm: else\"]\n              direction TB\n              subgraph n14[\"14: If statement 3.2\"]\n                direction TB\n                subgraph n15[\"15: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n16[\"16: BranchArm: if (true)\"]\n                    direction TB\n                    n17[\"17: True\"]\n                  end\n                  subgraph n18[\"18: BranchArm: else\"]\n                    direction TB\n                    n19[\"19: Third False\"]\n                  end\n                end\n              end\n            end\n          end\n        end\n      end\n      subgraph n20[\"20: BranchArm: else\"]\n        direction TB\n        subgraph n21[\"21: BranchGroup: if (true)\"]\n          direction TB\n          subgraph n22[\"22: BranchArm: if (true)\"]\n            direction TB\n            subgraph n23[\"23: BranchGroup: if (true)\"]\n              direction TB\n              n24[\"24: BranchArm: if (true)\"]\n              subgraph n25[\"25: BranchArm: else if (false)\"]\n                direction TB\n                n26[\"26: Second False\"]\n              end\n              n27[\"27: BranchArm: else\"]\n            end\n          end\n          subgraph n28[\"28: BranchArm: else\"]\n            direction TB\n            subgraph n29[\"29: BranchGroup: if (true)\"]\n              direction TB\n              n30[\"30: BranchArm: if (true)\"]\n              n31[\"31: BranchArm: else\"]\n            end\n          end\n        end\n      end\n    end\n  end\nend\n"
+mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    subgraph n2[\"2: BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"3: BranchArm: if (true)\"]\n        direction TB\n        subgraph n4[\"4: If statement 2.1\"]\n          direction TB\n          subgraph n5[\"5: BranchGroup: if (true)\"]\n            direction TB\n            subgraph n6[\"6: BranchArm: if (true)\"]\n              direction TB\n              subgraph n7[\"7: If statement 3.1\"]\n                direction TB\n                subgraph n8[\"8: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n9[\"9: BranchArm: if (true)\"]\n                    direction TB\n                    n10[\"10: True\"]\n                  end\n                  subgraph n11[\"11: BranchArm: else\"]\n                    direction TB\n                    n12[\"12: Third False\"]\n                  end\n                end\n              end\n            end\n            subgraph n13[\"13: BranchArm: else\"]\n              direction TB\n              subgraph n14[\"14: If statement 3.2\"]\n                direction TB\n                subgraph n15[\"15: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n16[\"16: BranchArm: if (true)\"]\n                    direction TB\n                    n17[\"17: True\"]\n                  end\n                  subgraph n18[\"18: BranchArm: else\"]\n                    direction TB\n                    n19[\"19: Third False\"]\n                  end\n                end\n              end\n            end\n          end\n        end\n      end\n      subgraph n20[\"20: BranchArm: else\"]\n        direction TB\n        subgraph n21[\"21: BranchGroup: if (true)\"]\n          direction TB\n          subgraph n22[\"22: BranchArm: if (true)\"]\n            direction TB\n            subgraph n23[\"23: BranchGroup: if (true)\"]\n              direction TB\n              n24[\"24: BranchArm: if (true)\"]\n              subgraph n25[\"25: BranchArm: else if (false)\"]\n                direction TB\n                n26[\"26: Second False\"]\n              end\n              n27[\"27: BranchArm: else\"]\n            end\n          end\n          subgraph n28[\"28: BranchArm: else if (false)\"]\n            direction TB\n            subgraph n29[\"29: BranchGroup: if (true)\"]\n              direction TB\n              subgraph n30[\"30: BranchArm: if (true)\"]\n                direction TB\n                n31[\"31: standalone then\"]\n              end\n              n32[\"32: BranchArm: else\"]\n            end\n          end\n          subgraph n33[\"33: BranchArm: else\"]\n            direction TB\n            subgraph n34[\"34: BranchGroup: if (true)\"]\n              direction TB\n              n35[\"35: BranchArm: if (true)\"]\n              n36[\"36: BranchArm: else\"]\n            end\n          end\n        end\n      end\n    end\n  end\nend\n"
 flattening:
   pass1_remove_implicit:
     label: Remove implicit nodes
@@ -309,7 +354,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 18
-            end: 1056
+            end: 1213
         "1":
           label: If statement 1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -417,7 +462,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 84
-            end: 1046
+            end: 1203
         "20":
           label: else
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1"
@@ -426,7 +471,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 642
-            end: 1046
+            end: 1203
         "21":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -435,7 +480,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 660
-            end: 1028
+            end: 1185
         "22":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0"
@@ -491,14 +536,23 @@ flattening:
             start: 828
             end: 862
         "28":
-          label: else
-          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+          label: else if (false)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1"
           node_type: branch-arm
           parent: "21"
           span:
             file: src/control_flow/testdata/NestedIfs.baml
-            start: 896
-            end: 1028
+            start: 907
+            end: 1048
+        "29":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
+          node_type: branch-group
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
         "3":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0"
@@ -508,6 +562,42 @@ flattening:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 94
             end: 636
+        "30":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0"
+          node_type: branch-arm
+          parent: "29"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 931
+            end: 1023
+        "31":
+          label: standalone then
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+          node_type: header
+          parent: "30"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 949
+            end: 968
+        "32":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
+          node_type: branch-arm
+          parent: "29"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
+        "33":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+          node_type: branch-arm
+          parent: "21"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 1053
+            end: 1185
         "4":
           label: If statement 2.1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -573,7 +663,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 18
-            end: 1056
+            end: 1213
         "1":
           label: If statement 1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -681,7 +771,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 84
-            end: 1046
+            end: 1203
         "20":
           label: else
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1"
@@ -690,7 +780,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 642
-            end: 1046
+            end: 1203
         "21":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -699,7 +789,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 660
-            end: 1028
+            end: 1185
         "22":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0"
@@ -755,14 +845,23 @@ flattening:
             start: 828
             end: 862
         "28":
-          label: else
-          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+          label: else if (false)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1"
           node_type: branch-arm
           parent: "21"
           span:
             file: src/control_flow/testdata/NestedIfs.baml
-            start: 896
-            end: 1028
+            start: 907
+            end: 1048
+        "29":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
+          node_type: branch-group
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
         "3":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0"
@@ -772,6 +871,42 @@ flattening:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 94
             end: 636
+        "30":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0"
+          node_type: branch-arm
+          parent: "29"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 931
+            end: 1023
+        "31":
+          label: standalone then
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+          node_type: header
+          parent: "30"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 949
+            end: 968
+        "32":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
+          node_type: branch-arm
+          parent: "29"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
+        "33":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+          node_type: branch-arm
+          parent: "21"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 1053
+            end: 1185
         "4":
           label: If statement 2.1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -827,7 +962,7 @@ flattening:
             start: 221
             end: 282
       edges: {}
-    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    subgraph n2[\"2: BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"3: BranchArm: if (true)\"]\n        direction TB\n        subgraph n4[\"4: If statement 2.1\"]\n          direction TB\n          subgraph n5[\"5: BranchGroup: if (true)\"]\n            direction TB\n            subgraph n6[\"6: BranchArm: if (true)\"]\n              direction TB\n              subgraph n7[\"7: If statement 3.1\"]\n                direction TB\n                subgraph n8[\"8: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n9[\"9: BranchArm: if (true)\"]\n                    direction TB\n                    n10[\"10: True\"]\n                  end\n                  subgraph n11[\"11: BranchArm: else\"]\n                    direction TB\n                    n12[\"12: Third False\"]\n                  end\n                end\n              end\n            end\n            subgraph n13[\"13: BranchArm: else\"]\n              direction TB\n              subgraph n14[\"14: If statement 3.2\"]\n                direction TB\n                subgraph n15[\"15: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n16[\"16: BranchArm: if (true)\"]\n                    direction TB\n                    n17[\"17: True\"]\n                  end\n                  subgraph n18[\"18: BranchArm: else\"]\n                    direction TB\n                    n19[\"19: Third False\"]\n                  end\n                end\n              end\n            end\n          end\n        end\n      end\n      subgraph n20[\"20: BranchArm: else\"]\n        direction TB\n        subgraph n21[\"21: BranchGroup: if (true)\"]\n          direction TB\n          subgraph n22[\"22: BranchArm: if (true)\"]\n            direction TB\n            subgraph n23[\"23: BranchGroup: if (true)\"]\n              direction TB\n              n24[\"24: BranchArm: if (true)\"]\n              subgraph n25[\"25: BranchArm: else if (false)\"]\n                direction TB\n                n26[\"26: Second False\"]\n              end\n              n27[\"27: BranchArm: else\"]\n            end\n          end\n          n28[\"28: BranchArm: else\"]\n        end\n      end\n    end\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    subgraph n2[\"2: BranchGroup: if (true)\"]\n      direction TB\n      subgraph n3[\"3: BranchArm: if (true)\"]\n        direction TB\n        subgraph n4[\"4: If statement 2.1\"]\n          direction TB\n          subgraph n5[\"5: BranchGroup: if (true)\"]\n            direction TB\n            subgraph n6[\"6: BranchArm: if (true)\"]\n              direction TB\n              subgraph n7[\"7: If statement 3.1\"]\n                direction TB\n                subgraph n8[\"8: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n9[\"9: BranchArm: if (true)\"]\n                    direction TB\n                    n10[\"10: True\"]\n                  end\n                  subgraph n11[\"11: BranchArm: else\"]\n                    direction TB\n                    n12[\"12: Third False\"]\n                  end\n                end\n              end\n            end\n            subgraph n13[\"13: BranchArm: else\"]\n              direction TB\n              subgraph n14[\"14: If statement 3.2\"]\n                direction TB\n                subgraph n15[\"15: BranchGroup: if (true)\"]\n                  direction TB\n                  subgraph n16[\"16: BranchArm: if (true)\"]\n                    direction TB\n                    n17[\"17: True\"]\n                  end\n                  subgraph n18[\"18: BranchArm: else\"]\n                    direction TB\n                    n19[\"19: Third False\"]\n                  end\n                end\n              end\n            end\n          end\n        end\n      end\n      subgraph n20[\"20: BranchArm: else\"]\n        direction TB\n        subgraph n21[\"21: BranchGroup: if (true)\"]\n          direction TB\n          subgraph n22[\"22: BranchArm: if (true)\"]\n            direction TB\n            subgraph n23[\"23: BranchGroup: if (true)\"]\n              direction TB\n              n24[\"24: BranchArm: if (true)\"]\n              subgraph n25[\"25: BranchArm: else if (false)\"]\n                direction TB\n                n26[\"26: Second False\"]\n              end\n              n27[\"27: BranchArm: else\"]\n            end\n          end\n          subgraph n28[\"28: BranchArm: else if (false)\"]\n            direction TB\n            subgraph n29[\"29: BranchGroup: if (true)\"]\n              direction TB\n              subgraph n30[\"30: BranchArm: if (true)\"]\n                direction TB\n                n31[\"31: standalone then\"]\n              end\n              n32[\"32: BranchArm: else\"]\n            end\n          end\n          n33[\"33: BranchArm: else\"]\n        end\n      end\n    end\n  end\nend\n"
   pass2_hoist_branch_arms:
     label: Hoist branch arms
     expr:
@@ -840,7 +975,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 18
-            end: 1056
+            end: 1213
         "1":
           label: If statement 1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -948,7 +1083,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 84
-            end: 1046
+            end: 1203
         "20":
           label: else
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1"
@@ -957,7 +1092,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 642
-            end: 1046
+            end: 1203
         "21":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -966,7 +1101,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 660
-            end: 1028
+            end: 1185
         "22":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0"
@@ -1022,14 +1157,23 @@ flattening:
             start: 828
             end: 862
         "28":
-          label: else
-          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+          label: else if (false)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1"
           node_type: branch-arm
           parent: "20"
           span:
             file: src/control_flow/testdata/NestedIfs.baml
-            start: 896
-            end: 1028
+            start: 907
+            end: 1048
+        "29":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
+          node_type: branch-group
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
         "3":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0"
@@ -1039,6 +1183,42 @@ flattening:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 94
             end: 636
+        "30":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0"
+          node_type: branch-arm
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 931
+            end: 1023
+        "31":
+          label: standalone then
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+          node_type: header
+          parent: "30"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 949
+            end: 968
+        "32":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
+          node_type: branch-arm
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
+        "33":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+          node_type: branch-arm
+          parent: "20"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 1053
+            end: 1185
         "4":
           label: If statement 2.1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -1103,10 +1283,14 @@ flattening:
         "21":
           - "22"
           - "28"
+          - "33"
         "23":
           - "24"
           - "25"
           - "27"
+        "29":
+          - "30"
+          - "32"
         "5":
           - "13"
           - "6"
@@ -1123,7 +1307,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 18
-            end: 1056
+            end: 1213
         "1":
           label: If statement 1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -1231,7 +1415,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 84
-            end: 1046
+            end: 1203
         "20":
           label: else
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1"
@@ -1240,7 +1424,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 642
-            end: 1046
+            end: 1203
         "21":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -1249,7 +1433,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 660
-            end: 1028
+            end: 1185
         "22":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0"
@@ -1305,14 +1489,23 @@ flattening:
             start: 828
             end: 862
         "28":
-          label: else
-          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+          label: else if (false)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1"
           node_type: branch-arm
           parent: "20"
           span:
             file: src/control_flow/testdata/NestedIfs.baml
-            start: 896
-            end: 1028
+            start: 907
+            end: 1048
+        "29":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
+          node_type: branch-group
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
         "3":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0"
@@ -1322,6 +1515,42 @@ flattening:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 94
             end: 636
+        "30":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0"
+          node_type: branch-arm
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 931
+            end: 1023
+        "31":
+          label: standalone then
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+          node_type: header
+          parent: "30"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 949
+            end: 968
+        "32":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
+          node_type: branch-arm
+          parent: "28"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
+        "33":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+          node_type: branch-arm
+          parent: "20"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 1053
+            end: 1185
         "4":
           label: If statement 2.1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -1386,17 +1615,21 @@ flattening:
         "21":
           - "22"
           - "28"
+          - "33"
         "23":
           - "24"
           - "25"
           - "27"
+        "29":
+          - "30"
+          - "32"
         "5":
           - "13"
           - "6"
         "8":
           - "11"
           - "9"
-    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    n2[\"2: BranchGroup: if (true)\"]\n    subgraph n3[\"3: BranchArm: if (true)\"]\n      direction TB\n      subgraph n4[\"4: If statement 2.1\"]\n        direction TB\n        n5[\"5: BranchGroup: if (true)\"]\n        subgraph n6[\"6: BranchArm: if (true)\"]\n          direction TB\n          subgraph n7[\"7: If statement 3.1\"]\n            direction TB\n            n8[\"8: BranchGroup: if (true)\"]\n            subgraph n9[\"9: BranchArm: if (true)\"]\n              direction TB\n              n10[\"10: True\"]\n            end\n            subgraph n11[\"11: BranchArm: else\"]\n              direction TB\n              n12[\"12: Third False\"]\n            end\n            n8 --> n9\n            n8 --> n11\n          end\n        end\n        subgraph n13[\"13: BranchArm: else\"]\n          direction TB\n          subgraph n14[\"14: If statement 3.2\"]\n            direction TB\n            n15[\"15: BranchGroup: if (true)\"]\n            subgraph n16[\"16: BranchArm: if (true)\"]\n              direction TB\n              n17[\"17: True\"]\n            end\n            subgraph n18[\"18: BranchArm: else\"]\n              direction TB\n              n19[\"19: Third False\"]\n            end\n            n15 --> n16\n            n15 --> n18\n          end\n        end\n        n5 --> n6\n        n5 --> n13\n      end\n    end\n    subgraph n20[\"20: BranchArm: else\"]\n      direction TB\n      n21[\"21: BranchGroup: if (true)\"]\n      subgraph n22[\"22: BranchArm: if (true)\"]\n        direction TB\n        n23[\"23: BranchGroup: if (true)\"]\n        n24[\"24: BranchArm: if (true)\"]\n        subgraph n25[\"25: BranchArm: else if (false)\"]\n          direction TB\n          n26[\"26: Second False\"]\n        end\n        n27[\"27: BranchArm: else\"]\n        n23 --> n24\n        n23 --> n25\n        n23 --> n27\n      end\n      n28[\"28: BranchArm: else\"]\n      n21 --> n22\n      n21 --> n28\n    end\n    n2 --> n3\n    n2 --> n20\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    n2[\"2: BranchGroup: if (true)\"]\n    subgraph n3[\"3: BranchArm: if (true)\"]\n      direction TB\n      subgraph n4[\"4: If statement 2.1\"]\n        direction TB\n        n5[\"5: BranchGroup: if (true)\"]\n        subgraph n6[\"6: BranchArm: if (true)\"]\n          direction TB\n          subgraph n7[\"7: If statement 3.1\"]\n            direction TB\n            n8[\"8: BranchGroup: if (true)\"]\n            subgraph n9[\"9: BranchArm: if (true)\"]\n              direction TB\n              n10[\"10: True\"]\n            end\n            subgraph n11[\"11: BranchArm: else\"]\n              direction TB\n              n12[\"12: Third False\"]\n            end\n            n8 --> n9\n            n8 --> n11\n          end\n        end\n        subgraph n13[\"13: BranchArm: else\"]\n          direction TB\n          subgraph n14[\"14: If statement 3.2\"]\n            direction TB\n            n15[\"15: BranchGroup: if (true)\"]\n            subgraph n16[\"16: BranchArm: if (true)\"]\n              direction TB\n              n17[\"17: True\"]\n            end\n            subgraph n18[\"18: BranchArm: else\"]\n              direction TB\n              n19[\"19: Third False\"]\n            end\n            n15 --> n16\n            n15 --> n18\n          end\n        end\n        n5 --> n6\n        n5 --> n13\n      end\n    end\n    subgraph n20[\"20: BranchArm: else\"]\n      direction TB\n      n21[\"21: BranchGroup: if (true)\"]\n      subgraph n22[\"22: BranchArm: if (true)\"]\n        direction TB\n        n23[\"23: BranchGroup: if (true)\"]\n        n24[\"24: BranchArm: if (true)\"]\n        subgraph n25[\"25: BranchArm: else if (false)\"]\n          direction TB\n          n26[\"26: Second False\"]\n        end\n        n27[\"27: BranchArm: else\"]\n        n23 --> n24\n        n23 --> n25\n        n23 --> n27\n      end\n      subgraph n28[\"28: BranchArm: else if (false)\"]\n        direction TB\n        n29[\"29: BranchGroup: if (true)\"]\n        subgraph n30[\"30: BranchArm: if (true)\"]\n          direction TB\n          n31[\"31: standalone then\"]\n        end\n        n32[\"32: BranchArm: else\"]\n        n29 --> n30\n        n29 --> n32\n      end\n      n33[\"33: BranchArm: else\"]\n      n21 --> n22\n      n21 --> n28\n      n21 --> n33\n    end\n    n2 --> n3\n    n2 --> n20\n  end\nend\n"
   pass3_flatten_scopes:
     label: Flatten branch arms & scopes
     expr:
@@ -1409,7 +1642,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 18
-            end: 1056
+            end: 1213
         "1":
           label: If statement 1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -1481,7 +1714,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 84
-            end: 1046
+            end: 1203
         "21":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -1490,7 +1723,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 660
-            end: 1028
+            end: 1185
         "23":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0|bg:if-true:0"
@@ -1527,15 +1760,42 @@ flattening:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 828
             end: 862
-        "28":
+        "29":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
+          node_type: branch-group
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
+        "31":
+          label: standalone then
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 949
+            end: 968
+        "32":
           label: else
-          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
           node_type: branch-arm
           parent: "1"
           span:
             file: src/control_flow/testdata/NestedIfs.baml
-            start: 896
-            end: 1028
+            start: 921
+            end: 1023
+        "33":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+          node_type: branch-arm
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 1053
+            end: 1185
         "4":
           label: If statement 2.1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -1581,11 +1841,15 @@ flattening:
           - "4"
         "21":
           - "23"
-          - "28"
+          - "29"
+          - "33"
         "23":
           - "24"
           - "26"
           - "27"
+        "29":
+          - "31"
+          - "32"
         "5":
           - "14"
           - "7"
@@ -1602,7 +1866,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 18
-            end: 1056
+            end: 1213
         "1":
           label: If statement 1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0"
@@ -1674,7 +1938,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 84
-            end: 1046
+            end: 1203
         "21":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0"
@@ -1683,7 +1947,7 @@ flattening:
           span:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 660
-            end: 1028
+            end: 1185
         "23":
           label: if (true)
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:if-true:0|bg:if-true:0"
@@ -1720,15 +1984,42 @@ flattening:
             file: src/control_flow/testdata/NestedIfs.baml
             start: 828
             end: 862
-        "28":
+        "29":
+          label: if (true)
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0"
+          node_type: branch-group
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 921
+            end: 1023
+        "31":
+          label: standalone then
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:if-true:0|hdr:standalone-then:0"
+          node_type: header
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 949
+            end: 968
+        "32":
           label: else
-          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:1"
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else-if-false:1|bg:if-true:0|arm:else:1"
           node_type: branch-arm
           parent: "1"
           span:
             file: src/control_flow/testdata/NestedIfs.baml
-            start: 896
-            end: 1028
+            start: 921
+            end: 1023
+        "33":
+          label: else
+          lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:else:1|bg:if-true:0|arm:else:2"
+          node_type: branch-arm
+          parent: "1"
+          span:
+            file: src/control_flow/testdata/NestedIfs.baml
+            start: 1053
+            end: 1185
         "4":
           label: If statement 2.1
           lexical_id: "NestedIfs|root:0|hdr:if-statement-1:0|bg:if-true:0|arm:if-true:0|hdr:if-statement-2-1:0"
@@ -1774,15 +2065,19 @@ flattening:
           - "4"
         "21":
           - "23"
-          - "28"
+          - "29"
+          - "33"
         "23":
           - "24"
           - "26"
           - "27"
+        "29":
+          - "31"
+          - "32"
         "5":
           - "14"
           - "7"
         "8":
           - "10"
           - "12"
-    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    n2[\"2: BranchGroup: if (true)\"]\n    subgraph n3[\"4: If statement 2.1\"]\n      direction TB\n      n4[\"5: BranchGroup: if (true)\"]\n      subgraph n5[\"7: If statement 3.1\"]\n        direction TB\n        n6[\"8: BranchGroup: if (true)\"]\n        n7[\"10: True\"]\n        n8[\"12: Third False\"]\n        n6 --> n7\n        n6 --> n8\n      end\n      subgraph n9[\"14: If statement 3.2\"]\n        direction TB\n        n10[\"15: BranchGroup: if (true)\"]\n        n11[\"17: True\"]\n        n12[\"19: Third False\"]\n        n10 --> n11\n        n10 --> n12\n      end\n      n4 --> n5\n      n4 --> n9\n    end\n    n13[\"21: BranchGroup: if (true)\"]\n    n14[\"23: BranchGroup: if (true)\"]\n    n15[\"24: BranchArm: if (true)\"]\n    n16[\"26: Second False\"]\n    n17[\"27: BranchArm: else\"]\n    n18[\"28: BranchArm: else\"]\n    n14 --> n15\n    n14 --> n16\n    n14 --> n17\n    n13 --> n14\n    n13 --> n18\n    n2 --> n3\n    n2 --> n13\n  end\nend\n"
+    mermaid: "flowchart TD\nsubgraph n0[\"0: NestedIfs\"]\n  direction TB\n  subgraph n1[\"1: If statement 1\"]\n    direction TB\n    n2[\"2: BranchGroup: if (true)\"]\n    subgraph n3[\"4: If statement 2.1\"]\n      direction TB\n      n4[\"5: BranchGroup: if (true)\"]\n      subgraph n5[\"7: If statement 3.1\"]\n        direction TB\n        n6[\"8: BranchGroup: if (true)\"]\n        n7[\"10: True\"]\n        n8[\"12: Third False\"]\n        n6 --> n7\n        n6 --> n8\n      end\n      subgraph n9[\"14: If statement 3.2\"]\n        direction TB\n        n10[\"15: BranchGroup: if (true)\"]\n        n11[\"17: True\"]\n        n12[\"19: Third False\"]\n        n10 --> n11\n        n10 --> n12\n      end\n      n4 --> n5\n      n4 --> n9\n    end\n    n13[\"21: BranchGroup: if (true)\"]\n    n14[\"23: BranchGroup: if (true)\"]\n    n15[\"24: BranchArm: if (true)\"]\n    n16[\"26: Second False\"]\n    n17[\"27: BranchArm: else\"]\n    n18[\"29: BranchGroup: if (true)\"]\n    n19[\"31: standalone then\"]\n    n20[\"32: BranchArm: else\"]\n    n21[\"33: BranchArm: else\"]\n    n14 --> n15\n    n14 --> n16\n    n14 --> n17\n    n18 --> n19\n    n18 --> n20\n    n13 --> n14\n    n13 --> n18\n    n13 --> n21\n    n2 --> n3\n    n2 --> n13\n  end\nend\n"

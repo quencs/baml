@@ -40,7 +40,13 @@ function NestedIfs() -> int {
             };
 
             242
-        } else {
+        } else if (false) {
+            if (true) {
+                //# standalone then
+                let standaloneThen = 18;
+            }
+            15
+        } else{
             let a = if (true) {
                 12
             } else {
