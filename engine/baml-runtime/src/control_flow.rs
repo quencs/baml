@@ -651,8 +651,7 @@ impl HirTraversalContext {
                 statements: Vec::new(),
                 trailing_expr: None,
             };
-            let synthetic_expr =
-                hir::Expression::Block(synthetic_block, synthetic_span.clone());
+            let synthetic_expr = hir::Expression::Block(synthetic_block, synthetic_span.clone());
             self.visit_branch_arm("else".to_string(), &synthetic_expr, synthetic_span);
         }
 

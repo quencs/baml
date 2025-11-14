@@ -1,9 +1,9 @@
-use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 
-use crate::control_flow::{ControlFlowVisualization, Edge, Node, NodeId, NodeType};
+use indexmap::IndexMap;
 
 use super::build_children_map;
+use crate::control_flow::{ControlFlowVisualization, Edge, Node, NodeId, NodeType};
 
 /// Pass 3: inline `BranchArm` and `OtherScope` nodes so headers become siblings.
 pub fn inline_branch_arms_and_scopes(viz: &ControlFlowVisualization) -> ControlFlowVisualization {
@@ -208,9 +208,10 @@ fn dfs_candidates(
 
 #[cfg(test)]
 mod tests {
+    use internal_baml_core::ast::Span;
+
     use super::*;
     use crate::control_flow::{Node, NodeType};
-    use internal_baml_core::ast::Span;
 
     fn make_node(id: u32, parent: Option<u32>, label: &str, node_type: NodeType) -> Node {
         Node {

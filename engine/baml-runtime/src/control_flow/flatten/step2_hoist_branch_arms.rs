@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
-use crate::control_flow::{ControlFlowVisualization, Edge, NodeId, NodeType};
-
 use super::{build_children_map, node_depth};
+use crate::control_flow::{ControlFlowVisualization, Edge, NodeId, NodeType};
 
 /// Pass 2: hoist BranchArm nodes and wire their edges directly.
 pub fn hoist_branch_arms(viz: &ControlFlowVisualization) -> ControlFlowVisualization {
@@ -100,9 +99,10 @@ pub fn hoist_branch_arms(viz: &ControlFlowVisualization) -> ControlFlowVisualiza
 
 #[cfg(test)]
 mod tests {
+    use internal_baml_core::ast::Span;
+
     use super::*;
     use crate::control_flow::{Node, NodeType};
-    use internal_baml_core::ast::Span;
 
     fn branch_group_viz() -> ControlFlowVisualization {
         let mut viz = ControlFlowVisualization::default();
