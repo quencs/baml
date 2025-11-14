@@ -20,6 +20,7 @@
     "generate": "turbo run generate",
     "typecheck": "turbo run typecheck",
     "lint:ws": "pnpm dlx sherif@latest",
+    "package:vscode": "pnpm run build:vscode && cd typescript/apps/vscode-ext && pnpm run vscode:package",
     "postinstall.skip": "pnpm lint:ws",
     "setup-dev": "./scripts/setup-dev.sh",
     "format": "biome check",
