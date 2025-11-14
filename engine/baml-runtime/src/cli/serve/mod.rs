@@ -669,7 +669,7 @@ impl Stream for EventStream {
         match self.receiver.poll_recv(cx) {
             Poll::Ready(Some(item)) => match item.result_with_constraints_content() {
                 // TODO: not sure if this is the correct way to implement this.
-                Ok(parsed) => Poll::Ready(Some(parsed.0.clone().into())),
+                Ok(parsed) => Poll::Ready(Some(parsed.inner().clone().into())),
                 Err(_) => Poll::Pending,
             },
             Poll::Ready(None) => Poll::Ready(None),

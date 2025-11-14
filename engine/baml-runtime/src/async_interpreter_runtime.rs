@@ -331,7 +331,7 @@ impl BamlAsyncInterpreterRuntime {
                                 if let Ok(response_value) = parsed.as_ref() {
                                     // Convert ResponseBamlValue to BamlValueWithMeta<WatchValueMetadata>
                                     let baml_value_with_watch_meta =
-                                        response_value.0.clone().map_meta(|meta| {
+                                        response_value.inner().clone().map_meta(|meta| {
                                             baml_compiler::watch::WatchValueMetadata {
                                                 // Constraints come from the TypeIR, not from the flags
                                                 // Flags only contain ConstraintResults (the evaluation results)
@@ -386,8 +386,8 @@ impl BamlAsyncInterpreterRuntime {
                                     .unwrap()
                                     .as_ref()
                                     .unwrap()
+                                    .inner()
                                     .clone()
-                                    .0
                                     .value();
 
                                 Ok(baml_value_to_baml_value_with_meta(baml_value))
@@ -418,8 +418,8 @@ impl BamlAsyncInterpreterRuntime {
                                     .unwrap()
                                     .as_ref()
                                     .unwrap()
+                                    .inner()
                                     .clone()
-                                    .0
                                     .value();
 
                                 Ok(baml_value_to_baml_value_with_meta(baml_value))
@@ -493,10 +493,11 @@ impl BamlAsyncInterpreterRuntime {
             }
         };
 
-        let response_baml_value = ResponseBamlValue(BamlValueWithMeta::with_const_meta(
-            &baml_value,
-            ResponseValueMeta(vec![], vec![], Completion::default(), output_type),
-        ));
+        let response_baml_value =
+            ResponseBamlValue::new_with_cleared_flags(BamlValueWithMeta::with_const_meta(
+                &baml_value,
+                ResponseValueMeta(vec![], vec![], Completion::default(), output_type),
+            ));
 
         let final_result = Ok(FunctionResult::new(
             OrchestrationScope { scope: vec![] },

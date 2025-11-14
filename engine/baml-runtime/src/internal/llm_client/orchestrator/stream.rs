@@ -105,12 +105,7 @@ async fn process_latest_snapshot<'a, ParseFn, EventFn>(
 
     match partial_parse_fn(&snapshot.content) {
         Ok(baml_value) => {
-            let parsed = ResponseBamlValue(
-                baml_value
-                    .0
-                    .map_meta_owned(|m| jsonish::ResponseValueMeta(vec![], m.1, m.2, m.3)),
-            );
-            let partial = parsed.serialize_partial();
+            let partial = baml_value.serialize_partial();
             let serialized = serde_json::to_string(&partial).ok();
 
             let should_emit = {
@@ -135,7 +130,7 @@ async fn process_latest_snapshot<'a, ParseFn, EventFn>(
                 on_event(FunctionResult::new(
                     scope.clone(),
                     LLMResponse::Success((*snapshot).clone()),
-                    Some(Ok(parsed)),
+                    Some(Ok(baml_value)),
                 ));
             }
         }
@@ -470,7 +465,7 @@ where
                 // figure out how to reduce memory usage.
                 let response_value_without_flags = match response_value {
                     Some(Ok(baml_value)) => {
-                        Some(Ok(ResponseBamlValue(baml_value.0.map_meta_owned(|m| {
+                        Some(Ok(ResponseBamlValue::new_with_cleared_flags(baml_value.inner().clone().map_meta_owned(|m| {
                             jsonish::ResponseValueMeta(vec![], m.1, m.2, m.3)
                         }))))
                     }

@@ -155,7 +155,7 @@ impl Visualize for FunctionResult {
                 if matches!(self.llm_response(), LLMResponse::Success(_)) {
                     s.push(format!(
                         "{}",
-                        format!("---Parsed Response ({})---", val.0.r#type()).blue()
+                        format!("---Parsed Response ({})---", val.inner().r#type()).blue()
                     ));
                     let json_str = serde_json::to_string_pretty(&val.serialize_final()).unwrap();
 
@@ -280,7 +280,7 @@ impl BamlEventLoggable<'_> {
                             .result_with_constraints()
                             .as_ref()
                             .and_then(|r| r.as_ref().ok())
-                            .map(|v| v.0.r#type().to_string()),
+                            .map(|v| v.inner().r#type().to_string()),
                         parsed_response: response
                             .result_with_constraints()
                             .as_ref()
@@ -1032,7 +1032,7 @@ impl ToLogSchema for TestResponse {
                         .as_ref()
                         .and_then(|r| r.as_ref().ok())
                         .map(|r| {
-                            let v: BamlValue = r.0.clone().into();
+                            let v: BamlValue = r.inner().clone().into();
                             IOValue::from(&v)
                         }),
                 },
@@ -1081,7 +1081,7 @@ impl ToLogSchema for FunctionResult {
                     .as_ref()
                     .and_then(|r| r.as_ref().ok())
                     .map(|r| {
-                        let v: BamlValue = r.0.clone().into();
+                        let v: BamlValue = r.inner().clone().into();
                         IOValue::from(&v)
                     }),
             },

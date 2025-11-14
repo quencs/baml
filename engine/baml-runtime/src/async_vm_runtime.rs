@@ -708,7 +708,7 @@ impl BamlAsyncVmRuntime {
                                     };
 
                                     let response_baml_value = response.map(|r| {
-                                        ResponseBamlValue(
+                                        ResponseBamlValue::new_with_cleared_flags(
                                             BamlValueWithMeta::<Vec<Flag>>::from(r).map_meta(
                                                 |_| {
                                                     ResponseValueMeta(
@@ -791,10 +791,11 @@ impl BamlAsyncVmRuntime {
             }
         };
 
-        let response_baml_value = ResponseBamlValue(BamlValueWithMeta::with_const_meta(
-            &baml_value,
-            ResponseValueMeta(vec![], vec![], Completion::default(), output_type),
-        ));
+        let response_baml_value =
+            ResponseBamlValue::new_with_cleared_flags(BamlValueWithMeta::with_const_meta(
+                &baml_value,
+                ResponseValueMeta(vec![], vec![], Completion::default(), output_type),
+            ));
 
         let final_result = Ok(FunctionResult::new(
             OrchestrationScope { scope: vec![] },
@@ -1341,8 +1342,8 @@ fn try_vm_value_from_function_result(
         .ok_or_else(|| anyhow!("no parsed result available from function call"))?
         .as_ref()
         .map_err(|e| anyhow!("error parsing function result: {e}"))?
+        .inner()
         .clone()
-        .0
         .value();
 
     try_vm_value_from_baml_value(vm, resolved_class_names, resolved_enums_names, &baml_value)

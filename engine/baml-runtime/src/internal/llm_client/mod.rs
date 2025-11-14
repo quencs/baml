@@ -67,7 +67,7 @@ pub fn parsed_value_to_response(
         .map_meta(|(((x, y), z), ft)| {
             jsonish::ResponseValueMeta(z.clone(), y.clone(), x.clone(), ft.clone())
         });
-    Ok(ResponseBamlValue(response_value))
+    Ok(ResponseBamlValue::new_with_cleared_flags(response_value))
 }
 
 // Whether we should download a url into a base64 (resolving it if necessary), as well as

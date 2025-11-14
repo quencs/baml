@@ -560,7 +560,7 @@ impl WasmLLMResponse {
 
     pub fn prompt(&self) -> WasmPrompt {
         // TODO: This is a hack. We shouldn't hardcode AllowedRoleMetadata::All
-        // here, but instead plumb it through the LLMErrors
+        // here, but instead plumb it through the LLMErrors.
         (&self.prompt, &self.scope, &AllowedRoleMetadata::All).into()
     }
 }
@@ -599,14 +599,14 @@ impl WasmFunctionResponse {
 
 fn serialize_value_counting_checks(value: &ResponseBamlValue) -> (serde_json::Value, usize) {
     let checks = value
-        .0
+        .inner()
         .meta()
         .1
         .iter()
         .map(|ResponseCheck { name, status, .. }| (name.clone(), status.clone()))
         .collect::<IndexMap<String, String>>();
 
-    let sub_check_count: usize = value.0.iter().map(|node| node.meta().1.len()).sum();
+    let sub_check_count: usize = value.inner().iter().map(|node| node.meta().1.len()).sum();
     let json_value: serde_json::Value = serde_json::to_value(value.serialize_final())
         .unwrap_or("Error converting value to JSON".into());
 

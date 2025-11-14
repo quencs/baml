@@ -102,9 +102,9 @@ pub(crate) fn pythonize_strict(
     allow_partials: bool, //if true, use the stream type
     runtime: &BamlRuntime,
 ) -> PyResult<PyObject> {
-    let allow_partials = allow_partials && !parsed.0.meta().2.required_done;
+    let allow_partials = allow_partials && !parsed.inner().meta().2.required_done;
 
-    let _stream_type_metadata = parsed.0.map_meta(|f| {
+    let _stream_type_metadata = parsed.inner().map_meta(|f| {
         let meta = f.3.to_streaming_type(runtime.inner.internal().ir.as_ref());
         Meta {
             _field_type: meta,
@@ -112,7 +112,7 @@ pub(crate) fn pythonize_strict(
         }
     });
 
-    let meta = parsed.0.meta().clone();
+    let meta = parsed.inner().meta().clone();
 
     let is_pydantic_2 = {
         let pydantic = py.import("pydantic")?;
@@ -128,7 +128,7 @@ pub(crate) fn pythonize_strict(
         "parse_obj"
     };
 
-    let py_value_without_constraints = match parsed.0 {
+    let py_value_without_constraints = match parsed.inner() {
         BamlValueWithMeta::String(val, _) => val.into_py_any(py),
         BamlValueWithMeta::Int(val, _) => val.into_py_any(py),
         BamlValueWithMeta::Float(val, _) => val.into_py_any(py),
@@ -139,7 +139,7 @@ pub(crate) fn pythonize_strict(
                 let key = key.into_pyobject(py)?;
                 let value = pythonize_strict(
                     py,
-                    ResponseBamlValue(value),
+                    ResponseBamlValue::new_with_cleared_flags(value.clone()),
                     enum_module,
                     cls_module,
                     partial_cls_module,
@@ -156,7 +156,7 @@ pub(crate) fn pythonize_strict(
                 .map(|v| {
                     pythonize_strict(
                         py,
-                        ResponseBamlValue(v),
+                        ResponseBamlValue::new_with_cleared_flags(v.clone()),
                         enum_module,
                         cls_module,
                         partial_cls_module,
@@ -212,7 +212,7 @@ pub(crate) fn pythonize_strict(
                     let subvalue_allow_partials = allow_partials && !value.meta().2.required_done;
                     let value = pythonize_strict(
                         py,
-                        ResponseBamlValue(value),
+                        ResponseBamlValue::new_with_cleared_flags(value.clone()),
                         enum_module,
                         cls_module,
                         partial_cls_module,

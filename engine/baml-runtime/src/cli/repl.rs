@@ -592,8 +592,8 @@ impl ReplState {
                         }
                         match function_result.parsed() {
                             Some(Ok(response_baml_value)) => Ok(response_baml_value
+                                .inner()
                                 .clone()
-                                .0
                                 .map_meta_owned(|_| (Span::fake(), None))),
                             Some(Err(e)) => Err(anyhow!("Failed to parse function result: {}", e)),
                             None => Err(anyhow!("No parsed result available from function call")),

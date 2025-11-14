@@ -37,7 +37,7 @@ impl std::fmt::Display for FunctionResult {
                 writeln!(
                     f,
                     "{}",
-                    format!("---Parsed Response ({})---", val.0.r#type()).blue()
+                    format!("---Parsed Response ({})---", val.inner().r#type()).blue()
                 )?;
                 write!(f, "{:#}", serde_json::json!(val.serialize_partial()))
             }
@@ -317,7 +317,7 @@ impl std::fmt::Display for TestResponse {
                     writeln!(
                         f,
                         "{}",
-                        format!("---Parsed Response ({})---", val.0.r#type()).blue()
+                        format!("---Parsed Response ({})---", val.inner().r#type()).blue()
                     )?;
                     write!(f, "{:#}", serde_json::json!(val.serialize_partial()))
                 }

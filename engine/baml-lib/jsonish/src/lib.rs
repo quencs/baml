@@ -28,7 +28,20 @@ use serde::{
 use crate::deserializer::score::WithScore;
 
 #[derive(Clone, Debug)]
-pub struct ResponseBamlValue(pub BamlValueWithMeta<ResponseValueMeta>);
+pub struct ResponseBamlValue(BamlValueWithMeta<ResponseValueMeta>);
+
+impl ResponseBamlValue {
+    /// Smart constructor that clears deserialization flags.
+    pub fn new_with_cleared_flags(mut value: BamlValueWithMeta<ResponseValueMeta>) -> Self {
+        value.meta_mut().0 = vec![];
+        Self(value)
+    }
+
+    /// Read-only view of the contents.
+    pub fn inner(&self) -> &BamlValueWithMeta<ResponseValueMeta> {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ResponseValueMeta(

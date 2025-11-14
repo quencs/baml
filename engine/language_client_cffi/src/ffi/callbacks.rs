@@ -56,7 +56,7 @@ pub fn send_result_to_callback(
 
     let buf_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if is_done {
-            let meta = content.0.map_meta(|f| EncodeMeta {
+            let meta = content.inner().map_meta(|f| EncodeMeta {
                 field_type: f.3.to_non_streaming_type(runtime.ir.as_ref()),
                 checks: &f.1,
             });
@@ -64,7 +64,7 @@ pub fn send_result_to_callback(
             meta.encode_to_c_buffer(runtime.ir.as_ref(), baml_types::StreamingMode::NonStreaming)
         } else {
             // Top level types in streaming always have `not_null` set to true.
-            let mut content = content.0.clone();
+            let mut content = content.inner().clone();
             content.meta_mut().3.meta_mut().streaming_behavior.needed = true;
             let meta = content.map_meta(|f| EncodeMeta {
                 field_type: f.3.to_streaming_type(runtime.ir.as_ref()),

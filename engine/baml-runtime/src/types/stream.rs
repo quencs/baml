@@ -155,7 +155,7 @@ impl FunctionResultStream {
             match &res {
                 Ok(result) => match result.result_with_constraints_content() {
                     Ok(value) => Ok(value
-                        .0
+                        .inner()
                         .map_meta(|f| f.3.to_non_streaming_type(self.ir.as_ref()))),
                     Err(e) => Err((&e).to_baml_error()),
                 },

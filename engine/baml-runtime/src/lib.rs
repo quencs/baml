@@ -281,7 +281,9 @@ impl<'a> TracingCallGuard<'a> {
                 self.call_id_stack.clone(),
                 match result {
                     Ok(func_result) => match func_result.result_with_constraints_content() {
-                        Ok(value) => Ok(value.0.map_meta(|f| f.3.to_non_streaming_type(self.ir))),
+                        Ok(value) => Ok(value
+                            .inner()
+                            .map_meta(|f| f.3.to_non_streaming_type(self.ir))),
                         Err(e) => Err((&e).to_baml_error()),
                     },
                     Err(e) => Err(e.to_baml_error()),
@@ -314,7 +316,9 @@ impl<'a> TracingCallGuard<'a> {
                 self.call_id_stack.clone(),
                 match result {
                     Ok(func_result) => match func_result.result_with_constraints_content() {
-                        Ok(value) => Ok(value.0.map_meta(|f| f.3.to_non_streaming_type(self.ir))),
+                        Ok(value) => Ok(value
+                            .inner()
+                            .map_meta(|f| f.3.to_non_streaming_type(self.ir))),
                         Err(e) => Err((&e).to_baml_error()),
                     },
                     Err(e) => Err(e.to_baml_error()),
@@ -1059,7 +1063,7 @@ impl BamlRuntime {
             } else {
                 match val {
                     Some(Ok(value)) => {
-                        let value_with_constraints = value.0.map_meta(|m| m.1.clone());
+                        let value_with_constraints = value.inner().map_meta(|m| m.1.clone());
                         evaluate_test_constraints(
                             &params,
                             &value_with_constraints,
@@ -1230,7 +1234,7 @@ impl BamlRuntime {
         } else {
             match &expr_response {
                 Some(Ok(val)) => {
-                    let value_with_constraints = val.0.map_meta(|m| m.1.clone());
+                    let value_with_constraints = val.inner().map_meta(|m| m.1.clone());
                     evaluate_test_constraints(
                         &params,
                         &value_with_constraints,
