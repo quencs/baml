@@ -58,13 +58,13 @@ type JsResult<T> = core::result::Result<T, JsError>;
 use std::panic;
 #[wasm_bindgen(start)]
 pub fn on_wasm_init() {
-    // TODO: set LOG_LEVEL to ::Debug if you wish to see logs.
-    // this is disabled by default because its slows down release mode builds.
+    // Set log level to Info for release builds to avoid performance issues from debug logs
+    // Debug builds keep Debug level for development
     cfg_if::cfg_if! {
         if #[cfg(debug_assertions)] {
-            const LOG_LEVEL: log::Level = log::Level::Debug;
+            const LOG_LEVEL: log::Level = log::Level::Warn;
         } else {
-            const LOG_LEVEL: log::Level = log::Level::Debug;
+            const LOG_LEVEL: log::Level = log::Level::Warn;
         }
     };
     // I dont think we need this line anymore -- seems to break logging if you add it.

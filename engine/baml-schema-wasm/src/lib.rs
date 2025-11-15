@@ -16,7 +16,9 @@ pub fn enable_logs() {
     #[cfg(target_arch = "wasm32")]
     {
         console_error_panic_hook::set_once();
-        wasm_logger::init(wasm_logger::Config::default());
+        // Set log level to Info to filter out debug/trace logs from jsonish
+        // This significantly improves performance in the playground
+        wasm_logger::init(wasm_logger::Config::new(log::Level::Warn));
     }
 }
 
