@@ -20,40 +20,34 @@ impl<'a> MermaidRenderer<'a> {
     fn new(viz: &'a ControlFlowVisualization) -> Self {
         let mut aliases = HashMap::new();
         for (idx, node) in viz.nodes.values().enumerate() {
-            aliases.insert(node.id.clone(), format!("n{idx}"));
+            aliases.insert(node.id, format!("n{idx}"));
         }
 
         let mut roots = Vec::new();
         let mut children: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
         for node in viz.nodes.values() {
             if let Some(parent) = &node.parent_node_id {
-                children
-                    .entry(parent.clone())
-                    .or_default()
-                    .push(node.id.clone());
+                children.entry(*parent).or_default().push(node.id);
             } else {
-                roots.push(node.id.clone());
+                roots.push(node.id);
             }
         }
 
         let mut edges_by_parent: HashMap<NodeId, Vec<(NodeId, NodeId)>> = HashMap::new();
         let mut root_edges = Vec::new();
         for (src_id, list) in &viz.edges_by_src {
-            let parent = viz
-                .nodes
-                .get(src_id)
-                .and_then(|node| node.parent_node_id.clone());
+            let parent = viz.nodes.get(src_id).and_then(|node| node.parent_node_id);
 
             match parent {
                 Some(parent_id) => {
                     let entry = edges_by_parent.entry(parent_id).or_default();
                     for edge in list {
-                        entry.push((src_id.clone(), edge.dst.clone()));
+                        entry.push((*src_id, edge.dst));
                     }
                 }
                 None => {
                     for edge in list {
-                        root_edges.push((src_id.clone(), edge.dst.clone()));
+                        root_edges.push((*src_id, edge.dst));
                     }
                 }
             }

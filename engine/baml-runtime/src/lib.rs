@@ -2047,7 +2047,7 @@ impl InternalRuntimeInterface for BamlRuntime {
         _ctx: &RuntimeContext,
     ) -> Result<ControlFlowVisualization> {
         let ast = self.db.ast();
-        let hir = hir::Hir::from_ast(&ast);
+        let hir = hir::Hir::from_ast(ast);
         let viz = build_from_hir(&hir, function_name)?;
         Ok(flatten_control_flow(&viz).into())
     }
