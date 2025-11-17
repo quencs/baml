@@ -1,6 +1,5 @@
 ---
-source: target/debug/build/baml_tests-cb4594c533e23a52/out/generated_tests.rs
-assertion_line: 1431
+source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -44,10 +43,10 @@ SOURCE_FILE
     WORD "Incomplete"
     PARAMETER_LIST
       L_PAREN "("
-      PARAMETER "  // Missing parameters closing
-  param1"
+      PARAMETER
         WORD "param1"
-  WORD "string"
+        TYPE_EXPR " string"
+          WORD "string"
   FUNCTION_DEF
     KW_FUNCTION "function"
     WORD "NextFunction"
@@ -92,11 +91,9 @@ enum  // Missing enum name
   Expected Expected type, found Expected type
   Expected Expected RParen, found Word, found Expected RParen, found Word
   Expected Expected type, found Expected type
-  Expected Expected type annotation (:), found Expected type annotation (:)
-  Expected Expected RParen, found Word, found Expected RParen, found Word
+  Expected Expected RParen, found Function, found Expected RParen, found Function
   Expected Expected return type (->), found Expected return type (->)
   Expected Expected function body, found Expected function body
-  Expected Expected top-level declaration, found Expected top-level declaration
   Expected Expected LBrace, found Word, found Expected LBrace, found Word
   Expected Expected top-level declaration, found Expected top-level declaration
   Expected Expected top-level declaration, found Expected top-level declaration

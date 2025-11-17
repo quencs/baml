@@ -150,6 +150,7 @@ dependencies = [
  "baml_parser",
  "baml_syntax",
  "baml_workspace",
+ "rowan",
  "salsa",
 ]
 

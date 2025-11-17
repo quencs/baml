@@ -1,6 +1,5 @@
 ---
-source: target/debug/build/baml_tests-cb4594c533e23a52/out/generated_tests.rs
-assertion_line: 2103
+source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -27,198 +26,193 @@ SOURCE_FILE
     WORD "HandleStatus"
     PARAMETER_LIST
       L_PAREN "("
-      PARAMETER "status"
+      PARAMETER
         WORD "status"
-  WORD "Status"
-  R_PAREN ")"
-  ARROW "->"
-  WORD "string"
-  L_BRACE "{"
-  WORD "match"
-  WORD "status"
-  L_BRACE "{"
-  WORD "Status"
-  DOUBLE_COLON "::"
-  WORD "PENDING"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "Waiting"
-  KW_FOR "for"
-  WORD "approval"
-  QUOTE """
-  WORD "Status"
-  DOUBLE_COLON "::"
-  WORD "ACTIVE"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "Currently"
-  WORD "active"
-  QUOTE """
-  WORD "Status"
-  DOUBLE_COLON "::"
-  WORD "INACTIVE"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "Not"
-  WORD "active"
-  QUOTE """
-  WORD "Status"
-  DOUBLE_COLON "::"
-  WORD "SUSPENDED"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "Temporarily"
-  WORD "suspended"
-  QUOTE """
-  R_BRACE "}"
-  R_BRACE "}"
+        TYPE_EXPR " Status"
+          WORD "Status"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " string"
+      WORD "string"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        WORD "match"
+        OBJECT_LITERAL
+          WORD "status"
+          L_BRACE "{"
+          OBJECT_FIELD "
+    Status"
+            WORD "Status"
+          DOUBLE_COLON "::"
+          OBJECT_FIELD "PENDING"
+            WORD "PENDING"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "Waiting for approval""
+              QUOTE """
+              WORD "Waiting"
+              KW_FOR "for"
+              WORD "approval"
+              QUOTE """
+          OBJECT_FIELD "
+    Status"
+            WORD "Status"
+          DOUBLE_COLON "::"
+          OBJECT_FIELD "ACTIVE"
+            WORD "ACTIVE"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "Currently active""
+              QUOTE """
+              WORD "Currently"
+              WORD "active"
+              QUOTE """
+          OBJECT_FIELD "
+    Status"
+            WORD "Status"
+          DOUBLE_COLON "::"
+          OBJECT_FIELD "INACTIVE"
+            WORD "INACTIVE"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "Not active""
+              QUOTE """
+              WORD "Not"
+              WORD "active"
+              QUOTE """
+          OBJECT_FIELD "
+    Status"
+            WORD "Status"
+          DOUBLE_COLON "::"
+          OBJECT_FIELD "SUSPENDED"
+            WORD "SUSPENDED"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "Temporarily suspended""
+              QUOTE """
+              WORD "Temporarily"
+              WORD "suspended"
+              QUOTE """
+          R_BRACE "}"
+        R_BRACE "}"
   FUNCTION_DEF
     KW_FUNCTION "function"
     WORD "ComplexMatch"
     PARAMETER_LIST
       L_PAREN "("
-      PARAMETER "value"
+      PARAMETER
         WORD "value"
-  WORD "int"
-  R_PAREN ")"
-  ARROW "->"
-  WORD "string"
-  L_BRACE "{"
-  WORD "match"
-  WORD "value"
-  L_BRACE "{"
-  INTEGER_LITERAL "0"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "zero"
-  QUOTE """
-  INTEGER_LITERAL "1"
-  PIPE "|"
-  INTEGER_LITERAL "2"
-  PIPE "|"
-  INTEGER_LITERAL "3"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "small"
-  QUOTE """
-  INTEGER_LITERAL "4"
-  DOT "."
-  DOT "."
-  INTEGER_LITERAL "10"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "medium"
-  QUOTE """
-  WORD "_"
-  EQUALS "="
-  GREATER ">"
-  QUOTE """
-  WORD "large"
-  QUOTE """
-  R_BRACE "}"
-  R_BRACE "}"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " string"
+      WORD "string"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        WORD "match"
+        OBJECT_LITERAL
+          WORD "value"
+          L_BRACE "{"
+          INTEGER_LITERAL "0"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "zero""
+              QUOTE """
+              WORD "zero"
+              QUOTE """
+          INTEGER_LITERAL "1"
+          PIPE "|"
+          INTEGER_LITERAL "2"
+          PIPE "|"
+          INTEGER_LITERAL "3"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "small""
+              QUOTE """
+              WORD "small"
+              QUOTE """
+          INTEGER_LITERAL "4"
+          DOT "."
+          DOT "."
+          INTEGER_LITERAL "10"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "medium""
+              QUOTE """
+              WORD "medium"
+              QUOTE """
+          OBJECT_FIELD "
+    _"
+            WORD "_"
+          EQUALS "="
+          GREATER ">"
+          OBJECT_FIELD
+            STRING_LITERAL " "large""
+              QUOTE """
+              WORD "large"
+              QUOTE """
+          R_BRACE "}"
+        R_BRACE "}"
 
 === ERRORS ===
-  Expected Expected type annotation (:), found Expected type annotation (:)
-  Expected Expected RParen, found Word, found Expected RParen, found Word
-  Expected Expected return type (->), found Expected return type (->)
-  Expected Expected function body, found Expected function body
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected type annotation (:), found Expected type annotation (:)
-  Expected Expected RParen, found Word, found Expected RParen, found Word
-  Expected Expected return type (->), found Expected return type (->)
-  Expected Expected function body, found Expected function body
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
-  Expected Expected top-level declaration, found Expected top-level declaration
+  Expected Expected Colon, found DoubleColon, found Expected Colon, found DoubleColon
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found Equals, found Expected Colon, found Equals
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found Word, found Expected Colon, found Word
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found DoubleColon, found Expected Colon, found DoubleColon
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found Equals, found Expected Colon, found Equals
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found Word, found Expected Colon, found Word
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found DoubleColon, found Expected Colon, found DoubleColon
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found Equals, found Expected Colon, found Equals
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found Word, found Expected Colon, found Word
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found DoubleColon, found Expected Colon, found DoubleColon
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found Equals, found Expected Colon, found Equals
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found RBrace, found Expected Colon, found RBrace
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found IntegerLiteral, found Expected Colon, found IntegerLiteral
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found IntegerLiteral, found Expected Colon, found IntegerLiteral
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found Word, found Expected Colon, found Word
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected Colon, found Equals, found Expected Colon, found Equals
+  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
+  Expected Expected field name or '}', found Expected field name or '}'
+  Expected Expected Colon, found RBrace, found Expected Colon, found RBrace

@@ -55,3 +55,86 @@ fn format_node_recursive(node: &baml_db::baml_syntax::SyntaxNode, depth: usize) 
 
     result
 }
+
+// Helper function for formatting HIR items from a specific file
+fn format_hir_file(
+    db: &baml_db::RootDatabase,
+    source_file: baml_db::SourceFile,
+    items: &[baml_db::baml_hir::ItemId],
+) -> String {
+    use baml_db::baml_hir::ItemId;
+    use std::fmt::Write;
+
+    // Get the ItemTree once and keep it alive for all lookups
+    let item_tree = baml_db::baml_hir::file_item_tree(db, source_file);
+    let mut result = String::new();
+
+    for item in items {
+        match item {
+            ItemId::Function(func_id) => {
+                let func = &item_tree[func_id.id(db)];
+                writeln!(result, "function {} {{", func.name).unwrap();
+                if !func.params.is_empty() {
+                    writeln!(result, "  params: {:?}", func.params).unwrap();
+                }
+                writeln!(result, "  return_type: {:?}", func.return_type).unwrap();
+                if let Some(ref client) = func.client_ref {
+                    writeln!(result, "  client: {:?}", client).unwrap();
+                }
+                if !func.type_params.is_empty() {
+                    writeln!(result, "  type_params: {:?}", func.type_params).unwrap();
+                }
+                writeln!(result, "}}").unwrap();
+            }
+            ItemId::Class(class_id) => {
+                let class = &item_tree[class_id.id(db)];
+                writeln!(result, "class {} {{", class.name).unwrap();
+                for field in &class.fields {
+                    writeln!(result, "  {}: {:?}", field.name, field.type_ref).unwrap();
+                }
+                if class.is_dynamic {
+                    writeln!(result, "  @@dynamic").unwrap();
+                }
+                if !class.type_params.is_empty() {
+                    writeln!(result, "  type_params: {:?}", class.type_params).unwrap();
+                }
+                writeln!(result, "}}").unwrap();
+            }
+            ItemId::Enum(enum_id) => {
+                let enum_def = &item_tree[enum_id.id(db)];
+                writeln!(result, "enum {} {{", enum_def.name).unwrap();
+                for variant in &enum_def.variants {
+                    writeln!(result, "  {:?}", variant).unwrap();
+                }
+                if !enum_def.type_params.is_empty() {
+                    writeln!(result, "  type_params: {:?}", enum_def.type_params).unwrap();
+                }
+                writeln!(result, "}}").unwrap();
+            }
+            ItemId::TypeAlias(alias_id) => {
+                let alias = &item_tree[alias_id.id(db)];
+                write!(result, "type {} = {:?}", alias.name, alias.type_ref).unwrap();
+                if !alias.type_params.is_empty() {
+                    write!(result, " <{:?}>", alias.type_params).unwrap();
+                }
+                writeln!(result).unwrap();
+            }
+            ItemId::Client(client_id) => {
+                let client = &item_tree[client_id.id(db)];
+                writeln!(result, "client {} {{", client.name).unwrap();
+                writeln!(result, "  provider: {}", client.provider).unwrap();
+                writeln!(result, "}}").unwrap();
+            }
+            ItemId::Test(test_id) => {
+                let test = &item_tree[test_id.id(db)];
+                writeln!(result, "test {} {{", test.name).unwrap();
+                if !test.function_refs.is_empty() {
+                    writeln!(result, "  functions: {:?}", test.function_refs).unwrap();
+                }
+                writeln!(result, "}}").unwrap();
+            }
+        }
+    }
+
+    result
+}

@@ -1,6 +1,41 @@
 ---
-source: target/debug/build/baml_tests-91bdee82f91f7b04/out/generated_tests.rs
+source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
-No items found.
+function Foo {
+  return_type: Unknown
+}
+enum Status {
+  EnumVariant { name: "ACTIVE" }
+  EnumVariant { name: "INACTIVE" }
+  EnumVariant { name: "PENDING" }
+}
+class User {
+  name: String
+  Another: Path(Path { segments: [""], kind: Plain })
+  field: Int
+}
+function Incomplete {
+  return_type: Unknown
+}
+function NextFunction {
+  return_type: Unknown
+}
+class Partial {
+  field1: Path(Path { segments: ["str"], kind: Plain })
+  field2: Path(Path { segments: ["// Missing type entirely\n  field3"], kind: Plain })
+  string: Path(Path { segments: [""], kind: Plain })
+  string: Path(Path { segments: [""], kind: Plain })
+  string: Path(Path { segments: [""], kind: Plain })
+}
+enum ValidEnum {
+  EnumVariant { name: "OPTION1" }
+  EnumVariant { name: "OPTION2" }
+}
+class Test {
+  field1: String
+  field2: String
+  another: Path(Path { segments: ["closed"], kind: Plain })
+  string: Path(Path { segments: ["\")  // Should still parse this\n}"], kind: Plain })
+}

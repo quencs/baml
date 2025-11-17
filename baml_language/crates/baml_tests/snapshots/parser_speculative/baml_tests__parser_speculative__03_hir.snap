@@ -1,6 +1,38 @@
 ---
-source: target/debug/build/baml_tests-91bdee82f91f7b04/out/generated_tests.rs
+source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
-No items found.
+function Ambiguous {
+  return_type: Unknown
+}
+function AnotherLLM {
+  return_type: Unknown
+}
+function ProcessData {
+  return_type: Unknown
+}
+class JsonData {
+  field1: Int
+  field2: Int
+}
+function ExtractData {
+  return_type: Unknown
+}
+function LLMAnalyze {
+  return_type: Unknown
+}
+function ProcessAnalysis {
+  return_type: Unknown
+}
+function ChainedProcess {
+  return_type: Unknown
+}
+function SimpleCalc {
+  return_type: Unknown
+}
+class Analysis {
+  sentiment: String
+  keywords: List(Path(Path { segments: ["string"], kind: Plain }))
+  score: Float
+}

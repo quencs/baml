@@ -390,13 +390,14 @@ fn generate_hir_test(file: &mut File, project: &TestProject) -> std::io::Result<
     writeln!(file, "    #[test]")?;
     writeln!(file, "    fn test_03_hir() {{")?;
     writeln!(file, "        let mut db = RootDatabase::new();")?;
+    writeln!(file, "        let mut output = String::new();")?;
     writeln!(
         file,
-        "        let root = db.set_project_root(std::path::PathBuf::from(\".\"));"
+        "        writeln!(output, \"=== HIR ITEMS ===\").unwrap();"
     )?;
     writeln!(file)?;
 
-    // Load all files
+    // Load all files and format items per file
     for baml_file in &project.files {
         writeln!(file, "        {{")?;
         writeln!(
@@ -408,7 +409,7 @@ fn generate_hir_test(file: &mut File, project: &TestProject) -> std::io::Result<
             file,
             "            let content = content.replace(\"\\r\\n\", \"\\n\");"
         )?;
-        writeln!(file, "            db.add_file(")?;
+        writeln!(file, "            let source_file = db.add_file(")?;
         writeln!(
             file,
             "                \"{}\",",
@@ -416,31 +417,27 @@ fn generate_hir_test(file: &mut File, project: &TestProject) -> std::io::Result<
         )?;
         writeln!(file, "                &content,")?;
         writeln!(file, "            );")?;
+        writeln!(
+            file,
+            "            let items_struct = baml_hir::file_items(&db, source_file);"
+        )?;
+        writeln!(file, "            let items = items_struct.items(&db);")?;
+        writeln!(file, "            if !items.is_empty() {{")?;
+        writeln!(
+            file,
+            "                let formatted = crate::format_hir_file(&db, source_file, items);"
+        )?;
+        writeln!(file, "                output.push_str(&formatted);")?;
+        writeln!(file, "            }}")?;
         writeln!(file, "        }}")?;
     }
 
     writeln!(file)?;
-    writeln!(
-        file,
-        "        let items = baml_hir::project_items(&db, root);"
-    )?;
-    writeln!(file, "        let mut output = String::new();")?;
-    writeln!(
-        file,
-        "        writeln!(output, \"=== HIR ITEMS ===\").unwrap();"
-    )?;
-    writeln!(file, "        if items.is_empty() {{")?;
+    writeln!(file, "        if output.trim() == \"=== HIR ITEMS ===\" {{")?;
     writeln!(
         file,
         "            writeln!(output, \"No items found.\").unwrap();"
     )?;
-    writeln!(file, "        }} else {{")?;
-    writeln!(file, "            for item in items.iter() {{")?;
-    writeln!(
-        file,
-        "                writeln!(output, \"  {{:?}}\", item).unwrap();"
-    )?;
-    writeln!(file, "            }}")?;
     writeln!(file, "        }}")?;
     writeln!(file)?;
     writeln!(
@@ -491,8 +488,9 @@ fn generate_thir_test(file: &mut File, project: &TestProject) -> std::io::Result
     writeln!(file)?;
     writeln!(
         file,
-        "        let items = baml_hir::project_items(&db, root);"
+        "        let items_struct = baml_hir::project_items(&db, root);"
     )?;
+    writeln!(file, "        let items = items_struct.items(&db);")?;
     writeln!(file, "        let mut output = String::new();")?;
     writeln!(
         file,
@@ -506,7 +504,7 @@ fn generate_thir_test(file: &mut File, project: &TestProject) -> std::io::Result
     )?;
     writeln!(
         file,
-        "                let result = baml_thir::infer_function(&db, func_id.clone());"
+        "                let result = baml_thir::infer_function(&db, *func_id);"
     )?;
     writeln!(
         file,

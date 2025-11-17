@@ -3,4 +3,48 @@ source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
-No items found.
+function stringArray {
+  return_type: Unknown
+}
+function intArray {
+  return_type: Unknown
+}
+function floatArray {
+  return_type: Unknown
+}
+function boolArray {
+  return_type: Unknown
+}
+function pointArray {
+  return_type: Unknown
+}
+class Point {
+  x: Int
+  y: Int
+}
+function point {
+  return_type: Unknown
+}
+function vec2d {
+  return_type: Unknown
+}
+class Point {
+  x: Int
+  y: Int
+}
+class Vec2D {
+  p: Path(Path { segments: ["Point"], kind: Plain })
+  q: Path(Path { segments: ["Point"], kind: Plain })
+}
+function stringValues {
+  return_type: Unknown
+}
+function intValues {
+  return_type: Unknown
+}
+function floatValues {
+  return_type: Unknown
+}
+function boolValues {
+  return_type: Unknown
+}

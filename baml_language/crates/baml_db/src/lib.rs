@@ -35,6 +35,9 @@ pub struct RootDatabase {
 #[salsa::db]
 impl salsa::Database for RootDatabase {}
 
+#[salsa::db]
+impl baml_hir::Db for RootDatabase {}
+
 impl RootDatabase {
     /// Create a new empty database.
     pub fn new() -> Self {

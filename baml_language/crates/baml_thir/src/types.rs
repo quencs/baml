@@ -4,7 +4,7 @@ use baml_hir::{ClassId, EnumId};
 
 /// A resolved type in BAML.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Ty {
+pub enum Ty<'db> {
     // Primitive types
     Int,
     Float,
@@ -13,21 +13,24 @@ pub enum Ty {
     Null,
 
     // User-defined types
-    Class(ClassId),
-    Enum(EnumId),
+    Class(ClassId<'db>),
+    Enum(EnumId<'db>),
 
     // Type constructors
-    Optional(Box<Ty>),
-    List(Box<Ty>),
-    Map { key: Box<Ty>, value: Box<Ty> },
-    Union(Vec<Ty>),
+    Optional(Box<Ty<'db>>),
+    List(Box<Ty<'db>>),
+    Map {
+        key: Box<Ty<'db>>,
+        value: Box<Ty<'db>>,
+    },
+    Union(Vec<Ty<'db>>),
 
     // Special types
     Unknown,
     Error,
 }
 
-impl Ty {
+impl Ty<'_> {
     /// Check if this type is an error type.
     pub fn is_error(&self) -> bool {
         matches!(self, Ty::Error)

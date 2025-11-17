@@ -12,18 +12,18 @@ pub use types::*;
 
 /// Type inference result.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InferenceResult {
-    pub return_type: Ty,
-    pub param_types: HashMap<Name, Ty>,
-    pub errors: Vec<TypeError>,
+pub struct InferenceResult<'db> {
+    pub return_type: Ty<'db>,
+    pub param_types: HashMap<Name, Ty<'db>>,
+    pub errors: Vec<TypeError<'db>>,
 }
 
 /// Type errors that can occur during type checking.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TypeError {
+pub enum TypeError<'db> {
     TypeMismatch {
-        expected: Ty,
-        found: Ty,
+        expected: Ty<'db>,
+        found: Ty<'db>,
         span: baml_base::Span,
     },
     UnknownType {
@@ -33,7 +33,7 @@ pub enum TypeError {
     // Add more variants as needed
 }
 
-impl baml_base::Diagnostic for TypeError {
+impl baml_base::Diagnostic for TypeError<'_> {
     fn message(&self) -> String {
         match self {
             TypeError::TypeMismatch {
@@ -62,10 +62,15 @@ impl baml_base::Diagnostic for TypeError {
 
 /// Helper function for type inference (non-tracked for now)
 /// In a real implementation, this would use tracked functions with proper salsa types
-pub fn infer_function(db: &dyn salsa::Database, func: FunctionId) -> InferenceResult {
-    // TODO: Implement type inference
-    // Get function data from HIR
-    let _data = baml_hir::function_data(db, func);
+pub fn infer_function<'db>(
+    db: &'db dyn salsa::Database,
+    func: FunctionId<'db>,
+) -> InferenceResult<'db> {
+    // TODO: Implement type inference by looking up function in ItemTree
+    // We need to get the file from the FunctionLoc, get the ItemTree,
+    // and look up the function data by its LocalItemId
+    let _file = func.file(db);
+    let _local_id = func.id(db);
 
     InferenceResult {
         return_type: Ty::Unknown,
@@ -75,14 +80,17 @@ pub fn infer_function(db: &dyn salsa::Database, func: FunctionId) -> InferenceRe
 }
 
 /// Helper function for class type resolution (non-tracked for now)
-pub fn class_type(db: &dyn salsa::Database, class: ClassId) -> Ty {
-    // TODO: Resolve class type
-    let _data = baml_hir::class_data(db, class);
+pub fn class_type<'db>(db: &'db dyn salsa::Database, class: ClassId<'db>) -> Ty<'db> {
+    // TODO: Resolve class type by looking up class in ItemTree
+    // We need to get the file from the ClassLoc, get the ItemTree,
+    // and look up the class data by its LocalItemId
+    let _file = class.file(db);
+    let _local_id = class.id(db);
     Ty::Unknown
 }
 
 /// Helper function for enum type resolution (non-tracked for now)
-pub fn enum_type(_db: &dyn salsa::Database, _enum_id: EnumId) -> Ty {
+pub fn enum_type<'db>(_db: &'db dyn salsa::Database, _enum_id: EnumId<'db>) -> Ty<'db> {
     // TODO: Resolve enum type
     Ty::Unknown
 }

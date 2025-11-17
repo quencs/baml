@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-cb4594c533e23a52/out/generated_tests.rs
+source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -25,14 +25,13 @@ SOURCE_FILE
         SEMICOLON ";"
         WHILE_STMT
           KW_WHILE "while"
-          OBJECT_LITERAL
-            ERROR_TOKEN "\"
+          ERROR_TOKEN "\"
+          BLOCK_EXPR
             L_BRACE "{"
-            OBJECT_FIELD "
-      x"
+            BINARY_EXPR "x += 1"
               WORD "x"
-            PLUS_EQUALS "+="
-            INTEGER_LITERAL "1"
+              PLUS_EQUALS "+="
+              INTEGER_LITERAL "1"
             SEMICOLON ";"
             R_BRACE "}"
         R_BRACE "}"
@@ -41,8 +40,3 @@ SOURCE_FILE
   Expected Expected expression, found Expected expression
   Expected Expected expression, found Expected expression
   Expected Expected expression, found Expected expression
-  Expected Expected Colon, found PlusEquals, found Expected Colon, found PlusEquals
-  Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
-  Expected Expected field name or '}', found Expected field name or '}'
-  Expected Expected field name or '}', found Expected field name or '}'
-  Expected Expected block after while condition, found Expected block after while condition

@@ -93,7 +93,7 @@ impl FunctionDef {
             .filter(|token| {
                 token.kind() == SyntaxKind::WORD && token.parent() == Some(self.syntax.clone())
             })
-            .nth(1) // Skip the "function" keyword, get the second WORD
+            .nth(0) // Get the first WORD (function keyword is KW_FUNCTION, not WORD)
     }
 
     /// Get the parameter list.
@@ -148,7 +148,7 @@ impl ClassDef {
             .filter(|token| {
                 token.kind() == SyntaxKind::WORD && token.parent() == Some(self.syntax.clone())
             })
-            .nth(1) // Skip the "class" keyword, get the second WORD
+            .nth(0) // Get the first WORD (class keyword is KW_CLASS, not WORD)
     }
 
     /// Get all fields.

@@ -1066,11 +1066,15 @@ impl<'a> Parser<'a> {
                 p.error("Expected parameter name".to_string());
             }
 
-            // Type annotation
+            // Type annotation - supports both "name: type" and "name type" syntax
             if p.eat(TokenKind::Colon) {
+                // With colon: "name: type"
+                p.parse_type();
+            } else if p.at(TokenKind::Word) {
+                // Without colon: "name type" (whitespace-separated)
                 p.parse_type();
             } else {
-                p.error("Expected type annotation (:)".to_string());
+                p.error("Expected type annotation".to_string());
             }
         });
     }
@@ -1457,15 +1461,17 @@ impl<'a> Parser<'a> {
                 // Object literal/constructor
                 // Check if we have a preceding expression (constructor name/expression)
                 // by checking if we've emitted any events since expr_start
-                if self.events.len() > expr_start {
-                    // We have a preceding expression, treat as object literal/constructor
+                if self.events.len() > expr_start && self.looks_like_object_constructor() {
+                    // We have a preceding expression that looks like a type/constructor,
+                    // treat as object literal/constructor
                     let lhs_start = self.find_previous_expr_start_after(expr_start);
                     self.wrap_events_in_node(lhs_start, SyntaxKind::OBJECT_LITERAL);
                     self.parse_object_literal_body();
                     self.finish_node();
                 } else {
-                    // No preceding expression, this is a block expression
-                    // Break and let parse_primary_expr handle it
+                    // No preceding expression, or preceding expression doesn't look like
+                    // a constructor (e.g., it's a literal or binary expression)
+                    // Don't consume the brace - it's likely a block/body for an outer construct
                     break;
                 }
             } else if let Some((left_bp, right_bp)) = Self::infix_binding_power(op) {
@@ -1519,6 +1525,48 @@ impl<'a> Parser<'a> {
         }
 
         min_index
+    }
+
+    /// Check if the most recent expression looks like a constructor/type name
+    /// that can be followed by `{` for object literal construction.
+    ///
+    /// Returns true for:
+    /// - Simple identifiers (e.g., `Point`)
+    /// - Path expressions (e.g., `module.Type` for future module support)
+    ///
+    /// Returns false for everything else:
+    /// - Literals (e.g., `18`, `"string"`)
+    /// - Binary expressions (e.g., `a < b`)
+    /// - Function calls (e.g., `func()`)
+    /// - Any other complex expression
+    fn looks_like_object_constructor(&self) -> bool {
+        // Walk backward to find the most recent complete expression
+        let mut depth = 0;
+        for event in self.events.iter().rev() {
+            match event {
+                Event::FinishNode => depth += 1,
+                Event::StartNode { kind } => {
+                    depth -= 1;
+                    if depth == 0 {
+                        // We just closed a complete expression
+                        // Allow PATH_EXPR or FIELD_ACCESS_EXPR for module-qualified types
+                        return matches!(
+                            kind,
+                            SyntaxKind::PATH_EXPR | SyntaxKind::FIELD_ACCESS_EXPR
+                        );
+                    }
+                }
+                Event::Token { kind, .. } => {
+                    if depth == 0 {
+                        // The most recent thing is a bare token (no wrapping node)
+                        // Only WORD tokens can be type names
+                        return *kind == SyntaxKind::WORD;
+                    }
+                }
+                Event::Error { .. } => {}
+            }
+        }
+        false
     }
 
     /// Wrap events from `start_index` onwards in a new node

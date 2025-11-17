@@ -466,7 +466,8 @@ impl CompilerRunner {
             let file_path = path.display().to_string();
 
             // Use real baml_hir for item extraction
-            let items = baml_hir::file_items(&self.db, *source_file);
+            let items_struct = baml_hir::file_items(&self.db, *source_file);
+            let items = items_struct.items(&self.db);
 
             // Check if THIS specific file was modified
             let file_recomputed = self.modified_files.contains(path);
@@ -476,7 +477,7 @@ impl CompilerRunner {
 
             // Show real HIR items
             if !items.is_empty() {
-                for item in &items {
+                for item in items {
                     let item_line = format!("  {item:?}");
                     writeln!(output, "{item_line}").ok();
                     output_annotated.push((
