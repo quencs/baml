@@ -1,4 +1,4 @@
-import { get_version } from "./native";
+import { get_version } from "./native.js";
 
 function ensureVersionCompatibility(generatedVersion: string, runtimeVersion: string) {
   try {

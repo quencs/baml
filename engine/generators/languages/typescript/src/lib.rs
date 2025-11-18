@@ -401,7 +401,10 @@ fn add_js_suffix_to_imports(content: &str) -> String {
         let closing_quote = &caps[4];
 
         // Check if it's a relative path (starts with ./ or ../)
-        if path.starts_with("./") || path.starts_with("../") {
+        let is_relative = path.starts_with("./") || path.starts_with("../");
+        let is_baml_internal = path.starts_with("@boundaryml/baml/");
+
+        if is_relative || is_baml_internal {
             // Check if it already has a common JS/TS/CSS extension
             if !path.ends_with(".js") &&
                !path.ends_with(".mjs") &&
@@ -513,6 +516,17 @@ mod tests {
         assert_eq!(
             add_js_suffix_to_imports("import { BamlClient } from '@boundaryml/baml';"),
             "import { BamlClient } from '@boundaryml/baml';"
+        );
+
+        assert_eq!(
+            add_js_suffix_to_imports("import { FieldType } from '@boundaryml/baml/native';"),
+            "import { FieldType } from '@boundaryml/baml/native.js';"
+        );
+        assert_eq!(
+            add_js_suffix_to_imports(
+                "import { TypeBuilder } from '@boundaryml/baml/type_builder';"
+            ),
+            "import { TypeBuilder } from '@boundaryml/baml/type_builder.js';"
         );
         assert_eq!(
             add_js_suffix_to_imports("const path = '/path/to/file.ts';"),

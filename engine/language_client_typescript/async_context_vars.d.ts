@@ -1,4 +1,4 @@
-import { BamlSpan, RuntimeContextManager, BamlRuntime, BamlLogEvent } from './native';
+import { BamlSpan, RuntimeContextManager, BamlRuntime, BamlLogEvent } from './native.js';
 export declare class BamlCtxManager {
     private rt;
     private ctx;

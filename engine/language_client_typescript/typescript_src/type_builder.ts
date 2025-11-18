@@ -6,7 +6,7 @@ import {
   FieldType,
   TypeBuilder as _TypeBuilder,
   BamlRuntime,
-} from './native'
+} from './native.js'
 
 type IsLiteral<T extends string> = string extends T ? false : true
 type NameOf<T extends string> = IsLiteral<T> extends true ? T : 'DynamicType'

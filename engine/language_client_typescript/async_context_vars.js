@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlCtxManager = void 0;
-const native_1 = require("./native");
-const async_hooks_1 = require("async_hooks");
-class BamlCtxManager {
+import { BamlSpan } from './native.js';
+import { AsyncLocalStorage } from 'async_hooks';
+export class BamlCtxManager {
     rt;
     ctx;
     constructor(rt) {
         this.rt = rt;
-        this.ctx = new async_hooks_1.AsyncLocalStorage();
+        this.ctx = new AsyncLocalStorage();
         this.ctx.enterWith(rt.createContextManager());
         process.on('exit', () => {
             this.rt.flush();
@@ -25,7 +22,7 @@ class BamlCtxManager {
         return true;
     }
     reset() {
-        this.ctx = new async_hooks_1.AsyncLocalStorage();
+        this.ctx = new AsyncLocalStorage();
         this.ctx.enterWith(this.rt.createContextManager());
     }
     upsertTags(tags) {
@@ -42,7 +39,7 @@ class BamlCtxManager {
     }
     startTrace(name, args, envVars) {
         const mng = this.cloneContext();
-        return [mng, native_1.BamlSpan.new(this.rt, name, args, mng, envVars)];
+        return [mng, BamlSpan.new(this.rt, name, args, mng, envVars)];
     }
     endTrace(span, response, envVars) {
         const manager = this.ctx.getStore();
@@ -113,4 +110,3 @@ class BamlCtxManager {
         });
     }
 }
-exports.BamlCtxManager = BamlCtxManager;

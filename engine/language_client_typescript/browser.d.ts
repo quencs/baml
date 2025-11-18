@@ -10,14 +10,14 @@
  * import { Image, Audio } from '@boundaryml/baml'
  * ```
  */
-import { BamlAudio } from "./audio";
-import { BamlImage } from "./image";
-import { BamlVideo } from "./video";
-import { BamlPdf } from "./pdf";
-import type { BamlAudio as BamlAudioType } from "./audio";
-import type { BamlImage as BamlImageType } from "./image";
-import type { BamlPdf as BamlPdfType } from "./pdf";
-import type { BamlVideo as BamlVideoType } from "./video";
+import { BamlAudio } from "./audio.js";
+import { BamlImage } from "./image.js";
+import { BamlVideo } from "./video.js";
+import { BamlPdf } from "./pdf.js";
+import type { BamlAudio as BamlAudioType } from "./audio.js";
+import type { BamlImage as BamlImageType } from "./image.js";
+import type { BamlPdf as BamlPdfType } from "./pdf.js";
+import type { BamlVideo as BamlVideoType } from "./video.js";
 declare const ImageImpl: typeof BamlImage;
 declare const AudioImpl: typeof BamlAudio;
 declare const PdfImpl: typeof BamlPdf;

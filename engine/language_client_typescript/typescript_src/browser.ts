@@ -12,16 +12,16 @@
  */
 
 // Import actual implementations
-import { BamlAudio } from "./audio";
-import { BamlImage } from "./image";
-import { BamlVideo } from "./video";
-import { BamlPdf } from "./pdf";
+import { BamlAudio } from "./audio.js";
+import { BamlImage } from "./image.js";
+import { BamlVideo } from "./video.js";
+import { BamlPdf } from "./pdf.js";
 
 // Re-export the original types
-import type { BamlAudio as BamlAudioType } from "./audio";
-import type { BamlImage as BamlImageType } from "./image";
-import type { BamlPdf as BamlPdfType } from "./pdf";
-import type { BamlVideo as BamlVideoType } from "./video";
+import type { BamlAudio as BamlAudioType } from "./audio.js";
+import type { BamlImage as BamlImageType } from "./image.js";
+import type { BamlPdf as BamlPdfType } from "./pdf.js";
+import type { BamlVideo as BamlVideoType } from "./video.js";
 
 // Detect if we're in server-side rendering environment
 const isSSR = typeof window === "undefined";

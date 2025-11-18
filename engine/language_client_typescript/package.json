@@ -1,6 +1,7 @@
 {
   "name": "@boundaryml/baml",
   "version": "0.213.0",
+  "type": "module",
   "description": "BAML typescript bindings (package.json)",
   "repository": {
     "type": "git",
@@ -34,6 +35,14 @@
     "./type_builder.js",
     "./errors.d.ts",
     "./errors.js",
+    "./image.d.ts",
+    "./image.js",
+    "./audio.d.ts",
+    "./audio.js",
+    "./pdf.d.ts",
+    "./pdf.js",
+    "./video.d.ts",
+    "./video.js",
     "./safe_imports.d.ts",
     "./safe_imports.js",
     "./logging.d.ts",
@@ -49,7 +58,11 @@
     "./type_builder": "./type_builder.js",
     "./errors": "./errors.js",
     "./browser": "./browser.js",
-    "./logging": "./logging.js"
+    "./logging": "./logging.js",
+    "./image": "./image.js",
+    "./audio": "./audio.js",
+    "./pdf": "./pdf.js",
+    "./video": "./video.js"
   },
   "napi": {
     "binaryName": "baml",
@@ -76,7 +89,7 @@
     "release": "pnpm build:napi-release && pnpm build:ts_build",
     "build:debug": "pnpm build:napi-debug && pnpm build:ts_build",
     "build:napi-release": "pnpm build:napi-debug --release",
-    "build:napi-debug": "napi build --js ./native.js --dts ./native.d.ts --platform",
+    "build:napi-debug": "napi build --js ./native.js --dts ./native.d.ts --platform --esm",
     "build:ts_build": "tsc ./typescript_src/*.ts --outDir ./ --module nodenext --module nodenext --allowJs --declaration true --declarationMap true || true && pnpm build:ts_build_local",
     "build:local": "pnpm build:debug && pnpm napi create-npm-dirs && pnpm artifacts",
     "build:napi-debug-local": "napi build -o ./artifacts --js ./native.js --dts ./native.d.ts --platform",

@@ -1,4 +1,4 @@
-import { ClassBuilder as _ClassBuilder, EnumBuilder as _EnumBuilder, ClassPropertyBuilder as _ClassPropertyBuilder, EnumValueBuilder, FieldType, TypeBuilder as _TypeBuilder, BamlRuntime } from './native';
+import { ClassBuilder as _ClassBuilder, EnumBuilder as _EnumBuilder, ClassPropertyBuilder as _ClassPropertyBuilder, EnumValueBuilder, FieldType, TypeBuilder as _TypeBuilder, BamlRuntime } from './native.js';
 type IsLiteral<T extends string> = string extends T ? false : true;
 type NameOf<T extends string> = IsLiteral<T> extends true ? T : 'DynamicType';
 type CheckNever<T, TypeName extends string, Value extends string> = [T] extends [never] ? `Error: Attempt to add value '${Value}' which is already a part of '${NameOf<TypeName>}'.` : T;

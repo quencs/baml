@@ -871,3 +871,5 @@ export default class TypeBuilder {
         this.tb.addBaml(baml);
     }
 }
+
+export { TypeBuilder };

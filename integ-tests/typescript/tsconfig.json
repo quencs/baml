@@ -1,19 +1,21 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "commonjs",
+    "module": "NodeNext",
     "lib": ["es2020"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
+    "isolatedModules": true,
     "declaration": true,
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*", "types/*"]
-    }
+    },
+    "allowImportingTsExtensions": false
   },
-  "include": ["tests/**/*", "baml_client/**/*"],
+  "include": ["tests/**/*", "baml_client/**/*", "src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

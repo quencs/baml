@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EnumBuilder = exports.EnumValueViewer = exports.EnumViewer = exports.EnumAst = exports.ClassBuilder = exports.ClassViewer = exports.ClassAst = exports.TypeBuilder = void 0;
-const native_1 = require("./native");
-class TypeBuilder {
+import { TypeBuilder as _TypeBuilder, } from './native.js';
+export class TypeBuilder {
     tb;
     classes;
     enums;
@@ -10,7 +7,7 @@ class TypeBuilder {
     constructor({ classes, enums, runtime }) {
         this.classes = classes;
         this.enums = enums;
-        this.tb = new native_1.TypeBuilder();
+        this.tb = new _TypeBuilder();
         this.runtime = runtime;
     }
     reset() {
@@ -88,8 +85,7 @@ class TypeBuilder {
         this.tb.addBaml(baml, this.runtime);
     }
 }
-exports.TypeBuilder = TypeBuilder;
-class ClassAst {
+export class ClassAst {
     properties;
     bldr;
     constructor(tb, name, properties = new Set()) {
@@ -103,8 +99,7 @@ class ClassAst {
         return this.bldr.field();
     }
 }
-exports.ClassAst = ClassAst;
-class ClassViewer extends ClassAst {
+export class ClassViewer extends ClassAst {
     constructor(tb, name, properties = new Set()) {
         super(tb, name, properties);
     }
@@ -118,8 +113,7 @@ class ClassViewer extends ClassAst {
         return new ClassPropertyViewer();
     }
 }
-exports.ClassViewer = ClassViewer;
-class ClassBuilder extends ClassAst {
+export class ClassBuilder extends ClassAst {
     constructor(tb, name, properties = new Set()) {
         super(tb, name, properties);
     }
@@ -147,7 +141,6 @@ class ClassBuilder extends ClassAst {
         return new ClassPropertyBuilder(this.bldr.property(name));
     }
 }
-exports.ClassBuilder = ClassBuilder;
 class ClassPropertyViewer {
     constructor() { }
 }
@@ -172,7 +165,7 @@ class ClassPropertyBuilder {
         return this;
     }
 }
-class EnumAst {
+export class EnumAst {
     values;
     bldr;
     constructor(tb, name, values = new Set()) {
@@ -183,8 +176,7 @@ class EnumAst {
         return this.bldr.field();
     }
 }
-exports.EnumAst = EnumAst;
-class EnumViewer extends EnumAst {
+export class EnumViewer extends EnumAst {
     constructor(tb, name, values = new Set()) {
         super(tb, name, values);
     }
@@ -198,12 +190,10 @@ class EnumViewer extends EnumAst {
         return new EnumValueViewer();
     }
 }
-exports.EnumViewer = EnumViewer;
-class EnumValueViewer {
+export class EnumValueViewer {
     constructor() { }
 }
-exports.EnumValueViewer = EnumValueViewer;
-class EnumBuilder extends EnumAst {
+export class EnumBuilder extends EnumAst {
     constructor(tb, name, values = new Set()) {
         super(tb, name, values);
     }
@@ -221,4 +211,3 @@ class EnumBuilder extends EnumAst {
         return this.bldr.value(name);
     }
 }
-exports.EnumBuilder = EnumBuilder;

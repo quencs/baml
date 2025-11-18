@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BamlVideo = void 0;
 /**
  * Browser-compatible implementation of BamlVideo
  */
-class BamlVideo {
+export class BamlVideo {
     type;
     content;
     mediaType;
@@ -93,4 +90,3 @@ class BamlVideo {
         };
     }
 }
-exports.BamlVideo = BamlVideo;

@@ -1,4 +1,4 @@
-import { BamlSpan, RuntimeContextManager, BamlRuntime, BamlLogEvent } from './native'
+import { BamlSpan, RuntimeContextManager, BamlRuntime, BamlLogEvent } from './native.js'
 import { AsyncLocalStorage } from 'async_hooks'
 
 export class BamlCtxManager {

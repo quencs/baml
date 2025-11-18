@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-if (require.main === module) {
-  if (!process.env.BAML_LOG) {
-    process.env.BAML_LOG = 'info'
-  }
+import { invoke_runtime_cli } from './native.js'
 
-  const baml = require('./native')
-  baml.invoke_runtime_cli(process.argv.slice(1))
+if (!process.env.BAML_LOG) {
+  process.env.BAML_LOG = 'info'
 }
+
+invoke_runtime_cli(process.argv.slice(1))

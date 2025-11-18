@@ -1,8 +1,8 @@
-export * from './safe_imports'
+export * from './safe_imports.js'
 
-export * from './errors'
+export * from './errors.js'
 
-export * from './logging'
+export * from './logging.js'
 
 // Detect if we're in a Node.js environment
 const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null
@@ -47,7 +47,6 @@ export {
   BamlVideo as Video,
   invoke_runtime_cli,
   ClientRegistry,
-  BamlLogEvent,
   Collector,
   FunctionLog,
   LlmCall,
@@ -59,7 +58,9 @@ export {
   StreamTiming,
   Timing,
   TraceStats,
-} from './native'
+} from './native.js'
 
-export { BamlStream } from './stream'
-export { BamlCtxManager } from './async_context_vars'
+export type { BamlLogEvent } from './native.js'
+
+export { BamlStream } from './stream.js'
+export { BamlCtxManager } from './async_context_vars.js'
