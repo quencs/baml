@@ -4,29 +4,71 @@ expression: output
 ---
 === HIR ITEMS ===
 function stringArray {
-  return_type: Unknown
+  return: List(Path(Path { segments: ["string"], kind: Plain }))
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function intArray {
-  return_type: Unknown
+  return: List(Path(Path { segments: ["int"], kind: Plain }))
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function floatArray {
-  return_type: Unknown
+  return: List(Path(Path { segments: ["float"], kind: Plain }))
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function boolArray {
-  return_type: Unknown
+  return: List(Path(Path { segments: ["bool"], kind: Plain }))
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function pointArray {
-  return_type: Unknown
+  return: List(Path(Path { segments: ["Point"], kind: Plain }))
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class Point {
   x: Int
   y: Int
 }
 function point {
-  return_type: Unknown
+  return: Path(Path { segments: ["Point"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function vec2d {
-  return_type: Unknown
+  return: Path(Path { segments: ["Vec2D"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class Point {
   x: Int
@@ -37,14 +79,38 @@ class Vec2D {
   q: Path(Path { segments: ["Point"], kind: Plain })
 }
 function stringValues {
-  return_type: Unknown
+  return: Path(Path { segments: ["map<string, string>"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function intValues {
-  return_type: Unknown
+  return: Path(Path { segments: ["map<string, int>"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function floatValues {
-  return_type: Unknown
+  return: Path(Path { segments: ["map<string, float>"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function boolValues {
-  return_type: Unknown
+  return: Path(Path { segments: ["map<string, bool>"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }

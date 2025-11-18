@@ -114,26 +114,11 @@ impl ItemTree {
 
 /// A function definition in the `ItemTree`.
 ///
-/// This is the minimal representation - just the signature.
-/// Function bodies are stored separately for incrementality.
+/// This is the MINIMAL representation - ONLY the name.
+/// Everything else (params, return type, body) is in separate queries for incrementality.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
     pub name: Name,
-    pub params: Vec<Param>,
-    pub return_type: TypeRef,
-
-    /// Unresolved client reference (name only).
-    pub client_ref: Option<Name>,
-
-    /// Future: Type parameters for generic functions.
-    pub type_params: Vec<TypeParam>,
-}
-
-/// Function parameter.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Param {
-    pub name: Name,
-    pub type_ref: TypeRef,
 }
 
 /// A class definition.

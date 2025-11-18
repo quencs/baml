@@ -4,7 +4,13 @@ expression: output
 ---
 === HIR ITEMS ===
 function FormatMessage {
-  return_type: Unknown
+  params: [name: String]
+  return: String
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Generate a message for \"{{ name }}\"\n    Include quotes like: \"Welcome, '{{ name }}'!\"\n  "
+    interpolations: [name, name]
+  }
 }
 class NestedQuotes {
   single_in_double: String
@@ -22,7 +28,13 @@ class NestedQuotes {
   value: Path(Path { segments: [""], kind: Plain })
 }
 function ProcessText {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Process the following text:\n    {{ input }}\n    \n    Return the processed result.\n  "
+    interpolations: [input]
+  }
 }
 class RawStrings {
   simple: String
@@ -31,7 +43,13 @@ class RawStrings {
   multiline: String
 }
 function GetRole {
-  return_type: Unknown
+  return: Path(Path { segments: ["\"admin\" | \"user\" | \"guest\""], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class Messages {
   greeting: String

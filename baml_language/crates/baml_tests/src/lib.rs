@@ -73,17 +73,79 @@ fn format_hir_file(
         match item {
             ItemId::Function(func_id) => {
                 let func = &item_tree[func_id.id(db)];
+                let sig = baml_db::function_signature(db, source_file, *func_id);
+                let body = baml_db::function_body(db, source_file, *func_id);
+
                 writeln!(result, "function {} {{", func.name).unwrap();
-                if !func.params.is_empty() {
-                    writeln!(result, "  params: {:?}", func.params).unwrap();
+
+                // Show signature
+                if !sig.params.is_empty() {
+                    write!(result, "  params: [").unwrap();
+                    for (i, param) in sig.params.iter().enumerate() {
+                        if i > 0 {
+                            write!(result, ", ").unwrap();
+                        }
+                        write!(result, "{}: {:?}", param.name, param.type_ref).unwrap();
+                    }
+                    writeln!(result, "]").unwrap();
                 }
-                writeln!(result, "  return_type: {:?}", func.return_type).unwrap();
-                if let Some(ref client) = func.client_ref {
-                    writeln!(result, "  client: {:?}", client).unwrap();
+                writeln!(result, "  return: {:?}", sig.return_type).unwrap();
+
+                // Show body
+                match body.as_ref() {
+                    baml_db::baml_hir::FunctionBody::Llm(llm) => {
+                        writeln!(result, "  body: Llm {{").unwrap();
+                        if let Some(ref client) = llm.client {
+                            writeln!(result, "    client: {}", client).unwrap();
+                        }
+                        if let Some(ref prompt) = llm.prompt {
+                            writeln!(result, "    prompt: {:?}", prompt.text).unwrap();
+                            if !prompt.interpolations.is_empty() {
+                                write!(result, "    interpolations: [").unwrap();
+                                for (i, interp) in prompt.interpolations.iter().enumerate() {
+                                    if i > 0 {
+                                        write!(result, ", ").unwrap();
+                                    }
+                                    write!(result, "{}", interp.var_name).unwrap();
+                                }
+                                writeln!(result, "]").unwrap();
+                            }
+                        }
+                        writeln!(result, "  }}").unwrap();
+                    }
+                    baml_db::baml_hir::FunctionBody::Expr(expr_body) => {
+                        writeln!(result, "  body: Expr {{").unwrap();
+
+                        // Display all expressions
+                        if !expr_body.exprs.is_empty() {
+                            writeln!(result, "    exprs: [").unwrap();
+                            for (idx, expr) in expr_body.exprs.iter() {
+                                writeln!(result, "      {:?}: {:?}", idx, expr).unwrap();
+                            }
+                            writeln!(result, "    ]").unwrap();
+                        }
+
+                        // Display all statements
+                        if !expr_body.stmts.is_empty() {
+                            writeln!(result, "    stmts: [").unwrap();
+                            for (idx, stmt) in expr_body.stmts.iter() {
+                                writeln!(result, "      {:?}: {:?}", idx, stmt).unwrap();
+                            }
+                            writeln!(result, "    ]").unwrap();
+                        }
+
+                        // Display root expression
+                        if let Some(root) = expr_body.root_expr {
+                            writeln!(result, "    root: {:?}", root).unwrap();
+                        }
+
+                        writeln!(result, "  }}").unwrap();
+                    }
+                    baml_db::baml_hir::FunctionBody::Missing => {
+                        writeln!(result, "  body: Missing").unwrap();
+                    }
                 }
-                if !func.type_params.is_empty() {
-                    writeln!(result, "  type_params: {:?}", func.type_params).unwrap();
-                }
+
                 writeln!(result, "}}").unwrap();
             }
             ItemId::Class(class_id) => {

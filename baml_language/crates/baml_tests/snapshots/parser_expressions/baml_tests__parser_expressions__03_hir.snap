@@ -4,16 +4,43 @@ expression: output
 ---
 === HIR ITEMS ===
 function Calculate {
-  return_type: Unknown
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function ConditionalLogic {
-  return_type: Unknown
+  params: [age: Int]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function HandleStatus {
-  return_type: Unknown
+  params: [status: Path(Path { segments: ["Status"], kind: Plain })]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function ComplexMatch {
-  return_type: Unknown
+  params: [value: Int]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 enum Status {
   EnumVariant { name: "PENDING" }
@@ -22,5 +49,11 @@ enum Status {
   EnumVariant { name: "SUSPENDED" }
 }
 function TestPrecedence {
-  return_type: Unknown
+  return: Bool
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }

@@ -4,7 +4,13 @@ expression: output
 ---
 === HIR ITEMS ===
 function HelloWorld {
-  return_type: Unknown
+  params: [name: String]
+  return: String
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Say hello to {{name}}\n  "
+    interpolations: [name]
+  }
 }
 class User {
   name: String

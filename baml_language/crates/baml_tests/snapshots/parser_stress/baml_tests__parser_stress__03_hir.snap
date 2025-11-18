@@ -13,10 +13,17 @@ class StringTorture {
   long: String
 }
 function DeepExpression {
-  return_type: Unknown
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function ComplexType {
-  return_type: Unknown
+  return: Optional(Path(Path { segments: ["map<string, map<string, map<string, int[]"], kind: Plain }))
+  body: Missing
 }
 class Level5 {
   value: String
@@ -34,304 +41,704 @@ class Level1 {
   field: Path(Path { segments: ["Level2"], kind: Plain })
 }
 function Process1 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process2 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process3 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process4 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process5 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process6 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process7 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process8 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process9 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process10 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process11 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process12 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process13 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process14 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process15 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process16 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process17 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process18 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process19 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process20 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process21 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process22 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process23 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process24 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process25 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process26 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process27 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process28 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process29 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process30 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process31 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process32 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process33 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process34 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process35 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process36 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process37 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process38 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process39 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process40 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process41 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process42 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process43 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process44 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process45 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process46 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process47 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process48 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process49 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process50 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process51 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process52 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process53 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process54 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process55 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process56 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process57 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process58 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process59 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process60 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process61 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process62 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process63 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process64 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process65 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process66 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process67 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process68 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process69 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process70 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process71 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process72 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process73 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process74 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process75 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process76 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process77 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process78 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process79 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process80 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process81 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process82 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process83 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process84 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process85 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process86 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process87 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process88 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process89 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process90 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process91 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process92 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process93 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process94 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process95 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process96 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process97 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process98 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process99 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 function Process100 {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+  }
 }
 class User1 {
   name: String
@@ -5854,5 +6261,11 @@ enum Item {
 type TypeAlias = Unknown
 type TypeAlias = Unknown
 function BodyTorture {
-  return_type: Unknown
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }

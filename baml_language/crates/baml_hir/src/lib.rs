@@ -23,19 +23,24 @@ use baml_syntax::SyntaxNode;
 use rowan::ast::AstNode;
 
 // Module declarations
+mod body;
 mod container;
 mod ids;
 mod item_tree;
 mod loc;
 mod path;
+mod signature;
 mod type_ref;
 
 // Re-exports
+pub use body::*;
 pub use container::{BlockId, ContainerId, LocalModuleId, ModuleId, ProjectId};
 pub use ids::*;
 pub use item_tree::*;
 pub use loc::*;
 pub use path::*;
+// Re-export signature types, but avoid TypeParam conflict with item_tree
+pub use signature::{CustomAttribute, FunctionAttributes, FunctionSignature, Param};
 pub use type_ref::*;
 
 //
@@ -334,25 +339,15 @@ fn lower_enum(node: &SyntaxNode) -> Option<Enum> {
     })
 }
 
-/// Extract function definition from CST.
+/// Extract function definition from CST - MINIMAL VERSION.
+/// Only extracts the name. Signature and body are in separate queries.
 fn lower_function(node: &SyntaxNode) -> Option<Function> {
     use baml_syntax::ast::FunctionDef;
 
     let func = FunctionDef::cast(node.clone())?;
     let name = func.name()?.text().into();
 
-    // TODO: Extract parameters, return type, client once AST has methods
-    let params = vec![];
-    let return_type = TypeRef::Unknown;
-    let client_ref = None;
-
-    Some(Function {
-        name,
-        params,
-        return_type,
-        client_ref,
-        type_params: vec![],
-    })
+    Some(Function { name })
 }
 
 /// Extract type alias from CST.

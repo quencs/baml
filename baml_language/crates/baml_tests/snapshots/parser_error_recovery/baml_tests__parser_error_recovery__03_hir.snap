@@ -4,7 +4,13 @@ expression: output
 ---
 === HIR ITEMS ===
 function Foo {
-  return_type: Unknown
+  return: Path(Path { segments: [""], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 enum Status {
   EnumVariant { name: "ACTIVE" }
@@ -17,10 +23,18 @@ class User {
   field: Int
 }
 function Incomplete {
-  return_type: Unknown
+  params: [param1: String]
+  return: Unknown
+  body: Missing
 }
 function NextFunction {
-  return_type: Unknown
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class Partial {
   field1: Path(Path { segments: ["str"], kind: Plain })

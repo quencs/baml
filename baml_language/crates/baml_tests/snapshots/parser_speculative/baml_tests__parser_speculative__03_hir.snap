@@ -4,32 +4,85 @@ expression: output
 ---
 === HIR ITEMS ===
 function Ambiguous {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function AnotherLLM {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function ProcessData {
-  return_type: Unknown
+  params: [data: Path(Path { segments: ["JsonData"], kind: Plain })]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class JsonData {
   field1: Int
   field2: Int
 }
 function ExtractData {
-  return_type: Unknown
+  params: [text: String]
+  return: Path(Path { segments: ["JsonData"], kind: Plain })
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Extract structured data from: {{ text }}\n    Return as JSON.\n  "
+    interpolations: [text]
+  }
 }
 function LLMAnalyze {
-  return_type: Unknown
+  params: [text: String]
+  return: Path(Path { segments: ["Analysis"], kind: Plain })
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Analyze the following text:\n    {{ text }}\n    \n    Return an Analysis object with sentiment and keywords.\n  "
+    interpolations: [text]
+  }
 }
 function ProcessAnalysis {
-  return_type: Unknown
+  params: [analysis: Path(Path { segments: ["Analysis"], kind: Plain })]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function ChainedProcess {
-  return_type: Unknown
+  params: [input: String]
+  return: String
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Process this through multiple steps:\n    1. {{ input }}\n    2. Transform it\n    3. Return result\n  "
+    interpolations: [input]
+  }
 }
 function SimpleCalc {
-  return_type: Unknown
+  params: [a: Int, b: Int]
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class Analysis {
   sentiment: String

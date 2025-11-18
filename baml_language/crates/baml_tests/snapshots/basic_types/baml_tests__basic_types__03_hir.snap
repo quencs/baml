@@ -4,10 +4,20 @@ expression: output
 ---
 === HIR ITEMS ===
 function GetUser {
-  return_type: Unknown
+  params: [id: Int]
+  return: Path(Path { segments: ["User"], kind: Plain })
+  body: Llm {
+    client: GPT4
+    prompt: "Get user {{id}}"
+    interpolations: [id]
+  }
 }
 function GetStatus {
-  return_type: Unknown
+  return: Path(Path { segments: ["Status"], kind: Plain })
+  body: Llm {
+    client: GPT4
+    prompt: "Get status"
+  }
 }
 class User {
   id: Int

@@ -4,7 +4,13 @@ expression: output
 ---
 === HIR ITEMS ===
 function GetTodo {
-  return_type: Unknown
+  return: Path(Path { segments: ["Todo"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 class Todo {
   id: Int
