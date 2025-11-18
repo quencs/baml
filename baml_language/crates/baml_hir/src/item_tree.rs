@@ -10,105 +10,128 @@ use crate::{
     type_ref::TypeRef,
 };
 use baml_base::Name;
+use la_arena::{Arena, Idx};
+use std::collections::HashMap;
 use std::ops::Index;
 
 /// Position-independent item storage for a container.
 ///
 /// This is the core HIR data structure. Items are stored in arenas
 /// with stable indices that survive source code edits.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+///
+/// **Key property:** Items are indexed by name, not source position.
+/// Adding an item in the middle of the file doesn't change the `LocalItemIds`
+/// of other items because `LocalItemIds` are derived from names, not arena indices.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ItemTree {
-    pub functions: Vec<Function>,
-    pub classes: Vec<Class>,
-    pub enums: Vec<Enum>,
-    pub type_aliases: Vec<TypeAlias>,
-    pub clients: Vec<Client>,
-    pub tests: Vec<Test>,
+    pub functions: Arena<Function>,
+    pub classes: Arena<Class>,
+    pub enums: Arena<Enum>,
+    pub type_aliases: Arena<TypeAlias>,
+    pub clients: Arena<Client>,
+    pub tests: Arena<Test>,
+
+    // Map from content-based LocalItemId to arena Idx for lookups
+    pub(crate) function_map: HashMap<LocalItemId<FunctionMarker>, Idx<Function>>,
+    pub(crate) class_map: HashMap<LocalItemId<ClassMarker>, Idx<Class>>,
+    pub(crate) enum_map: HashMap<LocalItemId<EnumMarker>, Idx<Enum>>,
+    pub(crate) type_alias_map: HashMap<LocalItemId<TypeAliasMarker>, Idx<TypeAlias>>,
+    pub(crate) client_map: HashMap<LocalItemId<ClientMarker>, Idx<Client>>,
+    pub(crate) test_map: HashMap<LocalItemId<TestMarker>, Idx<Test>>,
+}
+
+impl Default for ItemTree {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ItemTree {
     /// Create a new empty `ItemTree`.
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            functions: Arena::new(),
+            classes: Arena::new(),
+            enums: Arena::new(),
+            type_aliases: Arena::new(),
+            clients: Arena::new(),
+            tests: Arena::new(),
+            function_map: HashMap::new(),
+            class_map: HashMap::new(),
+            enum_map: HashMap::new(),
+            type_alias_map: HashMap::new(),
+            client_map: HashMap::new(),
+            test_map: HashMap::new(),
+        }
     }
 
     /// Add a function and return its local ID.
-    #[allow(clippy::cast_possible_truncation)]
+    /// `LocalItemId` is derived from the function's name for position-independence.
     pub fn alloc_function(&mut self, func: Function) -> LocalItemId<FunctionMarker> {
-        let id = self.functions.len();
-        self.functions.push(func);
-        LocalItemId::new(id as u32)
+        let id = LocalItemId::from_name(&func.name);
+        let arena_idx = self.functions.alloc(func);
+        self.function_map.insert(id, arena_idx);
+        id
     }
 
     /// Add a class and return its local ID.
-    #[allow(clippy::cast_possible_truncation)]
+    /// `LocalItemId` is derived from the class's name for position-independence.
     pub fn alloc_class(&mut self, class: Class) -> LocalItemId<ClassMarker> {
-        let id = self.classes.len();
-        self.classes.push(class);
-        LocalItemId::new(id as u32)
+        let id = LocalItemId::from_name(&class.name);
+        let arena_idx = self.classes.alloc(class);
+        self.class_map.insert(id, arena_idx);
+        id
     }
 
     /// Add an enum and return its local ID.
-    #[allow(clippy::cast_possible_truncation)]
+    /// `LocalItemId` is derived from the enum's name for position-independence.
     pub fn alloc_enum(&mut self, enum_def: Enum) -> LocalItemId<EnumMarker> {
-        let id = self.enums.len();
-        self.enums.push(enum_def);
-        LocalItemId::new(id as u32)
+        let id = LocalItemId::from_name(&enum_def.name);
+        let arena_idx = self.enums.alloc(enum_def);
+        self.enum_map.insert(id, arena_idx);
+        id
     }
 
     /// Add a type alias and return its local ID.
-    #[allow(clippy::cast_possible_truncation)]
-    pub fn alloc_type_alias(&mut self, alias: TypeAlias) -> LocalItemId<TypeAliasMarker> {
-        let id = self.type_aliases.len();
-        self.type_aliases.push(alias);
-        LocalItemId::new(id as u32)
+    /// `LocalItemId` is derived from the type alias's name for position-independence.
+    /// If there's a name collision, appends a counter to make it unique.
+    pub fn alloc_type_alias(&mut self, mut alias: TypeAlias) -> LocalItemId<TypeAliasMarker> {
+        let mut id = LocalItemId::from_name(&alias.name);
+
+        // Handle name collisions by appending counter
+        let mut counter = 0;
+        while self.type_alias_map.contains_key(&id) {
+            counter += 1;
+            let collision_name = Name::new(format!("{}_{}", alias.name.as_str(), counter));
+            id = LocalItemId::from_name(&collision_name);
+            alias.name = collision_name;
+        }
+
+        let arena_idx = self.type_aliases.alloc(alias);
+        self.type_alias_map.insert(id, arena_idx);
+        id
     }
 
     /// Add a client and return its local ID.
-    #[allow(clippy::cast_possible_truncation)]
+    /// `LocalItemId` is derived from the client's name for position-independence.
     pub fn alloc_client(&mut self, client: Client) -> LocalItemId<ClientMarker> {
-        let id = self.clients.len();
-        self.clients.push(client);
-        LocalItemId::new(id as u32)
+        let id = LocalItemId::from_name(&client.name);
+        let arena_idx = self.clients.alloc(client);
+        self.client_map.insert(id, arena_idx);
+        id
     }
 
     /// Add a test and return its local ID.
-    #[allow(clippy::cast_possible_truncation)]
+    /// `LocalItemId` is derived from the test's name for position-independence.
     pub fn alloc_test(&mut self, test: Test) -> LocalItemId<TestMarker> {
-        let id = self.tests.len();
-        self.tests.push(test);
-        LocalItemId::new(id as u32)
+        let id = LocalItemId::from_name(&test.name);
+        let arena_idx = self.tests.alloc(test);
+        self.test_map.insert(id, arena_idx);
+        id
     }
 
-    /// Get a function by local ID.
-    pub fn function(&self, id: LocalItemId<FunctionMarker>) -> Option<&Function> {
-        self.functions.get(id.as_usize())
-    }
-
-    /// Get a class by local ID.
-    pub fn class(&self, id: LocalItemId<ClassMarker>) -> Option<&Class> {
-        self.classes.get(id.as_usize())
-    }
-
-    /// Get an enum by local ID.
-    pub fn enum_def(&self, id: LocalItemId<EnumMarker>) -> Option<&Enum> {
-        self.enums.get(id.as_usize())
-    }
-
-    /// Get a type alias by local ID.
-    pub fn type_alias(&self, id: LocalItemId<TypeAliasMarker>) -> Option<&TypeAlias> {
-        self.type_aliases.get(id.as_usize())
-    }
-
-    /// Get a client by local ID.
-    pub fn client(&self, id: LocalItemId<ClientMarker>) -> Option<&Client> {
-        self.clients.get(id.as_usize())
-    }
-
-    /// Get a test by local ID.
-    pub fn test(&self, id: LocalItemId<TestMarker>) -> Option<&Test> {
-        self.tests.get(id.as_usize())
-    }
+    // Note: Use the Index implementations instead of getter methods.
+    // Example: let func = &item_tree[func_id];
 }
 
 /// A function definition in the `ItemTree`.
@@ -185,7 +208,11 @@ pub struct Test {
 impl Index<LocalItemId<FunctionMarker>> for ItemTree {
     type Output = Function;
     fn index(&self, index: LocalItemId<FunctionMarker>) -> &Self::Output {
-        &self.functions[index.as_usize()]
+        let arena_idx = self
+            .function_map
+            .get(&index)
+            .expect("Function not found in ItemTree");
+        &self.functions[*arena_idx]
     }
 }
 
@@ -193,7 +220,11 @@ impl Index<LocalItemId<FunctionMarker>> for ItemTree {
 impl Index<LocalItemId<ClassMarker>> for ItemTree {
     type Output = Class;
     fn index(&self, index: LocalItemId<ClassMarker>) -> &Self::Output {
-        &self.classes[index.as_usize()]
+        let arena_idx = self
+            .class_map
+            .get(&index)
+            .expect("Class not found in ItemTree");
+        &self.classes[*arena_idx]
     }
 }
 
@@ -201,7 +232,11 @@ impl Index<LocalItemId<ClassMarker>> for ItemTree {
 impl Index<LocalItemId<EnumMarker>> for ItemTree {
     type Output = Enum;
     fn index(&self, index: LocalItemId<EnumMarker>) -> &Self::Output {
-        &self.enums[index.as_usize()]
+        let arena_idx = self
+            .enum_map
+            .get(&index)
+            .expect("Enum not found in ItemTree");
+        &self.enums[*arena_idx]
     }
 }
 
@@ -209,7 +244,11 @@ impl Index<LocalItemId<EnumMarker>> for ItemTree {
 impl Index<LocalItemId<TypeAliasMarker>> for ItemTree {
     type Output = TypeAlias;
     fn index(&self, index: LocalItemId<TypeAliasMarker>) -> &Self::Output {
-        &self.type_aliases[index.as_usize()]
+        let arena_idx = self
+            .type_alias_map
+            .get(&index)
+            .expect("TypeAlias not found in ItemTree");
+        &self.type_aliases[*arena_idx]
     }
 }
 
@@ -217,7 +256,11 @@ impl Index<LocalItemId<TypeAliasMarker>> for ItemTree {
 impl Index<LocalItemId<ClientMarker>> for ItemTree {
     type Output = Client;
     fn index(&self, index: LocalItemId<ClientMarker>) -> &Self::Output {
-        &self.clients[index.as_usize()]
+        let arena_idx = self
+            .client_map
+            .get(&index)
+            .expect("Client not found in ItemTree");
+        &self.clients[*arena_idx]
     }
 }
 
@@ -225,6 +268,10 @@ impl Index<LocalItemId<ClientMarker>> for ItemTree {
 impl Index<LocalItemId<TestMarker>> for ItemTree {
     type Output = Test;
     fn index(&self, index: LocalItemId<TestMarker>) -> &Self::Output {
-        &self.tests[index.as_usize()]
+        let arena_idx = self
+            .test_map
+            .get(&index)
+            .expect("Test not found in ItemTree");
+        &self.tests[*arena_idx]
     }
 }

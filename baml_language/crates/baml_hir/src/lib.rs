@@ -166,7 +166,9 @@ pub fn type_alias_generic_params(_db: &dyn Db, _alias: TypeAliasId<'_>) -> Arc<G
 //
 
 /// Intern all items from an `ItemTree` and return their IDs.
-#[allow(clippy::cast_possible_truncation)]
+///
+/// Uses name-based `LocalItemIds` for position-independence.
+/// Items are returned in source order by sorting by arena index.
 fn intern_all_items<'db>(
     db: &'db dyn Db,
     file: baml_base::FileId,
@@ -174,39 +176,51 @@ fn intern_all_items<'db>(
 ) -> Vec<ItemId<'db>> {
     let mut items = Vec::new();
 
-    // Intern functions
-    for (idx, _func) in tree.functions.iter().enumerate() {
-        let loc = FunctionLoc::new(db, file, LocalItemId::new(idx as u32));
+    // Intern functions - sort by arena index to maintain source order
+    let mut funcs: Vec<_> = tree.function_map.iter().collect();
+    funcs.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
+    for (local_id, _arena_idx) in funcs {
+        let loc = FunctionLoc::new(db, file, *local_id);
         items.push(ItemId::Function(loc));
     }
 
     // Intern classes
-    for (idx, _class) in tree.classes.iter().enumerate() {
-        let loc = ClassLoc::new(db, file, LocalItemId::new(idx as u32));
+    let mut classes: Vec<_> = tree.class_map.iter().collect();
+    classes.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
+    for (local_id, _arena_idx) in classes {
+        let loc = ClassLoc::new(db, file, *local_id);
         items.push(ItemId::Class(loc));
     }
 
     // Intern enums
-    for (idx, _enum) in tree.enums.iter().enumerate() {
-        let loc = EnumLoc::new(db, file, LocalItemId::new(idx as u32));
+    let mut enums: Vec<_> = tree.enum_map.iter().collect();
+    enums.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
+    for (local_id, _arena_idx) in enums {
+        let loc = EnumLoc::new(db, file, *local_id);
         items.push(ItemId::Enum(loc));
     }
 
     // Intern type aliases
-    for (idx, _alias) in tree.type_aliases.iter().enumerate() {
-        let loc = TypeAliasLoc::new(db, file, LocalItemId::new(idx as u32));
+    let mut aliases: Vec<_> = tree.type_alias_map.iter().collect();
+    aliases.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
+    for (local_id, _arena_idx) in aliases {
+        let loc = TypeAliasLoc::new(db, file, *local_id);
         items.push(ItemId::TypeAlias(loc));
     }
 
     // Intern clients
-    for (idx, _client) in tree.clients.iter().enumerate() {
-        let loc = ClientLoc::new(db, file, LocalItemId::new(idx as u32));
+    let mut clients: Vec<_> = tree.client_map.iter().collect();
+    clients.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
+    for (local_id, _arena_idx) in clients {
+        let loc = ClientLoc::new(db, file, *local_id);
         items.push(ItemId::Client(loc));
     }
 
     // Intern tests
-    for (idx, _test) in tree.tests.iter().enumerate() {
-        let loc = TestLoc::new(db, file, LocalItemId::new(idx as u32));
+    let mut tests: Vec<_> = tree.test_map.iter().collect();
+    tests.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
+    for (local_id, _arena_idx) in tests {
+        let loc = TestLoc::new(db, file, *local_id);
         items.push(ItemId::Test(loc));
     }
 
@@ -387,6 +401,7 @@ fn lower_type_alias(node: &SyntaxNode) -> Option<TypeAlias> {
 
     let _alias = TypeAliasDef::cast(node.clone())?;
     // TODO: Extract name and type once AST has methods
+    // For now, use placeholder - name-based IDs handle stability
     let name = Name::new("TypeAlias");
     let type_ref = TypeRef::Unknown;
 

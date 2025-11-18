@@ -6259,7 +6259,7 @@ enum Item {
   EnumVariant { name: "TypeAliasDef" }
 }
 type TypeAlias = Unknown
-type TypeAlias = Unknown
+type TypeAlias_1 = Unknown
 function BodyTorture {
   return: Int
   body: Expr {

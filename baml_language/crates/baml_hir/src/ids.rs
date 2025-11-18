@@ -112,6 +112,39 @@ impl<T> LocalItemId<T> {
         }
     }
 
+    /// Create a `LocalItemId` from a name (content-based, not position-based).
+    /// This provides position-independence: the same name always produces the same ID.
+    pub fn from_name(name: &baml_base::Name) -> Self {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        name.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        // Use the lower 32 bits of the hash (truncation is intentional)
+        #[allow(clippy::cast_possible_truncation)]
+        let index = hash as u32;
+
+        LocalItemId {
+            index,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Convert from an la-arena Idx to `LocalItemId`.
+    pub fn from_arena<U>(idx: la_arena::Idx<U>) -> Self {
+        LocalItemId {
+            index: idx.into_raw().into_u32(),
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Convert to an la-arena Idx.
+    pub fn to_arena<U>(self) -> la_arena::Idx<U> {
+        la_arena::Idx::from_raw(la_arena::RawIdx::from_u32(self.index))
+    }
+
     pub const fn as_u32(self) -> u32 {
         self.index
     }
