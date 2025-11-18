@@ -5,19 +5,24 @@ input_file: baml-runtime/tests/viz-runtime/testdata/simple_if_else.baml
 ---
 fixture: simple_if_else.baml
 snapshots:
-  - event:
+  - watch_event:
       kind: header
-      function: MyFunction1
+      function: MyFunction4
       variable: ~
       channel: ~
       stream_id: ~
       header:
         level: 1
         title: Check
+      viz_event: ~
       value: ~
       is_stream: false
     stack_after:
       - "hdr:1:Check"
-    state_update:
-      lexical_id: "MyFunction1|hdr:1:Check"
-      new_state: Running
+    reducer:
+      state_update:
+        lexical_id: "MyFunction4|hdr:1:Check"
+        new_state: Running
+      state:
+        "MyFunction4|hdr:1:Check": Running
+      emitted_events: []

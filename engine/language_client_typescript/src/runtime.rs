@@ -434,6 +434,7 @@ impl BamlRuntime {
                                 }
                             }
                         }
+                        baml_compiler::watch::WatchBamlValue::VizExecState(_) => {}
                         baml_compiler::watch::WatchBamlValue::StreamStart(stream_id) => {
                             log::info!(
                                 "[RUST] StreamStart notification for var: {:?}, stream_id: {}",
@@ -624,6 +625,7 @@ impl BamlRuntime {
                                 }
                             }
                         }
+                        baml_compiler::watch::WatchBamlValue::VizExecState(_) => {}
                         baml_compiler::watch::WatchBamlValue::StreamStart(stream_id) => {
                             if let Some(var_name) = &notification.variable_name {
                                 let channel =

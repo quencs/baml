@@ -1009,6 +1009,7 @@ version = "0.213.0"
 dependencies = [
  "anyhow",
  "baml-types",
+ "baml-viz-events",
  "baml-vm",
  "internal-baml-ast",
  "internal-baml-diagnostics",
@@ -1214,6 +1215,7 @@ dependencies = [
  "baml-log",
  "baml-rpc",
  "baml-types",
+ "baml-viz-events",
  "baml-vm",
  "base64 0.22.1",
  "blake3",
@@ -1421,6 +1423,14 @@ dependencies = [
  "stream-cancel",
  "tokio",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "baml-viz-events"
+version = "0.213.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

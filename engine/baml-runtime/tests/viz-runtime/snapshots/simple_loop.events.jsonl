@@ -1,4 +1,4 @@
-{"kind":"header","function":"MyFunction1","variable":null,"channel":null,"stream_id":null,"header":{"level":1,"title":"Loop"},"value":null,"is_stream":false}
-{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","stream_id":null,"header":null,"value":"a","is_stream":false}
-{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","stream_id":null,"header":null,"value":"ab","is_stream":false}
-{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","stream_id":null,"header":null,"value":"abc","is_stream":false}
+{"kind":"header","function":"MyFunction1","variable":null,"channel":null,"stream_id":null,"header":{"level":1,"title":"Loop"},"viz_event":null,"value":null,"is_stream":false}
+{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","stream_id":null,"header":null,"viz_event":null,"value":"a","is_stream":false}
+{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","stream_id":null,"header":null,"viz_event":null,"value":"ab","is_stream":false}
+{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","stream_id":null,"header":null,"viz_event":null,"value":"abc","is_stream":false}

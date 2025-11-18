@@ -1990,6 +1990,17 @@ impl WasmRuntime {
                                 serde_json::to_string(&value)
                                     .unwrap_or_else(|_| format!("{value:?}"))
                             }
+                            baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
+                                serde_json::json!({
+                                    "type": "control_flow_context",
+                                    "event": event.event,
+                                    "lexical_id": event.lexical_id,
+                                    "node_type": event.node_type,
+                                    "label": event.label,
+                                    "header_level": event.header_level,
+                                })
+                                .to_string()
+                            }
                             baml_compiler::watch::WatchBamlValue::Header(header) => {
                                 serde_json::json!({
                                     "type": "header",
@@ -2433,6 +2444,15 @@ impl WasmFunction {
                     let value: BamlValue = v.clone().into();
                     serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"))
                 }
+                baml_compiler::watch::WatchBamlValue::VizExecState(event) => serde_json::json!({
+                    "type": "control_flow_context",
+                    "event": event.event,
+                    "lexical_id": event.lexical_id,
+                    "node_type": event.node_type,
+                    "label": event.label,
+                    "header_level": event.header_level,
+                })
+                .to_string(),
                 baml_compiler::watch::WatchBamlValue::Header(header) => serde_json::json!({
                     "type": "header",
                     "label": header.title,
@@ -2621,6 +2641,15 @@ impl WasmFunction {
                     let value: BamlValue = v.clone().into();
                     serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"))
                 }
+                baml_compiler::watch::WatchBamlValue::VizExecState(event) => serde_json::json!({
+                    "type": "control_flow_context",
+                    "event": event.event,
+                    "lexical_id": event.lexical_id,
+                    "node_type": event.node_type,
+                    "label": event.label,
+                    "header_level": event.header_level,
+                })
+                .to_string(),
                 baml_compiler::watch::WatchBamlValue::Header(header) => serde_json::json!({
                     "type": "header",
                     "label": header.title,

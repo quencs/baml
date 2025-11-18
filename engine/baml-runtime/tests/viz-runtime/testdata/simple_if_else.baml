@@ -1,4 +1,4 @@
-function MyFunction1(flag: bool) -> string {
+function MyFunction4(flag: bool) -> string {
   //# Check
   let result = if (flag) {
     "then-branch"
@@ -12,7 +12,7 @@ function MyFunction1(flag: bool) -> string {
 }
 
 function Main() -> string {
-  MyFunction1(true)
+  MyFunction4(true)
 }
 
 test default {

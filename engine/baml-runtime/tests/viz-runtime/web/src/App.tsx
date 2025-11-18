@@ -1,58 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CombinedRow, SnapshotEntry, EventRecord, StateUpdate } from "./types";
+import { parseAllDocuments } from "yaml";
+import type { CombinedRow, SnapshotEntry, SnapshotRow } from "./types";
 
-function readJsonl<T>(input: string): T[] {
-  return input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as T);
-}
-
-const snapshotModules = import.meta.glob("../../snapshots/**/*", {
+const snapshotModules = import.meta.glob("../../snapshots/**/*.snap", {
   eager: true,
   as: "raw",
 });
 
-function discoverSnapshots(): SnapshotEntry[] {
-  const entries: SnapshotEntry[] = [];
+function parseSnapshotFile(path: string, raw: string | undefined): SnapshotEntry | null {
+  if (typeof raw !== "string") return null;
 
-  Object.entries(snapshotModules)
-    .filter(([path]) => path.endsWith(".events.jsonl"))
-    .forEach(([path, eventsText]) => {
-      const fixture = path.split("/").pop()?.replace(".events.jsonl", "");
-      if (!fixture || typeof eventsText !== "string") return;
+  const docs = parseAllDocuments(raw);
+  const payload = docs.at(-1)?.toJSON() as
+    | { fixture?: string; snapshots?: unknown }
+    | undefined;
+  if (!payload || !Array.isArray(payload.snapshots)) return null;
 
-      const stackKey = path.replace(".events.jsonl", ".stack.jsonl");
-      const updatesKey = path.replace(".events.jsonl", ".updates.jsonl");
+  const fileName = path.split("/").pop() ?? "snapshot";
+  const fixture = (payload.fixture ?? fileName.replace(".snap", "")).replace(
+    /\.baml$/,
+    "",
+  );
 
-      const stackText = snapshotModules[stackKey];
-      const updatesText = snapshotModules[updatesKey];
-      if (typeof stackText !== "string" || typeof updatesText !== "string") return;
-
-      entries.push({
-        fixture,
-        eventsText,
-        stackText,
-        updatesText,
-      });
-    });
-
-  return entries.sort((a, b) => a.fixture.localeCompare(b.fixture));
+  return { fixture, rows: payload.snapshots as SnapshotRow[] };
 }
 
-async function loadSnapshot(entry: SnapshotEntry): Promise<CombinedRow[]> {
-  const events = readJsonl<EventRecord>(entry.eventsText);
-  const stacks = readJsonl<string[]>(entry.stackText);
-  const updates = readJsonl<StateUpdate>(entry.updatesText);
-
-  const len = Math.min(events.length, stacks.length, updates.length);
-  return Array.from({ length: len }, (_, idx) => ({
-    index: idx,
-    event: events[idx],
-    stack: stacks[idx],
-    update: updates[idx],
-  }));
+function discoverSnapshots(): SnapshotEntry[] {
+  return Object.entries(snapshotModules)
+    .filter(([path]) => path.endsWith(".snap"))
+    .map(([path, raw]) => parseSnapshotFile(path, raw as string | undefined))
+    .filter((entry): entry is SnapshotEntry => Boolean(entry))
+    .sort((a, b) => a.fixture.localeCompare(b.fixture));
 }
 
 function toLabel(entry: SnapshotEntry): string {
@@ -82,12 +60,14 @@ export default function App() {
       return;
     }
 
-    loadSnapshot(current)
-      .then(setRows)
-      .catch((err) => {
-        console.error("Failed to load snapshot", err);
-        setRows([]);
-      });
+    const combined: CombinedRow[] = current.rows.map((row, idx) => ({
+      index: idx,
+      watchEvent: row.watch_event,
+      stackAfter: row.stack_after,
+      reducer: row.reducer,
+    }));
+
+    setRows(combined);
   }, [current]);
 
   return (
@@ -123,7 +103,7 @@ export default function App() {
                 <th style={styles.th}>#</th>
                 <th style={styles.th}>Event</th>
                 <th style={styles.th}>Stack</th>
-                <th style={styles.th}>Node State</th>
+                <th style={styles.th}>Reducer</th>
               </tr>
             </thead>
             <tbody>
@@ -131,21 +111,34 @@ export default function App() {
                 <tr key={row.index} style={styles.tr}>
                   <td style={styles.td}>{row.index}</td>
                   <td style={styles.td}>
-                    <div>{row.event.kind}</div>
-                    <div style={styles.subtext}>{row.event.function}</div>
+                    <div>{row.watchEvent.kind}</div>
+                    <div style={styles.subtext}>{row.watchEvent.function}</div>
                     <pre style={styles.pre}>
-                      {JSON.stringify(row.event, null, 2)}
+                      {JSON.stringify(row.watchEvent, null, 2)}
                     </pre>
                   </td>
                   <td style={styles.td}>
                     <pre style={styles.pre}>
-                      {JSON.stringify(row.stack, null, 2)}
+                      {JSON.stringify(row.stackAfter, null, 2)}
                     </pre>
                   </td>
                   <td style={styles.td}>
+                    <div style={styles.badge}>State Update</div>
                     <pre style={styles.pre}>
-                      {JSON.stringify(row.update, null, 2)}
+                      {JSON.stringify(row.reducer.state_update, null, 2)}
                     </pre>
+                    <div style={styles.badge}>Reducer State</div>
+                    <pre style={styles.pre}>
+                      {JSON.stringify(row.reducer.state, null, 2)}
+                    </pre>
+                    {row.reducer.emitted_events.length > 0 && (
+                      <>
+                        <div style={styles.badge}>Emitted</div>
+                        <pre style={styles.pre}>
+                          {JSON.stringify(row.reducer.emitted_events, null, 2)}
+                        </pre>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

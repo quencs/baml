@@ -427,6 +427,7 @@ impl BamlRuntime {
                                     }
                                 }
                             }
+                            baml_compiler::watch::WatchBamlValue::VizExecState(_) => {}
                             baml_compiler::watch::WatchBamlValue::StreamStart(stream_id) => {
                                 if let Some(var_name) = &notification.variable_name {
                                     let channel =
@@ -635,6 +636,7 @@ impl BamlRuntime {
                                     }
                                 }
                             }
+                            baml_compiler::watch::WatchBamlValue::VizExecState(_) => {}
                             baml_compiler::watch::WatchBamlValue::StreamStart(stream_id) => {
                                 if let Some(var_name) = &event.variable_name {
                                     let channel = event.channel_name.as_ref().unwrap_or(var_name);

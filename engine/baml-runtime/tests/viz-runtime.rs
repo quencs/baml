@@ -1,17 +1,16 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs,
     path::Path,
     sync::{Arc, Mutex},
 };
 
 use baml_compiler::watch::{shared_handler, SharedWatchHandler, WatchBamlValue, WatchNotification};
+use baml_compiler::watch::{VizExecDelta, VizExecEvent};
 use baml_runtime::{FunctionResult, RuntimeContextManager, TripWire};
 use internal_baml_core::feature_flags::FeatureFlags;
 use serde::Serialize;
 use serde_json::Value;
-
-type DynResult<T> = anyhow::Result<T>;
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 enum LexicalState {
@@ -27,6 +26,13 @@ struct StateUpdate {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ReducerSnapshot {
+    state_update: StateUpdate,
+    state: BTreeMap<String, LexicalState>,
+    emitted_events: Vec<VizExecEvent>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct EventRecord {
     kind: String,
     function: String,
@@ -34,6 +40,7 @@ struct EventRecord {
     channel: Option<String>,
     stream_id: Option<String>,
     header: Option<HeaderEvent>,
+    viz_event: Option<VizExecEvent>,
     value: Option<Value>,
     is_stream: bool,
 }
@@ -50,24 +57,38 @@ struct VizStateReducer {
 }
 
 impl VizStateReducer {
-    // Stub reducer: once lexical IDs are provided by the runtime, this should map
-    // events to concrete node state transitions instead of this placeholder toggle.
-    fn apply(&mut self, event: &EventRecord) -> StateUpdate {
+    fn apply(&mut self, event: &EventRecord) -> ReducerSnapshot {
         let lexical_id = build_lexical_id(event);
-        let current = self
-            .states
-            .get(&lexical_id)
-            .copied()
-            .unwrap_or(LexicalState::NotRunning);
-        let next = match current {
-            LexicalState::NotRunning => LexicalState::Running,
-            LexicalState::Running => LexicalState::Completed,
-            LexicalState::Completed => LexicalState::Completed,
+        let next = if let Some(viz_event) = &event.viz_event {
+            match viz_event.event {
+                VizExecDelta::Enter => LexicalState::Running,
+                VizExecDelta::Exit => LexicalState::Completed,
+            }
+        } else {
+            let current = self
+                .states
+                .get(&lexical_id)
+                .copied()
+                .unwrap_or(LexicalState::NotRunning);
+            match current {
+                LexicalState::NotRunning => LexicalState::Running,
+                LexicalState::Running => LexicalState::Completed,
+                LexicalState::Completed => LexicalState::Completed,
+            }
         };
+
         self.states.insert(lexical_id.clone(), next.clone());
-        StateUpdate {
-            lexical_id,
-            new_state: next,
+        ReducerSnapshot {
+            state_update: StateUpdate {
+                lexical_id,
+                new_state: next,
+            },
+            state: self
+                .states
+                .iter()
+                .map(|(key, state)| (key.clone(), *state))
+                .collect(),
+            emitted_events: Vec::new(),
         }
     }
 }
@@ -86,6 +107,29 @@ impl ContextStack {
             self.frames.push(format!("fn:{}", event.function));
         }
 
+        if let Some(viz_event) = &event.viz_event {
+            match viz_event.event {
+                VizExecDelta::Enter => {
+                    // HeaderContextEnter uses header_level to dedent before pushing.
+                    if let Some(level) = viz_event.header_level {
+                        while self.frames.len() > level as usize {
+                            self.frames.pop();
+                        }
+                    }
+                    self.frames
+                        .push(format!("viz:{}", viz_event.lexical_id.clone()));
+                }
+                VizExecDelta::Exit => {
+                    let expected = format!("viz:{}", viz_event.lexical_id);
+                    if self.frames.last().is_some_and(|top| top == &expected) {
+                        self.frames.pop();
+                    }
+                }
+            }
+
+            return self.frames.clone();
+        }
+
         if let Some(header) = &event.header {
             while self.frames.len() >= header.level as usize {
                 self.frames.pop();
@@ -100,9 +144,9 @@ impl ContextStack {
 
 #[derive(Debug, Clone, Serialize)]
 struct StreamSnapshot {
-    event: EventRecord,
+    watch_event: EventRecord,
     stack_after: Vec<String>,
-    state_update: StateUpdate,
+    reducer: ReducerSnapshot,
 }
 
 #[derive(Debug, Serialize)]
@@ -114,7 +158,6 @@ struct FixtureSnapshot {
 #[test]
 fn viz_runtime_snapshots() {
     let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
-    let write_artifacts = should_write_artifacts();
     let snapshot_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("viz-runtime")
@@ -132,18 +175,13 @@ fn viz_runtime_snapshots() {
 
             let snapshot = rt.block_on(run_fixture(&fixture)).expect("fixture run");
 
-            if write_artifacts {
-                write_fixture_artifacts(&snapshot, &fixture, &fixture_name)
-                    .expect("write viz artifacts");
-            }
-
             let snapshot_name = format!("viz_runtime__{}", fixture_name.replace('-', "_"));
             insta::assert_yaml_snapshot!(snapshot_name, &snapshot);
         });
     });
 }
 
-async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
+async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let relative = path
         .strip_prefix(&root)
@@ -164,7 +202,7 @@ async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
 
     let events = Arc::new(Mutex::new(Vec::<EventRecord>::new()));
     let stacks = Arc::new(Mutex::new(Vec::<Vec<String>>::new()));
-    let updates = Arc::new(Mutex::new(Vec::<StateUpdate>::new()));
+    let reducer_snapshots = Arc::new(Mutex::new(Vec::<ReducerSnapshot>::new()));
 
     let reducer = Arc::new(Mutex::new(VizStateReducer::default()));
     let stack_tracker = Arc::new(Mutex::new(ContextStack::default()));
@@ -172,7 +210,7 @@ async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
     let handler = build_watch_handler(
         events.clone(),
         stacks.clone(),
-        updates.clone(),
+        reducer_snapshots.clone(),
         reducer.clone(),
         stack_tracker.clone(),
     );
@@ -201,15 +239,15 @@ async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
 
     let events = events.lock().unwrap();
     let stacks = stacks.lock().unwrap();
-    let updates = updates.lock().unwrap();
+    let reducer_snapshots = reducer_snapshots.lock().unwrap();
 
     let snapshots: Vec<_> = events
         .iter()
         .enumerate()
         .map(|(idx, event)| StreamSnapshot {
-            event: event.clone(),
+            watch_event: event.clone(),
             stack_after: stacks.get(idx).cloned().unwrap_or_default(),
-            state_update: updates.get(idx).cloned().unwrap(),
+            reducer: reducer_snapshots.get(idx).cloned().unwrap(),
         })
         .collect();
 
@@ -226,7 +264,7 @@ async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
 fn build_watch_handler(
     events: Arc<Mutex<Vec<EventRecord>>>,
     stacks: Arc<Mutex<Vec<Vec<String>>>>,
-    updates: Arc<Mutex<Vec<StateUpdate>>>,
+    reducer_snapshots: Arc<Mutex<Vec<ReducerSnapshot>>>,
     reducer: Arc<Mutex<VizStateReducer>>,
     stack_tracker: Arc<Mutex<ContextStack>>,
 ) -> SharedWatchHandler {
@@ -238,22 +276,30 @@ fn build_watch_handler(
         drop(stack_guard);
 
         let mut reducer_guard = reducer.lock().unwrap();
-        let update = reducer_guard.apply(&event);
+        let reducer_snapshot = reducer_guard.apply(&event);
         drop(reducer_guard);
 
         events.lock().unwrap().push(event);
         stacks.lock().unwrap().push(stack_after);
-        updates.lock().unwrap().push(update);
+        reducer_snapshots
+            .lock()
+            .unwrap()
+            .push(reducer_snapshot);
     })
 }
 
 fn to_event_record(notification: &WatchNotification) -> EventRecord {
-    let (kind, stream_id) = match &notification.value {
-        WatchBamlValue::Value(_) => ("value".to_string(), None),
-        WatchBamlValue::Header(_) => ("header".to_string(), None),
-        WatchBamlValue::StreamStart(id) => ("stream_start".to_string(), Some(id.clone())),
-        WatchBamlValue::StreamUpdate(id, _) => ("stream_update".to_string(), Some(id.clone())),
-        WatchBamlValue::StreamEnd(id) => ("stream_end".to_string(), Some(id.clone())),
+    let (kind, stream_id, viz_event) = match &notification.value {
+        WatchBamlValue::Value(_) => ("value".to_string(), None, None),
+        WatchBamlValue::Header(_) => ("header".to_string(), None, None),
+        WatchBamlValue::VizExecState(event) => {
+            ("viz_exec_state".to_string(), None, Some(event.clone()))
+        }
+        WatchBamlValue::StreamStart(id) => ("stream_start".to_string(), Some(id.clone()), None),
+        WatchBamlValue::StreamUpdate(id, _) => {
+            ("stream_update".to_string(), Some(id.clone()), None)
+        }
+        WatchBamlValue::StreamEnd(id) => ("stream_end".to_string(), Some(id.clone()), None),
     };
 
     let header = match &notification.value {
@@ -277,27 +323,17 @@ fn to_event_record(notification: &WatchNotification) -> EventRecord {
         channel: notification.channel_name.clone(),
         stream_id,
         header,
+        viz_event,
         value,
         is_stream: notification.is_stream,
     }
 }
 
-fn write_jsonl<'a, T, I>(path: &Path, rows: I) -> DynResult<()>
-where
-    T: Serialize + 'a,
-    I: IntoIterator<Item = &'a T>,
-{
-    let mut lines = String::new();
-    for row in rows {
-        let serialized = serde_json::to_string(row)?;
-        lines.push_str(&serialized);
-        lines.push('\n');
-    }
-    fs::write(path, lines)?;
-    Ok(())
-}
-
 fn build_lexical_id(event: &EventRecord) -> String {
+    if let Some(viz) = &event.viz_event {
+        return viz.lexical_id.clone();
+    }
+
     // Placeholder heuristic until runtime watch notifications expose lexical IDs directly.
     if let Some(header) = &event.header {
         format!("{}|hdr:{}:{}", event.function, header.level, header.title)
@@ -308,39 +344,4 @@ fn build_lexical_id(event: &EventRecord) -> String {
     } else {
         format!("{}|event", event.function)
     }
-}
-
-fn should_write_artifacts() -> bool {
-    std::env::var_os("BAML_VIZ_WRITE_ARTIFACTS").is_some()
-        || std::env::var_os("INSTA_UPDATE").is_some()
-}
-
-fn write_fixture_artifacts(
-    snapshot: &FixtureSnapshot,
-    fixture_path: &Path,
-    fixture_name: &str,
-) -> DynResult<()> {
-    let base_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("viz-runtime")
-        .join("snapshots");
-    fs::create_dir_all(&base_dir)?;
-    let events_path = base_dir.join(format!("{fixture_name}.events.jsonl"));
-    let stack_path = base_dir.join(format!("{fixture_name}.stack.jsonl"));
-    let updates_path = base_dir.join(format!("{fixture_name}.updates.jsonl"));
-
-    write_jsonl(
-        &events_path,
-        snapshot.snapshots.iter().map(|row| &row.event),
-    )?;
-    write_jsonl(
-        &stack_path,
-        snapshot.snapshots.iter().map(|row| &row.stack_after),
-    )?;
-    write_jsonl(
-        &updates_path,
-        snapshot.snapshots.iter().map(|row| &row.state_update),
-    )?;
-
-    Ok(())
 }

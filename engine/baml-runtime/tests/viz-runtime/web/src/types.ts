@@ -10,6 +10,7 @@ export interface EventRecord {
     level: number;
     title: string;
   };
+  viz_event?: VizExecEvent | null;
   value?: unknown;
   is_stream: boolean;
 }
@@ -19,16 +20,36 @@ export interface StateUpdate {
   new_state: LexicalState;
 }
 
+export type VizExecDelta = "enter" | "exit";
+
+export interface VizExecEvent {
+  event: VizExecDelta;
+  node_type: string;
+  lexical_id: string;
+  label: string;
+  header_level?: number | null;
+}
+
+export interface ReducerSnapshot {
+  state_update: StateUpdate;
+  state: Record<string, LexicalState>;
+  emitted_events: VizExecEvent[];
+}
+
+export interface SnapshotRow {
+  watch_event: EventRecord;
+  stack_after: string[];
+  reducer: ReducerSnapshot;
+}
+
 export interface SnapshotEntry {
   fixture: string;
-  eventsText: string;
-  stackText: string;
-  updatesText: string;
+  rows: SnapshotRow[];
 }
 
 export interface CombinedRow {
   index: number;
-  event: EventRecord;
-  stack: string[];
-  update: StateUpdate;
+  watchEvent: EventRecord;
+  stackAfter: string[];
+  reducer: ReducerSnapshot;
 }
