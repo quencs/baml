@@ -1,0 +1,37 @@
+---
+source: baml-runtime/tests/viz_runtime.rs
+expression: "&snapshot"
+input_file: baml-runtime/tests/viz-runtime/testdata/straight_line_with_headers.baml
+---
+fixture: straight_line_with_headers.baml
+snapshots:
+  - event:
+      kind: header
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      header:
+        level: 1
+        title: Start
+      value: ~
+      is_stream: false
+    stack_after:
+      - "hdr:1:Start"
+    state_update:
+      lexical_id: "MyFunction1|hdr:1:Start"
+      new_state: Running
+  - event:
+      kind: header
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      header:
+        level: 1
+        title: Finish
+      value: ~
+      is_stream: false
+    stack_after:
+      - "hdr:1:Finish"
+    state_update:
+      lexical_id: "MyFunction1|hdr:1:Finish"
+      new_state: Running

@@ -1,0 +1,22 @@
+---
+source: baml-runtime/tests/viz_runtime.rs
+expression: "&snapshot"
+input_file: baml-runtime/tests/viz-runtime/testdata/simple_if_else.baml
+---
+fixture: simple_if_else.baml
+snapshots:
+  - event:
+      kind: header
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      header:
+        level: 1
+        title: Check
+      value: ~
+      is_stream: false
+    stack_after:
+      - "hdr:1:Check"
+    state_update:
+      lexical_id: "MyFunction1|hdr:1:Check"
+      new_state: Running

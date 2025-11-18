@@ -1,0 +1,61 @@
+---
+source: baml-runtime/tests/viz_runtime.rs
+expression: "&snapshot"
+input_file: baml-runtime/tests/viz-runtime/testdata/simple_loop.baml
+---
+fixture: simple_loop.baml
+snapshots:
+  - event:
+      kind: header
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      header:
+        level: 1
+        title: Loop
+      value: ~
+      is_stream: false
+    stack_after:
+      - "hdr:1:Loop"
+    state_update:
+      lexical_id: "MyFunction1|hdr:1:Loop"
+      new_state: Running
+  - event:
+      kind: value
+      function: MyFunction1
+      variable: acc
+      channel: acc
+      header: ~
+      value: a
+      is_stream: false
+    stack_after:
+      - "hdr:1:Loop"
+    state_update:
+      lexical_id: "MyFunction1|chan:acc"
+      new_state: Running
+  - event:
+      kind: value
+      function: MyFunction1
+      variable: acc
+      channel: acc
+      header: ~
+      value: ab
+      is_stream: false
+    stack_after:
+      - "hdr:1:Loop"
+    state_update:
+      lexical_id: "MyFunction1|chan:acc"
+      new_state: Completed
+  - event:
+      kind: value
+      function: MyFunction1
+      variable: acc
+      channel: acc
+      header: ~
+      value: abc
+      is_stream: false
+    stack_after:
+      - "hdr:1:Loop"
+    state_update:
+      lexical_id: "MyFunction1|chan:acc"
+      new_state: Completed

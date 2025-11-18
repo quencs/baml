@@ -1,0 +1,4 @@
+{"lexical_id":"MyFunction1|hdr:1:Loop","new_state":"Running"}
+{"lexical_id":"MyFunction1|chan:acc","new_state":"Running"}
+{"lexical_id":"MyFunction1|chan:acc","new_state":"Completed"}
+{"lexical_id":"MyFunction1|chan:acc","new_state":"Completed"}
