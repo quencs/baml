@@ -6,6 +6,40 @@ input_file: baml-runtime/tests/viz-runtime/testdata/simple_if_else.baml
 fixture: simple_if_else.baml
 snapshots:
   - watch_event:
+      kind: viz_exec_state
+      function: Main
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: function_root
+        lexical_id: "Main|root:0"
+        label: Main
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: function_root
+        lexical_id: "MyFunction4|root:0"
+        label: MyFunction4
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
       kind: header
       function: MyFunction4
       variable: ~
@@ -15,6 +49,142 @@ snapshots:
         level: 1
         title: Check
       viz_event: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: header_context_enter
+        lexical_id: "MyFunction4|root:0|hdr:check:0"
+        label: Check
+        header_level: 1
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: branch_group
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
+        label: if (flag)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: branch_arm
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
+        label: if (flag)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: branch_arm
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
+        label: else
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: branch_arm
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
+        label: else
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: branch_arm
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
+        label: if (flag)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: function_root
+        lexical_id: "MyFunction4|root:0"
+        label: MyFunction4
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: Main
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: function_root
+        lexical_id: "Main|root:0"
+        label: Main
+        header_level: ~
       value: ~
       is_stream: false
     stack_after: []

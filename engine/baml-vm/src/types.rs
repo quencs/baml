@@ -1,4 +1,5 @@
 use baml_types::{BamlMap, BamlMedia, TypeIR};
+use baml_viz_events::RuntimeNodeType;
 
 use crate::{
     bytecode::Bytecode,
@@ -59,6 +60,9 @@ pub struct Function {
     /// Stores metadata about annotated blocks (//# annotations) in this function.
     /// Instructions reference these by index.
     pub block_notifications: Vec<crate::bytecode::BlockNotification>,
+
+    /// Control-flow visualization metadata indexed by viz instructions.
+    pub viz_nodes: Vec<VizNodeMeta>,
 }
 
 impl std::fmt::Display for Function {
@@ -129,6 +133,25 @@ impl std::fmt::Display for Variant {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<variant of {}>", self.enm)
     }
+}
+
+/// Static metadata describing a control-flow visualization node.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VizNodeMeta {
+    /// Unique lexical node id within a function.
+    pub id: String,
+
+    /// Parent lexical node id, if any.
+    pub parent: Option<String>,
+
+    /// Logical node type, shared with the viz events crate.
+    pub node_type: RuntimeNodeType,
+
+    /// Human-readable label used in the visualization.
+    pub label: String,
+
+    /// Markdown header level for header nodes.
+    pub header_level: Option<u8>,
 }
 
 /// Runtime values.

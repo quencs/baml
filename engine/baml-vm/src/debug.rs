@@ -29,7 +29,7 @@ use colored::{Color, Colorize};
 use crate::{
     bytecode::Instruction,
     indexable::{EvalStack, GlobalPool},
-    types::{Function, Object, Value},
+    types::{Function, Object, Value, VizNodeMeta},
     ObjectIndex, ObjectPool, StackIndex,
 };
 
@@ -114,6 +114,9 @@ pub fn display_instruction(
         }
         Instruction::Jump(offset) | Instruction::JumpIfFalse(offset) => {
             format!("(to {})", instruction_ptr + offset)
+        }
+        Instruction::VizEnter(index) | Instruction::VizExit(index) => {
+            viz_metadata(*index, &function.viz_nodes)
         }
         Instruction::AllocInstance(index) | Instruction::AllocVariant(index) => {
             format!("({})", display_object(objects, *index))
@@ -208,6 +211,7 @@ fn instruction_color(instruction: &Instruction) -> Color {
         | Instruction::AllocVariant(_)
         | Instruction::AllocArray(_) => Color::Cyan,
         Instruction::DispatchFuture(_) | Instruction::Await => Color::BrightGreen,
+        Instruction::VizEnter(_) | Instruction::VizExit(_) => Color::White,
         Instruction::Watch(_) | Instruction::Notify(_) => Color::BrightRed,
     }
 }
@@ -361,6 +365,28 @@ pub fn display_bytecode(
     }
 
     table
+}
+
+fn viz_metadata(index: usize, nodes: &[VizNodeMeta]) -> String {
+    match nodes.get(index) {
+        Some(node) => {
+            let mut metadata = vec![
+                format!("id={}", node.id),
+                format!("type={:?}", node.node_type),
+            ];
+            if let Some(parent) = &node.parent {
+                metadata.push(format!("parent={parent}"));
+            }
+            if !node.label.is_empty() {
+                metadata.push(format!("label=\"{}\"", node.label));
+            }
+            if let Some(level) = node.header_level {
+                metadata.push(format!("level={level}"));
+            }
+            format!("({})", metadata.join(", "))
+        }
+        None => format!("(invalid viz index: {index})"),
+    }
 }
 
 /// Prints the dissassembly of a function.

@@ -5,6 +5,7 @@
 //! order of globals, constants, and objects.
 
 use baml_types::{BamlMap, BamlMedia};
+use baml_viz_events::VizExecEvent;
 use indexmap::IndexMap;
 
 use crate::{
@@ -211,6 +212,10 @@ pub enum Notification {
     Channel(String),
     Object(Object),
     Block(BlockEvent),
+    Viz {
+        function_name: String,
+        event: VizExecEvent,
+    },
 }
 
 impl Notification {
@@ -220,6 +225,13 @@ impl Notification {
 
     pub fn block(notification: VmBlockNotification) -> Self {
         Notification::Block(BlockEvent::from_vm(notification))
+    }
+
+    pub fn viz(function_name: String, event: VizExecEvent) -> Self {
+        Notification::Viz {
+            function_name,
+            event,
+        }
     }
 }
 
@@ -276,6 +288,12 @@ impl ExecState {
                 VmWatchNotification::Block(notification) => {
                     Ok(ExecState::Emit(vec![Notification::block(notification)]))
                 }
+                VmWatchNotification::Viz {
+                    function_name,
+                    event,
+                } => Ok(ExecState::Emit(vec![Notification::viz(
+                    function_name, event,
+                )])),
             },
         }
     }

@@ -402,6 +402,19 @@ impl BamlAsyncVmRuntime {
                                 }
                             }
                         }
+                        baml_vm::vm::WatchNotification::Viz {
+                            function_name,
+                            event,
+                        } => {
+                            if let Some(handler) = watch_handler.as_ref() {
+                                if let Ok(mut handler) = handler.lock() {
+                                    handler.notify(watch::WatchNotification::new_viz_exec_state(
+                                        event,
+                                        function_name,
+                                    ));
+                                }
+                            }
+                        }
                     }
                 }
 

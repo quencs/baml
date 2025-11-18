@@ -6,6 +6,40 @@ input_file: baml-runtime/tests/viz-runtime/testdata/simple_loop.baml
 fixture: simple_loop.baml
 snapshots:
   - watch_event:
+      kind: viz_exec_state
+      function: Main
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: function_root
+        lexical_id: "Main|root:0"
+        label: Main
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: function_root
+        lexical_id: "MyFunction1|root:0"
+        label: MyFunction1
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
       kind: header
       function: MyFunction1
       variable: ~
@@ -15,6 +49,40 @@ snapshots:
         level: 1
         title: Loop
       viz_event: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: header_context_enter
+        lexical_id: "MyFunction1|root:0|hdr:loop:0"
+        label: Loop
+        header_level: 1
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: loop
+        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        label: for (item in items)
+        header_level: ~
       value: ~
       is_stream: false
     stack_after: []
@@ -32,6 +100,40 @@ snapshots:
     stack_after: []
     emitted_events: []
   - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: loop
+        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        label: for (item in items)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: loop
+        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        label: for (item in items)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
       kind: value
       function: MyFunction1
       variable: acc
@@ -44,6 +146,40 @@ snapshots:
     stack_after: []
     emitted_events: []
   - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: loop
+        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        label: for (item in items)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: loop
+        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        label: for (item in items)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
       kind: value
       function: MyFunction1
       variable: acc
@@ -52,6 +188,57 @@ snapshots:
       header: ~
       viz_event: ~
       value: abc
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: loop
+        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        label: for (item in items)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction1
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: function_root
+        lexical_id: "MyFunction1|root:0"
+        label: MyFunction1
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: Main
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: function_root
+        lexical_id: "Main|root:0"
+        label: Main
+        header_level: ~
+      value: ~
       is_stream: false
     stack_after: []
     emitted_events: []

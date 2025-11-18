@@ -3,6 +3,8 @@ pub mod codegen;
 pub mod hir;
 pub mod thir;
 pub mod watch;
+pub mod viz;
+mod viz_builder;
 
 pub use codegen::compile;
 

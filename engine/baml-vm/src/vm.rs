@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
 use baml_types::{BamlMap, BamlMedia};
+use baml_viz_events::{VizExecDelta, VizExecEvent};
 
 use crate::{
     bytecode::{BinOp, BlockNotification, CmpOp, Instruction},
     errors::{ErrorLocation, InternalError, RuntimeError, VmError},
     indexable::{EvalStack, GlobalPool, ObjectIndex, ObjectPool, StackIndex},
     types::{
-        FunctionKind, FunctionType, Future, FutureKind, FutureType, Instance, Object, ObjectType,
-        PendingFuture, Type, Value, Variant,
+        Function, FunctionKind, FunctionType, Future, FutureKind, FutureType, Instance, Object,
+        ObjectType, PendingFuture, Type, Value, Variant,
     },
     watch::{self, NodeId, RootState, Watch, WatchFilter},
     StackTrace, UnaryOp,
@@ -41,6 +42,28 @@ pub struct Frame {
 
     /// Local variables offset in the eval stack.
     pub locals_offset: StackIndex,
+}
+
+fn build_viz_exec_event(
+    function: &Function,
+    index: usize,
+    delta: VizExecDelta,
+) -> Result<VizExecEvent, VmError> {
+    let Some(node) = function.viz_nodes.get(index) else {
+        return Err(InternalError::ArrayIndexOutOfBounds {
+            index,
+            length: function.viz_nodes.len(),
+        }
+        .into());
+    };
+
+    Ok(VizExecEvent {
+        event: delta,
+        node_type: node.node_type.clone(),
+        lexical_id: node.id.clone(),
+        label: node.label.clone(),
+        header_level: node.header_level,
+    })
 }
 
 /// The beast.
@@ -231,6 +254,10 @@ pub enum VmExecState {
 pub enum WatchNotification {
     Variables(Vec<watch::NodeId>),
     Block(BlockNotification),
+    Viz {
+        function_name: String,
+        event: VizExecEvent,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -655,6 +682,21 @@ impl Vm {
                     return Ok(VmExecState::Notify(WatchNotification::Block(
                         full_notification,
                     )));
+                }
+                Instruction::VizEnter(_) | Instruction::VizExit(_) => {
+                    let instruction = &function.bytecode.instructions[instruction_ptr as usize];
+                    let (index, delta) = match instruction {
+                        Instruction::VizEnter(index) => (*index, VizExecDelta::Enter),
+                        Instruction::VizExit(index) => (*index, VizExecDelta::Exit),
+                        _ => unreachable!("matched on viz instruction"),
+                    };
+
+                    let event = build_viz_exec_event(&function, index, delta)?;
+
+                    return Ok(VmExecState::Notify(WatchNotification::Viz {
+                        function_name: function.name.clone(),
+                        event,
+                    }));
                 }
                 Instruction::LoadConst(index) => {
                     let value = &function.bytecode.constants[index];

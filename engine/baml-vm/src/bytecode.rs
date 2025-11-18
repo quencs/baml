@@ -217,6 +217,18 @@ pub enum Instruction {
     /// Manually triggers notifications for a watched variable.
     Notify(usize),
 
+    /// Enter a visualization node.
+    ///
+    /// Format: `VIZ_ENTER i` where `i` is the index into the current
+    /// function's `viz_nodes` array.
+    VizEnter(usize),
+
+    /// Exit a visualization node.
+    ///
+    /// Format: `VIZ_EXIT i` where `i` is the index into the current
+    /// function's `viz_nodes` array.
+    VizExit(usize),
+
     /// Call a function.
     ///
     /// Format: `CALL n` where `n` is the number of arguments passed to the
@@ -372,6 +384,8 @@ impl std::fmt::Display for Instruction {
                 write!(f, "NOTIFY_BLOCK {block_index}")
             }
             Instruction::Notify(i) => write!(f, "NOTIFY {i}"),
+            Instruction::VizEnter(i) => write!(f, "VIZ_ENTER {i}"),
+            Instruction::VizExit(i) => write!(f, "VIZ_EXIT {i}"),
         }
     }
 }
