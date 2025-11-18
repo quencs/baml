@@ -46,15 +46,6 @@ function ExtractData {
     interpolations: [text]
   }
 }
-function LLMAnalyze {
-  params: [text: String]
-  return: Path(Path { segments: ["Analysis"], kind: Plain })
-  body: Llm {
-    client: GPT4
-    prompt: "\n    Analyze the following text:\n    {{ text }}\n    \n    Return an Analysis object with sentiment and keywords.\n  "
-    interpolations: [text]
-  }
-}
 function ProcessAnalysis {
   params: [analysis: Path(Path { segments: ["Analysis"], kind: Plain })]
   return: String
@@ -72,6 +63,15 @@ function ChainedProcess {
     client: GPT4
     prompt: "\n    Process this through multiple steps:\n    1. {{ input }}\n    2. Transform it\n    3. Return result\n  "
     interpolations: [input]
+  }
+}
+function LLMAnalyze {
+  params: [text: String]
+  return: Path(Path { segments: ["Analysis"], kind: Plain })
+  body: Llm {
+    client: GPT4
+    prompt: "\n    Analyze the following text:\n    {{ text }}\n    \n    Return an Analysis object with sentiment and keywords.\n  "
+    interpolations: [text]
   }
 }
 function SimpleCalc {

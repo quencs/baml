@@ -3,17 +3,8 @@ source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
-function stringArray {
-  return: List(Path(Path { segments: ["string"], kind: Plain }))
-  body: Expr {
-    exprs: [
-      Idx::<Expr>(0): Missing
-    ]
-    root: Idx::<Expr>(0)
-  }
-}
-function intArray {
-  return: List(Path(Path { segments: ["int"], kind: Plain }))
+function boolArray {
+  return: List(Path(Path { segments: ["bool"], kind: Plain }))
   body: Expr {
     exprs: [
       Idx::<Expr>(0): Missing
@@ -30,8 +21,8 @@ function floatArray {
     root: Idx::<Expr>(0)
   }
 }
-function boolArray {
-  return: List(Path(Path { segments: ["bool"], kind: Plain }))
+function pointArray {
+  return: List(Path(Path { segments: ["Point"], kind: Plain }))
   body: Expr {
     exprs: [
       Idx::<Expr>(0): Missing
@@ -39,8 +30,17 @@ function boolArray {
     root: Idx::<Expr>(0)
   }
 }
-function pointArray {
-  return: List(Path(Path { segments: ["Point"], kind: Plain }))
+function stringArray {
+  return: List(Path(Path { segments: ["string"], kind: Plain }))
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
+}
+function intArray {
+  return: List(Path(Path { segments: ["int"], kind: Plain }))
   body: Expr {
     exprs: [
       Idx::<Expr>(0): Missing
@@ -70,13 +70,22 @@ function vec2d {
     root: Idx::<Expr>(0)
   }
 }
+class Vec2D {
+  p: Path(Path { segments: ["Point"], kind: Plain })
+  q: Path(Path { segments: ["Point"], kind: Plain })
+}
 class Point {
   x: Int
   y: Int
 }
-class Vec2D {
-  p: Path(Path { segments: ["Point"], kind: Plain })
-  q: Path(Path { segments: ["Point"], kind: Plain })
+function floatValues {
+  return: Path(Path { segments: ["map<string, float>"], kind: Plain })
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Missing
+    ]
+    root: Idx::<Expr>(0)
+  }
 }
 function stringValues {
   return: Path(Path { segments: ["map<string, string>"], kind: Plain })
@@ -89,15 +98,6 @@ function stringValues {
 }
 function intValues {
   return: Path(Path { segments: ["map<string, int>"], kind: Plain })
-  body: Expr {
-    exprs: [
-      Idx::<Expr>(0): Missing
-    ]
-    root: Idx::<Expr>(0)
-  }
-}
-function floatValues {
-  return: Path(Path { segments: ["map<string, float>"], kind: Plain })
   body: Expr {
     exprs: [
       Idx::<Expr>(0): Missing

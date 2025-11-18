@@ -168,7 +168,7 @@ pub fn type_alias_generic_params(_db: &dyn Db, _alias: TypeAliasId<'_>) -> Arc<G
 /// Intern all items from an `ItemTree` and return their IDs.
 ///
 /// Uses name-based `LocalItemIds` for position-independence.
-/// Items are returned in source order by sorting by arena index.
+/// Items are returned sorted by their ID value for deterministic ordering.
 fn intern_all_items<'db>(
     db: &'db dyn Db,
     file: baml_base::FileId,
@@ -176,51 +176,51 @@ fn intern_all_items<'db>(
 ) -> Vec<ItemId<'db>> {
     let mut items = Vec::new();
 
-    // Intern functions - sort by arena index to maintain source order
-    let mut funcs: Vec<_> = tree.function_map.iter().collect();
-    funcs.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
-    for (local_id, _arena_idx) in funcs {
-        let loc = FunctionLoc::new(db, file, *local_id);
+    // Intern functions - sort by ID for deterministic order
+    let mut funcs: Vec<_> = tree.functions.keys().copied().collect();
+    funcs.sort_by_key(|id| id.as_u32());
+    for local_id in funcs {
+        let loc = FunctionLoc::new(db, file, local_id);
         items.push(ItemId::Function(loc));
     }
 
     // Intern classes
-    let mut classes: Vec<_> = tree.class_map.iter().collect();
-    classes.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
-    for (local_id, _arena_idx) in classes {
-        let loc = ClassLoc::new(db, file, *local_id);
+    let mut classes: Vec<_> = tree.classes.keys().copied().collect();
+    classes.sort_by_key(|id| id.as_u32());
+    for local_id in classes {
+        let loc = ClassLoc::new(db, file, local_id);
         items.push(ItemId::Class(loc));
     }
 
     // Intern enums
-    let mut enums: Vec<_> = tree.enum_map.iter().collect();
-    enums.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
-    for (local_id, _arena_idx) in enums {
-        let loc = EnumLoc::new(db, file, *local_id);
+    let mut enums: Vec<_> = tree.enums.keys().copied().collect();
+    enums.sort_by_key(|id| id.as_u32());
+    for local_id in enums {
+        let loc = EnumLoc::new(db, file, local_id);
         items.push(ItemId::Enum(loc));
     }
 
     // Intern type aliases
-    let mut aliases: Vec<_> = tree.type_alias_map.iter().collect();
-    aliases.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
-    for (local_id, _arena_idx) in aliases {
-        let loc = TypeAliasLoc::new(db, file, *local_id);
+    let mut aliases: Vec<_> = tree.type_aliases.keys().copied().collect();
+    aliases.sort_by_key(|id| id.as_u32());
+    for local_id in aliases {
+        let loc = TypeAliasLoc::new(db, file, local_id);
         items.push(ItemId::TypeAlias(loc));
     }
 
     // Intern clients
-    let mut clients: Vec<_> = tree.client_map.iter().collect();
-    clients.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
-    for (local_id, _arena_idx) in clients {
-        let loc = ClientLoc::new(db, file, *local_id);
+    let mut clients: Vec<_> = tree.clients.keys().copied().collect();
+    clients.sort_by_key(|id| id.as_u32());
+    for local_id in clients {
+        let loc = ClientLoc::new(db, file, local_id);
         items.push(ItemId::Client(loc));
     }
 
     // Intern tests
-    let mut tests: Vec<_> = tree.test_map.iter().collect();
-    tests.sort_by_key(|(_, arena_idx)| arena_idx.into_raw());
-    for (local_id, _arena_idx) in tests {
-        let loc = TestLoc::new(db, file, *local_id);
+    let mut tests: Vec<_> = tree.tests.keys().copied().collect();
+    tests.sort_by_key(|id| id.as_u32());
+    for local_id in tests {
+        let loc = TestLoc::new(db, file, local_id);
         items.push(ItemId::Test(loc));
     }
 

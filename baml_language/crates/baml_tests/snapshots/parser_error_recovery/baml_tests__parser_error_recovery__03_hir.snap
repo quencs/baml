@@ -22,11 +22,6 @@ class User {
   Another: Path(Path { segments: [""], kind: Plain })
   field: Int
 }
-function Incomplete {
-  params: [param1: String]
-  return: Unknown
-  body: Missing
-}
 function NextFunction {
   return: String
   body: Expr {
@@ -35,6 +30,11 @@ function NextFunction {
     ]
     root: Idx::<Expr>(0)
   }
+}
+function Incomplete {
+  params: [param1: String]
+  return: Unknown
+  body: Missing
 }
 class Partial {
   field1: Path(Path { segments: ["str"], kind: Plain })
