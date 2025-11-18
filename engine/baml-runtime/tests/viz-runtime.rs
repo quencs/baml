@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Arc, Mutex},
 };
 
@@ -32,6 +32,7 @@ struct EventRecord {
     function: String,
     variable: Option<String>,
     channel: Option<String>,
+    stream_id: Option<String>,
     header: Option<HeaderEvent>,
     value: Option<Value>,
     is_stream: bool,
@@ -49,6 +50,8 @@ struct VizStateReducer {
 }
 
 impl VizStateReducer {
+    // Stub reducer: once lexical IDs are provided by the runtime, this should map
+    // events to concrete node state transitions instead of this placeholder toggle.
     fn apply(&mut self, event: &EventRecord) -> StateUpdate {
         let lexical_id = build_lexical_id(event);
         let current = self
@@ -69,6 +72,8 @@ impl VizStateReducer {
     }
 }
 
+// NOTE: Intentionally stubbed; leave this simplistic until a later project
+// fills out the real runtime-aware context tracking semantics.
 #[derive(Default)]
 struct ContextStack {
     frames: Vec<String>,
@@ -76,6 +81,7 @@ struct ContextStack {
 
 impl ContextStack {
     fn apply(&mut self, event: &EventRecord) -> Vec<String> {
+        // Keep this minimal; a later pass will replace it with real call/header stack tracking.
         if self.frames.is_empty() {
             self.frames.push(format!("fn:{}", event.function));
         }
@@ -108,55 +114,37 @@ struct FixtureSnapshot {
 #[test]
 fn viz_runtime_snapshots() {
     let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
-    let manifest_entries: Arc<Mutex<Vec<serde_json::Value>>> = Arc::new(Mutex::new(Vec::new()));
-    insta::glob!("viz-runtime/testdata", "*.baml", |relative| {
-        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests")
-            .join(relative);
-        let fixture_name = Path::new(relative)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or_default()
-            .to_string();
-
-        let snapshot = rt
-            .block_on(run_fixture(&fixture))
-            .expect("fixture run");
-
-        manifest_entries.lock().unwrap().push(serde_json::json!({
-            "fixture": fixture_name,
-            "events": format!("{}.events.jsonl", fixture_name),
-            "stack": format!("{}.stack.jsonl", fixture_name),
-            "updates": format!("{}.updates.jsonl", fixture_name),
-        }));
-
-        let snapshot_name = format!("viz_runtime__{}", fixture_name.replace('-', "_"));
-        insta::assert_yaml_snapshot!(snapshot_name, &snapshot);
-    });
-
-    let mut manifest = manifest_entries.lock().unwrap().clone();
-    manifest.sort_by(|a, b| {
-        a.get("fixture")
-            .and_then(|v| v.as_str())
-            .cmp(&b.get("fixture").and_then(|v| v.as_str()))
-    });
-    let manifest_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let write_artifacts = should_write_artifacts();
+    let snapshot_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("viz-runtime")
-        .join("testdata")
-        .join("manifest.json");
-    let manifest_json = serde_json::to_string_pretty(&manifest).expect("manifest json");
-    fs::write(manifest_path, manifest_json).expect("write manifest");
+        .join("snapshots");
+    insta::with_settings!({snapshot_path => snapshot_root}, {
+        insta::glob!("viz-runtime/testdata", "*.baml", |relative| {
+            let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests")
+                .join(relative);
+            let fixture_name = Path::new(relative)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string();
+
+            let snapshot = rt.block_on(run_fixture(&fixture)).expect("fixture run");
+
+            if write_artifacts {
+                write_fixture_artifacts(&snapshot, &fixture, &fixture_name)
+                    .expect("write viz artifacts");
+            }
+
+            let snapshot_name = format!("viz_runtime__{}", fixture_name.replace('-', "_"));
+            insta::assert_yaml_snapshot!(snapshot_name, &snapshot);
+        });
+    });
 }
 
 async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let fixture_name = path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or_default()
-        .to_string();
-    let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let relative = path
         .strip_prefix(&root)
         .unwrap_or(path)
@@ -225,19 +213,6 @@ async fn run_fixture(path: &Path) -> DynResult<FixtureSnapshot> {
         })
         .collect();
 
-    write_jsonl(
-        base_dir.join(format!("{fixture_name}.events.jsonl")),
-        snapshots.iter().map(|row| &row.event),
-    )?;
-    write_jsonl(
-        base_dir.join(format!("{fixture_name}.stack.jsonl")),
-        snapshots.iter().map(|row| &row.stack_after),
-    )?;
-    write_jsonl(
-        base_dir.join(format!("{fixture_name}.updates.jsonl")),
-        snapshots.iter().map(|row| &row.state_update),
-    )?;
-
     Ok(FixtureSnapshot {
         fixture: path
             .file_name()
@@ -273,14 +248,13 @@ fn build_watch_handler(
 }
 
 fn to_event_record(notification: &WatchNotification) -> EventRecord {
-    let kind = match &notification.value {
-        WatchBamlValue::Value(_) => "value",
-        WatchBamlValue::Header(_) => "header",
-        WatchBamlValue::StreamStart(_) => "stream_start",
-        WatchBamlValue::StreamUpdate(..) => "stream_update",
-        WatchBamlValue::StreamEnd(_) => "stream_end",
-    }
-    .to_string();
+    let (kind, stream_id) = match &notification.value {
+        WatchBamlValue::Value(_) => ("value".to_string(), None),
+        WatchBamlValue::Header(_) => ("header".to_string(), None),
+        WatchBamlValue::StreamStart(id) => ("stream_start".to_string(), Some(id.clone())),
+        WatchBamlValue::StreamUpdate(id, _) => ("stream_update".to_string(), Some(id.clone())),
+        WatchBamlValue::StreamEnd(id) => ("stream_end".to_string(), Some(id.clone())),
+    };
 
     let header = match &notification.value {
         WatchBamlValue::Header(h) => Some(HeaderEvent {
@@ -301,13 +275,14 @@ fn to_event_record(notification: &WatchNotification) -> EventRecord {
         function: notification.function_name.clone(),
         variable: notification.variable_name.clone(),
         channel: notification.channel_name.clone(),
+        stream_id,
         header,
         value,
         is_stream: notification.is_stream,
     }
 }
 
-fn write_jsonl<'a, T, I>(path: PathBuf, rows: I) -> DynResult<()>
+fn write_jsonl<'a, T, I>(path: &Path, rows: I) -> DynResult<()>
 where
     T: Serialize + 'a,
     I: IntoIterator<Item = &'a T>,
@@ -323,6 +298,7 @@ where
 }
 
 fn build_lexical_id(event: &EventRecord) -> String {
+    // Placeholder heuristic until runtime watch notifications expose lexical IDs directly.
     if let Some(header) = &event.header {
         format!("{}|hdr:{}:{}", event.function, header.level, header.title)
     } else if let Some(chan) = &event.channel {
@@ -332,4 +308,39 @@ fn build_lexical_id(event: &EventRecord) -> String {
     } else {
         format!("{}|event", event.function)
     }
+}
+
+fn should_write_artifacts() -> bool {
+    std::env::var_os("BAML_VIZ_WRITE_ARTIFACTS").is_some()
+        || std::env::var_os("INSTA_UPDATE").is_some()
+}
+
+fn write_fixture_artifacts(
+    snapshot: &FixtureSnapshot,
+    fixture_path: &Path,
+    fixture_name: &str,
+) -> DynResult<()> {
+    let base_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("viz-runtime")
+        .join("snapshots");
+    fs::create_dir_all(&base_dir)?;
+    let events_path = base_dir.join(format!("{fixture_name}.events.jsonl"));
+    let stack_path = base_dir.join(format!("{fixture_name}.stack.jsonl"));
+    let updates_path = base_dir.join(format!("{fixture_name}.updates.jsonl"));
+
+    write_jsonl(
+        &events_path,
+        snapshot.snapshots.iter().map(|row| &row.event),
+    )?;
+    write_jsonl(
+        &stack_path,
+        snapshot.snapshots.iter().map(|row| &row.stack_after),
+    )?;
+    write_jsonl(
+        &updates_path,
+        snapshot.snapshots.iter().map(|row| &row.state_update),
+    )?;
+
+    Ok(())
 }

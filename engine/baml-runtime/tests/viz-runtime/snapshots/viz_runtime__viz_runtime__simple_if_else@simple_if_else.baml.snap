@@ -1,5 +1,5 @@
 ---
-source: baml-runtime/tests/viz_runtime.rs
+source: baml-runtime/tests/viz-runtime.rs
 expression: "&snapshot"
 input_file: baml-runtime/tests/viz-runtime/testdata/simple_if_else.baml
 ---
@@ -10,6 +10,7 @@ snapshots:
       function: MyFunction1
       variable: ~
       channel: ~
+      stream_id: ~
       header:
         level: 1
         title: Check

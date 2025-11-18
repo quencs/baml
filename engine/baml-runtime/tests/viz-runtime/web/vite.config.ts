@@ -4,8 +4,13 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-  publicDir: path.resolve(__dirname, "../snapshots"),
   server: {
     port: 4173,
+    fs: {
+      allow: [
+        __dirname,
+        path.resolve(__dirname, "../snapshots"),
+      ],
+    },
   },
 });

@@ -5,6 +5,7 @@ export interface EventRecord {
   function: string;
   variable?: string | null;
   channel?: string | null;
+  stream_id?: string | null;
   header?: {
     level: number;
     title: string;
@@ -20,9 +21,9 @@ export interface StateUpdate {
 
 export interface SnapshotEntry {
   fixture: string;
-  events: string;
-  stack: string;
-  updates: string;
+  eventsText: string;
+  stackText: string;
+  updatesText: string;
 }
 
 export interface CombinedRow {

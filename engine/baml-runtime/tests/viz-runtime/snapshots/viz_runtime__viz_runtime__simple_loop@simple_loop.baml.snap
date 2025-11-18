@@ -1,5 +1,5 @@
 ---
-source: baml-runtime/tests/viz_runtime.rs
+source: baml-runtime/tests/viz-runtime.rs
 expression: "&snapshot"
 input_file: baml-runtime/tests/viz-runtime/testdata/simple_loop.baml
 ---
@@ -10,6 +10,7 @@ snapshots:
       function: MyFunction1
       variable: ~
       channel: ~
+      stream_id: ~
       header:
         level: 1
         title: Loop
@@ -25,6 +26,7 @@ snapshots:
       function: MyFunction1
       variable: acc
       channel: acc
+      stream_id: ~
       header: ~
       value: a
       is_stream: false
@@ -38,6 +40,7 @@ snapshots:
       function: MyFunction1
       variable: acc
       channel: acc
+      stream_id: ~
       header: ~
       value: ab
       is_stream: false
@@ -51,6 +54,7 @@ snapshots:
       function: MyFunction1
       variable: acc
       channel: acc
+      stream_id: ~
       header: ~
       value: abc
       is_stream: false

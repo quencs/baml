@@ -9,16 +9,42 @@ function readJsonl<T>(input: string): T[] {
     .map((line) => JSON.parse(line) as T);
 }
 
-async function loadSnapshot(entry: SnapshotEntry): Promise<CombinedRow[]> {
-  const [eventsText, stackText, updatesText] = await Promise.all([
-    fetch(`/${entry.events}`).then((r) => r.text()),
-    fetch(`/${entry.stack}`).then((r) => r.text()),
-    fetch(`/${entry.updates}`).then((r) => r.text()),
-  ]);
+const snapshotModules = import.meta.glob("../../snapshots/**/*", {
+  eager: true,
+  as: "raw",
+});
 
-  const events = readJsonl<EventRecord>(eventsText);
-  const stacks = readJsonl<string[]>(stackText);
-  const updates = readJsonl<StateUpdate>(updatesText);
+function discoverSnapshots(): SnapshotEntry[] {
+  const entries: SnapshotEntry[] = [];
+
+  Object.entries(snapshotModules)
+    .filter(([path]) => path.endsWith(".events.jsonl"))
+    .forEach(([path, eventsText]) => {
+      const fixture = path.split("/").pop()?.replace(".events.jsonl", "");
+      if (!fixture || typeof eventsText !== "string") return;
+
+      const stackKey = path.replace(".events.jsonl", ".stack.jsonl");
+      const updatesKey = path.replace(".events.jsonl", ".updates.jsonl");
+
+      const stackText = snapshotModules[stackKey];
+      const updatesText = snapshotModules[updatesKey];
+      if (typeof stackText !== "string" || typeof updatesText !== "string") return;
+
+      entries.push({
+        fixture,
+        eventsText,
+        stackText,
+        updatesText,
+      });
+    });
+
+  return entries.sort((a, b) => a.fixture.localeCompare(b.fixture));
+}
+
+async function loadSnapshot(entry: SnapshotEntry): Promise<CombinedRow[]> {
+  const events = readJsonl<EventRecord>(entry.eventsText);
+  const stacks = readJsonl<string[]>(entry.stackText);
+  const updates = readJsonl<StateUpdate>(entry.updatesText);
 
   const len = Math.min(events.length, stacks.length, updates.length);
   return Array.from({ length: len }, (_, idx) => ({
@@ -43,17 +69,11 @@ export default function App() {
   );
 
   useEffect(() => {
-    fetch("/manifest.json")
-      .then((r) => r.json())
-      .then((json: SnapshotEntry[]) => {
-        setManifest(json);
-        if (json.length > 0) {
-          setSelected(json[0].fixture);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load manifest", err);
-      });
+    const entries = discoverSnapshots();
+    setManifest(entries);
+    if (entries.length > 0) {
+      setSelected(entries[0].fixture);
+    }
   }, []);
 
   useEffect(() => {
