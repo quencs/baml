@@ -16,7 +16,7 @@ use baml_base::FileId;
 /// - Modules (future feature)
 /// - Block scopes (future feature)
 ///
-/// Note: Cannot be Copy because of Box<BlockId>.
+/// Note: Cannot be Copy because of `Box<BlockId>`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ContainerId {
     /// Item defined directly in a file (current behavior).
@@ -81,7 +81,7 @@ pub struct ProjectId(pub u32);
 
 /// Block scope identifier (future feature).
 ///
-/// Note: Cannot be Copy because `ContainerId` contains Box<BlockId>.
+/// Note: Cannot be Copy because `ContainerId` contains `Box<BlockId>`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BlockId {
     /// The function or item containing this block.

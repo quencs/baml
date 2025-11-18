@@ -50,7 +50,7 @@ pub enum TypeRef {
     },
 
     /// Future: Type parameter reference.
-    /// Example: T in function<T>(x: T) -> T
+    /// Example: T in `function<T>(x: T) -> T`
     #[allow(dead_code)]
     TypeParam(Name),
 
