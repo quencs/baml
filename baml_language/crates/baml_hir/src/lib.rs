@@ -25,6 +25,7 @@ use rowan::ast::AstNode;
 // Module declarations
 mod body;
 mod container;
+mod generics;
 mod ids;
 mod item_tree;
 mod loc;
@@ -35,11 +36,12 @@ mod type_ref;
 // Re-exports
 pub use body::*;
 pub use container::{BlockId, ContainerId, LocalModuleId, ModuleId, ProjectId};
+pub use generics::*;
 pub use ids::*;
 pub use item_tree::*;
 pub use loc::*;
 pub use path::*;
-// Re-export signature types, but avoid TypeParam conflict with item_tree
+// Re-export signature types explicitly (no wildcards to avoid conflicts)
 pub use signature::{CustomAttribute, FunctionAttributes, FunctionSignature, Param};
 pub use type_ref::*;
 
@@ -123,6 +125,40 @@ pub fn project_items(db: &dyn Db, root: baml_workspace::ProjectRoot) -> ProjectI
     }
 
     ProjectItems::new(db, all_items)
+}
+
+/// Tracked: Get generic parameters for a function.
+///
+/// This is queried separately from `ItemTree` for incrementality - changes to
+/// generic parameters don't invalidate the `ItemTree`.
+///
+/// For now, this returns empty generic parameters since BAML doesn't currently
+/// parse generic syntax. Future work will extract `<T>` from the CST.
+#[salsa::tracked]
+pub fn function_generic_params(_db: &dyn Db, _func: FunctionId<'_>) -> Arc<GenericParams> {
+    // TODO: Extract generic parameters from CST when BAML adds generic syntax
+    Arc::new(GenericParams::new())
+}
+
+/// Tracked: Get generic parameters for a class.
+#[salsa::tracked]
+pub fn class_generic_params(_db: &dyn Db, _class: ClassId<'_>) -> Arc<GenericParams> {
+    // TODO: Extract generic parameters from CST when BAML adds generic syntax
+    Arc::new(GenericParams::new())
+}
+
+/// Tracked: Get generic parameters for an enum.
+#[salsa::tracked]
+pub fn enum_generic_params(_db: &dyn Db, _enum: EnumId<'_>) -> Arc<GenericParams> {
+    // TODO: Extract generic parameters from CST when BAML adds generic syntax
+    Arc::new(GenericParams::new())
+}
+
+/// Tracked: Get generic parameters for a type alias.
+#[salsa::tracked]
+pub fn type_alias_generic_params(_db: &dyn Db, _alias: TypeAliasId<'_>) -> Arc<GenericParams> {
+    // TODO: Extract generic parameters from CST when BAML adds generic syntax
+    Arc::new(GenericParams::new())
 }
 
 //
@@ -281,7 +317,6 @@ fn lower_class(node: &SyntaxNode) -> Option<Class> {
         name,
         fields,
         is_dynamic,
-        type_params: vec![], // TODO: Extract type parameters
     })
 }
 
@@ -332,11 +367,7 @@ fn lower_enum(node: &SyntaxNode) -> Option<Enum> {
         }
     }
 
-    Some(Enum {
-        name,
-        variants,
-        type_params: vec![],
-    })
+    Some(Enum { name, variants })
 }
 
 /// Extract function definition from CST - MINIMAL VERSION.
@@ -359,11 +390,7 @@ fn lower_type_alias(node: &SyntaxNode) -> Option<TypeAlias> {
     let name = Name::new("TypeAlias");
     let type_ref = TypeRef::Unknown;
 
-    Some(TypeAlias {
-        name,
-        type_ref,
-        type_params: vec![],
-    })
+    Some(TypeAlias { name, type_ref })
 }
 
 /// Extract client configuration from CST.

@@ -19,11 +19,10 @@ pub struct FunctionSignature {
     /// Return type
     pub return_type: TypeRef,
 
-    /// Type parameters (generics)
-    pub type_params: Vec<TypeParam>,
-
     /// Attributes/modifiers
     pub attrs: FunctionAttributes,
+    // Note: Generic parameters are queried separately via generic_params()
+    // for incrementality - changes to generics don't invalidate signatures
 }
 
 /// Function parameter.
@@ -31,13 +30,6 @@ pub struct FunctionSignature {
 pub struct Param {
     pub name: Name,
     pub type_ref: TypeRef,
-}
-
-/// Type parameter (for generic functions).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeParam {
-    pub name: Name,
-    // Future: bounds, defaults, etc.
 }
 
 /// Function attributes and modifiers.
@@ -67,30 +59,19 @@ impl FunctionSignature {
             .map(|n| Name::new(n.text()))
             .unwrap_or_else(|| Name::new("UnnamedFunction"));
 
-        // Extract parameters - manually since Parameter doesn't have accessor methods yet
+        // Extract parameters
         let mut params = Vec::new();
         if let Some(param_list) = func_node.param_list() {
             for param_node in param_list.params() {
-                // PARAMETER node contains: WORD (name), optionally COLON, TYPE_EXPR
-                let mut param_name = None;
-                let mut param_type = TypeRef::Unknown;
+                if let Some(name_token) = param_node.name() {
+                    let type_ref = param_node
+                        .ty()
+                        .map(|t| lower_type_ref(&t))
+                        .unwrap_or(TypeRef::Unknown);
 
-                for child in param_node.syntax().children_with_tokens() {
-                    if let Some(token) = child.as_token() {
-                        if token.kind() == baml_syntax::SyntaxKind::WORD && param_name.is_none() {
-                            param_name = Some(Name::new(token.text()));
-                        }
-                    } else if let Some(node) = child.as_node() {
-                        if let Some(type_expr) = baml_syntax::ast::TypeExpr::cast(node.clone()) {
-                            param_type = lower_type_ref(&type_expr);
-                        }
-                    }
-                }
-
-                if let Some(name) = param_name {
                     params.push(Param {
-                        name,
-                        type_ref: param_type,
+                        name: Name::new(name_token.text()),
+                        type_ref,
                     });
                 }
             }
@@ -102,9 +83,6 @@ impl FunctionSignature {
             .map(|t| lower_type_ref(&t))
             .unwrap_or(TypeRef::Unknown);
 
-        // Extract type parameters (future work)
-        let type_params = vec![];
-
         // Extract attributes (future work)
         let attrs = FunctionAttributes::default();
 
@@ -112,7 +90,6 @@ impl FunctionSignature {
             name,
             params,
             return_type,
-            type_params,
             attrs,
         })
     }

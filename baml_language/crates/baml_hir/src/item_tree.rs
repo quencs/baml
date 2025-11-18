@@ -7,7 +7,6 @@
 use crate::{
     ids::LocalItemId,
     loc::{ClassMarker, ClientMarker, EnumMarker, FunctionMarker, TestMarker, TypeAliasMarker},
-    path::Path,
     type_ref::TypeRef,
 };
 use baml_base::Name;
@@ -129,9 +128,8 @@ pub struct Class {
 
     /// Block attributes (@@dynamic, @@alias, etc.).
     pub is_dynamic: bool,
-
-    /// Future: Type parameters for generic classes.
-    pub type_params: Vec<TypeParam>,
+    // Note: Generic parameters are queried separately via generic_params()
+    // for incrementality - changes to generics don't invalidate ItemTree
 }
 
 /// Class field.
@@ -146,9 +144,7 @@ pub struct Field {
 pub struct Enum {
     pub name: Name,
     pub variants: Vec<EnumVariant>,
-
-    /// Future: Type parameters.
-    pub type_params: Vec<TypeParam>,
+    // Note: Generic parameters are queried separately via generic_params()
 }
 
 /// Enum variant.
@@ -162,9 +158,7 @@ pub struct EnumVariant {
 pub struct TypeAlias {
     pub name: Name,
     pub type_ref: TypeRef,
-
-    /// Future: Type parameters for generic aliases.
-    pub type_params: Vec<TypeParam>,
+    // Note: Generic parameters are queried separately via generic_params()
 }
 
 /// Client configuration.
@@ -181,18 +175,6 @@ pub struct Test {
 
     /// Unresolved function references.
     pub function_refs: Vec<Name>,
-}
-
-/// Type parameter (for generics, currently unused).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeParam {
-    pub name: Name,
-
-    /// Type parameter bounds (T: `SomeTrait`) (future).
-    pub bounds: Vec<Path>,
-
-    /// Default type (T = string) (future).
-    pub default: Option<TypeRef>,
 }
 
 //

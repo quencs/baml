@@ -157,9 +157,7 @@ fn format_hir_file(
                 if class.is_dynamic {
                     writeln!(result, "  @@dynamic").unwrap();
                 }
-                if !class.type_params.is_empty() {
-                    writeln!(result, "  type_params: {:?}", class.type_params).unwrap();
-                }
+                // Note: Generic parameters are queried separately via generic_params()
                 writeln!(result, "}}").unwrap();
             }
             ItemId::Enum(enum_id) => {
@@ -168,17 +166,13 @@ fn format_hir_file(
                 for variant in &enum_def.variants {
                     writeln!(result, "  {:?}", variant).unwrap();
                 }
-                if !enum_def.type_params.is_empty() {
-                    writeln!(result, "  type_params: {:?}", enum_def.type_params).unwrap();
-                }
+                // Note: Generic parameters are queried separately via generic_params()
                 writeln!(result, "}}").unwrap();
             }
             ItemId::TypeAlias(alias_id) => {
                 let alias = &item_tree[alias_id.id(db)];
                 write!(result, "type {} = {:?}", alias.name, alias.type_ref).unwrap();
-                if !alias.type_params.is_empty() {
-                    write!(result, " <{:?}>", alias.type_params).unwrap();
-                }
+                // Note: Generic parameters are queried separately via generic_params()
                 writeln!(result).unwrap();
             }
             ItemId::Client(client_id) => {

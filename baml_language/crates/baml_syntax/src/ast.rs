@@ -132,6 +132,21 @@ impl FunctionDef {
     }
 }
 
+impl Parameter {
+    /// Get the parameter name.
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::WORD)
+    }
+
+    /// Get the parameter type.
+    pub fn ty(&self) -> Option<TypeExpr> {
+        self.syntax.children().find_map(TypeExpr::cast)
+    }
+}
+
 impl ParameterList {
     /// Get all parameters.
     pub fn params(&self) -> impl Iterator<Item = Parameter> {
