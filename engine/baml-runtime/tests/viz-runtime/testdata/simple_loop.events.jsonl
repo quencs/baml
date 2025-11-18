@@ -1,4 +1,0 @@
-{"kind":"header","function":"MyFunction1","variable":null,"channel":null,"header":{"level":1,"title":"Loop"},"value":null,"is_stream":false}
-{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","header":null,"value":"a","is_stream":false}
-{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","header":null,"value":"ab","is_stream":false}
-{"kind":"value","function":"MyFunction1","variable":"acc","channel":"acc","header":null,"value":"abc","is_stream":false}

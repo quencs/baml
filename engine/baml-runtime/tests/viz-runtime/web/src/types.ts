@@ -32,12 +32,12 @@ export interface VizExecEvent {
 
 export interface SnapshotRow {
   watch_event: EventRecord;
-  stack_after: string[];
-  emitted_events: StateUpdate[];
-  state: {
+  stack_after?: string[] | null;
+  emitted_events?: StateUpdate[] | null;
+  state?: {
     nodes: Record<string, LexicalState>;
     frames: Frame[];
-  };
+  } | null;
 }
 
 export interface SnapshotEntry {

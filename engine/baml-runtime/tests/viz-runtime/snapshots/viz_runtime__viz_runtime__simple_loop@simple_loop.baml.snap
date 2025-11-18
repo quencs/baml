@@ -17,12 +17,8 @@ snapshots:
       viz_event: ~
       value: ~
       is_stream: false
-    stack_after:
-      - "hdr:1:Loop"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []
   - watch_event:
       kind: value
       function: MyFunction1
@@ -33,12 +29,8 @@ snapshots:
       viz_event: ~
       value: a
       is_stream: false
-    stack_after:
-      - "hdr:1:Loop"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []
   - watch_event:
       kind: value
       function: MyFunction1
@@ -49,12 +41,8 @@ snapshots:
       viz_event: ~
       value: ab
       is_stream: false
-    stack_after:
-      - "hdr:1:Loop"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []
   - watch_event:
       kind: value
       function: MyFunction1
@@ -65,9 +53,5 @@ snapshots:
       viz_event: ~
       value: abc
       is_stream: false
-    stack_after:
-      - "hdr:1:Loop"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []

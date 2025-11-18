@@ -4,7 +4,8 @@ import type { CombinedRow, SnapshotEntry, SnapshotRow } from "./types";
 
 const snapshotModules = import.meta.glob("../../snapshots/**/*.snap", {
   eager: true,
-  as: "raw",
+  query: "?raw",
+  import: "default",
 });
 
 function parseSnapshotFile(path: string, raw: string | undefined): SnapshotEntry | null {
@@ -17,10 +18,7 @@ function parseSnapshotFile(path: string, raw: string | undefined): SnapshotEntry
   if (!payload || !Array.isArray(payload.snapshots)) return null;
 
   const fileName = path.split("/").pop() ?? "snapshot";
-  const fixture = (payload.fixture ?? fileName.replace(".snap", "")).replace(
-    /\.baml$/,
-    "",
-  );
+  const fixture = payload.fixture ?? fileName;
 
   return { fixture, rows: payload.snapshots as SnapshotRow[] };
 }
@@ -34,7 +32,7 @@ function discoverSnapshots(): SnapshotEntry[] {
 }
 
 function toLabel(entry: SnapshotEntry): string {
-  return entry.fixture.replaceAll("_", " ");
+  return entry.fixture;
 }
 
 export default function App() {
@@ -60,13 +58,18 @@ export default function App() {
       return;
     }
 
-    const combined: CombinedRow[] = current.rows.map((row, idx) => ({
-      index: idx,
-      watchEvent: row.watch_event,
-      stackAfter: row.stack_after,
-      emittedEvents: row.emitted_events,
-      state: row.state,
-    }));
+    const combined: CombinedRow[] = current.rows.map((row, idx) => {
+      const state = row.state ?? { nodes: {}, frames: [] };
+      const nodes = state?.nodes ?? {};
+      const frames = state?.frames ?? [];
+      return {
+        index: idx,
+        watchEvent: row.watch_event,
+        stackAfter: Array.isArray(row.stack_after) ? row.stack_after : [],
+        emittedEvents: Array.isArray(row.emitted_events) ? row.emitted_events : [],
+        state: { nodes, frames },
+      };
+    });
 
     setRows(combined);
   }, [current]);
@@ -124,13 +127,15 @@ export default function App() {
                     </pre>
                   </td>
                   <td style={styles.td}>
-                    {row.emittedEvents.length > 0 && (
+                    {row.emittedEvents.length > 0 ? (
                       <>
                         <div style={styles.badge}>Emitted</div>
                         <pre style={styles.pre}>
                           {JSON.stringify(row.emittedEvents, null, 2)}
                         </pre>
                       </>
+                    ) : (
+                      <div style={styles.subtext}>No emitted events</div>
                     )}
                     <div style={styles.badge}>Reducer State</div>
                     <pre style={styles.pre}>

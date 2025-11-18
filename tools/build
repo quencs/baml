@@ -90,7 +90,6 @@ case "$_path" in
         --ignore 'index.js' \
         --ignore 'dist' \
         --ignore 'tmp' \
-        --verbose \
         --exec "${command}"
     else
       eval "${command}"

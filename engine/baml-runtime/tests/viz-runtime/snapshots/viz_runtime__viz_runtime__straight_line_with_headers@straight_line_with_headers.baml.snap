@@ -17,12 +17,8 @@ snapshots:
       viz_event: ~
       value: ~
       is_stream: false
-    stack_after:
-      - "hdr:1:Start"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []
   - watch_event:
       kind: header
       function: MyFunction1
@@ -35,9 +31,5 @@ snapshots:
       viz_event: ~
       value: ~
       is_stream: false
-    stack_after:
-      - "hdr:1:Finish"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []

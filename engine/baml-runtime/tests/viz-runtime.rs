@@ -7,8 +7,8 @@ use std::{
 
 use baml_compiler::watch::{shared_handler, SharedWatchHandler, WatchBamlValue, WatchNotification};
 use baml_compiler::watch::{VizExecDelta, VizExecEvent};
-use baml_viz_events::{LexicalState, ReducerState, StateUpdate, VizStateReducer};
 use baml_runtime::{FunctionResult, RuntimeContextManager, TripWire};
+use baml_viz_events::{LexicalState, StateUpdate, VizStateReducer};
 use internal_baml_core::feature_flags::FeatureFlags;
 use serde::Serialize;
 use serde_json::Value;
@@ -32,61 +32,11 @@ struct HeaderEvent {
     title: String,
 }
 
-// NOTE: Intentionally stubbed; leave this simplistic until a later project
-// fills out the real runtime-aware context tracking semantics.
-#[derive(Default)]
-struct ContextStack {
-    frames: Vec<String>,
-}
-
-impl ContextStack {
-    fn apply(&mut self, event: &EventRecord) -> Vec<String> {
-        // Keep this minimal; a later pass will replace it with real call/header stack tracking.
-        if self.frames.is_empty() {
-            self.frames.push(format!("fn:{}", event.function));
-        }
-
-        if let Some(viz_event) = &event.viz_event {
-            match viz_event.event {
-                VizExecDelta::Enter => {
-                    // HeaderContextEnter uses header_level to dedent before pushing.
-                    if let Some(level) = viz_event.header_level {
-                        while self.frames.len() > level as usize {
-                            self.frames.pop();
-                        }
-                    }
-                    self.frames
-                        .push(format!("viz:{}", viz_event.lexical_id.clone()));
-                }
-                VizExecDelta::Exit => {
-                    let expected = format!("viz:{}", viz_event.lexical_id);
-                    if self.frames.last().is_some_and(|top| top == &expected) {
-                        self.frames.pop();
-                    }
-                }
-            }
-
-            return self.frames.clone();
-        }
-
-        if let Some(header) = &event.header {
-            while self.frames.len() >= header.level as usize {
-                self.frames.pop();
-            }
-            self.frames
-                .push(format!("hdr:{}:{}", header.level, header.title));
-        }
-
-        self.frames.clone()
-    }
-}
-
 #[derive(Debug, Clone, Serialize)]
 struct StreamSnapshot {
     watch_event: EventRecord,
     stack_after: Vec<String>,
     emitted_events: Vec<StateUpdate>,
-    state: ReducerState,
 }
 
 #[derive(Debug, Serialize)]
@@ -143,18 +93,14 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
     let events = Arc::new(Mutex::new(Vec::<EventRecord>::new()));
     let stacks = Arc::new(Mutex::new(Vec::<Vec<String>>::new()));
     let emitted_events = Arc::new(Mutex::new(Vec::<Vec<StateUpdate>>::new()));
-    let state_snapshots = Arc::new(Mutex::new(Vec::<ReducerState>::new()));
 
     let reducer = Arc::new(Mutex::new(VizStateReducer::default()));
-    let stack_tracker = Arc::new(Mutex::new(ContextStack::default()));
 
     let handler = build_watch_handler(
         events.clone(),
         stacks.clone(),
         emitted_events.clone(),
-        state_snapshots.clone(),
         reducer.clone(),
-        stack_tracker.clone(),
     );
 
     let ctx = RuntimeContextManager::new(None);
@@ -182,16 +128,14 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
     let events = events.lock().unwrap();
     let stacks = stacks.lock().unwrap();
     let emitted_events = emitted_events.lock().unwrap();
-    let state_snapshots = state_snapshots.lock().unwrap();
 
     let snapshots: Vec<_> = events
         .iter()
         .enumerate()
         .map(|(idx, event)| StreamSnapshot {
             watch_event: event.clone(),
-            stack_after: stacks.get(idx).cloned().unwrap_or_default(),
+            stack_after: vec![],
             emitted_events: emitted_events.get(idx).cloned().unwrap_or_default(),
-            state: state_snapshots.get(idx).cloned().unwrap(),
         })
         .collect();
 
@@ -209,21 +153,15 @@ fn build_watch_handler(
     events: Arc<Mutex<Vec<EventRecord>>>,
     stacks: Arc<Mutex<Vec<Vec<String>>>>,
     emitted_events: Arc<Mutex<Vec<Vec<StateUpdate>>>>,
-    state_snapshots: Arc<Mutex<Vec<ReducerState>>>,
     reducer: Arc<Mutex<VizStateReducer>>,
-    stack_tracker: Arc<Mutex<ContextStack>>,
 ) -> SharedWatchHandler {
     shared_handler(move |notification: WatchNotification| {
         let event = to_event_record(&notification);
 
-        let mut stack_guard = stack_tracker.lock().unwrap();
-        let stack_after = stack_guard.apply(&event);
-        drop(stack_guard);
-
         let mut reducer_guard = reducer.lock().unwrap();
         let (updates, state_after) = if let Some(viz_event) = event.viz_event.as_ref() {
             let lexical_id = build_lexical_id(&event);
-            let updates = reducer_guard.apply(lexical_id, viz_event);
+            let updates = reducer_guard.apply(viz_event);
             let state_after = reducer_guard.dump();
             (updates, state_after)
         } else {
@@ -233,9 +171,7 @@ fn build_watch_handler(
         drop(reducer_guard);
 
         events.lock().unwrap().push(event);
-        stacks.lock().unwrap().push(stack_after);
         emitted_events.lock().unwrap().push(updates);
-        state_snapshots.lock().unwrap().push(state_after);
     })
 }
 

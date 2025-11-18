@@ -17,9 +17,5 @@ snapshots:
       viz_event: ~
       value: ~
       is_stream: false
-    stack_after:
-      - "hdr:1:Check"
+    stack_after: []
     emitted_events: []
-    state:
-      nodes: {}
-      frames: []
