@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     fs,
     path::Path,
     sync::{Arc, Mutex},
@@ -7,30 +7,11 @@ use std::{
 
 use baml_compiler::watch::{shared_handler, SharedWatchHandler, WatchBamlValue, WatchNotification};
 use baml_compiler::watch::{VizExecDelta, VizExecEvent};
+use baml_viz_events::{LexicalState, ReducerState, StateUpdate, VizStateReducer};
 use baml_runtime::{FunctionResult, RuntimeContextManager, TripWire};
 use internal_baml_core::feature_flags::FeatureFlags;
 use serde::Serialize;
 use serde_json::Value;
-
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
-enum LexicalState {
-    NotRunning,
-    Running,
-    Completed,
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct StateUpdate {
-    lexical_id: String,
-    new_state: LexicalState,
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct ReducerSnapshot {
-    state_update: StateUpdate,
-    state: BTreeMap<String, LexicalState>,
-    emitted_events: Vec<VizExecEvent>,
-}
 
 #[derive(Debug, Clone, Serialize)]
 struct EventRecord {
@@ -49,48 +30,6 @@ struct EventRecord {
 struct HeaderEvent {
     level: u8,
     title: String,
-}
-
-#[derive(Default)]
-struct VizStateReducer {
-    states: HashMap<String, LexicalState>,
-}
-
-impl VizStateReducer {
-    fn apply(&mut self, event: &EventRecord) -> ReducerSnapshot {
-        let lexical_id = build_lexical_id(event);
-        let next = if let Some(viz_event) = &event.viz_event {
-            match viz_event.event {
-                VizExecDelta::Enter => LexicalState::Running,
-                VizExecDelta::Exit => LexicalState::Completed,
-            }
-        } else {
-            let current = self
-                .states
-                .get(&lexical_id)
-                .copied()
-                .unwrap_or(LexicalState::NotRunning);
-            match current {
-                LexicalState::NotRunning => LexicalState::Running,
-                LexicalState::Running => LexicalState::Completed,
-                LexicalState::Completed => LexicalState::Completed,
-            }
-        };
-
-        self.states.insert(lexical_id.clone(), next.clone());
-        ReducerSnapshot {
-            state_update: StateUpdate {
-                lexical_id,
-                new_state: next,
-            },
-            state: self
-                .states
-                .iter()
-                .map(|(key, state)| (key.clone(), *state))
-                .collect(),
-            emitted_events: Vec::new(),
-        }
-    }
 }
 
 // NOTE: Intentionally stubbed; leave this simplistic until a later project
@@ -146,7 +85,8 @@ impl ContextStack {
 struct StreamSnapshot {
     watch_event: EventRecord,
     stack_after: Vec<String>,
-    reducer: ReducerSnapshot,
+    emitted_events: Vec<StateUpdate>,
+    state: ReducerState,
 }
 
 #[derive(Debug, Serialize)]
@@ -202,7 +142,8 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
 
     let events = Arc::new(Mutex::new(Vec::<EventRecord>::new()));
     let stacks = Arc::new(Mutex::new(Vec::<Vec<String>>::new()));
-    let reducer_snapshots = Arc::new(Mutex::new(Vec::<ReducerSnapshot>::new()));
+    let emitted_events = Arc::new(Mutex::new(Vec::<Vec<StateUpdate>>::new()));
+    let state_snapshots = Arc::new(Mutex::new(Vec::<ReducerState>::new()));
 
     let reducer = Arc::new(Mutex::new(VizStateReducer::default()));
     let stack_tracker = Arc::new(Mutex::new(ContextStack::default()));
@@ -210,7 +151,8 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
     let handler = build_watch_handler(
         events.clone(),
         stacks.clone(),
-        reducer_snapshots.clone(),
+        emitted_events.clone(),
+        state_snapshots.clone(),
         reducer.clone(),
         stack_tracker.clone(),
     );
@@ -239,7 +181,8 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
 
     let events = events.lock().unwrap();
     let stacks = stacks.lock().unwrap();
-    let reducer_snapshots = reducer_snapshots.lock().unwrap();
+    let emitted_events = emitted_events.lock().unwrap();
+    let state_snapshots = state_snapshots.lock().unwrap();
 
     let snapshots: Vec<_> = events
         .iter()
@@ -247,7 +190,8 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
         .map(|(idx, event)| StreamSnapshot {
             watch_event: event.clone(),
             stack_after: stacks.get(idx).cloned().unwrap_or_default(),
-            reducer: reducer_snapshots.get(idx).cloned().unwrap(),
+            emitted_events: emitted_events.get(idx).cloned().unwrap_or_default(),
+            state: state_snapshots.get(idx).cloned().unwrap(),
         })
         .collect();
 
@@ -264,7 +208,8 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
 fn build_watch_handler(
     events: Arc<Mutex<Vec<EventRecord>>>,
     stacks: Arc<Mutex<Vec<Vec<String>>>>,
-    reducer_snapshots: Arc<Mutex<Vec<ReducerSnapshot>>>,
+    emitted_events: Arc<Mutex<Vec<Vec<StateUpdate>>>>,
+    state_snapshots: Arc<Mutex<Vec<ReducerState>>>,
     reducer: Arc<Mutex<VizStateReducer>>,
     stack_tracker: Arc<Mutex<ContextStack>>,
 ) -> SharedWatchHandler {
@@ -276,15 +221,21 @@ fn build_watch_handler(
         drop(stack_guard);
 
         let mut reducer_guard = reducer.lock().unwrap();
-        let reducer_snapshot = reducer_guard.apply(&event);
+        let (updates, state_after) = if let Some(viz_event) = event.viz_event.as_ref() {
+            let lexical_id = build_lexical_id(&event);
+            let updates = reducer_guard.apply(lexical_id, viz_event);
+            let state_after = reducer_guard.dump();
+            (updates, state_after)
+        } else {
+            let state_after = reducer_guard.dump();
+            (Vec::new(), state_after)
+        };
         drop(reducer_guard);
 
         events.lock().unwrap().push(event);
         stacks.lock().unwrap().push(stack_after);
-        reducer_snapshots
-            .lock()
-            .unwrap()
-            .push(reducer_snapshot);
+        emitted_events.lock().unwrap().push(updates);
+        state_snapshots.lock().unwrap().push(state_after);
     })
 }
 

@@ -19,10 +19,7 @@ snapshots:
       is_stream: false
     stack_after:
       - "hdr:1:Check"
-    reducer:
-      state_update:
-        lexical_id: "MyFunction4|hdr:1:Check"
-        new_state: Running
-      state:
-        "MyFunction4|hdr:1:Check": Running
-      emitted_events: []
+    emitted_events: []
+    state:
+      nodes: {}
+      frames: []

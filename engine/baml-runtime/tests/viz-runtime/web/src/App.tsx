@@ -64,7 +64,8 @@ export default function App() {
       index: idx,
       watchEvent: row.watch_event,
       stackAfter: row.stack_after,
-      reducer: row.reducer,
+      emittedEvents: row.emitted_events,
+      state: row.state,
     }));
 
     setRows(combined);
@@ -123,22 +124,22 @@ export default function App() {
                     </pre>
                   </td>
                   <td style={styles.td}>
-                    <div style={styles.badge}>State Update</div>
-                    <pre style={styles.pre}>
-                      {JSON.stringify(row.reducer.state_update, null, 2)}
-                    </pre>
-                    <div style={styles.badge}>Reducer State</div>
-                    <pre style={styles.pre}>
-                      {JSON.stringify(row.reducer.state, null, 2)}
-                    </pre>
-                    {row.reducer.emitted_events.length > 0 && (
+                    {row.emittedEvents.length > 0 && (
                       <>
                         <div style={styles.badge}>Emitted</div>
                         <pre style={styles.pre}>
-                          {JSON.stringify(row.reducer.emitted_events, null, 2)}
+                          {JSON.stringify(row.emittedEvents, null, 2)}
                         </pre>
                       </>
                     )}
+                    <div style={styles.badge}>Reducer State</div>
+                    <pre style={styles.pre}>
+                      {JSON.stringify(row.state.nodes, null, 2)}
+                    </pre>
+                    <div style={styles.badge}>Frames</div>
+                    <pre style={styles.pre}>
+                      {JSON.stringify(row.state.frames, null, 2)}
+                    </pre>
                   </td>
                 </tr>
               ))}

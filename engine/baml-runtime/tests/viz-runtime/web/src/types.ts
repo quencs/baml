@@ -1,4 +1,4 @@
-export type LexicalState = "NotRunning" | "Running" | "Completed";
+export type LexicalState = "not_running" | "running" | "completed";
 
 export interface EventRecord {
   kind: string;
@@ -30,16 +30,14 @@ export interface VizExecEvent {
   header_level?: number | null;
 }
 
-export interface ReducerSnapshot {
-  state_update: StateUpdate;
-  state: Record<string, LexicalState>;
-  emitted_events: VizExecEvent[];
-}
-
 export interface SnapshotRow {
   watch_event: EventRecord;
   stack_after: string[];
-  reducer: ReducerSnapshot;
+  emitted_events: StateUpdate[];
+  state: {
+    nodes: Record<string, LexicalState>;
+    frames: Frame[];
+  };
 }
 
 export interface SnapshotEntry {
@@ -51,5 +49,16 @@ export interface CombinedRow {
   index: number;
   watchEvent: EventRecord;
   stackAfter: string[];
-  reducer: ReducerSnapshot;
+  emittedEvents: StateUpdate[];
+  state: {
+    nodes: Record<string, LexicalState>;
+    frames: Frame[];
+  };
+}
+
+export interface Frame {
+  lexical_id: string;
+  node_type: string;
+  label: string;
+  header_level?: number | null;
 }
