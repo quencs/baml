@@ -122,9 +122,8 @@ export default function App() {
               <tr>
                 <th style={styles.th}>#</th>
                 <th style={styles.th}>Event</th>
-                <th style={styles.th}>Value</th>
                 <th style={styles.th}>Stack</th>
-                <th style={styles.th}>State</th>
+                <th style={styles.th}>Node State</th>
               </tr>
             </thead>
             <tbody>
@@ -134,24 +133,19 @@ export default function App() {
                   <td style={styles.td}>
                     <div>{row.event.kind}</div>
                     <div style={styles.subtext}>{row.event.function}</div>
-                    {row.event.header ? (
-                      <div style={styles.badge}>hdr {row.event.header.level}</div>
-                    ) : null}
-                    {row.event.variable ? (
-                      <div style={styles.badge}>var {row.event.variable}</div>
-                    ) : null}
-                  </td>
-                  <td style={styles.td}>
                     <pre style={styles.pre}>
-                      {row.event.value ? JSON.stringify(row.event.value, null, 2) : "—"}
+                      {JSON.stringify(row.event, null, 2)}
                     </pre>
                   </td>
                   <td style={styles.td}>
-                    <pre style={styles.pre}>{JSON.stringify(row.stack, null, 2)}</pre>
+                    <pre style={styles.pre}>
+                      {JSON.stringify(row.stack, null, 2)}
+                    </pre>
                   </td>
                   <td style={styles.td}>
-                    <div style={styles.badge}>{row.update.new_state}</div>
-                    <div style={styles.subtext}>{row.update.lexical_id}</div>
+                    <pre style={styles.pre}>
+                      {JSON.stringify(row.update, null, 2)}
+                    </pre>
                   </td>
                 </tr>
               ))}
@@ -224,11 +218,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
   },
   pre: {
-    margin: 0,
+    margin: "0 0 6px 0",
     background: "#f8f8f8",
-    padding: "8px",
+    padding: "6px",
     borderRadius: "6px",
-    fontSize: "12px",
+    fontSize: "11px",
+    overflowX: "auto",
   },
   badge: {
     display: "inline-block",
