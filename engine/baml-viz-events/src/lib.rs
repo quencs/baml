@@ -31,8 +31,7 @@ pub struct VizExecEvent {
     pub event: VizExecDelta,
     /// The logical node type being visited.
     pub node_type: RuntimeNodeType,
-    /// Unique lexical identifier scoped to the function graph.
-    pub lexical_id: String,
+    pub node_id: u32,
     /// Human-readable label for the node (header text or synthetic scope label).
     pub label: String,
     /// Header level (only meaningful for header nodes).
@@ -48,7 +47,7 @@ mod tests {
         let original = VizExecEvent {
             event: VizExecDelta::Enter,
             node_type: RuntimeNodeType::HeaderContextEnter,
-            lexical_id: "checkout|hdr:verify-payment:1".to_string(),
+            node_id: 0,
             label: "//# Verify payment".to_string(),
             header_level: Some(1),
         };

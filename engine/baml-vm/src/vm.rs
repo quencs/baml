@@ -60,7 +60,7 @@ fn build_viz_exec_event(
     Ok(VizExecEvent {
         event: delta,
         node_type: node.node_type.clone(),
-        lexical_id: String::new(),
+        node_id: 0,
         label: node.label.clone(),
         header_level: node.header_level,
     })
