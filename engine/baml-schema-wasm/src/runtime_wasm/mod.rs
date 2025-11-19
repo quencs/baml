@@ -2001,7 +2001,7 @@ impl WasmRuntime {
                                 })
                                 .to_string()
                             }
-                            baml_compiler::watch::WatchBamlValue::Header(header) => {
+                            baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
                                 serde_json::json!({
                                     "type": "header",
                                     "label": header.title,
@@ -2453,7 +2453,7 @@ impl WasmFunction {
                     "header_level": event.header_level,
                 })
                 .to_string(),
-                baml_compiler::watch::WatchBamlValue::Header(header) => serde_json::json!({
+                baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => serde_json::json!({
                     "type": "header",
                     "label": header.title,
                     "level": header.level,
@@ -2650,7 +2650,7 @@ impl WasmFunction {
                     "header_level": event.header_level,
                 })
                 .to_string(),
-                baml_compiler::watch::WatchBamlValue::Header(header) => serde_json::json!({
+                baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => serde_json::json!({
                     "type": "header",
                     "label": header.title,
                     "level": header.level,

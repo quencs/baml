@@ -16,14 +16,9 @@ use serde_json::Value;
 #[derive(Debug, Clone, Serialize)]
 struct EventRecord {
     kind: String,
-    function: String,
-    variable: Option<String>,
-    channel: Option<String>,
-    stream_id: Option<String>,
+    lexical_id: Option<String>,
     header: Option<HeaderEvent>,
     viz_event: Option<VizExecEvent>,
-    value: Option<Value>,
-    is_stream: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -159,7 +154,7 @@ fn build_watch_handler(
 
         let mut reducer_guard = reducer.lock().unwrap();
         let (updates, state_after) = if let Some(viz_event) = event.viz_event.as_ref() {
-            let updates = reducer_guard.apply(&event.function, viz_event);
+            let updates = reducer_guard.apply(viz_event);
             let state_after = reducer_guard.dump();
             (updates, state_after)
         } else {
@@ -176,42 +171,28 @@ fn build_watch_handler(
 }
 
 fn to_event_record(notification: &WatchNotification) -> EventRecord {
-    let (kind, stream_id, viz_event) = match &notification.value {
-        WatchBamlValue::Value(_) => ("value".to_string(), None, None),
-        WatchBamlValue::Header(_) => ("header".to_string(), None, None),
-        WatchBamlValue::VizExecState(event) => {
-            ("viz_exec_state".to_string(), None, Some(event.clone()))
-        }
-        WatchBamlValue::StreamStart(id) => ("stream_start".to_string(), Some(id.clone()), None),
-        WatchBamlValue::StreamUpdate(id, _) => {
-            ("stream_update".to_string(), Some(id.clone()), None)
-        }
-        WatchBamlValue::StreamEnd(id) => ("stream_end".to_string(), Some(id.clone()), None),
+    let (kind, viz_event, lexical_id) = match &notification.value {
+        WatchBamlValue::VizExecHeader(_) => ("viz_exec_header".to_string(), None, None),
+        WatchBamlValue::VizExecState(event) => (
+            "viz_exec_state".to_string(),
+            Some(event.clone()),
+            Some(event.lexical_id.clone()),
+        ),
+        _ => ("other".to_string(), None, None),
     };
 
     let header = match &notification.value {
-        WatchBamlValue::Header(h) => Some(HeaderEvent {
+        WatchBamlValue::VizExecHeader(h) => Some(HeaderEvent {
             level: h.level,
             title: h.title.clone(),
         }),
         _ => None,
     };
 
-    let value = match &notification.value {
-        WatchBamlValue::Value(v) => serde_json::to_value(v.clone().value()).ok(),
-        WatchBamlValue::StreamUpdate(_, v) => serde_json::to_value(v.clone().value()).ok(),
-        _ => None,
-    };
-
     EventRecord {
         kind,
-        function: notification.function_name.clone(),
-        variable: notification.variable_name.clone(),
-        channel: notification.channel_name.clone(),
-        stream_id,
+        lexical_id,
         header,
         viz_event,
-        value,
-        is_stream: notification.is_stream,
     }
 }

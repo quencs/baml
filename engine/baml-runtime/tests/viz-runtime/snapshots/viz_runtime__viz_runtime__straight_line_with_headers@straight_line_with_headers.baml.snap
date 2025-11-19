@@ -7,176 +7,156 @@ fixture: straight_line_with_headers.baml
 snapshots:
   - watch_event:
       kind: viz_exec_state
-      function: Main
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "Main|root:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "Main|root:0"
         label: Main
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - lexical_id: "Main|root:0"
+      - node_id: 0
+        lexical_id: "Main|root:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction1|root:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction1|root:0"
         label: MyFunction1
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0"
     emitted_events:
-      - lexical_id: "MyFunction1|root:0|root:0"
+      - node_id: 0
+        lexical_id: "MyFunction1|root:0"
         new_state: running
   - watch_event:
-      kind: header
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
+      kind: viz_exec_header
+      lexical_id: ~
       header:
         level: 1
         title: Start
       viz_event: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction1|root:0|hdr:start:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 1
         node_type: header_context_enter
         path_segment:
           kind: header
           slug: start
           ordinal: 0
+        lexical_id: "MyFunction1|root:0|hdr:start:0"
         label: Start
         header_level: 1
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction1|root:0|root:0"
-      - "MyFunction1|root:0|root:0|hdr:start:0"
+      - "MyFunction1|root:0"
+      - "MyFunction1|root:0|hdr:start:0"
     emitted_events:
-      - lexical_id: "MyFunction1|root:0|root:0|hdr:start:0"
+      - node_id: 1
+        lexical_id: "MyFunction1|root:0|hdr:start:0"
         new_state: running
   - watch_event:
-      kind: header
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
+      kind: viz_exec_header
+      lexical_id: ~
       header:
         level: 1
         title: Finish
       viz_event: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction1|root:0|root:0"
-      - "MyFunction1|root:0|root:0|hdr:start:0"
+      - "MyFunction1|root:0"
+      - "MyFunction1|root:0|hdr:start:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction1|root:0|hdr:finish:1"
       header: ~
       viz_event:
         event: enter
+        node_id: 2
         node_type: header_context_enter
         path_segment:
           kind: header
           slug: finish
           ordinal: 1
+        lexical_id: "MyFunction1|root:0|hdr:finish:1"
         label: Finish
         header_level: 1
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction1|root:0|root:0"
-      - "MyFunction1|root:0|root:0|hdr:finish:1"
+      - "MyFunction1|root:0"
+      - "MyFunction1|root:0|hdr:finish:1"
     emitted_events:
-      - lexical_id: "MyFunction1|root:0|root:0|hdr:start:0"
+      - node_id: 1
+        lexical_id: "MyFunction1|root:0|hdr:start:0"
         new_state: completed
-      - lexical_id: "MyFunction1|root:0|root:0|hdr:finish:1"
+      - node_id: 2
+        lexical_id: "MyFunction1|root:0|hdr:finish:1"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction1|root:0"
       header: ~
       viz_event:
         event: exit
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction1|root:0"
         label: MyFunction1
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - lexical_id: "MyFunction1|root:0|root:0|hdr:finish:1"
+      - node_id: 2
+        lexical_id: "MyFunction1|root:0|hdr:finish:1"
         new_state: completed
-      - lexical_id: "MyFunction1|root:0|root:0"
+      - node_id: 0
+        lexical_id: "MyFunction1|root:0"
         new_state: completed
   - watch_event:
       kind: viz_exec_state
-      function: Main
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "Main|root:0"
       header: ~
       viz_event:
         event: exit
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "Main|root:0"
         label: Main
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after: []
     emitted_events:
-      - lexical_id: "Main|root:0"
+      - node_id: 0
+        lexical_id: "Main|root:0"
         new_state: completed

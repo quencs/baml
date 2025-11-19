@@ -7,264 +7,240 @@ fixture: simple_if_else.baml
 snapshots:
   - watch_event:
       kind: viz_exec_state
-      function: Main
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "Main|root:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "Main|root:0"
         label: Main
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - lexical_id: "Main|root:0"
+      - node_id: 0
+        lexical_id: "Main|root:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0"
         label: MyFunction4
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
+      - "MyFunction4|root:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0"
+      - node_id: 0
+        lexical_id: "MyFunction4|root:0"
         new_state: running
   - watch_event:
-      kind: header
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      kind: viz_exec_header
+      lexical_id: ~
       header:
         level: 1
         title: Check
       viz_event: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
+      - "MyFunction4|root:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0|hdr:check:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 1
         node_type: header_context_enter
         path_segment:
           kind: header
           slug: check
           ordinal: 0
+        lexical_id: "MyFunction4|root:0|hdr:check:0"
         label: Check
         header_level: 1
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0"
+      - node_id: 1
+        lexical_id: "MyFunction4|root:0|hdr:check:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 2
         node_type: branch_group
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
         label: if (flag)
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0|root:0"
+      - node_id: 2
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
       header: ~
       viz_event:
         event: enter
+        node_id: 3
         node_type: branch_arm
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
         label: if (flag)
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0"
+      - node_id: 3
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
       header: ~
       viz_event:
         event: enter
+        node_id: 4
         node_type: branch_arm
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
         label: else
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0|root:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0|root:0"
+      - node_id: 4
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
       header: ~
       viz_event:
         event: exit
+        node_id: 4
         node_type: branch_arm
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
         label: else
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0|root:0"
+      - node_id: 4
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:else:1"
         new_state: completed
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
       header: ~
       viz_event:
         event: exit
+        node_id: 3
         node_type: branch_arm
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
         label: if (flag)
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0|root:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
+      - "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0|root:0|root:0"
+      - node_id: 3
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0|branch-arm:if-flag:0"
         new_state: completed
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction4
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "MyFunction4|root:0"
       header: ~
       viz_event:
         event: exit
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "MyFunction4|root:0"
         label: MyFunction4
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
-      - "MyFunction4|root:0|root:0"
-      - "MyFunction4|root:0|root:0|hdr:check:0"
+      - "MyFunction4|root:0"
+      - "MyFunction4|root:0|hdr:check:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0|root:0"
+      - node_id: 2
+        lexical_id: "MyFunction4|root:0|hdr:check:0|branch-group:if-flag:0"
         new_state: completed
   - watch_event:
       kind: viz_exec_state
-      function: Main
-      variable: ~
-      channel: ~
-      stream_id: ~
+      lexical_id: "Main|root:0"
       header: ~
       viz_event:
         event: exit
+        node_id: 0
         node_type: function_root
         path_segment:
           kind: function_root
           ordinal: 0
+        lexical_id: "Main|root:0"
         label: Main
         header_level: ~
-      value: ~
-      is_stream: false
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - lexical_id: "MyFunction4|root:0|root:0|hdr:check:0"
+      - node_id: 1
+        lexical_id: "MyFunction4|root:0|hdr:check:0"
         new_state: completed
-      - lexical_id: "MyFunction4|root:0|root:0"
+      - node_id: 0
+        lexical_id: "MyFunction4|root:0"
         new_state: completed

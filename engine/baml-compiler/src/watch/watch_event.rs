@@ -89,7 +89,7 @@ pub fn shared_noop_handler() -> SharedWatchHandler {
 #[derive(Debug, Clone)]
 pub enum WatchBamlValue {
     Value(BamlValueWithMeta<WatchValueMetadata>),
-    Header(HeaderContext),
+    VizExecHeader(HeaderContext),
     VizExecState(VizExecEvent),
     StreamStart(StreamId),
     StreamUpdate(StreamId, BamlValueWithMeta<WatchValueMetadata>),
@@ -138,7 +138,7 @@ impl fmt::Display for WatchNotification {
                     write!(f, "{}", value.clone().value())
                 }
             },
-            WatchBamlValue::Header(header) => {
+            WatchBamlValue::VizExecHeader(header) => {
                 write!(
                     f,
                     "(header L{level}) {function}.{title}",
@@ -154,9 +154,9 @@ impl fmt::Display for WatchNotification {
                 };
                 write!(
                     f,
-                    "(context {delta}) {function}.{segment}",
-                    function = self.function_name,
-                    segment = event.path_segment.encode()
+                    "(context {delta}) n{node_id} {lexical}",
+                    node_id = event.node_id,
+                    lexical = event.lexical_id
                 )
             }
             WatchBamlValue::StreamStart(stream_id) => {
@@ -209,7 +209,7 @@ impl WatchNotification {
 
     pub fn new_block(header: HeaderContext, function_name: String) -> Self {
         Self {
-            value: WatchBamlValue::Header(header),
+            value: WatchBamlValue::VizExecHeader(header),
             variable_name: None,
             channel_name: None,
             function_name,

@@ -152,10 +152,21 @@ export default function App() {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>#</th>
-                <th style={styles.th}>Event</th>
-                <th style={styles.th}>Stack</th>
-                <th style={styles.th}>Emitted</th>
+                <th style={styles.th}>
+                  <div>#</div>
+                </th>
+                <th style={styles.th}>
+                  <div>Event</div>
+                  <div style={styles.subtext}>Raw WatchNotification emitted by baml-runtime to watch_handler</div>
+                </th>
+                <th style={styles.th}>
+                  <div>Stack</div>
+                  <div style={styles.subtext}>VizStateReducer internal state after applying the event</div>
+                </th>
+                <th style={styles.th}>
+                  <div>Emitted</div>
+                  <div style={styles.subtext}>StateUpdate entries emitted by VizStateReducer</div>
+                </th>
               </tr>
             </thead>
             <tbody>

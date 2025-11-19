@@ -364,7 +364,7 @@ impl BamlRuntime {
                 if let Some(ref callbacks) = notification_callbacks {
                     Python::with_gil(|py| {
                         match notification.value {
-                            baml_compiler::watch::WatchBamlValue::Header(header) => {
+                            baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
                                 // Fire header events to all registered block handlers
                                 for handler in &callbacks.block_handlers {
                                     let block_event_dict = PyDict::new(py);
@@ -576,7 +576,7 @@ impl BamlRuntime {
                 if let Some(ref callbacks) = notification_callbacks {
                     Python::with_gil(|py| {
                         match event.value {
-                            baml_compiler::watch::WatchBamlValue::Header(header) => {
+                            baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
                                 // Fire header events to all registered block handlers
                                 for handler in &callbacks.block_handlers {
                                     let block_event_dict = PyDict::new(py);

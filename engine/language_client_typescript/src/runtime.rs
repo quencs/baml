@@ -394,7 +394,7 @@ impl BamlRuntime {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = emit_callbacks {
                     match notification.value {
-                        baml_compiler::watch::WatchBamlValue::Header(header) => {
+                        baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
                             // Fire block events to all registered block handlers
                             for handler in &callbacks.block_handlers {
                                 let block_event = BlockEvent {
@@ -585,7 +585,7 @@ impl BamlRuntime {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = emit_callbacks {
                     match notification.value {
-                        baml_compiler::watch::WatchBamlValue::Header(header) => {
+                        baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
                             // Fire block events to all registered block handlers
                             for handler in &callbacks.block_handlers {
                                 let block_event = BlockEvent {
