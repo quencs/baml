@@ -36,6 +36,42 @@ function Calculate {
     root: Idx::<Expr>(17)
   }
 }
+function FieldAccess {
+  params: [user: Path(Path { segments: ["User"], kind: Plain })]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path("user::name")
+      Idx::<Expr>(1): Path("user::profile::bio")
+      Idx::<Expr>(2): Path("user::profile::settings::theme")
+      Idx::<Expr>(3): Path("user::tags")
+      Idx::<Expr>(4): Literal(Int(0))
+      Idx::<Expr>(5): Index { base: Idx::<Expr>(3), index: Idx::<Expr>(4) }
+      Idx::<Expr>(6): Path("theme")
+      Idx::<Expr>(7): Block { stmts: [Idx::<Stmt>(0), Idx::<Stmt>(1), Idx::<Stmt>(2), Idx::<Stmt>(3), Idx::<Stmt>(4)], tail_expr: None }
+    ]
+    stmts: [
+      Idx::<Stmt>(0): Let { pattern: Idx::<Pattern>(0), type_annotation: None, initializer: Some(Idx::<Expr>(0)) }
+      Idx::<Stmt>(1): Let { pattern: Idx::<Pattern>(1), type_annotation: None, initializer: Some(Idx::<Expr>(1)) }
+      Idx::<Stmt>(2): Let { pattern: Idx::<Pattern>(2), type_annotation: None, initializer: Some(Idx::<Expr>(2)) }
+      Idx::<Stmt>(3): Let { pattern: Idx::<Pattern>(3), type_annotation: None, initializer: Some(Idx::<Expr>(5)) }
+      Idx::<Stmt>(4): Return(Some(Idx::<Expr>(6)))
+    ]
+    root: Idx::<Expr>(7)
+  }
+}
+class Settings {
+  theme: String
+}
+class User {
+  name: String
+  profile: Path(Path { segments: ["Profile"], kind: Plain })
+  tags: List(Path(Path { segments: ["string"], kind: Plain }))
+}
+class Profile {
+  bio: String
+  settings: Path(Path { segments: ["Settings"], kind: Plain })
+}
 function ConditionalLogic {
   params: [age: Int]
   return: String
@@ -64,6 +100,46 @@ function ConditionalLogic {
     ]
     root: Idx::<Expr>(14)
   }
+}
+function IndexAccess {
+  params: [users: List(Path(Path { segments: ["User"], kind: Plain }))]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path("users")
+      Idx::<Expr>(1): Literal(Int(0))
+      Idx::<Expr>(2): Index { base: Idx::<Expr>(0), index: Idx::<Expr>(1) }
+      Idx::<Expr>(3): Path("users")
+      Idx::<Expr>(4): Path("idx")
+      Idx::<Expr>(5): Index { base: Idx::<Expr>(3), index: Idx::<Expr>(4) }
+      Idx::<Expr>(6): Path("users")
+      Idx::<Expr>(7): Literal(Int(0))
+      Idx::<Expr>(8): Index { base: Idx::<Expr>(6), index: Idx::<Expr>(7) }
+      Idx::<Expr>(9): FieldAccess { base: Idx::<Expr>(8), field: "name" }
+      Idx::<Expr>(10): Path("users")
+      Idx::<Expr>(11): Literal(Int(0))
+      Idx::<Expr>(12): Index { base: Idx::<Expr>(10), index: Idx::<Expr>(11) }
+      Idx::<Expr>(13): FieldAccess { base: Idx::<Expr>(12), field: "tags" }
+      Idx::<Expr>(14): Literal(Int(0))
+      Idx::<Expr>(15): Index { base: Idx::<Expr>(13), index: Idx::<Expr>(14) }
+      Idx::<Expr>(16): Path("firstName")
+      Idx::<Expr>(17): Block { stmts: [Idx::<Stmt>(0), Idx::<Stmt>(1), Idx::<Stmt>(2), Idx::<Stmt>(3), Idx::<Stmt>(4), Idx::<Stmt>(5)], tail_expr: None }
+    ]
+    stmts: [
+      Idx::<Stmt>(0): Let { pattern: Idx::<Pattern>(0), type_annotation: None, initializer: Some(Idx::<Expr>(2)) }
+      Idx::<Stmt>(1): Let { pattern: Idx::<Pattern>(1), type_annotation: None, initializer: None }
+      Idx::<Stmt>(2): Let { pattern: Idx::<Pattern>(2), type_annotation: None, initializer: Some(Idx::<Expr>(5)) }
+      Idx::<Stmt>(3): Let { pattern: Idx::<Pattern>(3), type_annotation: None, initializer: Some(Idx::<Expr>(9)) }
+      Idx::<Stmt>(4): Let { pattern: Idx::<Pattern>(4), type_annotation: None, initializer: Some(Idx::<Expr>(15)) }
+      Idx::<Stmt>(5): Return(Some(Idx::<Expr>(16)))
+    ]
+    root: Idx::<Expr>(17)
+  }
+}
+class User {
+  name: String
+  age: Int
+  tags: List(Path(Path { segments: ["string"], kind: Plain }))
 }
 function HandleStatus {
   params: [status: Path(Path { segments: ["Status"], kind: Plain })]

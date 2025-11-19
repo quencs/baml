@@ -3,6 +3,17 @@ source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
+  [parse] Expected Expected expression, found Expected expression
   [parse] Expected Expected Colon, found DoubleColon, found Expected Colon, found DoubleColon
   [parse] Expected Expected ',' or '}' after object field, found Expected ',' or '}' after object field
   [parse] Expected Expected Colon, found Equals, found Expected Colon, found Equals

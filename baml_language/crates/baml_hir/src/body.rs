@@ -119,6 +119,12 @@ pub enum Expr {
         tail_expr: Option<ExprId>,
     },
 
+    /// Field access: `user.name`, `obj.field.nested`
+    FieldAccess { base: ExprId, field: Name },
+
+    /// Index access: `array[0]`, `map[key]`
+    Index { base: ExprId, index: ExprId },
+
     /// Missing/error expression
     Missing,
 }
@@ -363,6 +369,8 @@ impl LoweringContext {
                 | SyntaxKind::IF_EXPR
                 | SyntaxKind::BLOCK_EXPR
                 | SyntaxKind::PATH_EXPR
+                | SyntaxKind::FIELD_ACCESS_EXPR
+                | SyntaxKind::INDEX_EXPR
                 | SyntaxKind::PAREN_EXPR
                 | SyntaxKind::ARRAY_LITERAL
                 | SyntaxKind::OBJECT_LITERAL => {
@@ -404,6 +412,8 @@ impl LoweringContext {
                 }
             }
             SyntaxKind::PATH_EXPR => self.lower_path_expr(node),
+            SyntaxKind::FIELD_ACCESS_EXPR => self.lower_field_access_expr(node),
+            SyntaxKind::INDEX_EXPR => self.lower_index_expr(node),
             SyntaxKind::PAREN_EXPR => {
                 // Unwrap parentheses - just lower the inner expression
                 if let Some(inner) = node.children().next() {
@@ -596,6 +606,8 @@ impl LoweringContext {
                                 | SyntaxKind::UNARY_EXPR
                                 | SyntaxKind::CALL_EXPR
                                 | SyntaxKind::PATH_EXPR
+                                | SyntaxKind::FIELD_ACCESS_EXPR
+                                | SyntaxKind::INDEX_EXPR
                                 | SyntaxKind::IF_EXPR
                                 | SyntaxKind::BLOCK_EXPR
                                 | SyntaxKind::PAREN_EXPR
@@ -607,6 +619,104 @@ impl LoweringContext {
             .unwrap_or_default();
 
         self.exprs.alloc(Expr::Call { callee, args })
+    }
+
+    fn lower_field_access_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // FIELD_ACCESS_EXPR structure: base expression, DOT token, field name (WORD)
+        // The parser wraps the left side as a child expression node
+        let base = node
+            .children()
+            .next()
+            .map(|n| self.lower_expr(&n))
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        // Find the field name (WORD token after DOT)
+        let field = node
+            .children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .filter(|token| token.kind() == SyntaxKind::WORD)
+            .last() // Get the last WORD (the field name, not part of the base expression)
+            .map(|token| Name::new(token.text()))
+            .unwrap_or_else(|| Name::new(""));
+
+        self.exprs.alloc(Expr::FieldAccess { base, field })
+    }
+
+    fn lower_index_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // INDEX_EXPR structure: base (node or token), L_BRACKET, index (node or token), R_BRACKET
+        // Similar to BINARY_EXPR, the base and index can be either child nodes or direct tokens
+
+        let mut base = None;
+        let mut index = None;
+        let mut inside_brackets = false;
+
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child_node) => {
+                    // Child expression node
+                    let expr_id = self.lower_expr(&child_node);
+                    if !inside_brackets {
+                        base = Some(expr_id);
+                    } else {
+                        index = Some(expr_id);
+                    }
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    match token.kind() {
+                        SyntaxKind::L_BRACKET => {
+                            inside_brackets = true;
+                        }
+                        SyntaxKind::R_BRACKET => {
+                            inside_brackets = false;
+                        }
+                        // Handle direct tokens (literals, identifiers)
+                        SyntaxKind::INTEGER_LITERAL => {
+                            let value = token.text().parse::<i64>().unwrap_or(0);
+                            let expr_id = self.exprs.alloc(Expr::Literal(Literal::Int(value)));
+                            if !inside_brackets {
+                                base = Some(expr_id);
+                            } else {
+                                index = Some(expr_id);
+                            }
+                        }
+                        SyntaxKind::FLOAT_LITERAL => {
+                            let expr_id = self
+                                .exprs
+                                .alloc(Expr::Literal(Literal::Float(token.text().to_string())));
+                            if !inside_brackets {
+                                base = Some(expr_id);
+                            } else {
+                                index = Some(expr_id);
+                            }
+                        }
+                        SyntaxKind::WORD => {
+                            let text = token.text();
+                            let expr_id = match text {
+                                "true" => self.exprs.alloc(Expr::Literal(Literal::Bool(true))),
+                                "false" => self.exprs.alloc(Expr::Literal(Literal::Bool(false))),
+                                "null" => self.exprs.alloc(Expr::Literal(Literal::Null)),
+                                _ => self.exprs.alloc(Expr::Path(Name::new(text))),
+                            };
+                            if !inside_brackets {
+                                base = Some(expr_id);
+                            } else {
+                                index = Some(expr_id);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        let base = base.unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+        let index = index.unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        self.exprs.alloc(Expr::Index { base, index })
     }
 
     fn lower_path_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
@@ -755,6 +865,8 @@ impl LoweringContext {
                         | SyntaxKind::UNARY_EXPR
                         | SyntaxKind::CALL_EXPR
                         | SyntaxKind::PATH_EXPR
+                        | SyntaxKind::FIELD_ACCESS_EXPR
+                        | SyntaxKind::INDEX_EXPR
                         | SyntaxKind::IF_EXPR
                         | SyntaxKind::BLOCK_EXPR
                         | SyntaxKind::PAREN_EXPR
@@ -783,6 +895,8 @@ impl LoweringContext {
                     | SyntaxKind::UNARY_EXPR
                     | SyntaxKind::CALL_EXPR
                     | SyntaxKind::PATH_EXPR
+                    | SyntaxKind::FIELD_ACCESS_EXPR
+                    | SyntaxKind::INDEX_EXPR
                     | SyntaxKind::IF_EXPR
                     | SyntaxKind::BLOCK_EXPR
                     | SyntaxKind::PAREN_EXPR
