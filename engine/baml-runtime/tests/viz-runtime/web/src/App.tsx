@@ -84,14 +84,11 @@ export default function App() {
 
     const combined: CombinedRow[] = current.rows.map((row, idx) => {
       const state = row.state ?? { nodes: {}, frames: [] };
-      const nodes = state?.nodes ?? {};
-      const frames = state?.frames ?? [];
       return {
         index: idx,
         watchEvent: row.watch_event,
         stackAfter: Array.isArray(row.stack_after) ? row.stack_after : [],
         emittedEvents: Array.isArray(row.emitted_events) ? row.emitted_events : [],
-        state: { nodes, frames },
       };
     });
 
@@ -158,7 +155,7 @@ export default function App() {
                 <th style={styles.th}>#</th>
                 <th style={styles.th}>Event</th>
                 <th style={styles.th}>Stack</th>
-                <th style={styles.th}>Reducer</th>
+                <th style={styles.th}>Emitted</th>
               </tr>
             </thead>
             <tbody>
@@ -179,23 +176,12 @@ export default function App() {
                   </td>
                   <td style={styles.td}>
                     {row.emittedEvents.length > 0 ? (
-                      <>
-                        <div style={styles.badge}>Emitted</div>
-                        <pre style={styles.pre}>
-                          {JSON.stringify(row.emittedEvents, null, 2)}
-                        </pre>
-                      </>
+                      <pre style={styles.pre}>
+                        {JSON.stringify(row.emittedEvents, null, 2)}
+                      </pre>
                     ) : (
                       <div style={styles.subtext}>No emitted events</div>
                     )}
-                    <div style={styles.badge}>Reducer State</div>
-                    <pre style={styles.pre}>
-                      {JSON.stringify(row.state.nodes, null, 2)}
-                    </pre>
-                    <div style={styles.badge}>Frames</div>
-                    <pre style={styles.pre}>
-                      {JSON.stringify(row.state.frames, null, 2)}
-                    </pre>
                   </td>
                 </tr>
               ))}

@@ -38,10 +38,6 @@ export interface SnapshotRow {
   watch_event: EventRecord;
   stack_after?: string[] | null;
   emitted_events?: StateUpdate[] | null;
-  state?: {
-    nodes: Record<string, LexicalState>;
-    frames: Frame[];
-  } | null;
 }
 
 export interface SnapshotEntry {
@@ -55,15 +51,4 @@ export interface CombinedRow {
   watchEvent: EventRecord;
   stackAfter: string[];
   emittedEvents: StateUpdate[];
-  state: {
-    nodes: Record<string, LexicalState>;
-    frames: Frame[];
-  };
-}
-
-export interface Frame {
-  lexical_id: string;
-  node_type: string;
-  label: string;
-  header_level?: number | null;
 }

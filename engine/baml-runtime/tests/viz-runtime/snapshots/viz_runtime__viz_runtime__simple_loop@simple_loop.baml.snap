@@ -22,7 +22,8 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
     emitted_events:
       - lexical_id: "Main|root:0"
         new_state: running
@@ -43,7 +44,9 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0"
         new_state: running
@@ -59,7 +62,9 @@ snapshots:
       viz_event: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
@@ -79,7 +84,10 @@ snapshots:
         header_level: 1
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0"
         new_state: running
@@ -101,7 +109,11 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
         new_state: running
@@ -115,7 +127,11 @@ snapshots:
       viz_event: ~
       value: a
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
@@ -135,7 +151,10 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
         new_state: completed
@@ -157,7 +176,11 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
         new_state: running
@@ -171,7 +194,11 @@ snapshots:
       viz_event: ~
       value: ab
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
@@ -191,7 +218,10 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
         new_state: completed
@@ -213,7 +243,11 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
         new_state: running
@@ -227,7 +261,11 @@ snapshots:
       viz_event: ~
       value: abc
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
@@ -247,7 +285,10 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
+      - "MyFunction1|root:0|root:0"
+      - "MyFunction1|root:0|root:0|hdr:loop:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
         new_state: completed
@@ -268,7 +309,8 @@ snapshots:
         header_level: ~
       value: ~
       is_stream: false
-    stack_after: []
+    stack_after:
+      - "Main|root:0"
     emitted_events:
       - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0"
         new_state: completed

@@ -8,7 +8,7 @@ use std::{
 use baml_compiler::watch::{shared_handler, SharedWatchHandler, WatchBamlValue, WatchNotification};
 use baml_compiler::watch::{VizExecDelta, VizExecEvent};
 use baml_runtime::{FunctionResult, RuntimeContextManager, TripWire};
-use baml_viz_events::{LexicalState, StateUpdate, VizStateReducer};
+use baml_viz_events::{Frame, LexicalState, StateUpdate, VizStateReducer};
 use internal_baml_core::feature_flags::FeatureFlags;
 use serde::Serialize;
 use serde_json::Value;
@@ -93,7 +93,6 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
     let events = Arc::new(Mutex::new(Vec::<EventRecord>::new()));
     let stacks = Arc::new(Mutex::new(Vec::<Vec<String>>::new()));
     let emitted_events = Arc::new(Mutex::new(Vec::<Vec<StateUpdate>>::new()));
-
     let reducer = Arc::new(Mutex::new(VizStateReducer::default()));
 
     let handler = build_watch_handler(
@@ -134,7 +133,7 @@ async fn run_fixture(path: &Path) -> anyhow::Result<FixtureSnapshot> {
         .enumerate()
         .map(|(idx, event)| StreamSnapshot {
             watch_event: event.clone(),
-            stack_after: vec![],
+            stack_after: stacks.get(idx).cloned().unwrap_or_default(),
             emitted_events: emitted_events.get(idx).cloned().unwrap_or_default(),
         })
         .collect();
@@ -167,10 +166,12 @@ fn build_watch_handler(
             let state_after = reducer_guard.dump();
             (Vec::new(), state_after)
         };
+        let stack_after: Vec<String> = state_after.iter().map(|f| f.lexical_id.clone()).collect();
         drop(reducer_guard);
 
         events.lock().unwrap().push(event);
         emitted_events.lock().unwrap().push(updates);
+        stacks.lock().unwrap().push(stack_after);
     })
 }
 
