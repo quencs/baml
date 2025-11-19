@@ -1,9 +1,10 @@
 ---
 source: baml-runtime/tests/viz-runtime.rs
+assertion_line: 69
 expression: "&snapshot"
-input_file: baml-runtime/tests/viz-runtime/testdata/straight_line_with_headers.baml
+input_file: baml-runtime/tests/viz-runtime/testdata/simple_if_else.baml
 ---
-fixture: straight_line_with_headers.baml
+fixture: simple_if_else.baml
 snapshots:
   - watch_event:
       kind: viz_exec_state
@@ -24,7 +25,7 @@ snapshots:
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
+      function: MyFunction4
       variable: ~
       channel: ~
       stream_id: ~
@@ -33,7 +34,7 @@ snapshots:
         event: enter
         node_type: function_root
         lexical_id: ""
-        label: MyFunction1
+        label: MyFunction4
         header_level: ~
       value: ~
       is_stream: false
@@ -41,13 +42,13 @@ snapshots:
     emitted_events: []
   - watch_event:
       kind: header
-      function: MyFunction1
+      function: MyFunction4
       variable: ~
       channel: ~
       stream_id: ~
       header:
         level: 1
-        title: Start
+        title: Check
       viz_event: ~
       value: ~
       is_stream: false
@@ -55,7 +56,7 @@ snapshots:
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
+      function: MyFunction4
       variable: ~
       channel: ~
       stream_id: ~
@@ -64,46 +65,100 @@ snapshots:
         event: enter
         node_type: header_context_enter
         lexical_id: ""
-        label: Start
+        label: Check
         header_level: 1
       value: ~
       is_stream: false
     stack_after: []
     emitted_events: []
   - watch_event:
-      kind: header
-      function: MyFunction1
-      variable: ~
-      channel: ~
-      stream_id: ~
-      header:
-        level: 1
-        title: Finish
-      viz_event: ~
-      value: ~
-      is_stream: false
-    stack_after: []
-    emitted_events: []
-  - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
+      function: MyFunction4
       variable: ~
       channel: ~
       stream_id: ~
       header: ~
       viz_event:
         event: enter
-        node_type: header_context_enter
+        node_type: branch_group
         lexical_id: ""
-        label: Finish
-        header_level: 1
+        label: if (flag)
+        header_level: ~
       value: ~
       is_stream: false
     stack_after: []
     emitted_events: []
   - watch_event:
       kind: viz_exec_state
-      function: MyFunction1
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: branch_arm
+        lexical_id: ""
+        label: if (flag)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: enter
+        node_type: branch_arm
+        lexical_id: ""
+        label: else
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: branch_arm
+        lexical_id: ""
+        label: else
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
+      variable: ~
+      channel: ~
+      stream_id: ~
+      header: ~
+      viz_event:
+        event: exit
+        node_type: branch_arm
+        lexical_id: ""
+        label: if (flag)
+        header_level: ~
+      value: ~
+      is_stream: false
+    stack_after: []
+    emitted_events: []
+  - watch_event:
+      kind: viz_exec_state
+      function: MyFunction4
       variable: ~
       channel: ~
       stream_id: ~
@@ -112,7 +167,7 @@ snapshots:
         event: exit
         node_type: function_root
         lexical_id: ""
-        label: MyFunction1
+        label: MyFunction4
         header_level: ~
       value: ~
       is_stream: false

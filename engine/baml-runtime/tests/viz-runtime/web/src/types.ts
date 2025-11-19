@@ -42,6 +42,7 @@ export interface SnapshotRow {
 
 export interface SnapshotEntry {
   fixture: string;
+  inputFile?: string;
   rows: SnapshotRow[];
 }
 

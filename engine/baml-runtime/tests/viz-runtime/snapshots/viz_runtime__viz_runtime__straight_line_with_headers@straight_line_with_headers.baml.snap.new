@@ -1,5 +1,6 @@
 ---
 source: baml-runtime/tests/viz-runtime.rs
+assertion_line: 69
 expression: "&snapshot"
 input_file: baml-runtime/tests/viz-runtime/testdata/straight_line_with_headers.baml
 ---

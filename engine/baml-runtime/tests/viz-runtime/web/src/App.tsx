@@ -8,6 +8,12 @@ const snapshotModules = import.meta.glob("../../snapshots/**/*.snap", {
   import: "default",
 });
 
+const sourceModules = import.meta.glob("../../testdata/*.baml", {
+  eager: true,
+  query: "?raw",
+  import: "default",
+});
+
 function parseSnapshotFile(path: string, raw: string | undefined): SnapshotEntry | null {
   if (typeof raw !== "string") return null;
 
@@ -15,12 +21,16 @@ function parseSnapshotFile(path: string, raw: string | undefined): SnapshotEntry
   const payload = docs.at(-1)?.toJSON() as
     | { fixture?: string; snapshots?: unknown }
     | undefined;
+  const meta = docs.at(0)?.toJSON() as { input_file?: unknown } | undefined;
   if (!payload || !Array.isArray(payload.snapshots)) return null;
 
   const fileName = path.split("/").pop() ?? "snapshot";
   const fixture = payload.fixture ?? fileName;
 
-  return { fixture, rows: payload.snapshots as SnapshotRow[] };
+  const inputFile =
+    typeof meta?.input_file === "string" ? meta.input_file.split("/").pop() : undefined;
+
+  return { fixture, inputFile, rows: payload.snapshots as SnapshotRow[] };
 }
 
 function discoverSnapshots(): SnapshotEntry[] {
@@ -39,6 +49,20 @@ export default function App() {
   const [manifest, setManifest] = useState<SnapshotEntry[]>([]);
   const [selected, setSelected] = useState<string>();
   const [rows, setRows] = useState<CombinedRow[]>([]);
+  const [source, setSource] = useState<{ name: string; content: string }>();
+
+  const sourceMap = useMemo(() => {
+    return Object.entries(sourceModules).reduce<Record<string, string>>((acc, [path, raw]) => {
+      if (typeof raw === "string") {
+        const name = path.split("/").pop();
+        if (name) {
+          acc[name] = raw as string;
+        }
+      }
+      return acc;
+    }, {});
+  }, []);
+
   const current = useMemo(
     () => manifest.find((item) => item.fixture === selected),
     [manifest, selected],
@@ -74,6 +98,20 @@ export default function App() {
     setRows(combined);
   }, [current]);
 
+  useEffect(() => {
+    if (!current) {
+      setSource(undefined);
+      return;
+    }
+    const targetName = current.inputFile ?? current.fixture;
+    const content = sourceMap[targetName];
+    if (content) {
+      setSource({ name: targetName, content });
+    } else {
+      setSource(undefined);
+    }
+  }, [current, sourceMap]);
+
   return (
     <div style={styles.page}>
       <header style={styles.header}>
@@ -96,6 +134,19 @@ export default function App() {
             </button>
           ))}
         </div>
+      </section>
+      <section style={styles.source}>
+        <h2>Source</h2>
+        {!source ? (
+          <p style={styles.subtext}>Source not found for this fixture.</p>
+        ) : (
+          <>
+            <div style={styles.subtext}>{source.name}</div>
+            <pre style={{ ...styles.pre, height: "calc(100vh - 180px)", overflowY: "auto" }}>
+              {source.content}
+            </pre>
+          </>
+        )}
       </section>
       <main style={styles.main}>
         {!current ? (
@@ -159,18 +210,23 @@ export default function App() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     display: "grid",
-    gridTemplateColumns: "280px 1fr",
+    gridTemplateColumns: "280px 380px 1fr",
     gridTemplateRows: "auto 1fr",
     height: "100vh",
     fontFamily: "Inter, system-ui, sans-serif",
   },
   header: {
-    gridColumn: "1 / span 2",
+    gridColumn: "1 / span 3",
     padding: "16px 20px",
     borderBottom: "1px solid #e6e6e6",
     background: "#fafafa",
   },
   sidebar: {
+    borderRight: "1px solid #e6e6e6",
+    padding: "12px",
+    overflowY: "auto",
+  },
+  source: {
     borderRight: "1px solid #e6e6e6",
     padding: "12px",
     overflowY: "auto",

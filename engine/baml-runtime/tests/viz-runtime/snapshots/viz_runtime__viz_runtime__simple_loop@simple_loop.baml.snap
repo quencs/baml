@@ -15,7 +15,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: function_root
-        lexical_id: "Main|root:0"
+        lexical_id: ""
         label: Main
         header_level: ~
       value: ~
@@ -32,7 +32,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: function_root
-        lexical_id: "MyFunction1|root:0"
+        lexical_id: ""
         label: MyFunction1
         header_level: ~
       value: ~
@@ -63,7 +63,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: header_context_enter
-        lexical_id: "MyFunction1|root:0|hdr:loop:0"
+        lexical_id: ""
         label: Loop
         header_level: 1
       value: ~
@@ -80,7 +80,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: loop
-        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        lexical_id: ""
         label: for (item in items)
         header_level: ~
       value: ~
@@ -109,7 +109,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: loop
-        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        lexical_id: ""
         label: for (item in items)
         header_level: ~
       value: ~
@@ -126,7 +126,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: loop
-        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        lexical_id: ""
         label: for (item in items)
         header_level: ~
       value: ~
@@ -155,7 +155,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: loop
-        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        lexical_id: ""
         label: for (item in items)
         header_level: ~
       value: ~
@@ -172,7 +172,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: loop
-        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        lexical_id: ""
         label: for (item in items)
         header_level: ~
       value: ~
@@ -201,7 +201,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: loop
-        lexical_id: "MyFunction1|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        lexical_id: ""
         label: for (item in items)
         header_level: ~
       value: ~
@@ -218,7 +218,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: function_root
-        lexical_id: "MyFunction1|root:0"
+        lexical_id: ""
         label: MyFunction1
         header_level: ~
       value: ~
@@ -235,7 +235,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: function_root
-        lexical_id: "Main|root:0"
+        lexical_id: ""
         label: Main
         header_level: ~
       value: ~
