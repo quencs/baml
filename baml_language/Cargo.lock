@@ -93,6 +93,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -152,6 +158,7 @@ dependencies = [
  "baml_syntax",
  "baml_workspace",
  "la-arena",
+ "pretty",
  "rowan",
  "rustc-hash 2.1.1",
  "salsa",
@@ -1174,6 +1181,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f84267b20a16ea918e43c6a88433c2d54fa145c92a811b5b047ccbe153674483"
 
 [[package]]
+name = "pretty"
+version = "0.12.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d22152487193190344590e4f30e219cf3fe140d9e7a3fdb683d82aa2c5f4156"
+dependencies = [
+ "arrayvec",
+ "typed-arena",
+ "unicode-width 0.2.0",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1651,6 +1669,12 @@ checksum = "b9d12581f227e93f094d3af2ae690a574abb8a2b9b7a96e7cfe9647b2b617678"
 dependencies = [
  "once_cell",
 ]
+
+[[package]]
+name = "typed-arena"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typenum"

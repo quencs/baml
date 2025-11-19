@@ -60,6 +60,9 @@ pub struct ExprBody {
     /// Statement arena
     pub stmts: Arena<Stmt>,
 
+    /// Pattern arena
+    pub patterns: Arena<Pattern>,
+
     /// Root expression of the function body (usually a `BLOCK_EXPR`)
     pub root_expr: Option<ExprId>,
 }
@@ -320,6 +323,7 @@ impl FunctionBody {
         ExprBody {
             exprs: ctx.exprs,
             stmts: ctx.stmts,
+            patterns: ctx.patterns,
             root_expr,
         }
     }

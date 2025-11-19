@@ -20,7 +20,7 @@ use std::sync::Arc;
 use baml_base::{Name, SourceFile};
 use baml_parser::syntax_tree;
 use baml_syntax::SyntaxNode;
-use rowan::ast::AstNode;
+use rowan::ast::{AstNode, AstPtr};
 
 // Module declarations
 mod body;
@@ -30,6 +30,7 @@ mod ids;
 mod item_tree;
 mod loc;
 mod path;
+mod pretty_print;
 mod signature;
 mod type_ref;
 
@@ -41,6 +42,7 @@ pub use ids::*;
 pub use item_tree::*;
 pub use loc::*;
 pub use path::*;
+pub use pretty_print::*;
 // Re-export signature types explicitly (no wildcards to avoid conflicts)
 pub use signature::{CustomAttribute, FunctionAttributes, FunctionSignature, Param};
 pub use type_ref::*;
@@ -83,6 +85,14 @@ pub struct ProjectItems<'db> {
     pub items: Vec<ItemId<'db>>,
 }
 
+/// Tracked struct holding source mappings for a file.
+#[salsa::tracked]
+pub struct SourceMap<'db> {
+    #[tracked]
+    #[returns(ref)]
+    pub functions: rustc_hash::FxHashMap<LocalItemId<FunctionMarker>, AstPtr<baml_syntax::ast::FunctionDef>>,
+}
+
 //
 // ────────────────────────────────────────────────────────── SALSA QUERIES ─────
 //
@@ -98,6 +108,14 @@ pub fn file_item_tree(db: &dyn Db, file: SourceFile) -> Arc<ItemTree> {
     Arc::new(item_tree)
 }
 
+/// Tracked: Generate source map for a file.
+#[salsa::tracked]
+pub fn source_map<'db>(db: &'db dyn Db, file: SourceFile) -> SourceMap<'db> {
+    let tree = syntax_tree(db, file);
+    let map = generate_source_map(&tree);
+    SourceMap::new(db, map)
+}
+
 // Future: When we add modules, we'll need a function like this:
 // #[salsa::tracked]
 // pub fn container_item_tree(db: &dyn Db, container: ContainerId) -> Arc<ItemTree>
@@ -108,8 +126,7 @@ pub fn file_item_tree(db: &dyn Db, file: SourceFile) -> Arc<ItemTree> {
 #[salsa::tracked]
 pub fn file_items(db: &dyn Db, file: SourceFile) -> FileItems<'_> {
     let item_tree = file_item_tree(db, file);
-    let file_id = file.file_id(db);
-    let items = intern_all_items(db, file_id, &item_tree);
+    let items = intern_all_items(db, file, &item_tree);
     FileItems::new(db, items)
 }
 
@@ -161,6 +178,36 @@ pub fn type_alias_generic_params(_db: &dyn Db, _alias: TypeAliasId<'_>) -> Arc<G
     Arc::new(GenericParams::new())
 }
 
+/// Tracked: Get function signature.
+#[salsa::tracked]
+pub fn function_signature(db: &dyn Db, func_id: FunctionId<'_>) -> Arc<FunctionSignature> {
+    let file = func_id.file(db);
+    let local_id = func_id.id(db);
+    
+    let source_map = source_map(db, file);
+    let ast_ptr = source_map.functions(db).get(&local_id).expect("Function not found in source map");
+    
+    let tree = syntax_tree(db, file);
+    let node = ast_ptr.to_node(&tree);
+    
+    FunctionSignature::lower(&node)
+}
+
+/// Tracked: Get function body.
+#[salsa::tracked]
+pub fn function_body(db: &dyn Db, func_id: FunctionId<'_>) -> Arc<FunctionBody> {
+    let file = func_id.file(db);
+    let local_id = func_id.id(db);
+    
+    let source_map = source_map(db, file);
+    let ast_ptr = source_map.functions(db).get(&local_id).expect("Function not found in source map");
+    
+    let tree = syntax_tree(db, file);
+    let node = ast_ptr.to_node(&tree);
+    
+    FunctionBody::lower(&node)
+}
+
 //
 // ──────────────────────────────────────────────────────── INTERN HELPERS ─────
 //
@@ -171,7 +218,7 @@ pub fn type_alias_generic_params(_db: &dyn Db, _alias: TypeAliasId<'_>) -> Arc<G
 /// Items are returned sorted by their ID value for deterministic ordering.
 fn intern_all_items<'db>(
     db: &'db dyn Db,
-    file: baml_base::FileId,
+    file: baml_base::SourceFile,
     tree: &ItemTree,
 ) -> Vec<ItemId<'db>> {
     let mut items = Vec::new();
@@ -463,6 +510,28 @@ fn lower_test(node: &SyntaxNode) -> Option<Test> {
         name,
         function_refs,
     })
+}
+
+/// Generate source map from CST.
+fn generate_source_map(
+    root: &SyntaxNode,
+) -> rustc_hash::FxHashMap<LocalItemId<FunctionMarker>, AstPtr<baml_syntax::ast::FunctionDef>> {
+    use baml_syntax::ast::FunctionDef;
+    
+    let mut map = rustc_hash::FxHashMap::default();
+
+    for child in root.children() {
+        if let Some(func) = FunctionDef::cast(child) {
+            if let Some(name_token) = func.name() {
+                let name = Name::new(name_token.text());
+                let id = LocalItemId::from_name(&name);
+                let ptr = AstPtr::new(&func);
+                map.insert(id, ptr);
+            }
+        }
+    }
+
+    map
 }
 
 /// Lower a type reference from CST.

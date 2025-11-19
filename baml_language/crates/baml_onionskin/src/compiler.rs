@@ -465,9 +465,8 @@ impl CompilerRunner {
         for (path, source_file) in sorted_files {
             let file_path = path.display().to_string();
 
-            // Use real baml_hir for item extraction
-            let items_struct = baml_hir::file_items(&self.db, *source_file);
-            let items = items_struct.items(&self.db);
+            // Get the ItemTree for this file
+            let item_tree = baml_hir::file_item_tree(&self.db, *source_file);
 
             // Check if THIS specific file was modified
             let file_recomputed = self.modified_files.contains(path);
@@ -475,13 +474,30 @@ impl CompilerRunner {
             writeln!(output, "File: {file_path}").ok();
             output_annotated.push((format!("File: {file_path}"), LineStatus::Unknown));
 
-            // Show real HIR items
-            if !items.is_empty() {
-                for item in items {
-                    let item_line = format!("  {item:?}");
-                    writeln!(output, "{item_line}").ok();
+            // Pretty-print the entire ItemTree for this file
+            let pretty_output = baml_hir::pretty_print_item_tree(&item_tree, 80, |id| {
+                // Create a FunctionId from the file and local ID
+                let func_loc = baml_hir::FunctionLoc::new(&self.db, *source_file, id);
+                let func_id = func_loc;
+
+                // Query signature and body
+                let sig = baml_hir::function_signature(&self.db, func_id);
+                let body = baml_hir::function_body(&self.db, func_id);
+
+                Some(((*sig).clone(), (*body).clone()))
+            });
+
+            if !pretty_output.trim().is_empty() {
+                // Split into lines and add to output
+                for line in pretty_output.lines() {
+                    let indented_line = if line.is_empty() {
+                        String::new()
+                    } else {
+                        format!("  {line}")
+                    };
+                    writeln!(output, "{indented_line}").ok();
                     output_annotated.push((
-                        item_line,
+                        indented_line,
                         if file_recomputed {
                             LineStatus::Recomputed
                         } else {

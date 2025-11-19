@@ -11,7 +11,7 @@
 //! need to refactor this.
 
 use crate::ids::LocalItemId;
-use baml_base::FileId;
+use baml_base::SourceFile;
 
 /// Marker types for different item kinds in the `ItemTree`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,7 +33,7 @@ pub struct TestMarker;
 #[salsa::interned]
 pub struct FunctionLoc {
     /// File containing this function.
-    pub file: FileId,
+    pub file: SourceFile,
 
     /// Index in the file's ItemTree.
     pub id: LocalItemId<FunctionMarker>,
@@ -42,34 +42,34 @@ pub struct FunctionLoc {
 /// Location of a class definition.
 #[salsa::interned]
 pub struct ClassLoc {
-    pub file: FileId,
+    pub file: SourceFile,
     pub id: LocalItemId<ClassMarker>,
 }
 
 /// Location of an enum definition.
 #[salsa::interned]
 pub struct EnumLoc {
-    pub file: FileId,
+    pub file: SourceFile,
     pub id: LocalItemId<EnumMarker>,
 }
 
 /// Location of a type alias.
 #[salsa::interned]
 pub struct TypeAliasLoc {
-    pub file: FileId,
+    pub file: SourceFile,
     pub id: LocalItemId<TypeAliasMarker>,
 }
 
 /// Location of a client configuration.
 #[salsa::interned]
 pub struct ClientLoc {
-    pub file: FileId,
+    pub file: SourceFile,
     pub id: LocalItemId<ClientMarker>,
 }
 
 /// Location of a test definition.
 #[salsa::interned]
 pub struct TestLoc {
-    pub file: FileId,
+    pub file: SourceFile,
     pub id: LocalItemId<TestMarker>,
 }

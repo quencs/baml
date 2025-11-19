@@ -23,6 +23,7 @@ baml_syntax = { workspace = true }
 baml_workspace = { workspace = true }
 
 la-arena = { workspace = true }
+pretty = { workspace = true }
 rowan = { workspace = true }
 rustc-hash = { workspace = true }
 salsa = { workspace = true }
