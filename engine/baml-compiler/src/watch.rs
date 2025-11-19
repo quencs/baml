@@ -249,13 +249,8 @@ impl FunctionMetadata {
         diagnostics: &mut Diagnostics,
     ) {
         match statement {
-            thir::Statement::AnnotatedStatement {
-                statement,
-                headers: _,
-            } => {
-                if let Some(statement) = statement {
-                    self.analyze_statement(statement, next_statement, diagnostics);
-                }
+            thir::Statement::HeaderContextEnter(header) => {
+                self.markdown_headers.insert(header.title.clone());
             }
             thir::Statement::Let {
                 value, watch, name, ..

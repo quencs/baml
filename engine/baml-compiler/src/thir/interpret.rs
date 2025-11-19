@@ -544,27 +544,15 @@ where
         {
             Box::pin(async move {
                 match stmt {
-                    Statement::AnnotatedStatement { headers, statement } => {
-                        headers.iter().for_each(|header| {
-                            watch_handler
-                                .lock()
-                                .unwrap()
-                                .notify(WatchNotification::new_block(
-                                    header.clone(),
-                                    "FunctionNameNotPlumbed".to_string(),
-                                ));
-                        });
-                        if let Some(statement) = statement {
-                            return handle_statement(
-                                statement,
-                                scopes,
-                                thir,
-                                run_llm_function,
-                                watch_handler,
-                                function_name,
-                            )
-                            .await;
-                        }
+                    Statement::HeaderContextEnter(header) => {
+                        watch_handler
+                            .lock()
+                            .unwrap()
+                            .notify(WatchNotification::new_block(
+                                header.clone(),
+                                function_name.to_string(),
+                            ));
+                        return Ok(None);
                     }
                     Statement::Let {
                         name, value, watch, ..

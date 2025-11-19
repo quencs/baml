@@ -193,6 +193,16 @@ impl WithRepr<TopLevelAssignment> for TopLevelAssignmentWalker<'_> {
 }
 
 impl WithRepr<ExprFunction> for ExprFnWalker<'_> {
+    fn attributes(&self, _db: &ParserDatabase) -> NodeAttributes {
+        NodeAttributes {
+            meta: Default::default(),
+            constraints: Vec::new(),
+            span: Some(self.expr_fn().span.clone()),
+            identifier_span: Some(self.expr_fn().name.span().clone()),
+            symbol_spans: HashMap::new(),
+        }
+    }
+
     fn repr(&self, db: &ParserDatabase) -> Result<ExprFunction> {
         let body = convert_function_body(self.expr_fn().body.to_owned(), db)?;
         let args: Vec<(String, TypeIR)> = self

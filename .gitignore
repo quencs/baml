@@ -175,3 +175,5 @@ trace_events_debug.json
 result
 
 target/
+
+baml-graph/

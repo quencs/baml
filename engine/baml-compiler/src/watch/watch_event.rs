@@ -5,6 +5,8 @@ use std::{
 
 use baml_types::{BamlValueWithMeta, Completion, Constraint, ResponseCheck, TypeIR};
 
+use crate::hir::HeaderContext;
+
 /// Unique identifier for a streaming watch notification
 pub type StreamId = String;
 
@@ -83,10 +85,10 @@ pub fn shared_noop_handler() -> SharedWatchHandler {
     Arc::new(Mutex::new(WatchHandler::noop()))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum WatchBamlValue {
     Value(BamlValueWithMeta<WatchValueMetadata>),
-    Block(String),
+    Header(HeaderContext),
     StreamStart(StreamId),
     StreamUpdate(StreamId, BamlValueWithMeta<WatchValueMetadata>),
     StreamEnd(StreamId),
@@ -134,11 +136,13 @@ impl fmt::Display for WatchNotification {
                     write!(f, "{}", value.clone().value())
                 }
             },
-            WatchBamlValue::Block(label) => {
+            WatchBamlValue::Header(header) => {
                 write!(
                     f,
-                    "(block) {function_name}.{label}",
-                    function_name = self.function_name
+                    "(header L{level}) {function}.{title}",
+                    level = header.level,
+                    function = self.function_name,
+                    title = header.title
                 )
             }
             WatchBamlValue::StreamStart(stream_id) => {
@@ -189,9 +193,9 @@ impl WatchNotification {
         }
     }
 
-    pub fn new_block(block_label: String, function_name: String) -> Self {
+    pub fn new_block(header: HeaderContext, function_name: String) -> Self {
         Self {
-            value: WatchBamlValue::Block(block_label),
+            value: WatchBamlValue::Header(header),
             variable_name: None,
             channel_name: None,
             function_name,

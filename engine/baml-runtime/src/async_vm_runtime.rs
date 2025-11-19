@@ -390,9 +390,14 @@ impl BamlAsyncVmRuntime {
                         baml_vm::vm::WatchNotification::Block(notification) => {
                             if let Some(handler) = watch_handler.as_ref() {
                                 if let Ok(mut handler) = handler.lock() {
+                                    let header = baml_compiler::hir::HeaderContext {
+                                        level: notification.level as u8,
+                                        title: notification.block_name.clone(),
+                                        span: internal_baml_core::ast::Span::fake(),
+                                    };
                                     handler.notify(watch::WatchNotification::new_block(
-                                        notification.block_name.as_str().to_string(),
-                                        notification.function_name.as_str().to_string(),
+                                        header,
+                                        notification.function_name.clone(),
                                     ));
                                 }
                             }
@@ -1371,6 +1376,16 @@ impl crate::runtime_interface::InternalRuntimeInterface for BamlAsyncVmRuntime {
         ctx: &crate::runtime_context::RuntimeContext,
     ) -> anyhow::Result<String> {
         self.llm_runtime.function_graph(function_name, ctx)
+    }
+
+    fn function_graph_v2(
+        &self,
+        function_name: &str,
+        ctx: &crate::runtime_context::RuntimeContext,
+    ) -> anyhow::Result<crate::control_flow::ControlFlowVisualization> {
+        let result = self.llm_runtime.function_graph_v2(function_name, ctx);
+        log::info!("function_graph_v2({function_name}, ctx) => {:#?}", result);
+        result
     }
 
     fn get_function<'ir>(

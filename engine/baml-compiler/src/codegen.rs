@@ -556,13 +556,8 @@ impl<'g> HirCompiler<'g> {
     /// A statement is anything that does not produce a value by itself.
     fn compile_statement(&mut self, statement: &thir::Statement<(Span, Option<TypeIR>)>) {
         match statement {
-            thir::Statement::AnnotatedStatement { headers, statement } => {
-                for header in headers {
-                    self.emit_annotated_block(header);
-                }
-                if let Some(statement) = statement {
-                    self.compile_statement(statement);
-                }
+            thir::Statement::HeaderContextEnter(header) => {
+                self.emit_annotated_block(header);
             }
             thir::Statement::Let { name, value, .. } => {
                 self.compile_expression(value);
@@ -1592,12 +1587,12 @@ impl<'g> HirCompiler<'g> {
         self.emit(Instruction::LoadConst(const_index));
     }
 
-    fn emit_annotated_block(&mut self, annotation: &str) {
+    fn emit_annotated_block(&mut self, header: &hir::HeaderContext) {
         // Create the notification metadata
         let notification = baml_vm::bytecode::BlockNotification {
             function_name: String::new(), // Will be populated at runtime from Function::name
-            block_name: annotation.to_string(),
-            level: self.scopes.len(), // Current scope depth (1-based)
+            block_name: header.title.clone(),
+            level: header.level as usize,
             block_type: baml_vm::bytecode::BlockNotificationType::Statement,
             is_enter: true,
         };
