@@ -160,7 +160,7 @@ fn build_watch_handler(
 
         let mut reducer_guard = reducer.lock().unwrap();
         let (updates, state_after) = if let Some(viz_event) = event.viz_event.as_ref() {
-            let updates = reducer_guard.apply(viz_event);
+            let updates = reducer_guard.apply(&event.function, viz_event);
             let state_after = reducer_guard.dump();
             (updates, state_after)
         } else {

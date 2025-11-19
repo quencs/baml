@@ -154,9 +154,9 @@ impl fmt::Display for WatchNotification {
                 };
                 write!(
                     f,
-                    "(context {delta}) {function}.n{node_id}",
+                    "(context {delta}) {function}.{segment}",
                     function = self.function_name,
-                    node_id = event.node_id
+                    segment = event.path_segment.encode()
                 )
             }
             WatchBamlValue::StreamStart(stream_id) => {

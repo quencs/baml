@@ -15,13 +15,17 @@ snapshots:
       viz_event:
         event: enter
         node_type: function_root
-        node_id: 0
+        path_segment:
+          kind: function_root
+          ordinal: 0
         label: Main
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "Main|root:0"
+        new_state: running
   - watch_event:
       kind: viz_exec_state
       function: MyFunction1
@@ -32,13 +36,17 @@ snapshots:
       viz_event:
         event: enter
         node_type: function_root
-        node_id: 0
+        path_segment:
+          kind: function_root
+          ordinal: 0
         label: MyFunction1
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0"
+        new_state: running
   - watch_event:
       kind: header
       function: MyFunction1
@@ -63,13 +71,18 @@ snapshots:
       viz_event:
         event: enter
         node_type: header_context_enter
-        node_id: 0
+        path_segment:
+          kind: header
+          slug: loop
+          ordinal: 0
         label: Loop
         header_level: 1
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0"
+        new_state: running
   - watch_event:
       kind: viz_exec_state
       function: MyFunction1
@@ -80,13 +93,18 @@ snapshots:
       viz_event:
         event: enter
         node_type: loop
-        node_id: 0
+        path_segment:
+          kind: loop
+          slug: for-item-in-items
+          ordinal: 0
         label: for (item in items)
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        new_state: running
   - watch_event:
       kind: value
       function: MyFunction1
@@ -109,13 +127,18 @@ snapshots:
       viz_event:
         event: exit
         node_type: loop
-        node_id: 0
+        path_segment:
+          kind: loop
+          slug: for-item-in-items
+          ordinal: 0
         label: for (item in items)
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        new_state: completed
   - watch_event:
       kind: viz_exec_state
       function: MyFunction1
@@ -126,13 +149,18 @@ snapshots:
       viz_event:
         event: enter
         node_type: loop
-        node_id: 0
+        path_segment:
+          kind: loop
+          slug: for-item-in-items
+          ordinal: 0
         label: for (item in items)
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        new_state: running
   - watch_event:
       kind: value
       function: MyFunction1
@@ -155,13 +183,18 @@ snapshots:
       viz_event:
         event: exit
         node_type: loop
-        node_id: 0
+        path_segment:
+          kind: loop
+          slug: for-item-in-items
+          ordinal: 0
         label: for (item in items)
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        new_state: completed
   - watch_event:
       kind: viz_exec_state
       function: MyFunction1
@@ -172,13 +205,18 @@ snapshots:
       viz_event:
         event: enter
         node_type: loop
-        node_id: 0
+        path_segment:
+          kind: loop
+          slug: for-item-in-items
+          ordinal: 0
         label: for (item in items)
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        new_state: running
   - watch_event:
       kind: value
       function: MyFunction1
@@ -201,13 +239,18 @@ snapshots:
       viz_event:
         event: exit
         node_type: loop
-        node_id: 0
+        path_segment:
+          kind: loop
+          slug: for-item-in-items
+          ordinal: 0
         label: for (item in items)
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0|loop:for-item-in-items:0"
+        new_state: completed
   - watch_event:
       kind: viz_exec_state
       function: MyFunction1
@@ -218,13 +261,19 @@ snapshots:
       viz_event:
         event: exit
         node_type: function_root
-        node_id: 0
+        path_segment:
+          kind: function_root
+          ordinal: 0
         label: MyFunction1
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "MyFunction1|root:0|root:0|hdr:loop:0"
+        new_state: completed
+      - lexical_id: "MyFunction1|root:0|root:0"
+        new_state: completed
   - watch_event:
       kind: viz_exec_state
       function: Main
@@ -235,10 +284,14 @@ snapshots:
       viz_event:
         event: exit
         node_type: function_root
-        node_id: 0
+        path_segment:
+          kind: function_root
+          ordinal: 0
         label: Main
         header_level: ~
       value: ~
       is_stream: false
     stack_after: []
-    emitted_events: []
+    emitted_events:
+      - lexical_id: "Main|root:0"
+        new_state: completed

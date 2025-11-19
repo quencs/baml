@@ -142,7 +142,11 @@ impl Builder {
 
         Self {
             function_name: function_name.to_string(),
-            frames: vec![Frame::new(FrameEntry::FunctionRoot, Some(segment), lexical_id)],
+            frames: vec![Frame::new(
+                FrameEntry::FunctionRoot,
+                Some(segment),
+                lexical_id,
+            )],
             nodes,
         }
     }
@@ -186,7 +190,11 @@ impl Builder {
         }
     }
 
-    fn visit_block(&mut self, block: &thir::Block<(Span, Option<TypeIR>)>, _behavior: BlockBehavior) {
+    fn visit_block(
+        &mut self,
+        block: &thir::Block<(Span, Option<TypeIR>)>,
+        _behavior: BlockBehavior,
+    ) {
         let depth = self.frames.len();
         for stmt in &block.statements {
             self.visit_statement(stmt);
@@ -249,11 +257,15 @@ impl Builder {
                     span.clone(),
                 );
             }
-            thir::Statement::CForLoop { condition, block, .. } => {
+            thir::Statement::CForLoop {
+                condition, block, ..
+            } => {
                 let span = block.span.clone();
                 let condition_ref = condition.as_ref();
                 self.visit_loop(
-                    LoopFlavor::CFor { condition: condition_ref },
+                    LoopFlavor::CFor {
+                        condition: condition_ref,
+                    },
                     block,
                     span,
                 );
@@ -262,7 +274,11 @@ impl Builder {
             thir::Statement::Assert { condition, .. } => {
                 self.visit_expr(condition, BlockBehavior::Inline);
             }
-            thir::Statement::Break(_) | thir::Statement::Continue(_) | thir::Statement::Declare { .. } | thir::Statement::WatchOptions { .. } | thir::Statement::WatchNotify { .. } => {}
+            thir::Statement::Break(_)
+            | thir::Statement::Continue(_)
+            | thir::Statement::Declare { .. }
+            | thir::Statement::WatchOptions { .. }
+            | thir::Statement::WatchNotify { .. } => {}
         }
     }
 
@@ -291,7 +307,11 @@ impl Builder {
         _span: Span,
     ) {
         let parent_depth = self.frames.len();
-        let ordinal = self.frames.last_mut().expect("frame stack").next_ordinal(CounterKind::BranchGroup);
+        let ordinal = self
+            .frames
+            .last_mut()
+            .expect("frame stack")
+            .next_ordinal(CounterKind::BranchGroup);
         let label = format!("if ({})", render_expr(condition));
         let slug = slug_or_default(&label, &format!("if-{ordinal}"));
         let segment = PathSegment::BranchGroup { slug, ordinal };
@@ -331,7 +351,11 @@ impl Builder {
         _span: Span,
     ) {
         let parent_depth = self.frames.len();
-        let ordinal = self.frames.last_mut().expect("branch group frame").next_ordinal(CounterKind::BranchArm);
+        let ordinal = self
+            .frames
+            .last_mut()
+            .expect("branch group frame")
+            .next_ordinal(CounterKind::BranchArm);
         let slug = slug_or_default(&label, &format!("branch-arm-{ordinal}"));
         let segment = PathSegment::BranchArm { slug, ordinal };
         let lexical_id = self.build_lexical_id(&segment);
@@ -355,7 +379,11 @@ impl Builder {
         _span: Span,
     ) {
         let parent_depth = self.frames.len();
-        let ordinal = self.frames.last_mut().expect("frame stack").next_ordinal(CounterKind::Loop);
+        let ordinal = self
+            .frames
+            .last_mut()
+            .expect("frame stack")
+            .next_ordinal(CounterKind::Loop);
         let label = flavor.label();
         let slug = slug_or_default(&label, &format!("loop-{ordinal}"));
         let segment = PathSegment::Loop { slug, ordinal };
@@ -380,8 +408,15 @@ impl Builder {
         label: Option<String>,
     ) {
         let parent_depth = self.frames.len();
-        let ordinal = self.frames.last_mut().expect("frame stack").next_ordinal(CounterKind::OtherScope);
-        let slug = slug_or_default(label.as_deref().unwrap_or(""), &format!("other-scope-{ordinal}"));
+        let ordinal = self
+            .frames
+            .last_mut()
+            .expect("frame stack")
+            .next_ordinal(CounterKind::OtherScope);
+        let slug = slug_or_default(
+            label.as_deref().unwrap_or(""),
+            &format!("other-scope-{ordinal}"),
+        );
         let segment = PathSegment::OtherScope { slug, ordinal };
         let lexical_id = self.build_lexical_id(&segment);
         let parent = self.current_parent_lexical();
@@ -400,7 +435,11 @@ impl Builder {
     fn enter_header(&mut self, header: &hir::HeaderContext) {
         let level = header.level.max(1);
         self.pop_headers_to(level - 1);
-        let ordinal = self.frames.last_mut().expect("frame stack").next_ordinal(CounterKind::Header);
+        let ordinal = self
+            .frames
+            .last_mut()
+            .expect("frame stack")
+            .next_ordinal(CounterKind::Header);
         let slug = slug_or_default(&header.title, &format!("header-{ordinal}"));
         let segment = PathSegment::Header { slug, ordinal };
         let lexical_id = self.build_lexical_id(&segment);
@@ -421,7 +460,12 @@ impl Builder {
                 FrameEntry::Header { level } if level > desired_level => {
                     self.frames.pop();
                 }
-                FrameEntry::Header { .. } | FrameEntry::FunctionRoot | FrameEntry::BranchGroup | FrameEntry::BranchArm | FrameEntry::Loop | FrameEntry::OtherScope => break,
+                FrameEntry::Header { .. }
+                | FrameEntry::FunctionRoot
+                | FrameEntry::BranchGroup
+                | FrameEntry::BranchArm
+                | FrameEntry::Loop
+                | FrameEntry::OtherScope => break,
             }
         }
     }
@@ -429,16 +473,26 @@ impl Builder {
 
 #[derive(Clone)]
 enum LoopFlavor<'a> {
-    While { condition: &'a thir::Expr<(Span, Option<TypeIR>)> },
-    For { identifier: &'a str, iterator: &'a thir::Expr<(Span, Option<TypeIR>)> },
-    CFor { condition: Option<&'a thir::Expr<(Span, Option<TypeIR>)>> },
+    While {
+        condition: &'a thir::Expr<(Span, Option<TypeIR>)>,
+    },
+    For {
+        identifier: &'a str,
+        iterator: &'a thir::Expr<(Span, Option<TypeIR>)>,
+    },
+    CFor {
+        condition: Option<&'a thir::Expr<(Span, Option<TypeIR>)>>,
+    },
 }
 
 impl<'a> LoopFlavor<'a> {
     fn label(&self) -> String {
         match self {
             LoopFlavor::While { condition } => format!("while ({})", render_expr(condition)),
-        LoopFlavor::For { identifier, iterator } => {
+            LoopFlavor::For {
+                identifier,
+                iterator,
+            } => {
                 format!("for ({identifier} in {})", render_expr(iterator))
             }
             LoopFlavor::CFor { condition } => {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use baml_types::{BamlMap, BamlMedia};
-use baml_viz_events::{VizExecDelta, VizExecEvent};
+use baml_viz_events::{parse_path_segment, PathSegment, VizExecDelta, VizExecEvent};
 
 use crate::{
     bytecode::{BinOp, BlockNotification, CmpOp, Instruction},
@@ -57,13 +57,22 @@ fn build_viz_exec_event(
         .into());
     };
 
+    let path_segment =
+        parse_node_segment(&node.id).unwrap_or(PathSegment::FunctionRoot { ordinal: 0 });
+
     Ok(VizExecEvent {
         event: delta,
         node_type: node.node_type.clone(),
-        node_id: 0,
+        path_segment,
         label: node.label.clone(),
         header_level: node.header_level,
     })
+}
+
+fn parse_node_segment(lexical_id: &str) -> Option<PathSegment> {
+    // lexical_id is encoded as "<function>|<segment>|<segment>..."
+    let segment = lexical_id.rsplit('|').next().unwrap_or(lexical_id);
+    parse_path_segment(segment)
 }
 
 /// The beast.

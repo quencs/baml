@@ -2,9 +2,9 @@ pub mod builtin;
 pub mod codegen;
 pub mod hir;
 pub mod thir;
-pub mod watch;
 pub mod viz;
 mod viz_builder;
+pub mod watch;
 
 pub use codegen::compile;
 

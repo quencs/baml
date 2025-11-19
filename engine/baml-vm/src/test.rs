@@ -292,7 +292,8 @@ impl ExecState {
                     function_name,
                     event,
                 } => Ok(ExecState::Emit(vec![Notification::viz(
-                    function_name, event,
+                    function_name,
+                    event,
                 )])),
             },
         }

@@ -25,7 +25,11 @@ export type VizExecDelta = "enter" | "exit";
 export interface VizExecEvent {
   event: VizExecDelta;
   node_type: string;
-  node_id: number;
+  path_segment: {
+    kind: string;
+    slug?: string;
+    ordinal: number;
+  };
   label: string;
   header_level?: number | null;
 }
