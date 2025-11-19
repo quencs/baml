@@ -15,7 +15,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: function_root
-        lexical_id: ""
+        node_id: 0
         label: Main
         header_level: ~
       value: ~
@@ -32,7 +32,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: function_root
-        lexical_id: ""
+        node_id: 0
         label: MyFunction1
         header_level: ~
       value: ~
@@ -63,7 +63,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: header_context_enter
-        lexical_id: ""
+        node_id: 0
         label: Start
         header_level: 1
       value: ~
@@ -94,7 +94,7 @@ snapshots:
       viz_event:
         event: enter
         node_type: header_context_enter
-        lexical_id: ""
+        node_id: 0
         label: Finish
         header_level: 1
       value: ~
@@ -111,7 +111,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: function_root
-        lexical_id: ""
+        node_id: 0
         label: MyFunction1
         header_level: ~
       value: ~
@@ -128,7 +128,7 @@ snapshots:
       viz_event:
         event: exit
         node_type: function_root
-        lexical_id: ""
+        node_id: 0
         label: Main
         header_level: ~
       value: ~

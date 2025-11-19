@@ -160,7 +160,6 @@ fn build_watch_handler(
 
         let mut reducer_guard = reducer.lock().unwrap();
         let (updates, state_after) = if let Some(viz_event) = event.viz_event.as_ref() {
-            let lexical_id = build_lexical_id(&event);
             let updates = reducer_guard.apply(viz_event);
             let state_after = reducer_guard.dump();
             (updates, state_after)
@@ -213,22 +212,5 @@ fn to_event_record(notification: &WatchNotification) -> EventRecord {
         viz_event,
         value,
         is_stream: notification.is_stream,
-    }
-}
-
-fn build_lexical_id(event: &EventRecord) -> String {
-    if let Some(viz) = &event.viz_event {
-        return viz.lexical_id.clone();
-    }
-
-    // Placeholder heuristic until runtime watch notifications expose lexical IDs directly.
-    if let Some(header) = &event.header {
-        format!("{}|hdr:{}:{}", event.function, header.level, header.title)
-    } else if let Some(chan) = &event.channel {
-        format!("{}|chan:{}", event.function, chan)
-    } else if let Some(var) = &event.variable {
-        format!("{}|var:{}", event.function, var)
-    } else {
-        format!("{}|event", event.function)
     }
 }
