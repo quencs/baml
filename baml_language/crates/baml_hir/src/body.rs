@@ -322,7 +322,6 @@ impl FunctionBody {
 struct LoweringContext {
     exprs: Arena<Expr>,
     stmts: Arena<Stmt>,
-    #[allow(dead_code)] // Will be used when pattern lowering is implemented
     patterns: Arena<Pattern>,
 }
 
@@ -335,9 +334,516 @@ impl LoweringContext {
         }
     }
 
-    fn lower_block_expr(&mut self, _block: &baml_syntax::ast::BlockExpr) -> ExprId {
-        // TODO: Implement proper block expression lowering
-        // For now, just return a placeholder
-        self.exprs.alloc(Expr::Missing)
+    fn lower_block_expr(&mut self, block: &baml_syntax::ast::BlockExpr) -> ExprId {
+        use baml_syntax::SyntaxKind;
+        use rowan::ast::AstNode;
+
+        let mut stmts = Vec::new();
+        let mut tail_expr = None;
+
+        // Iterate through all children of the block
+        let children: Vec<_> = block.syntax().children().collect();
+
+        for (idx, child) in children.iter().enumerate() {
+            let is_last = idx == children.len() - 1;
+
+            match child.kind() {
+                SyntaxKind::LET_STMT => {
+                    let stmt_id = self.lower_let_stmt(child);
+                    stmts.push(stmt_id);
+                }
+                SyntaxKind::RETURN_STMT => {
+                    let stmt_id = self.lower_return_stmt(child);
+                    stmts.push(stmt_id);
+                }
+                SyntaxKind::EXPR
+                | SyntaxKind::BINARY_EXPR
+                | SyntaxKind::UNARY_EXPR
+                | SyntaxKind::CALL_EXPR
+                | SyntaxKind::IF_EXPR
+                | SyntaxKind::BLOCK_EXPR
+                | SyntaxKind::PATH_EXPR
+                | SyntaxKind::PAREN_EXPR
+                | SyntaxKind::ARRAY_LITERAL
+                | SyntaxKind::OBJECT_LITERAL => {
+                    let expr_id = self.lower_expr(child);
+
+                    // Check if this expression is followed by a semicolon
+                    let has_semicolon = Self::has_trailing_semicolon(child);
+
+                    // Last expression without semicolon becomes tail expression
+                    if is_last && !has_semicolon {
+                        tail_expr = Some(expr_id);
+                    } else {
+                        // Expression statement (with semicolon or not last)
+                        stmts.push(self.stmts.alloc(Stmt::Expr(expr_id)));
+                    }
+                }
+                _ => {
+                    // Skip other node types (comments, whitespace, etc.)
+                }
+            }
+        }
+
+        self.exprs.alloc(Expr::Block { stmts, tail_expr })
+    }
+
+    fn lower_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        match node.kind() {
+            SyntaxKind::BINARY_EXPR => self.lower_binary_expr(node),
+            SyntaxKind::UNARY_EXPR => self.lower_unary_expr(node),
+            SyntaxKind::CALL_EXPR => self.lower_call_expr(node),
+            SyntaxKind::IF_EXPR => self.lower_if_expr(node),
+            SyntaxKind::BLOCK_EXPR => {
+                if let Some(block) = baml_syntax::ast::BlockExpr::cast(node.clone()) {
+                    self.lower_block_expr(&block)
+                } else {
+                    self.exprs.alloc(Expr::Missing)
+                }
+            }
+            SyntaxKind::PATH_EXPR => self.lower_path_expr(node),
+            SyntaxKind::PAREN_EXPR => {
+                // Unwrap parentheses - just lower the inner expression
+                if let Some(inner) = node.children().next() {
+                    self.lower_expr(&inner)
+                } else {
+                    self.exprs.alloc(Expr::Missing)
+                }
+            }
+            SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                self.lower_string_literal(node)
+            }
+            SyntaxKind::ARRAY_LITERAL => self.lower_array_literal(node),
+            SyntaxKind::OBJECT_LITERAL => self.lower_object_literal(node),
+            _ => {
+                // Check if this is a literal token
+                if let Some(literal) = self.try_lower_literal_token(node) {
+                    literal
+                } else {
+                    self.exprs.alloc(Expr::Missing)
+                }
+            }
+        }
+    }
+
+    fn lower_binary_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // Binary expressions can have: child nodes (other exprs) OR direct tokens (literals/identifiers)
+        // We need to handle both cases
+
+        let mut lhs = None;
+        let mut rhs = None;
+        let mut op = None;
+
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child_node) => {
+                    // This is a child expression node (e.g., another BINARY_EXPR, PAREN_EXPR)
+                    let expr_id = self.lower_expr(&child_node);
+                    if lhs.is_none() {
+                        lhs = Some(expr_id);
+                    } else {
+                        rhs = Some(expr_id);
+                    }
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    match token.kind() {
+                        // Operators
+                        SyntaxKind::PLUS => op = Some(BinaryOp::Add),
+                        SyntaxKind::MINUS => op = Some(BinaryOp::Sub),
+                        SyntaxKind::STAR => op = Some(BinaryOp::Mul),
+                        SyntaxKind::SLASH => op = Some(BinaryOp::Div),
+                        SyntaxKind::PERCENT => op = Some(BinaryOp::Mod),
+                        SyntaxKind::EQUALS_EQUALS => op = Some(BinaryOp::Eq),
+                        SyntaxKind::NOT_EQUALS => op = Some(BinaryOp::Ne),
+                        SyntaxKind::LESS => op = Some(BinaryOp::Lt),
+                        SyntaxKind::LESS_EQUALS => op = Some(BinaryOp::Le),
+                        SyntaxKind::GREATER => op = Some(BinaryOp::Gt),
+                        SyntaxKind::GREATER_EQUALS => op = Some(BinaryOp::Ge),
+                        SyntaxKind::AND_AND => op = Some(BinaryOp::And),
+                        SyntaxKind::OR_OR => op = Some(BinaryOp::Or),
+                        SyntaxKind::AND => op = Some(BinaryOp::BitAnd),
+                        SyntaxKind::PIPE => op = Some(BinaryOp::BitOr),
+                        SyntaxKind::CARET => op = Some(BinaryOp::BitXor),
+                        SyntaxKind::LESS_LESS => op = Some(BinaryOp::Shl),
+                        SyntaxKind::GREATER_GREATER => op = Some(BinaryOp::Shr),
+
+                        // Literals and identifiers - convert to expressions
+                        SyntaxKind::INTEGER_LITERAL => {
+                            let value = token.text().parse::<i64>().unwrap_or(0);
+                            let expr_id = self.exprs.alloc(Expr::Literal(Literal::Int(value)));
+                            if lhs.is_none() {
+                                lhs = Some(expr_id);
+                            } else {
+                                rhs = Some(expr_id);
+                            }
+                        }
+                        SyntaxKind::FLOAT_LITERAL => {
+                            let expr_id = self
+                                .exprs
+                                .alloc(Expr::Literal(Literal::Float(token.text().to_string())));
+                            if lhs.is_none() {
+                                lhs = Some(expr_id);
+                            } else {
+                                rhs = Some(expr_id);
+                            }
+                        }
+                        SyntaxKind::WORD => {
+                            let text = token.text();
+                            let expr_id = match text {
+                                "true" => self.exprs.alloc(Expr::Literal(Literal::Bool(true))),
+                                "false" => self.exprs.alloc(Expr::Literal(Literal::Bool(false))),
+                                "null" => self.exprs.alloc(Expr::Literal(Literal::Null)),
+                                _ => self.exprs.alloc(Expr::Path(Name::new(text))),
+                            };
+                            if lhs.is_none() {
+                                lhs = Some(expr_id);
+                            } else {
+                                rhs = Some(expr_id);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        let lhs = lhs.unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+        let rhs = rhs.unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+        let op = op.unwrap_or(BinaryOp::Add);
+
+        self.exprs.alloc(Expr::Binary { op, lhs, rhs })
+    }
+
+    fn lower_unary_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // Find the operator
+        let op = node
+            .children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .find_map(|token| match token.kind() {
+                SyntaxKind::NOT => Some(UnaryOp::Not),
+                SyntaxKind::MINUS => Some(UnaryOp::Neg),
+                _ => None,
+            })
+            .unwrap_or(UnaryOp::Not); // Default
+
+        // Find the expression
+        let expr = node
+            .children()
+            .next()
+            .map(|n| self.lower_expr(&n))
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        self.exprs.alloc(Expr::Unary { op, expr })
+    }
+
+    fn lower_if_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        // IF_EXPR structure: condition (EXPR), then_branch (BLOCK_EXPR), optional else_branch
+        let children: Vec<_> = node.children().collect();
+
+        let condition = children
+            .first()
+            .map(|n| self.lower_expr(n))
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        let then_branch = children
+            .get(1)
+            .map(|n| self.lower_expr(n))
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        // Check for else branch - it might be another IF_EXPR (else if) or BLOCK_EXPR (else)
+        let else_branch = if children.len() > 2 {
+            Some(self.lower_expr(&children[2]))
+        } else {
+            None
+        };
+
+        self.exprs.alloc(Expr::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
+    }
+
+    fn lower_call_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // CALL_EXPR structure: callee (PATH_EXPR or other expr), CALL_ARGS
+        let mut children = node.children();
+
+        let callee = children
+            .next()
+            .map(|n| self.lower_expr(&n))
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        // Find CALL_ARGS node and extract arguments
+        let args = node
+            .children()
+            .find(|n| n.kind() == SyntaxKind::CALL_ARGS)
+            .map(|args_node| {
+                args_node
+                    .children()
+                    .filter(|n| {
+                        matches!(
+                            n.kind(),
+                            SyntaxKind::EXPR
+                                | SyntaxKind::BINARY_EXPR
+                                | SyntaxKind::UNARY_EXPR
+                                | SyntaxKind::CALL_EXPR
+                                | SyntaxKind::PATH_EXPR
+                                | SyntaxKind::IF_EXPR
+                                | SyntaxKind::BLOCK_EXPR
+                                | SyntaxKind::PAREN_EXPR
+                        )
+                    })
+                    .map(|n| self.lower_expr(&n))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        self.exprs.alloc(Expr::Call { callee, args })
+    }
+
+    fn lower_path_expr(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // PATH_EXPR can be a simple identifier or a qualified path
+        // Collect all WORD tokens and join them
+        let path_parts: Vec<String> = node
+            .children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .filter(|token| token.kind() == SyntaxKind::WORD)
+            .map(|token| token.text().to_string())
+            .collect();
+
+        if path_parts.is_empty() {
+            self.exprs.alloc(Expr::Missing)
+        } else {
+            let path_text = path_parts.join("::");
+            self.exprs.alloc(Expr::Path(Name::new(&path_text)))
+        }
+    }
+
+    fn lower_string_literal(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        let text = node.text().to_string();
+
+        // Strip quotes
+        let content = if text.starts_with("#\"") && text.ends_with("\"#") {
+            &text[2..text.len() - 2]
+        } else if text.starts_with('"') && text.ends_with('"') {
+            &text[1..text.len() - 1]
+        } else {
+            &text
+        };
+
+        self.exprs
+            .alloc(Expr::Literal(Literal::String(content.to_string())))
+    }
+
+    fn lower_array_literal(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        let elements = node
+            .children()
+            .filter(|n| {
+                !matches!(
+                    n.kind(),
+                    baml_syntax::SyntaxKind::L_BRACKET | baml_syntax::SyntaxKind::R_BRACKET
+                )
+            })
+            .map(|n| self.lower_expr(&n))
+            .collect();
+
+        self.exprs.alloc(Expr::Array { elements })
+    }
+
+    fn lower_object_literal(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
+        use baml_syntax::SyntaxKind;
+
+        // Extract type name if present (before the brace)
+        let type_name = node
+            .children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::WORD)
+            .map(|token| Name::new(token.text()));
+
+        // Extract fields from OBJECT_FIELD children
+        let fields = node
+            .children()
+            .filter(|n| n.kind() == SyntaxKind::OBJECT_FIELD)
+            .filter_map(|field_node| {
+                // OBJECT_FIELD has: WORD (field name), COLON, EXPR (value)
+                let field_name = field_node
+                    .children_with_tokens()
+                    .filter_map(baml_syntax::NodeOrToken::into_token)
+                    .find(|token| token.kind() == SyntaxKind::WORD)
+                    .map(|token| Name::new(token.text()))?;
+
+                let value = field_node
+                    .children()
+                    .next()
+                    .map(|n| self.lower_expr(&n))
+                    .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+                Some((field_name, value))
+            })
+            .collect();
+
+        self.exprs.alloc(Expr::Object { type_name, fields })
+    }
+
+    fn try_lower_literal_token(&mut self, node: &baml_syntax::SyntaxNode) -> Option<ExprId> {
+        use baml_syntax::SyntaxKind;
+
+        // Check if this node contains a literal token
+        node.children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .find_map(|token| match token.kind() {
+                SyntaxKind::WORD => {
+                    // Check if this is a boolean or null literal
+                    let text = token.text();
+                    match text {
+                        "true" => Some(self.exprs.alloc(Expr::Literal(Literal::Bool(true)))),
+                        "false" => Some(self.exprs.alloc(Expr::Literal(Literal::Bool(false)))),
+                        "null" => Some(self.exprs.alloc(Expr::Literal(Literal::Null))),
+                        _ => None,
+                    }
+                }
+                SyntaxKind::INTEGER_LITERAL => {
+                    let text = token.text();
+                    let value = text.parse::<i64>().unwrap_or(0);
+                    Some(self.exprs.alloc(Expr::Literal(Literal::Int(value))))
+                }
+                SyntaxKind::FLOAT_LITERAL => {
+                    let text = token.text();
+                    Some(
+                        self.exprs
+                            .alloc(Expr::Literal(Literal::Float(text.to_string()))),
+                    )
+                }
+                _ => None,
+            })
+    }
+
+    fn lower_let_stmt(&mut self, node: &baml_syntax::SyntaxNode) -> StmtId {
+        use baml_syntax::SyntaxKind;
+
+        // LET_STMT structure: let, pattern (WORD), =, initializer (EXPR)
+
+        // Extract pattern (for now, just a simple binding)
+        let pattern = node
+            .children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::WORD)
+            .map(|token| {
+                let name = Name::new(token.text());
+                self.patterns.alloc(Pattern::Binding(name))
+            })
+            .unwrap_or_else(|| self.patterns.alloc(Pattern::Wildcard));
+
+        // Extract initializer expression
+        let initializer = node
+            .children()
+            .find(|n| {
+                matches!(
+                    n.kind(),
+                    SyntaxKind::EXPR
+                        | SyntaxKind::BINARY_EXPR
+                        | SyntaxKind::UNARY_EXPR
+                        | SyntaxKind::CALL_EXPR
+                        | SyntaxKind::PATH_EXPR
+                        | SyntaxKind::IF_EXPR
+                        | SyntaxKind::BLOCK_EXPR
+                        | SyntaxKind::PAREN_EXPR
+                        | SyntaxKind::ARRAY_LITERAL
+                        | SyntaxKind::OBJECT_LITERAL
+                )
+            })
+            .map(|n| self.lower_expr(&n));
+
+        self.stmts.alloc(Stmt::Let {
+            pattern,
+            type_annotation: None, // TODO: Extract type annotation if present
+            initializer,
+        })
+    }
+
+    fn lower_return_stmt(&mut self, node: &baml_syntax::SyntaxNode) -> StmtId {
+        use baml_syntax::SyntaxKind;
+
+        // RETURN_STMT structure: return keyword, optional expression (which might be a node or a direct token)
+        let return_value = if let Some(child_node) = node.children().find(|n| {
+            matches!(
+                n.kind(),
+                SyntaxKind::EXPR
+                    | SyntaxKind::BINARY_EXPR
+                    | SyntaxKind::UNARY_EXPR
+                    | SyntaxKind::CALL_EXPR
+                    | SyntaxKind::PATH_EXPR
+                    | SyntaxKind::IF_EXPR
+                    | SyntaxKind::BLOCK_EXPR
+                    | SyntaxKind::PAREN_EXPR
+                    | SyntaxKind::STRING_LITERAL
+                    | SyntaxKind::RAW_STRING_LITERAL
+            )
+        }) {
+            Some(self.lower_expr(&child_node))
+        } else {
+            // Check for direct tokens (literals, identifiers)
+            node.children_with_tokens()
+                .filter_map(baml_syntax::NodeOrToken::into_token)
+                .find_map(|token| match token.kind() {
+                    SyntaxKind::INTEGER_LITERAL => {
+                        let value = token.text().parse::<i64>().unwrap_or(0);
+                        Some(self.exprs.alloc(Expr::Literal(Literal::Int(value))))
+                    }
+                    SyntaxKind::FLOAT_LITERAL => Some(
+                        self.exprs
+                            .alloc(Expr::Literal(Literal::Float(token.text().to_string()))),
+                    ),
+                    SyntaxKind::WORD => {
+                        let text = token.text();
+                        let expr_id = match text {
+                            "true" => self.exprs.alloc(Expr::Literal(Literal::Bool(true))),
+                            "false" => self.exprs.alloc(Expr::Literal(Literal::Bool(false))),
+                            "null" => self.exprs.alloc(Expr::Literal(Literal::Null)),
+                            _ => self.exprs.alloc(Expr::Path(Name::new(text))),
+                        };
+                        Some(expr_id)
+                    }
+                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                        let text = token.text();
+                        // Strip quotes
+                        let content = if text.starts_with("#\"") && text.ends_with("\"#") {
+                            &text[2..text.len() - 2]
+                        } else if text.starts_with('"') && text.ends_with('"') {
+                            &text[1..text.len() - 1]
+                        } else {
+                            text
+                        };
+                        Some(
+                            self.exprs
+                                .alloc(Expr::Literal(Literal::String(content.to_string()))),
+                        )
+                    }
+                    _ => None,
+                })
+        };
+
+        self.stmts.alloc(Stmt::Return(return_value))
+    }
+
+    fn has_trailing_semicolon(node: &baml_syntax::SyntaxNode) -> bool {
+        use baml_syntax::SyntaxKind;
+        use rowan::Direction;
+
+        // Check if the next sibling token is a semicolon
+        node.siblings_with_tokens(Direction::Next)
+            .skip(1) // Skip the node itself
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .any(|token| token.kind() == SyntaxKind::SEMICOLON)
     }
 }

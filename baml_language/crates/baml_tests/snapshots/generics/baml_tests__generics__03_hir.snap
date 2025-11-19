@@ -8,8 +8,10 @@ function GetTodo {
   body: Expr {
     exprs: [
       Idx::<Expr>(0): Missing
+      Idx::<Expr>(1): Call { callee: Idx::<Expr>(0), args: [] }
+      Idx::<Expr>(2): Block { stmts: [], tail_expr: Some(Idx::<Expr>(1)) }
     ]
-    root: Idx::<Expr>(0)
+    root: Idx::<Expr>(2)
   }
 }
 class Todo {

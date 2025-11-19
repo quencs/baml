@@ -7,7 +7,7 @@ function Foo {
   return: Path(Path { segments: [""], kind: Plain })
   body: Expr {
     exprs: [
-      Idx::<Expr>(0): Missing
+      Idx::<Expr>(0): Block { stmts: [], tail_expr: None }
     ]
     root: Idx::<Expr>(0)
   }
@@ -26,9 +26,13 @@ function NextFunction {
   return: String
   body: Expr {
     exprs: [
-      Idx::<Expr>(0): Missing
+      Idx::<Expr>(0): Literal(String(" \"parsed\""))
+      Idx::<Expr>(1): Block { stmts: [Idx::<Stmt>(0)], tail_expr: None }
     ]
-    root: Idx::<Expr>(0)
+    stmts: [
+      Idx::<Stmt>(0): Return(Some(Idx::<Expr>(0)))
+    ]
+    root: Idx::<Expr>(1)
   }
 }
 function Incomplete {
