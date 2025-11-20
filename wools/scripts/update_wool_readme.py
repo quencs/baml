@@ -13,8 +13,9 @@ import os
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WOOL_DIR = REPO_ROOT / "wools"
-PROPOSALS_DIR = WOOL_DIR / "proposals"
-README_PATH = WOOL_DIR / "README.md"
+DOCS_DIR = WOOL_DIR / "docs"
+PROPOSALS_DIR = DOCS_DIR / "proposals"
+README_PATH = DOCS_DIR / "README.md"
 
 TABLE_START = "<!-- WOOL-TABLE-START -->"
 TABLE_END = "<!-- WOOL-TABLE-END -->"
@@ -274,6 +275,7 @@ def main():
     
     # Legacy support for root level
     wool_files.extend(sorted(list(WOOL_DIR.glob("WOOL-*.md")) + list(WOOL_DIR.glob("WOOL-*/README.md"))))
+    wool_files.extend(sorted(list(DOCS_DIR.glob("WOOL-*.md")) + list(DOCS_DIR.glob("WOOL-*/README.md"))))
     
     entries = []
     for f in wool_files:

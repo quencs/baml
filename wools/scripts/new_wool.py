@@ -11,7 +11,8 @@ from datetime import date
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WOOL_DIR = REPO_ROOT / "wools"
-PROPOSALS_DIR = WOOL_DIR / "proposals"
+DOCS_DIR = WOOL_DIR / "docs"
+PROPOSALS_DIR = DOCS_DIR / "proposals"
 
 TEMPLATE = """---
 id: {wool_id}

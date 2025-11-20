@@ -9,7 +9,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WOOL_DIR = REPO_ROOT / "wools"
-PROPOSALS_DIR = WOOL_DIR / "proposals"
+DOCS_DIR = WOOL_DIR / "docs"
+PROPOSALS_DIR = DOCS_DIR / "proposals"
 
 VALID_STATUSES = [
     "Draft",
@@ -47,6 +48,7 @@ def find_wool_path(wool_identifier):
     candidates = list(PROPOSALS_DIR.glob("WOOL-*"))
     # Legacy support for root level if any left
     candidates.extend(list(WOOL_DIR.glob("WOOL-*")))
+    candidates.extend(list(DOCS_DIR.glob("WOOL-*")))
 
     for d in candidates:
         if not d.is_dir(): continue

@@ -44,6 +44,5 @@ plugins:
   - awesome-pages
 
 site_dir: ../_site
-docs_dir: .
 
 
