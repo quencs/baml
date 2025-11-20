@@ -13,7 +13,6 @@ import os
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WOOL_DIR = REPO_ROOT / "wools"
-PROPOSALS_DIR = WOOL_DIR / "proposals"
 README_PATH = WOOL_DIR / "README.md"
 
 TABLE_START = "<!-- WOOL-TABLE-START -->"
@@ -267,21 +266,12 @@ def main():
     parser.add_argument("--check", action="store_true", help="Check if README is up-to-date without modifying it")
     args = parser.parse_args()
 
-    # Support both flat files and directory-based WOOLs in proposals dir
-    wool_files = []
-    if PROPOSALS_DIR.exists():
-        wool_files.extend(sorted(list(PROPOSALS_DIR.glob("WOOL-*.md")) + list(PROPOSALS_DIR.glob("WOOL-*/README.md"))))
-    
-    # Legacy support for root level
-    wool_files.extend(sorted(list(WOOL_DIR.glob("WOOL-*.md")) + list(WOOL_DIR.glob("WOOL-*/README.md"))))
-    
+    # Support both flat files and directory-based WOOLs
+    wool_files = sorted(list(WOOL_DIR.glob("WOOL-*.md")) + list(WOOL_DIR.glob("WOOL-*/README.md")))
     entries = []
     for f in wool_files:
         parsed = parse_wool_file(f)
         if parsed:
-            # Adjust path for README linking
-            if "proposals" in str(f.parent):
-                 parsed["path"] = f"proposals/{parsed['path']}"
             entries.append(parsed)
 
     table_md = generate_table(entries)

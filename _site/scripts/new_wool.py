@@ -11,7 +11,6 @@ from datetime import date
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WOOL_DIR = REPO_ROOT / "wools"
-PROPOSALS_DIR = WOOL_DIR / "proposals"
 
 TEMPLATE = """---
 id: {wool_id}
@@ -72,13 +71,10 @@ def get_git_author():
 
 
 def get_next_wool_number():
-    if not PROPOSALS_DIR.exists():
-        PROPOSALS_DIR.mkdir(parents=True)
-        
-    # Find all folders matching WOOL-* in proposals dir
-    wool_folders = [d for d in PROPOSALS_DIR.glob("WOOL-*") if d.is_dir()]
+    # Find all folders matching WOOL-*
+    wool_folders = [d for d in WOOL_DIR.glob("WOOL-*") if d.is_dir()]
     # Also check for standalone files just in case, to avoid collision (legacy support)
-    wool_files = list(PROPOSALS_DIR.glob("WOOL-*.md"))
+    wool_files = list(WOOL_DIR.glob("WOOL-*.md"))
     
     max_num = -1
     
@@ -89,7 +85,7 @@ def get_next_wool_number():
             if num > max_num:
                 max_num = num
     
-    return max_num + 1 if max_num >= 0 else 1
+    return max_num + 1 if max_num >= 0 else 0
 
 
 def slugify(text):
@@ -111,10 +107,10 @@ def main():
     wool_id = f"WOOL-{next_num:03d}"
     slug = slugify(title)
     
-    # Create directory: wools/proposals/WOOL-XXX-title
+    # Create directory: wool/WOOL-XXX-title
     folder_name = f"{wool_id}-{slug}"
-    folder_path = PROPOSALS_DIR / folder_name
-    folder_path.mkdir(exist_ok=True, parents=True)
+    folder_path = WOOL_DIR / folder_name
+    folder_path.mkdir(exist_ok=True)
     
     # Create README.md inside the folder
     filepath = folder_path / "README.md"

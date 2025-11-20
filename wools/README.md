@@ -26,7 +26,7 @@ Below is an auto-generated index of all WOOLs.
   </thead>
   <tbody>
     <tr>
-      <td><a href="./WOOL-001-exceptions/README.md"><strong>WOOL-001</strong>: Exceptions</a> &nbsp; <img src="https://img.shields.io/badge/Status-Draft-lightgrey" alt="Draft"><br><br>This is a placeholder for the Exceptions design proposal.<br><br><span style='font-size:0.8em; color:gray'>Shepherd(s): Vaibhav Gupta <vbv@boundaryml.com> | Created: 2025-11-20 | Updated: 2025-11-20</span></td>
+      <td><a href="./proposals/WOOL-001-exceptions/README.md"><strong>WOOL-001</strong>: Exceptions</a> &nbsp; <img src="https://img.shields.io/badge/Status-Draft-lightgrey" alt="Draft"><br><br>This is a placeholder for the Exceptions design proposal.<br><br><span style='font-size:0.8em; color:gray'>Shepherd(s): Vaibhav Gupta <vbv@boundaryml.com> | Created: 2025-11-20 | Updated: 2025-11-20</span></td>
     </tr>
   </tbody>
 </table>

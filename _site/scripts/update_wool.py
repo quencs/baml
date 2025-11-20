@@ -9,7 +9,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WOOL_DIR = REPO_ROOT / "wools"
-PROPOSALS_DIR = WOOL_DIR / "proposals"
 
 VALID_STATUSES = [
     "Draft",
@@ -21,19 +20,21 @@ VALID_STATUSES = [
 ]
 
 def find_wool_path(wool_identifier):
-    # Try finding by directory name match first in proposals dir
+    # Try finding by directory name match first
     # Could be WOOL-001, WOOL-001-exceptions, etc.
     
     # Case 1: Exact folder match
-    exact = PROPOSALS_DIR / wool_identifier
+    exact = WOOL_DIR / wool_identifier
     if exact.is_dir() and (exact / "README.md").exists():
         return exact / "README.md"
         
-    # Case 1b: Exact match ignoring path prefixes if passed via CLI completion
-    clean_id = Path(wool_identifier).name
-    exact_clean = PROPOSALS_DIR / clean_id
-    if exact_clean.is_dir() and (exact_clean / "README.md").exists():
-            return exact_clean / "README.md"
+    # Case 1b: Exact match ignoring "wool/" prefix if passed via CLI completion
+    if "/" in wool_identifier:
+        # e.g. "wool/WOOL-001-foo"
+        clean_id = Path(wool_identifier).name
+        exact_clean = WOOL_DIR / clean_id
+        if exact_clean.is_dir() and (exact_clean / "README.md").exists():
+             return exact_clean / "README.md"
     
     # Case 2: Partial match (e.g. "001")
     # Normalize to integer if possible
@@ -43,23 +44,18 @@ def find_wool_path(wool_identifier):
         search_num = int(m.group(1))
     
     matches = []
-    # Search in proposals dir
-    candidates = list(PROPOSALS_DIR.glob("WOOL-*"))
-    # Legacy support for root level if any left
-    candidates.extend(list(WOOL_DIR.glob("WOOL-*")))
-
-    for d in candidates:
+    for d in WOOL_DIR.glob("WOOL-*"):
         if not d.is_dir(): continue
         
         # Check if directory name matches number
         m_dir = re.match(r"WOOL-(\d+)", d.name)
-        if m_dir and search_num is not None and int(m_dir.group(1)) == search_num:
+        if m_dir and int(m_dir.group(1)) == search_num:
             matches.append(d / "README.md")
             continue
             
         # Check if string contains identifier (case insensitive)
         if wool_identifier.lower() in d.name.lower():
-                matches.append(d / "README.md")
+             matches.append(d / "README.md")
 
     if len(matches) == 1:
         return matches[0]
