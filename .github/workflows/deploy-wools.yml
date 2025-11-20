@@ -3,10 +3,10 @@ name: Deploy WOOLs to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - canary
     paths:
-      - 'wools/**'
-      - '.github/workflows/deploy-wools.yml'
+      - "wools/**"
+      - ".github/workflows/deploy-wools.yml"
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
