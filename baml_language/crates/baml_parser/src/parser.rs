@@ -2,6 +2,7 @@
 //!
 //! Implements a recursive descent parser with error recovery.
 
+use baml_base::Span;
 use baml_lexer::{Token, TokenKind};
 use baml_syntax::SyntaxKind;
 use rowan::{GreenNode, GreenNodeBuilder, NodeCache};
@@ -135,10 +136,19 @@ fn token_kind_to_syntax_kind(kind: TokenKind) -> SyntaxKind {
 /// Events for building the syntax tree.
 #[derive(Debug, Clone)]
 enum Event {
-    StartNode { kind: SyntaxKind },
+    StartNode {
+        kind: SyntaxKind,
+    },
     FinishNode,
-    Token { kind: SyntaxKind, text: String },
-    Error { message: String },
+    Token {
+        kind: SyntaxKind,
+        text: String,
+    },
+    UnexpectedToken {
+        expected: String,
+        found: String,
+        span: Span,
+    },
 }
 
 /// Parser state for checkpoint/restore.
@@ -371,6 +381,27 @@ impl<'a> Parser<'a> {
         });
     }
 
+    // ============ Error Recovery Helpers ============`
+
+    /// Check if the current token is a top-level keyword.
+    /// Used for error recovery to break out of malformed blocks.
+    fn at_top_level_keyword(&self) -> bool {
+        matches!(
+            self.current().map(|t| t.kind),
+            Some(
+                TokenKind::Class
+                    | TokenKind::Enum
+                    | TokenKind::Function
+                    | TokenKind::Client
+                    | TokenKind::Generator
+                    | TokenKind::Test
+                    | TokenKind::RetryPolicy
+                    | TokenKind::TemplateString
+                    | TokenKind::TypeBuilder
+            )
+        )
+    }
+
     // ============ Consumption ============
 
     /// Consume current token, including all trivia before it (whitespace, newlines, comments).
@@ -445,7 +476,19 @@ impl<'a> Parser<'a> {
                 .current()
                 .map(|t| format!("{:?}", t.kind))
                 .unwrap_or_else(|| "EOF".to_string());
-            self.error(format!("Expected {kind:?}, found {found}"));
+
+            let span = self.current().map(|t| t.span).unwrap_or_else(|| {
+                // Use the span of the last token if available, or a default empty span
+                self.tokens.last().map(|t| t.span).unwrap_or_else(|| {
+                    baml_base::Span::new(baml_base::FileId::new(0), TextRange::default())
+                })
+            });
+
+            self.events.push(Event::UnexpectedToken {
+                expected: format!("{kind:?}"),
+                found,
+                span,
+            });
             false
         }
     }
@@ -474,8 +517,24 @@ impl<'a> Parser<'a> {
         self.events.push(Event::FinishNode);
     }
 
-    fn error(&mut self, message: String) {
-        self.events.push(Event::Error { message });
+    fn error(&mut self, expected: String) {
+        let found = self
+            .current()
+            .map(|t| format!("{:?}", t.kind))
+            .unwrap_or_else(|| "EOF".to_string());
+
+        let span = self.current().map(|t| t.span).unwrap_or_else(|| {
+            // Use the span of the last token if available, or a default empty span
+            self.tokens.last().map(|t| t.span).unwrap_or_else(|| {
+                baml_base::Span::new(baml_base::FileId::new(0), TextRange::default())
+            })
+        });
+
+        self.events.push(Event::UnexpectedToken {
+            expected,
+            found,
+            span,
+        });
     }
 
     /// Parse with a node wrapper
@@ -510,13 +569,15 @@ impl<'a> Parser<'a> {
                 Event::Token { kind, text } => {
                     builder.token(kind.into(), &text);
                 }
-                Event::Error { message } => {
-                    // Store error for later reporting
-                    // TODO: Need to track spans properly
+                Event::UnexpectedToken {
+                    expected,
+                    found,
+                    span,
+                } => {
                     errors.push(ParseError::UnexpectedToken {
-                        expected: message.clone(),
-                        found: message,
-                        span: baml_base::Span::new(baml_base::FileId::new(0), TextRange::default()),
+                        expected,
+                        found,
+                        span,
                     });
                 }
             }
@@ -730,7 +791,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected attribute name".to_string());
+                p.error("attribute name".to_string());
                 return;
             }
 
@@ -750,7 +811,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected attribute name".to_string());
+                p.error("attribute name".to_string());
                 return;
             }
 
@@ -803,7 +864,7 @@ impl<'a> Parser<'a> {
             // Identifier or keyword
             self.bump();
         } else {
-            self.error("Expected attribute argument".to_string());
+            self.error("attribute argument".to_string());
         }
     }
 
@@ -893,7 +954,7 @@ impl<'a> Parser<'a> {
             }
             self.expect(TokenKind::RParen);
         } else {
-            self.error("Expected type".to_string());
+            self.error("type".to_string());
         }
     }
 
@@ -909,7 +970,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump(); // name
             } else {
-                p.error("Expected enum name".to_string());
+                p.error("enum name".to_string());
             }
 
             // Opening brace
@@ -919,6 +980,11 @@ impl<'a> Parser<'a> {
 
             // Parse enum variants and attributes
             while !p.at(TokenKind::RBrace) && !p.at_end() {
+                // Error recovery: if we see a top-level keyword, assume we missed a closing brace
+                if p.at_top_level_keyword() {
+                    break;
+                }
+
                 if p.at(TokenKind::AtAt) {
                     // Block attribute: @@dynamic
                     p.parse_block_attribute();
@@ -961,7 +1027,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump(); // name
             } else {
-                p.error("Expected class name".to_string());
+                p.error("class name".to_string());
             }
 
             // Opening brace
@@ -971,6 +1037,11 @@ impl<'a> Parser<'a> {
 
             // Parse fields and attributes
             while !p.at(TokenKind::RBrace) && !p.at_end() {
+                // Error recovery: if we see a top-level keyword, assume we missed a closing brace
+                if p.at_top_level_keyword() {
+                    break;
+                }
+
                 if p.at(TokenKind::AtAt) {
                     // Block attribute: @@dynamic
                     p.parse_block_attribute();
@@ -1016,7 +1087,15 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected function name".to_string());
+                p.error("function name".to_string());
+                // Recovery: skip until we see '(', '{', or '->'
+                while !p.at(TokenKind::LParen)
+                    && !p.at(TokenKind::LBrace)
+                    && !p.at(TokenKind::Arrow)
+                    && !p.at_end()
+                {
+                    p.bump();
+                }
             }
 
             // Parameters
@@ -1026,14 +1105,14 @@ impl<'a> Parser<'a> {
             if p.eat(TokenKind::Arrow) {
                 p.parse_type();
             } else {
-                p.error("Expected return type (->)".to_string());
+                p.error("return type (->)".to_string());
             }
 
             // Body
             if p.at(TokenKind::LBrace) {
                 p.parse_function_body();
             } else {
-                p.error("Expected function body".to_string());
+                p.error("function body".to_string());
             }
         });
     }
@@ -1063,7 +1142,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected parameter name".to_string());
+                p.error("parameter name".to_string());
             }
 
             // Type annotation - supports both "name: type" and "name type" syntax
@@ -1074,7 +1153,7 @@ impl<'a> Parser<'a> {
                 // Without colon: "name type" (whitespace-separated)
                 p.parse_type();
             } else {
-                p.error("Expected type annotation".to_string());
+                p.error("type annotation".to_string());
             }
         });
     }
@@ -1113,6 +1192,12 @@ impl<'a> Parser<'a> {
             let mut has_prompt = false;
 
             while !p.at(TokenKind::RBrace) && !p.at_end() {
+                // Error recovery: if we see a top-level keyword (except Client, which is valid in LLM bodies)
+                // assume we missed a closing brace
+                if p.at_top_level_keyword() && !p.at(TokenKind::Client) {
+                    break;
+                }
+
                 if p.at(TokenKind::Client) {
                     if has_client {
                         errors.push("Duplicate 'client' field".to_string());
@@ -1211,7 +1296,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected client name".to_string());
+                p.error("client name".to_string());
             }
         });
     }
@@ -1222,12 +1307,12 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) && p.current().map(|t| t.text == "prompt").unwrap_or(false) {
                 p.bump();
             } else {
-                p.error("Expected 'prompt' keyword".to_string());
+                p.error("'prompt' keyword".to_string());
             }
 
             // Prompt value (usually a raw string)
             if !p.parse_any_string() {
-                p.error("Expected prompt string".to_string());
+                p.error("prompt string".to_string());
             }
         });
     }
@@ -1239,6 +1324,11 @@ impl<'a> Parser<'a> {
 
             // Parse statements until closing brace
             while !p.at(TokenKind::RBrace) && !p.at_end() {
+                // Error recovery: if we see a top-level keyword, assume we missed a closing brace
+                if p.at_top_level_keyword() {
+                    break;
+                }
+
                 p.parse_stmt();
             }
 
@@ -1250,6 +1340,11 @@ impl<'a> Parser<'a> {
 
     /// Parse a statement
     fn parse_stmt(&mut self) {
+        // Skip stray semicolons
+        if self.eat(TokenKind::Semicolon) {
+            return;
+        }
+
         if self.at(TokenKind::Let) {
             self.parse_let_stmt();
         } else if self.at(TokenKind::Return) {
@@ -1278,7 +1373,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected variable name".to_string());
+                p.error("variable name".to_string());
             }
 
             // Optional type annotation
@@ -1292,8 +1387,11 @@ impl<'a> Parser<'a> {
                 // This prevents `let a = b = c` from being parsed as nested assignment
                 p.parse_expr_bp(3);
             } else {
-                p.error("Expected initializer (=)".to_string());
+                p.error("initializer (=)".to_string());
             }
+
+            // Consume trailing semicolon
+            p.eat(TokenKind::Semicolon);
         });
     }
 
@@ -1305,6 +1403,9 @@ impl<'a> Parser<'a> {
             if !p.at(TokenKind::RBrace) && !p.at_end() {
                 p.parse_expr();
             }
+
+            // Consume trailing semicolon
+            p.eat(TokenKind::Semicolon);
         });
     }
 
@@ -1319,7 +1420,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::LBrace) {
                 p.parse_block_expr();
             } else {
-                p.error("Expected block after if condition".to_string());
+                p.error("block after if condition".to_string());
             }
 
             // Optional else
@@ -1333,7 +1434,7 @@ impl<'a> Parser<'a> {
                     // else block
                     p.parse_block_expr();
                 } else {
-                    p.error("Expected 'if' or block after 'else'".to_string());
+                    p.error("'if' or block after 'else'".to_string());
                 }
             }
         });
@@ -1350,7 +1451,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::LBrace) {
                 p.parse_block_expr();
             } else {
-                p.error("Expected block after while condition".to_string());
+                p.error("block after while condition".to_string());
             }
         });
     }
@@ -1363,7 +1464,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected loop variable".to_string());
+                p.error("loop variable".to_string());
             }
 
             // 'in' keyword
@@ -1376,7 +1477,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::LBrace) {
                 p.parse_block_expr();
             } else {
-                p.error("Expected block after for expression".to_string());
+                p.error("block after for expression".to_string());
             }
         });
     }
@@ -1520,7 +1621,7 @@ impl<'a> Parser<'a> {
                         return i;
                     }
                 }
-                Event::Error { .. } => {}
+                Event::UnexpectedToken { .. } => {}
             }
         }
 
@@ -1563,7 +1664,7 @@ impl<'a> Parser<'a> {
                         return *kind == SyntaxKind::WORD;
                     }
                 }
-                Event::Error { .. } => {}
+                Event::UnexpectedToken { .. } => {}
             }
         }
         false
@@ -1640,8 +1741,11 @@ impl<'a> Parser<'a> {
                 self.parse_block_expr();
             }
         } else {
-            self.error("Expected expression".to_string());
-            self.bump(); // Consume unexpected token.
+            self.error("expression".to_string());
+            // Consume the unexpected token to avoid infinite loops
+            if !self.at_end() {
+                self.bump();
+            }
         }
     }
 
@@ -1802,7 +1906,7 @@ impl<'a> Parser<'a> {
                     if !p.at(TokenKind::RBrace) {
                         if !p.eat(TokenKind::Comma) {
                             // Missing comma - error but try to continue
-                            p.error("Expected ',' or '}' after map entry".to_string());
+                            p.error("',' or '}' after map entry".to_string());
                             // Try to recover
                             if !p.at(TokenKind::Word)
                                 && !p.at(TokenKind::Quote)
@@ -1819,7 +1923,7 @@ impl<'a> Parser<'a> {
                     continue;
                 } else {
                     // Unexpected token in map
-                    p.error("Expected map key or '}'".to_string());
+                    p.error("map key or '}'".to_string());
                     // Skip the unexpected token to avoid getting stuck
                     p.bump();
                 }
@@ -1856,7 +1960,7 @@ impl<'a> Parser<'a> {
                     if p.at(TokenKind::Word) {
                         p.bump(); // Next segment
                     } else {
-                        p.error("Expected path segment after '.'".to_string());
+                        p.error("path segment after '.'".to_string());
                         break;
                     }
                 }
@@ -1874,7 +1978,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump(); // identifier key
             } else if !p.parse_any_string() {
-                p.error("Expected map key".to_string());
+                p.error("map key".to_string());
                 return;
             }
 
@@ -1902,7 +2006,7 @@ impl<'a> Parser<'a> {
                 if !self.at(TokenKind::RBrace) {
                     if !self.eat(TokenKind::Comma) {
                         // Missing comma - error but try to continue
-                        self.error("Expected ',' or '}' after object field".to_string());
+                        self.error("',' or '}' after object field".to_string());
                         // Try to recover by looking for next field or closing brace
                         if !self.at(TokenKind::Word)
                             && !self.at(TokenKind::Quote)
@@ -1919,7 +2023,7 @@ impl<'a> Parser<'a> {
                 continue;
             } else {
                 // Unexpected token in object literal
-                self.error("Expected field name or '}'".to_string());
+                self.error("field name or '}'".to_string());
                 // Skip the unexpected token to avoid getting stuck
                 self.bump();
             }
@@ -1935,7 +2039,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump(); // identifier field name
             } else if !p.parse_any_string() {
-                p.error("Expected field name".to_string());
+                p.error("field name".to_string());
                 return;
             }
 
@@ -2023,14 +2127,14 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected client name".to_string());
+                p.error("client name".to_string());
             }
 
             // Config block
             if p.at(TokenKind::LBrace) {
                 p.parse_config_block();
             } else {
-                p.error("Expected config block".to_string());
+                p.error("config block".to_string());
             }
         });
     }
@@ -2040,6 +2144,11 @@ impl<'a> Parser<'a> {
             p.expect(TokenKind::LBrace);
 
             while !p.at(TokenKind::RBrace) && !p.at_end() {
+                // Error recovery: if we see a top-level keyword, assume we missed a closing brace
+                if p.at_top_level_keyword() {
+                    break;
+                }
+
                 p.parse_config_item();
             }
 
@@ -2053,7 +2162,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected config key".to_string());
+                p.error("config key".to_string());
                 if !p.at_end() {
                     p.bump();
                 }
@@ -2112,14 +2221,14 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected test name".to_string());
+                p.error("test name".to_string());
             }
 
             // Config block
             if p.at(TokenKind::LBrace) {
                 p.parse_config_block();
             } else {
-                p.error("Expected test body".to_string());
+                p.error("test body".to_string());
             }
         });
     }
@@ -2136,14 +2245,14 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected retry policy name".to_string());
+                p.error("retry policy name".to_string());
             }
 
             // Config block
             if p.at(TokenKind::LBrace) {
                 p.parse_config_block();
             } else {
-                p.error("Expected retry policy body".to_string());
+                p.error("retry policy body".to_string());
             }
         });
     }
@@ -2160,7 +2269,7 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected template string name".to_string());
+                p.error("template string name".to_string());
             }
 
             // Parameters
@@ -2168,7 +2277,7 @@ impl<'a> Parser<'a> {
 
             // Template body (raw string)
             if !p.parse_any_string() {
-                p.error("Expected template string body".to_string());
+                p.error("template string body".to_string());
             }
         });
     }
@@ -2182,14 +2291,14 @@ impl<'a> Parser<'a> {
             if p.at(TokenKind::Word) && p.current().map(|t| t.text == "type").unwrap_or(false) {
                 p.bump();
             } else {
-                p.error("Expected 'type' keyword".to_string());
+                p.error("'type' keyword".to_string());
             }
 
             // Type alias name
             if p.at(TokenKind::Word) {
                 p.bump();
             } else {
-                p.error("Expected type alias name".to_string());
+                p.error("type alias name".to_string());
             }
 
             // Equals
@@ -2235,7 +2344,7 @@ fn parse_impl(tokens: &[Token], cache: Option<&mut NodeCache>) -> (GreenNode, Ve
         {
             parser.parse_type_alias();
         } else {
-            parser.error("Expected top-level declaration".to_string());
+            parser.error("top-level declaration".to_string());
             parser.bump(); // Skip unknown token
         }
     }

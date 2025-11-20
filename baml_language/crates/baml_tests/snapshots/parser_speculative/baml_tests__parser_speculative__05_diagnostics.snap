@@ -3,4 +3,26 @@ source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
-  [parse] Expected Expected expression, found Expected expression
+  [parse] Error: Expected RBrace, found Client
+   ╭─[ 0:3:3 ]
+   │
+ 3 │   client GPT4  // This keyword determines it's an LLM function
+   │   ───┬──  
+   │      ╰──── Expected RBrace, found Client
+───╯
+
+  [parse] Error: Expected config block, found RBrace
+   ╭─[ 0:5:1 ]
+   │
+ 5 │ }
+   │ ┬  
+   │ ╰── Expected config block, found RBrace
+───╯
+
+  [parse] Error: Expected top-level declaration, found RBrace
+   ╭─[ 0:5:1 ]
+   │
+ 5 │ }
+   │ ┬  
+   │ ╰── Expected top-level declaration, found RBrace
+───╯

@@ -23,6 +23,9 @@ function AnotherLLM {
     root: Idx::<Expr>(0)
   }
 }
+client GPT4 {
+  provider: unknown
+}
 function ProcessData {
   params: [data: Path(Path { segments: ["JsonData"], kind: Plain })]
   return: String
