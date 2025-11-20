@@ -46,7 +46,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/canary'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: wools/site
+          path: _site
 
       - name: Setup Node.js
         if: github.event_name == 'pull_request'
@@ -62,7 +62,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WOOLS }}
         run: |
           npm install -g vercel
-          vercel deploy wools/site --token=${{ secrets.VERCEL_TOKEN_SAM }} --yes > preview_url.txt
+          vercel deploy _site --token=${{ secrets.VERCEL_TOKEN_SAM }} --yes > preview_url.txt
           echo "URL=$(cat preview_url.txt)" >> $GITHUB_ENV
 
       - name: Comment Preview URL
