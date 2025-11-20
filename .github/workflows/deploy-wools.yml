@@ -7,6 +7,10 @@ on:
     paths:
       - "wools/**"
       - ".github/workflows/deploy-wools.yml"
+  pull_request:
+    paths:
+      - "wools/**"
+      - ".github/workflows/deploy-wools.yml"
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -39,11 +43,29 @@ jobs:
         run: mkdocs build
 
       - name: Upload artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/canary'
         uses: actions/upload-pages-artifact@v3
         with:
           path: wools/site
 
+      - name: Deploy to Netlify (Preview)
+        if: github.event_name == 'pull_request'
+        id: netlify-deploy
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './wools/site'
+          production-branch: canary
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+          enable-pull-request-comment: true
+          enable-commit-comment: false
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID_WOOLS }}
+
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/canary'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
