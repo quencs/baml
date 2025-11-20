@@ -176,4 +176,4 @@ result
 
 target/
 
-baml-graph/
+baml-graph/_site/
