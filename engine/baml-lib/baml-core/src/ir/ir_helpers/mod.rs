@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use baml_types::{
-    ir_type::{TypeGeneric, UnionConstructor},
+    ir_type::{TypeGeneric, TypeNonStreaming, UnionConstructor},
     BamlMap, BamlMediaType, BamlValue, BamlValueWithMeta, Constraint, ConstraintLevel,
     LiteralValue, TypeIR, TypeValue, UnionType,
 };
@@ -1259,6 +1259,90 @@ where
         }),
     };
     ret
+}
+
+pub fn infer_value_with_type(value: &BamlValue) -> BamlValueWithMeta<TypeNonStreaming> {
+    match value {
+        BamlValue::Int(i) => BamlValueWithMeta::Int(
+            *i,
+            TypeNonStreaming::Primitive(TypeValue::Int, Default::default()),
+        ),
+        BamlValue::Bool(b) => BamlValueWithMeta::Bool(
+            *b,
+            TypeNonStreaming::Primitive(TypeValue::Bool, Default::default()),
+        ),
+        BamlValue::Float(f) => BamlValueWithMeta::Float(
+            *f,
+            TypeNonStreaming::Primitive(TypeValue::Float, Default::default()),
+        ),
+        BamlValue::String(s) => BamlValueWithMeta::String(
+            s.clone(),
+            TypeNonStreaming::Primitive(TypeValue::String, Default::default()),
+        ),
+        BamlValue::Null => BamlValueWithMeta::Null(TypeNonStreaming::Primitive(
+            TypeValue::Null,
+            Default::default(),
+        )),
+        BamlValue::Map(pairs) => {
+            let pairs: BamlMap<String, BamlValueWithMeta<TypeNonStreaming>> = pairs
+                .iter()
+                .map(|(k, v)| (k.clone(), infer_value_with_type(v)))
+                .collect();
+            let v_tys = pairs.values().map(|v| v.meta().clone()).collect::<Vec<_>>();
+            let k_ty = TypeNonStreaming::Primitive(TypeValue::String, Default::default());
+            let v_ty = match v_tys.len() {
+                0 => TypeNonStreaming::Primitive(TypeValue::Null, Default::default()),
+                _ => TypeNonStreaming::union(v_tys),
+            };
+            BamlValueWithMeta::Map(pairs, TypeNonStreaming::map(k_ty, v_ty))
+        }
+        BamlValue::List(items) => {
+            let items: Vec<BamlValueWithMeta<TypeNonStreaming>> =
+                items.iter().map(infer_value_with_type).collect();
+            let item_tys = items
+                .iter()
+                .map(|v| v.meta().clone())
+                .dedup()
+                .collect::<Vec<_>>();
+            let item_ty = match item_tys.len() {
+                0 => TypeNonStreaming::Primitive(TypeValue::Null, Default::default()),
+                _ => TypeNonStreaming::union(item_tys),
+            };
+            BamlValueWithMeta::List(
+                items,
+                TypeNonStreaming::List(Box::new(item_ty), Default::default()),
+            )
+        }
+        BamlValue::Media(m) => BamlValueWithMeta::Media(
+            m.clone(),
+            TypeNonStreaming::Primitive(TypeValue::Media(m.media_type), Default::default()),
+        ),
+        BamlValue::Enum(enum_name, v) => BamlValueWithMeta::Enum(
+            enum_name.clone(),
+            v.clone(),
+            TypeNonStreaming::Enum {
+                name: enum_name.clone(),
+                dynamic: false,
+                meta: Default::default(),
+            },
+        ),
+        BamlValue::Class(class_name, fields) => {
+            let fields: BamlMap<String, BamlValueWithMeta<TypeNonStreaming>> = fields
+                .iter()
+                .map(|(k, v)| (k.clone(), infer_value_with_type(v)))
+                .collect();
+            BamlValueWithMeta::Class(
+                class_name.clone(),
+                fields,
+                TypeNonStreaming::Class {
+                    name: class_name.clone(),
+                    mode: baml_types::ir_type::StreamingMode::NonStreaming,
+                    dynamic: false,
+                    meta: Default::default(),
+                },
+            )
+        }
+    }
 }
 
 /// Derive the simplest type that can categorize a given value. This is meant to be used
