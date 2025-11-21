@@ -1203,9 +1203,7 @@ fn distribute_infer_class<T: Clone + std::fmt::Debug>(
     ))
 }
 
-pub fn infer_type<Meta: Default + std::cmp::PartialEq + std::fmt::Debug>(
-    value: &BamlValue,
-) -> Option<TypeGeneric<Meta>>
+pub fn infer_type<Meta>(value: &BamlValue) -> Option<TypeGeneric<Meta>>
 where
     Meta: Clone + Default + PartialEq,
     TypeGeneric<Meta>: UnionConstructor<Meta>,
@@ -1248,7 +1246,7 @@ where
             let k_ty = TypeGeneric::Primitive(TypeValue::String, Default::default());
             let v_ty = match v_tys.len() {
                 0 => TypeGeneric::Primitive(TypeValue::Null, Default::default()),
-                _ => TypeGeneric::union(v_tys.iter().cloned().collect()),
+                _ => TypeGeneric::union(v_tys.to_vec()),
             };
             BamlValueWithMeta::Map(pairs, TypeGeneric::map(k_ty, v_ty))
         }
