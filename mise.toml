@@ -4,6 +4,7 @@
 # Core languages
 go = "1.23.11"
 python = "3.13"     # Will use uv for Python package management
+# disabling ruby for now
 # ruby = "3.2.2"
 node = "lts"        # For pnpm
 java = "temurin-23"
