@@ -9,6 +9,12 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Ensure rust is installed via rustup or error out
+if ! command -v rustc &> /dev/null; then
+    echo -e "${RED}❌ Rust is not installed. Please install Rust via rustup (https://rustup.rs/) before running this script.${NC}"
+    exit 1
+fi
+
 # Check if mise is installed
 if ! command -v mise &> /dev/null; then
     echo -e "${YELLOW}📦 Installing mise (tool version manager)...${NC}"
