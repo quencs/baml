@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 4000",
-    "build": "next build",
+    "build": "pnpm generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest"
+    "test": "vitest",
+    "generate":  "baml-cli generate",
+    "preinstall": "pnpm generate"
   },
   "dependencies": {
     "@baml/sage-interface": "workspace:*",

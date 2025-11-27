@@ -4,7 +4,7 @@
 # Core languages
 go = "1.23.11"
 python = "3.13"     # Will use uv for Python package management
-ruby = "3.2.2"
+# ruby = "3.2.2"
 node = "lts"        # For pnpm
 java = "temurin-23"
 
@@ -21,8 +21,7 @@ java = "temurin-23"
 "go:golang.org/x/tools/cmd/goimports" = "0.36.0"
 
 # Python tools
-"pipx:uv" = "latest"
-"pipx:ruff" = "latest"
+uv = "latest"
 "pipx:maturin" = "latest"
 
 # Node tools
