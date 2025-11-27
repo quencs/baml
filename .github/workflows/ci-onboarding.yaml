@@ -16,8 +16,8 @@ jobs:
       - name: Setup Rust (1.89)
         uses: ./.github/actions/setup-rust
         with:
-          toolchain: '1.89'
-          enable-wasm: 'false'
+          toolchain: 1.89
+          enable-wasm: true
 
       - name: Install mise and repo tools (jdx/mise-action@v3)
         uses: jdx/mise-action@v3
@@ -28,10 +28,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Let the action read the repo's mise.toml /.tool-versions by default
           working_directory: .
-
-
-      - name: Make setup script executable
-        run: chmod +x ./scripts/setup-dev.sh || true
 
       - name: Run project setup
         env:
