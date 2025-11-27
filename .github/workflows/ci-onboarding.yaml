@@ -1,0 +1,45 @@
+name: Onboarding Setup
+
+on:
+  push:
+    branches: [ canary ]
+  pull_request:
+    branches: [ canary ]
+
+jobs:
+  setup-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust (1.89)
+        uses: ./.github/actions/setup-rust
+        with:
+          toolchain: '1.89'
+          enable-wasm: 'false'
+
+      - name: Install mise and repo tools (jdx/mise-action@v3)
+        uses: jdx/mise-action@v3
+        with:
+          install: true
+          cache: true
+          reshim: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Let the action read the repo's mise.toml /.tool-versions by default
+          working_directory: .
+
+
+      - name: Make setup script executable
+        run: chmod +x ./scripts/setup-dev.sh || true
+
+      - name: Run project setup
+        env:
+          CI: true
+        run: |
+          set -euxo pipefail
+          bash ./scripts/setup-dev.sh
+
+      - name: Build project
+        run: |
+          pnpm build
