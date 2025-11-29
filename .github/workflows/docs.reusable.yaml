@@ -1,27 +1,40 @@
-name: Publish Docs
-
-concurrency:
-  # No suffix specified - in reusable workflows we need a statically-defined suffix
-  # to prevent workflow_call workflows from triggering a concurrency deadlock
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+name: Docs Publishing (Reusable)
 
 on:
-  pull_request:
-  push:
-    branches:
-      - canary
+  workflow_call:
+    inputs:
+      docs_changed:
+        required: true
+        type: string
+      is_canary:
+        required: true
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-docs
+  cancel-in-progress: true
 
 jobs:
-  docs:
+  publish-docs:
+    name: "publish docs"
     runs-on: ubuntu-latest
+    if: ${{ inputs.docs_changed == 'true' || inputs.is_canary }}
     permissions: write-all
     environment:
-      name: ${{ github.ref == 'refs/heads/canary' && 'boundary-tools-prod' || 'boundary-tools-dev' }}
-
+      name: ${{ inputs.is_canary && 'boundary-tools-prod' || 'boundary-tools-dev' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Start deployment
+        uses: bobheadxi/deployments@v1
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: docs-${{ inputs.is_canary && 'prod' || 'dev' }}
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node
@@ -55,17 +68,50 @@ jobs:
         with:
           file-path: preview_url.txt
 
-  backend:
+      - name: Extract docs URL
+        id: docs_url
+        run: |
+          if [ -f preview_url.txt ]; then
+            URL=$(cat preview_url.txt | grep -oP '🌿 Preview your docs: \K.*' || echo "")
+            echo "url=$URL" >> $GITHUB_OUTPUT
+          else
+            echo "url=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update deployment status
+        uses: bobheadxi/deployments@v1
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          env: ${{ steps.deployment.outputs.env }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          env_url: ${{ steps.docs_url.outputs.url }}
+
+  deploy-backend:
+    name: "deploy backend"
     runs-on: ubuntu-latest
+    if: ${{ inputs.docs_changed == 'true' || inputs.is_canary }}
     permissions: write-all
     environment:
-      name: ${{ github.ref == 'refs/heads/canary' && 'boundary-tools-prod' || 'boundary-tools-dev' }}
+      name: ${{ inputs.is_canary && 'boundary-tools-prod' || 'boundary-tools-dev' }}
     defaults:
       run:
         working-directory: ../sage-backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Start deployment
+        uses: bobheadxi/deployments@v1
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: backend-${{ inputs.is_canary && 'prod' || 'dev' }}
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node
@@ -131,17 +177,42 @@ jobs:
         uses: thollander/actions-comment-pull-request@v3.0.1
         with:
           file-path: ../sage-backend/preview_url.txt
-  
-  pinecone:
+
+      - name: Extract backend URL
+        id: backend_url
+        run: |
+          if [ -f preview_url.txt ]; then
+            URL=$(cat preview_url.txt | tr -d '\n' || echo "")
+            echo "url=$URL" >> $GITHUB_OUTPUT
+          else
+            echo "url=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update deployment status
+        uses: bobheadxi/deployments@v1
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          env: ${{ steps.deployment.outputs.env }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          env_url: ${{ steps.backend_url.outputs.url }}
+
+  update-pinecone:
+    name: "update pinecone"
     runs-on: ubuntu-latest
+    if: ${{ inputs.docs_changed == 'true' || inputs.is_canary }}
     environment:
-      name: ${{ github.ref == 'refs/heads/canary' && 'boundary-tools-prod' || 'boundary-tools-dev' }}
+      name: ${{ inputs.is_canary && 'boundary-tools-prod' || 'boundary-tools-dev' }}
     defaults:
       run:
         working-directory: typescript/apps/sage-backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node
@@ -163,4 +234,4 @@ jobs:
         run: |
           pnpm --filter=sage-backend install
           pnpm tsx tools/update-pinecone.ts ../../../fern/docs.yml
-          
+
