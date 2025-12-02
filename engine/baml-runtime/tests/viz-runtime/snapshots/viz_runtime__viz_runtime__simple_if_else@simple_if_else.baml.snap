@@ -20,7 +20,9 @@ snapshots:
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - node_id: 0
+      - node_id: Main|0|0
+        node_id_raw: 0
+        depth: 0
         lexical_id: "Main|root:0"
         new_state: running
   - watch_event:
@@ -39,7 +41,9 @@ snapshots:
       - "Main|root:0"
       - "MyFunction4|root:0"
     emitted_events:
-      - node_id: 0
+      - node_id: MyFunction4|0|0
+        node_id_raw: 0
+        depth: 0
         lexical_id: "MyFunction4|root:0"
         new_state: running
   - watch_event:
@@ -60,7 +64,9 @@ snapshots:
       - "MyFunction4|root:0"
       - "MyFunction4|root:0|hdr:check:0"
     emitted_events:
-      - node_id: 1
+      - node_id: MyFunction4|0|1
+        node_id_raw: 1
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0"
         new_state: running
   - watch_event:
@@ -82,7 +88,9 @@ snapshots:
       - "MyFunction4|root:0|hdr:check:0"
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0"
     emitted_events:
-      - node_id: 2
+      - node_id: MyFunction4|0|2
+        node_id_raw: 2
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0|bg:if-flag:0"
         new_state: running
   - watch_event:
@@ -105,7 +113,9 @@ snapshots:
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0"
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0"
     emitted_events:
-      - node_id: 3
+      - node_id: MyFunction4|0|3
+        node_id_raw: 3
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0"
         new_state: running
   - watch_event:
@@ -129,7 +139,9 @@ snapshots:
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0"
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0|arm:else:1"
     emitted_events:
-      - node_id: 4
+      - node_id: MyFunction4|0|4
+        node_id_raw: 4
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0|arm:else:1"
         new_state: running
   - watch_event:
@@ -152,7 +164,9 @@ snapshots:
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0"
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0"
     emitted_events:
-      - node_id: 4
+      - node_id: MyFunction4|0|4
+        node_id_raw: 4
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0|arm:else:1"
         new_state: completed
   - watch_event:
@@ -174,7 +188,9 @@ snapshots:
       - "MyFunction4|root:0|hdr:check:0"
       - "MyFunction4|root:0|hdr:check:0|bg:if-flag:0"
     emitted_events:
-      - node_id: 3
+      - node_id: MyFunction4|0|3
+        node_id_raw: 3
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0"
         new_state: completed
   - watch_event:
@@ -192,13 +208,19 @@ snapshots:
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - node_id: 2
+      - node_id: MyFunction4|0|2
+        node_id_raw: 2
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0|bg:if-flag:0"
         new_state: completed
-      - node_id: 1
+      - node_id: MyFunction4|0|1
+        node_id_raw: 1
+        depth: 0
         lexical_id: "MyFunction4|root:0|hdr:check:0"
         new_state: completed
-      - node_id: 0
+      - node_id: MyFunction4|0|0
+        node_id_raw: 0
+        depth: 0
         lexical_id: "MyFunction4|root:0"
         new_state: completed
   - watch_event:
@@ -215,6 +237,8 @@ snapshots:
         header_level: ~
     stack_after: []
     emitted_events:
-      - node_id: 0
+      - node_id: Main|0|0
+        node_id_raw: 0
+        depth: 0
         lexical_id: "Main|root:0"
         new_state: completed
