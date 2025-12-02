@@ -7,7 +7,6 @@ fixture: straight_line_with_headers.baml
 snapshots:
   - watch_event:
       kind: viz_exec_state
-      lexical_id: "Main|root:0"
       header: ~
       viz_event:
         event: enter
@@ -16,7 +15,6 @@ snapshots:
         path_segment:
           kind: function_root
           ordinal: 0
-        lexical_id: "Main|root:0"
         label: Main
         header_level: ~
     stack_after:
@@ -27,7 +25,6 @@ snapshots:
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      lexical_id: "MyFunction1|root:0"
       header: ~
       viz_event:
         event: enter
@@ -36,19 +33,17 @@ snapshots:
         path_segment:
           kind: function_root
           ordinal: 0
-        lexical_id: "MyFunction1|root:0"
         label: MyFunction1
         header_level: ~
     stack_after:
-      - "Main|root:0"
       - "MyFunction1|root:0"
+      - "Main|root:0"
     emitted_events:
       - node_id: 0
         lexical_id: "MyFunction1|root:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      lexical_id: "MyFunction1|root:0|hdr:start:0"
       header: ~
       viz_event:
         event: enter
@@ -58,20 +53,18 @@ snapshots:
           kind: header
           slug: start
           ordinal: 0
-        lexical_id: "MyFunction1|root:0|hdr:start:0"
         label: Start
         header_level: 1
     stack_after:
-      - "Main|root:0"
       - "MyFunction1|root:0"
       - "MyFunction1|root:0|hdr:start:0"
+      - "Main|root:0"
     emitted_events:
       - node_id: 1
         lexical_id: "MyFunction1|root:0|hdr:start:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      lexical_id: "MyFunction1|root:0|hdr:finish:1"
       header: ~
       viz_event:
         event: enter
@@ -81,13 +74,12 @@ snapshots:
           kind: header
           slug: finish
           ordinal: 1
-        lexical_id: "MyFunction1|root:0|hdr:finish:1"
         label: Finish
         header_level: 1
     stack_after:
-      - "Main|root:0"
       - "MyFunction1|root:0"
       - "MyFunction1|root:0|hdr:finish:1"
+      - "Main|root:0"
     emitted_events:
       - node_id: 1
         lexical_id: "MyFunction1|root:0|hdr:start:0"
@@ -97,7 +89,6 @@ snapshots:
         new_state: running
   - watch_event:
       kind: viz_exec_state
-      lexical_id: "MyFunction1|root:0"
       header: ~
       viz_event:
         event: exit
@@ -106,7 +97,6 @@ snapshots:
         path_segment:
           kind: function_root
           ordinal: 0
-        lexical_id: "MyFunction1|root:0"
         label: MyFunction1
         header_level: ~
     stack_after:
@@ -120,7 +110,6 @@ snapshots:
         new_state: completed
   - watch_event:
       kind: viz_exec_state
-      lexical_id: "Main|root:0"
       header: ~
       viz_event:
         event: exit
@@ -129,7 +118,6 @@ snapshots:
         path_segment:
           kind: function_root
           ordinal: 0
-        lexical_id: "Main|root:0"
         label: Main
         header_level: ~
     stack_after: []

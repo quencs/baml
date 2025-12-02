@@ -16,7 +16,6 @@ use serde_json::Value;
 #[derive(Debug, Clone, Serialize)]
 struct EventRecord {
     kind: String,
-    lexical_id: Option<String>,
     header: Option<HeaderEvent>,
     viz_event: Option<VizExecEvent>,
 }
@@ -154,7 +153,7 @@ fn build_watch_handler(
 
         let mut reducer_guard = reducer.lock().unwrap();
         let (updates, state_after) = if let Some(viz_event) = event.viz_event.as_ref() {
-            let updates = reducer_guard.apply(viz_event);
+            let updates = reducer_guard.apply(&notification.function_name, viz_event);
             let state_after = reducer_guard.dump();
             (updates, state_after)
         } else {
@@ -171,20 +170,15 @@ fn build_watch_handler(
 }
 
 fn to_event_record(notification: &WatchNotification) -> EventRecord {
-    let (kind, viz_event, lexical_id) = match &notification.value {
-        WatchBamlValue::VizExecState(event) => (
-            "viz_exec_state".to_string(),
-            Some(event.clone()),
-            Some(event.lexical_id.clone()),
-        ),
-        _ => ("other".to_string(), None, None),
+    let (kind, viz_event) = match &notification.value {
+        WatchBamlValue::VizExecState(event) => ("viz_exec_state".to_string(), Some(event.clone())),
+        _ => ("other".to_string(), None),
     };
 
     let header = None;
 
     EventRecord {
         kind,
-        lexical_id,
         header,
         viz_event,
     }

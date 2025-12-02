@@ -2,18 +2,11 @@ export type LexicalState = "not_running" | "running" | "completed";
 
 export interface EventRecord {
   kind: string;
-  function: string;
-  variable?: string | null;
-  channel?: string | null;
-  stream_id?: string | null;
-  lexical_id?: string | null;
   header?: {
     level: number;
     title: string;
   };
   viz_event?: VizExecEvent | null;
-  value?: unknown;
-  is_stream: boolean;
 }
 
 export interface StateUpdate {
@@ -28,7 +21,6 @@ export interface VizExecEvent {
   event: VizExecDelta;
   node_id: number;
   node_type: string;
-  lexical_id: string;
   path_segment: {
     kind: string;
     slug?: string;

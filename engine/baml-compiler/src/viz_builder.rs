@@ -1,5 +1,5 @@
 use baml_types::ir_type::TypeIR;
-use baml_viz_events::RuntimeNodeType;
+use baml_viz_events::{encode_segments, PathSegment, RuntimeNodeType};
 use internal_baml_diagnostics::Span;
 
 use crate::{hir, thir};
@@ -62,16 +62,6 @@ enum CounterKind {
     BranchArm,
     Loop,
     OtherScope,
-}
-
-#[derive(Clone)]
-enum PathSegment {
-    FunctionRoot { ordinal: u16 },
-    Header { slug: String, ordinal: u16 },
-    BranchGroup { slug: String, ordinal: u16 },
-    BranchArm { slug: String, ordinal: u16 },
-    Loop { slug: String, ordinal: u16 },
-    OtherScope { slug: String, ordinal: u16 },
 }
 
 #[derive(Clone)]
@@ -565,48 +555,4 @@ fn slug_or_default(label: &str, default: &str) -> String {
     } else {
         candidate
     }
-}
-
-fn encode_segments(function: &str, segments: &[PathSegment]) -> String {
-    let mut encoded = String::from(function);
-    for segment in segments {
-        encoded.push('|');
-        match segment {
-            PathSegment::FunctionRoot { ordinal } => {
-                encoded.push_str("root:");
-                encoded.push_str(&ordinal.to_string());
-            }
-            PathSegment::Header { slug, ordinal } => {
-                encoded.push_str("hdr:");
-                encoded.push_str(slug);
-                encoded.push(':');
-                encoded.push_str(&ordinal.to_string());
-            }
-            PathSegment::BranchGroup { slug, ordinal } => {
-                encoded.push_str("branch-group:");
-                encoded.push_str(slug);
-                encoded.push(':');
-                encoded.push_str(&ordinal.to_string());
-            }
-            PathSegment::BranchArm { slug, ordinal } => {
-                encoded.push_str("branch-arm:");
-                encoded.push_str(slug);
-                encoded.push(':');
-                encoded.push_str(&ordinal.to_string());
-            }
-            PathSegment::Loop { slug, ordinal } => {
-                encoded.push_str("loop:");
-                encoded.push_str(slug);
-                encoded.push(':');
-                encoded.push_str(&ordinal.to_string());
-            }
-            PathSegment::OtherScope { slug, ordinal } => {
-                encoded.push_str("other-scope:");
-                encoded.push_str(slug);
-                encoded.push(':');
-                encoded.push_str(&ordinal.to_string());
-            }
-        }
-    }
-    encoded
 }

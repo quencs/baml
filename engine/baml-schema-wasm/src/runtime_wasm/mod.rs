@@ -1994,7 +1994,8 @@ impl WasmRuntime {
                                 serde_json::json!({
                                     "type": "control_flow_context",
                                     "event": event.event,
-                                    "lexical_id": event.lexical_id,
+                                    "node_id": event.node_id,
+                                    "path_segment": event.path_segment,
                                     "node_type": event.node_type,
                                     "label": event.label,
                                     "header_level": event.header_level,
@@ -2439,15 +2440,16 @@ impl WasmFunction {
                 baml_compiler::watch::WatchBamlValue::VizExecState(event) => serde_json::json!({
                     "type": "control_flow_context",
                     "event": event.event,
-                    "lexical_id": event.lexical_id,
-                "node_type": event.node_type,
-                "label": event.label,
-                "header_level": event.header_level,
-            })
-            .to_string(),
-            baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
-                serde_json::json!({ "type": "stream_start", "id": id }).to_string()
-            }
+                    "node_id": event.node_id,
+                    "path_segment": event.path_segment,
+                    "node_type": event.node_type,
+                    "label": event.label,
+                    "header_level": event.header_level,
+                })
+                .to_string(),
+                baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                    serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+                }
                 baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
                     let value: BamlValue = v.clone().into();
                     let value_json =
@@ -2630,15 +2632,16 @@ impl WasmFunction {
                 baml_compiler::watch::WatchBamlValue::VizExecState(event) => serde_json::json!({
                     "type": "control_flow_context",
                     "event": event.event,
-                    "lexical_id": event.lexical_id,
-                "node_type": event.node_type,
-                "label": event.label,
-                "header_level": event.header_level,
-            })
-            .to_string(),
-            baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
-                serde_json::json!({ "type": "stream_start", "id": id }).to_string()
-            }
+                    "node_id": event.node_id,
+                    "path_segment": event.path_segment,
+                    "node_type": event.node_type,
+                    "label": event.label,
+                    "header_level": event.header_level,
+                })
+                .to_string(),
+                baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                    serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+                }
                 baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
                     let value: BamlValue = v.clone().into();
                     let value_json =

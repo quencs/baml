@@ -249,7 +249,6 @@ pub enum Instruction {
     ///
     /// Format: `ASSERT`
     Assert,
-
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

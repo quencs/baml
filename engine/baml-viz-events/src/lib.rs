@@ -99,8 +99,6 @@ pub struct VizExecEvent {
     pub node_type: RuntimeNodeType,
     /// Path segment identifying this node (lexical_id is reconstructed by the reducer).
     pub path_segment: PathSegment,
-    /// Fully-qualified lexical id (function | segments).
-    pub lexical_id: String,
     /// Human-readable label for the node (header text or synthetic scope label).
     pub label: String,
     /// Header level (only meaningful for header nodes).
@@ -121,7 +119,6 @@ mod tests {
                 slug: "verify-payment".to_string(),
                 ordinal: 0,
             },
-            lexical_id: "checkout|hdr:verify-payment:0".to_string(),
             label: "//# Verify payment".to_string(),
             header_level: Some(1),
         };

@@ -65,7 +65,6 @@ fn build_viz_exec_event(
         node_id: node.node_id,
         node_type: node.node_type.clone(),
         path_segment,
-        lexical_id: node.id.clone(),
         label: node.label.clone(),
         header_level: node.header_level,
     })
