@@ -47,17 +47,6 @@ snapshots:
         lexical_id: "MyFunction1|root:0"
         new_state: running
   - watch_event:
-      kind: viz_exec_header
-      lexical_id: ~
-      header:
-        level: 1
-        title: Start
-      viz_event: ~
-    stack_after:
-      - "Main|root:0"
-      - "MyFunction1|root:0"
-    emitted_events: []
-  - watch_event:
       kind: viz_exec_state
       lexical_id: "MyFunction1|root:0|hdr:start:0"
       header: ~
@@ -80,18 +69,6 @@ snapshots:
       - node_id: 1
         lexical_id: "MyFunction1|root:0|hdr:start:0"
         new_state: running
-  - watch_event:
-      kind: viz_exec_header
-      lexical_id: ~
-      header:
-        level: 1
-        title: Finish
-      viz_event: ~
-    stack_after:
-      - "Main|root:0"
-      - "MyFunction1|root:0"
-      - "MyFunction1|root:0|hdr:start:0"
-    emitted_events: []
   - watch_event:
       kind: viz_exec_state
       lexical_id: "MyFunction1|root:0|hdr:finish:1"

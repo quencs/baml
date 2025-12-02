@@ -387,20 +387,8 @@ impl BamlAsyncVmRuntime {
                                 }
                             }
                         }
-                        baml_vm::vm::WatchNotification::Block(notification) => {
-                            if let Some(handler) = watch_handler.as_ref() {
-                                if let Ok(mut handler) = handler.lock() {
-                                    let header = baml_compiler::hir::HeaderContext {
-                                        level: notification.level as u8,
-                                        title: notification.block_name.clone(),
-                                        span: internal_baml_core::ast::Span::fake(),
-                                    };
-                                    handler.notify(watch::WatchNotification::new_block(
-                                        header,
-                                        notification.function_name.clone(),
-                                    ));
-                                }
-                            }
+                        baml_vm::vm::WatchNotification::Block(_) => {
+                            // Legacy block notifications ignored now that viz events cover headers.
                         }
                         baml_vm::vm::WatchNotification::Viz {
                             function_name,

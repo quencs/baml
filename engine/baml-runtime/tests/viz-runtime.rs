@@ -172,7 +172,6 @@ fn build_watch_handler(
 
 fn to_event_record(notification: &WatchNotification) -> EventRecord {
     let (kind, viz_event, lexical_id) = match &notification.value {
-        WatchBamlValue::VizExecHeader(_) => ("viz_exec_header".to_string(), None, None),
         WatchBamlValue::VizExecState(event) => (
             "viz_exec_state".to_string(),
             Some(event.clone()),
@@ -181,13 +180,7 @@ fn to_event_record(notification: &WatchNotification) -> EventRecord {
         _ => ("other".to_string(), None, None),
     };
 
-    let header = match &notification.value {
-        WatchBamlValue::VizExecHeader(h) => Some(HeaderEvent {
-            level: h.level,
-            title: h.title.clone(),
-        }),
-        _ => None,
-    };
+    let header = None;
 
     EventRecord {
         kind,

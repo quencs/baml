@@ -394,17 +394,6 @@ impl BamlRuntime {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = emit_callbacks {
                     match notification.value {
-                        baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
-                            // Fire block events to all registered block handlers
-                            for handler in &callbacks.block_handlers {
-                                let block_event = BlockEvent {
-                                    block_label: header.title.clone(),
-                                    event_type: "enter".to_string(), // TODO: track enter/exit
-                                };
-                                let _ = handler
-                                    .call(block_event, ThreadsafeFunctionCallMode::NonBlocking);
-                            }
-                        }
                         baml_compiler::watch::WatchBamlValue::Value(value) => {
                             if let Some(var_name) = &notification.variable_name {
                                 // Serialize BamlValue to JSON
@@ -585,19 +574,6 @@ impl BamlRuntime {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = emit_callbacks {
                     match notification.value {
-                        baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
-                            // Fire block events to all registered block handlers
-                            for handler in &callbacks.block_handlers {
-                                let block_event = BlockEvent {
-                                    block_label: header.title.clone(),
-                                    event_type: "enter".to_string(),
-                                };
-                                let _ = handler.call(
-                                    block_event,
-                                    napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-                                );
-                            }
-                        }
                         baml_compiler::watch::WatchBamlValue::Value(value) => {
                             if let Some(var_name) = &notification.variable_name {
                                 let channel =

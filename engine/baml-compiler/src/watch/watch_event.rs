@@ -6,8 +6,6 @@ use std::{
 use baml_types::{BamlValueWithMeta, Completion, Constraint, ResponseCheck, TypeIR};
 pub use baml_viz_events::{RuntimeNodeType, VizExecDelta, VizExecEvent};
 
-use crate::hir::HeaderContext;
-
 /// Unique identifier for a streaming watch notification
 pub type StreamId = String;
 
@@ -89,7 +87,6 @@ pub fn shared_noop_handler() -> SharedWatchHandler {
 #[derive(Debug, Clone)]
 pub enum WatchBamlValue {
     Value(BamlValueWithMeta<WatchValueMetadata>),
-    VizExecHeader(HeaderContext),
     VizExecState(VizExecEvent),
     StreamStart(StreamId),
     StreamUpdate(StreamId, BamlValueWithMeta<WatchValueMetadata>),
@@ -138,15 +135,6 @@ impl fmt::Display for WatchNotification {
                     write!(f, "{}", value.clone().value())
                 }
             },
-            WatchBamlValue::VizExecHeader(header) => {
-                write!(
-                    f,
-                    "(header L{level}) {function}.{title}",
-                    level = header.level,
-                    function = self.function_name,
-                    title = header.title
-                )
-            }
             WatchBamlValue::VizExecState(event) => {
                 let delta = match event.event {
                     VizExecDelta::Enter => "enter",
@@ -204,16 +192,6 @@ impl WatchNotification {
             channel_name: Some(variable_name),
             function_name,
             is_stream: true,
-        }
-    }
-
-    pub fn new_block(header: HeaderContext, function_name: String) -> Self {
-        Self {
-            value: WatchBamlValue::VizExecHeader(header),
-            variable_name: None,
-            channel_name: None,
-            function_name,
-            is_stream: false,
         }
     }
 

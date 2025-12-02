@@ -47,17 +47,6 @@ snapshots:
         lexical_id: "MyFunction4|root:0"
         new_state: running
   - watch_event:
-      kind: viz_exec_header
-      lexical_id: ~
-      header:
-        level: 1
-        title: Check
-      viz_event: ~
-    stack_after:
-      - "Main|root:0"
-      - "MyFunction4|root:0"
-    emitted_events: []
-  - watch_event:
       kind: viz_exec_state
       lexical_id: "MyFunction4|root:0|hdr:check:0"
       header: ~

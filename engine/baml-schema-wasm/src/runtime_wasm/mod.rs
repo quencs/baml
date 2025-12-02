@@ -2001,14 +2001,6 @@ impl WasmRuntime {
                                 })
                                 .to_string()
                             }
-                            baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => {
-                                serde_json::json!({
-                                    "type": "header",
-                                    "label": header.title,
-                                    "level": header.level,
-                                })
-                                .to_string()
-                            }
                             baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
                                 serde_json::json!({ "type": "stream_start", "id": id }).to_string()
                             }
@@ -2448,20 +2440,14 @@ impl WasmFunction {
                     "type": "control_flow_context",
                     "event": event.event,
                     "lexical_id": event.lexical_id,
-                    "node_type": event.node_type,
-                    "label": event.label,
-                    "header_level": event.header_level,
-                })
-                .to_string(),
-                baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => serde_json::json!({
-                    "type": "header",
-                    "label": header.title,
-                    "level": header.level,
-                })
-                .to_string(),
-                baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
-                    serde_json::json!({ "type": "stream_start", "id": id }).to_string()
-                }
+                "node_type": event.node_type,
+                "label": event.label,
+                "header_level": event.header_level,
+            })
+            .to_string(),
+            baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+            }
                 baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
                     let value: BamlValue = v.clone().into();
                     let value_json =
@@ -2645,20 +2631,14 @@ impl WasmFunction {
                     "type": "control_flow_context",
                     "event": event.event,
                     "lexical_id": event.lexical_id,
-                    "node_type": event.node_type,
-                    "label": event.label,
-                    "header_level": event.header_level,
-                })
-                .to_string(),
-                baml_compiler::watch::WatchBamlValue::VizExecHeader(header) => serde_json::json!({
-                    "type": "header",
-                    "label": header.title,
-                    "level": header.level,
-                })
-                .to_string(),
-                baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
-                    serde_json::json!({ "type": "stream_start", "id": id }).to_string()
-                }
+                "node_type": event.node_type,
+                "label": event.label,
+                "header_level": event.header_level,
+            })
+            .to_string(),
+            baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
+                serde_json::json!({ "type": "stream_start", "id": id }).to_string()
+            }
                 baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
                     let value: BamlValue = v.clone().into();
                     let value_json =
