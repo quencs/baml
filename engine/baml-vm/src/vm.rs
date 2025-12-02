@@ -4,7 +4,7 @@ use baml_types::{BamlMap, BamlMedia};
 use baml_viz_events::{parse_path_segment, PathSegment, VizExecDelta, VizExecEvent};
 
 use crate::{
-    bytecode::{BinOp, BlockNotification, CmpOp, Instruction},
+    bytecode::{BinOp, CmpOp, Instruction},
     errors::{ErrorLocation, InternalError, RuntimeError, VmError},
     indexable::{EvalStack, GlobalPool, ObjectIndex, ObjectPool, StackIndex},
     types::{
@@ -264,7 +264,6 @@ pub enum VmExecState {
 #[derive(Debug, PartialEq)]
 pub enum WatchNotification {
     Variables(Vec<watch::NodeId>),
-    Block(BlockNotification),
     Viz {
         function_name: String,
         event: VizExecEvent,
@@ -678,21 +677,8 @@ impl Vm {
 
             match function.bytecode.instructions[instruction_ptr as usize] {
                 Instruction::NotifyBlock(block_index) => {
-                    // Get the notification from the function's storage
-                    let notification = &function.block_notifications[block_index];
-
-                    // Create a copy with the function name populated
-                    let full_notification = crate::bytecode::BlockNotification {
-                        function_name: function.name.clone(),
-                        block_name: notification.block_name.clone(),
-                        level: notification.level,
-                        block_type: notification.block_type,
-                        is_enter: notification.is_enter,
-                    };
-
-                    return Ok(VmExecState::Notify(WatchNotification::Block(
-                        full_notification,
-                    )));
+                    let _ = block_index;
+                    // Legacy block notifications are no-ops; viz events cover headers/scopes.
                 }
                 Instruction::VizEnter(_) | Instruction::VizExit(_) => {
                     let instruction = &function.bytecode.instructions[instruction_ptr as usize];

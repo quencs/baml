@@ -534,7 +534,7 @@ impl<'g> HirCompiler<'g> {
             })),
 
             span: func.span.clone(),
-            block_notifications: self.block_notifications.clone(),
+            block_notifications: Vec::new(),
             viz_nodes: std::mem::take(&mut self.viz_nodes).into_vm_meta(),
         })
     }
@@ -1630,25 +1630,7 @@ impl<'g> HirCompiler<'g> {
         self.emit(Instruction::LoadConst(const_index));
     }
 
-    fn emit_annotated_block(&mut self, header: &hir::HeaderContext) {
-        // Create the notification metadata
-        let notification = baml_vm::bytecode::BlockNotification {
-            function_name: String::new(), // Will be populated at runtime from Function::name
-            block_name: header.title.clone(),
-            level: header.level as usize,
-            block_type: baml_vm::bytecode::BlockNotificationType::Statement,
-            is_enter: true,
-        };
-
-        // Add to the function's notification list
-        let notification_index = self.block_notifications.len();
-        self.block_notifications.push(notification);
-
-        // Emit instruction with just the index
-        self.emit(Instruction::NotifyBlock(notification_index));
-
-        // TODO: Emit exit notification when leaving the block
-    }
+    fn emit_annotated_block(&mut self, _header: &hir::HeaderContext) {}
 
     /// Emits a single instruction and returns the index of the instruction.
     ///

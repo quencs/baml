@@ -387,9 +387,6 @@ impl BamlAsyncVmRuntime {
                                 }
                             }
                         }
-                        baml_vm::vm::WatchNotification::Block(_) => {
-                            // Legacy block notifications ignored now that viz events cover headers.
-                        }
                         baml_vm::vm::WatchNotification::Viz {
                             function_name,
                             event,

@@ -211,7 +211,6 @@ impl BlockEvent {
 pub enum Notification {
     Channel(String),
     Object(Object),
-    Block(BlockEvent),
     Viz {
         function_name: String,
         event: VizExecEvent,
@@ -221,10 +220,6 @@ pub enum Notification {
 impl Notification {
     pub fn on_channel(name: &str) -> Self {
         Notification::Channel(name.to_string())
-    }
-
-    pub fn block(notification: VmBlockNotification) -> Self {
-        Notification::Block(BlockEvent::from_vm(notification))
     }
 
     pub fn viz(function_name: String, event: VizExecEvent) -> Self {
@@ -284,9 +279,6 @@ impl ExecState {
                         .map(|node_id| Notification::from_node_id(node_id, vm))
                         .collect::<anyhow::Result<Vec<_>>>()?;
                     Ok(ExecState::Emit(notifications))
-                }
-                VmWatchNotification::Block(notification) => {
-                    Ok(ExecState::Emit(vec![Notification::block(notification)]))
                 }
                 VmWatchNotification::Viz {
                     function_name,
