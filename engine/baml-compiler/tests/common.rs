@@ -113,16 +113,6 @@ fn convert_instruction(
         Instruction::Call(n) => test::Instruction::Call(*n),
         Instruction::Return => test::Instruction::Return,
         Instruction::Assert => test::Instruction::Assert,
-        Instruction::NotifyBlock(block_idx) => {
-            // Get the block notification from the function's block_notifications array
-            let notification = function
-                .block_notifications
-                .get(*block_idx)
-                .ok_or_else(|| {
-                    anyhow::anyhow!("Block notification index {} not found", block_idx)
-                })?;
-            test::Instruction::NotifyBlock(notification.clone())
-        }
     })
 }
 

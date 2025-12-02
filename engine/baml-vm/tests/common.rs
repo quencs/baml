@@ -215,7 +215,6 @@ pub fn assert_vm_executes_bytecode_with_inspection(
             vec![names]
         },
         span: internal_baml_diagnostics::Span::fake(),
-        block_notifications: Vec::new(),
         viz_nodes: Vec::new(),
     };
 

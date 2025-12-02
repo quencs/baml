@@ -153,7 +153,6 @@ fn compile_thir_to_bytecode(
             kind: FunctionKind::Llm,
             locals_in_scope: vec![func.parameters.iter().map(|p| p.name.clone()).collect()],
             span: func.span.clone(),
-            block_notifications: Vec::new(),
             viz_nodes: Vec::new(),
         });
 
@@ -238,7 +237,6 @@ fn compile_thir_to_bytecode(
             kind: FunctionKind::Native(func),
             locals_in_scope: vec![], // TODO.
             span: Span::fake_builtin_baml(),
-            block_notifications: Vec::new(),
             viz_nodes: Vec::new(),
         });
 
@@ -252,7 +250,6 @@ fn compile_thir_to_bytecode(
         kind: FunctionKind::Future,
         locals_in_scope: vec![],
         span: Span::fake_builtin_baml(),
-        block_notifications: Vec::new(),
         viz_nodes: Vec::new(),
     }))));
 
@@ -440,9 +437,6 @@ struct HirCompiler<'g> {
     /// of the class object is resolved.
     class_alloc_patch_list: &'g mut Vec<AllocInstancePatch>,
 
-    /// Block notifications for the current function being compiled.
-    block_notifications: Vec<baml_vm::bytecode::BlockNotification>,
-
     /// Control-flow visualization nodes for the current function.
     viz_nodes: VizNodes,
 
@@ -492,7 +486,6 @@ impl<'g> HirCompiler<'g> {
             scopes: Vec::new(),
             current_source_line: 0,
             locals_in_scope: Vec::new(),
-            block_notifications: Vec::new(),
             viz_nodes: VizNodes::new(),
             viz_next_index: 0,
             viz_open_stack: Vec::new(),
@@ -534,7 +527,6 @@ impl<'g> HirCompiler<'g> {
             })),
 
             span: func.span.clone(),
-            block_notifications: Vec::new(),
             viz_nodes: std::mem::take(&mut self.viz_nodes).into_vm_meta(),
         })
     }
@@ -581,8 +573,7 @@ impl<'g> HirCompiler<'g> {
     /// A statement is anything that does not produce a value by itself.
     fn compile_statement(&mut self, statement: &thir::Statement<(Span, Option<TypeIR>)>) {
         match statement {
-            thir::Statement::HeaderContextEnter(header) => {
-                self.emit_annotated_block(header);
+            thir::Statement::HeaderContextEnter(_header) => {
                 self.viz_emit_enter(false);
             }
             thir::Statement::Let { name, value, .. } => {
@@ -1629,8 +1620,6 @@ impl<'g> HirCompiler<'g> {
         let const_index = self.add_constant(Value::Object(object_index));
         self.emit(Instruction::LoadConst(const_index));
     }
-
-    fn emit_annotated_block(&mut self, _header: &hir::HeaderContext) {}
 
     /// Emits a single instruction and returns the index of the instruction.
     ///

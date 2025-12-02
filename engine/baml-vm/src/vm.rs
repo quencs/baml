@@ -676,10 +676,6 @@ impl Vm {
             // }
 
             match function.bytecode.instructions[instruction_ptr as usize] {
-                Instruction::NotifyBlock(block_index) => {
-                    let _ = block_index;
-                    // Legacy block notifications are no-ops; viz events cover headers/scopes.
-                }
                 Instruction::VizEnter(_) | Instruction::VizExit(_) => {
                     let instruction = &function.bytecode.instructions[instruction_ptr as usize];
                     let (index, delta) = match instruction {

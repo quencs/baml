@@ -55,12 +55,6 @@ pub struct Function {
     /// Span of the function as computed by the parser.
     pub span: internal_baml_diagnostics::Span,
 
-    /// Block notifications for this function.
-    ///
-    /// Stores metadata about annotated blocks (//# annotations) in this function.
-    /// Instructions reference these by index.
-    pub block_notifications: Vec<crate::bytecode::BlockNotification>,
-
     /// Control-flow visualization metadata indexed by viz instructions.
     pub viz_nodes: Vec<VizNodeMeta>,
 }

@@ -9,9 +9,7 @@ use baml_viz_events::VizExecEvent;
 use indexmap::IndexMap;
 
 use crate::{
-    bytecode::{
-        BinOp, BlockNotification as VmBlockNotification, BlockNotificationType, CmpOp, UnaryOp,
-    },
+    bytecode::{BinOp, CmpOp, UnaryOp},
     vm::WatchNotification as VmWatchNotification,
     watch::{self},
     Object as VmObject, ObjectIndex, Value as VmValue, Vm, VmExecState,
@@ -185,27 +183,6 @@ pub struct Variant {
     pub variant: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct BlockEvent {
-    pub function_name: String,
-    pub block_name: String,
-    pub level: usize,
-    pub block_type: BlockNotificationType,
-    pub is_enter: bool,
-}
-
-impl BlockEvent {
-    fn from_vm(notification: VmBlockNotification) -> Self {
-        Self {
-            function_name: notification.function_name.as_str().to_owned(),
-            block_name: notification.block_name.as_str().to_owned(),
-            level: notification.level,
-            block_type: notification.block_type,
-            is_enter: notification.is_enter,
-        }
-    }
-}
-
 /// Test-friendly representation of NodeId that uses variable names and test Objects.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Notification {
@@ -325,5 +302,4 @@ pub enum Instruction {
     Call(usize),
     Return,
     Assert,
-    NotifyBlock(VmBlockNotification),
 }
