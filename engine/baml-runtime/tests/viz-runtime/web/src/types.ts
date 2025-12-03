@@ -11,8 +11,6 @@ export interface EventRecord {
 
 export interface StateUpdate {
   node_id: string;
-  node_id_raw: number;
-  depth: number;
   lexical_id: string;
   new_state: LexicalState;
 }

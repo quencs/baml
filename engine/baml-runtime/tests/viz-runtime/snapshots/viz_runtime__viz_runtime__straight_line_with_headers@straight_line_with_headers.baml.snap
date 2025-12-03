@@ -20,9 +20,7 @@ snapshots:
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - node_id: Main|0|0
-        node_id_raw: 0
-        depth: 0
+      - node_id: 0
         lexical_id: "Main|root:0"
         new_state: running
   - watch_event:
@@ -41,9 +39,7 @@ snapshots:
       - "Main|root:0"
       - "MyFunction1|root:0"
     emitted_events:
-      - node_id: MyFunction1|0|0
-        node_id_raw: 0
-        depth: 0
+      - node_id: 0
         lexical_id: "MyFunction1|root:0"
         new_state: running
   - watch_event:
@@ -64,9 +60,7 @@ snapshots:
       - "MyFunction1|root:0"
       - "MyFunction1|root:0|hdr:start:0"
     emitted_events:
-      - node_id: MyFunction1|0|1
-        node_id_raw: 1
-        depth: 0
+      - node_id: 1
         lexical_id: "MyFunction1|root:0|hdr:start:0"
         new_state: running
   - watch_event:
@@ -87,14 +81,10 @@ snapshots:
       - "MyFunction1|root:0"
       - "MyFunction1|root:0|hdr:finish:1"
     emitted_events:
-      - node_id: MyFunction1|0|1
-        node_id_raw: 1
-        depth: 0
+      - node_id: 1
         lexical_id: "MyFunction1|root:0|hdr:start:0"
         new_state: completed
-      - node_id: MyFunction1|0|2
-        node_id_raw: 2
-        depth: 0
+      - node_id: 2
         lexical_id: "MyFunction1|root:0|hdr:finish:1"
         new_state: running
   - watch_event:
@@ -112,14 +102,10 @@ snapshots:
     stack_after:
       - "Main|root:0"
     emitted_events:
-      - node_id: MyFunction1|0|2
-        node_id_raw: 2
-        depth: 0
+      - node_id: 2
         lexical_id: "MyFunction1|root:0|hdr:finish:1"
         new_state: completed
-      - node_id: MyFunction1|0|0
-        node_id_raw: 0
-        depth: 0
+      - node_id: 0
         lexical_id: "MyFunction1|root:0"
         new_state: completed
   - watch_event:
@@ -136,8 +122,6 @@ snapshots:
         header_level: ~
     stack_after: []
     emitted_events:
-      - node_id: Main|0|0
-        node_id_raw: 0
-        depth: 0
+      - node_id: 0
         lexical_id: "Main|root:0"
         new_state: completed
