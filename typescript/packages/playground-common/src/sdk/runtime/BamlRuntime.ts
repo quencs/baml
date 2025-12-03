@@ -84,7 +84,15 @@ type RichWasmFunction = WasmFunction & { function_type: WasmFunctionKind };
 
 // Type for test execution callbacks
 type WasmPartialResponse = WasmFunctionResponse | WasmTestResponse; // Can be either partial or complete response
-type WasmNotification = { variable_name?: string; channel_name?: string; block_name?: string; is_stream: boolean; value: string };
+type WasmStateUpdate = { node_id: number; lexical_id: string; new_state: 'not_running' | 'running' | 'completed' };
+type WasmNotification = {
+  variable_name?: string;
+  channel_name?: string;
+  block_name?: string;
+  is_stream: boolean;
+  value: string;
+  state_updates?: WasmStateUpdate[];
+};
 
 // Type for test result from run_tests
 // type WasmTestResult = {
@@ -836,6 +844,14 @@ export class BamlRuntime implements BamlRuntimeInterface {
       context.abortSignal || null,
       // watch_handler - for watch notifications
       (notification: WasmNotification & { function_name?: string; test_name?: string }) => {
+        const rawStateUpdates = (notification as any).state_updates ?? (notification as any).stateUpdates;
+        const stateUpdates = Array.isArray(rawStateUpdates)
+          ? rawStateUpdates.map((u) => ({
+              nodeId: u.node_id,
+              lexicalId: u.lexical_id,
+              newState: u.new_state as 'not_running' | 'running' | 'completed',
+            }))
+          : undefined;
         const watchNotification = {
           variableName: notification.variable_name,
           channelName: notification.channel_name,
@@ -843,6 +859,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
           functionName: notification.function_name,
           isStream: notification.is_stream,
           value: notification.value,
+          stateUpdates,
         };
         if (context.onWatchNotification) {
           context.onWatchNotification(watchNotification);

@@ -20,12 +20,15 @@ import type {
   WatchStreamUpdateValue,
   WatchStreamEndValue,
   WatchEventSpan,
+  VizStateUpdate,
+  VizStateUpdateState,
 } from './interface';
 import type {
   ExecutionSnapshot,
   CacheEntry,
   TestCaseInput,
   BAMLFile,
+  NodeExecutionState,
 } from './types';
 
 // Import all atoms to expose via sdk.atoms
@@ -1015,6 +1018,33 @@ export class BAMLSDK {
     }
   }
 
+  private mapReducerStateToNodeState(newState: VizStateUpdateState): NodeExecutionState | null {
+    switch (newState) {
+      case 'running':
+        return 'running';
+      case 'completed':
+        return 'success';
+      case 'not_running':
+        return 'not-started';
+      default:
+        return null;
+    }
+  }
+
+  private applyStateUpdates(stateUpdates?: VizStateUpdate[]) {
+    if (!stateUpdates || stateUpdates.length === 0) {
+      return;
+    }
+
+    for (const update of stateUpdates) {
+      const mapped = this.mapReducerStateToNodeState(update.newState);
+      if (!mapped) continue;
+
+      const nodeId = update.lexicalId || update.nodeId.toString();
+      this.storage.setNodeState(nodeId, mapped);
+    }
+  }
+
   /**
    * Find graph node ID by matching label (header title) to control flow graph nodes
    * Returns the node id (which is the lexical_id) of the matching node
@@ -1049,7 +1079,8 @@ export class BAMLSDK {
     notification: WatchNotification,
     functionName: string
   ): RichWatchNotification {
-    const enriched: RichWatchNotification = { ...notification };
+    const enriched: RichWatchNotification = { ...notification, stateUpdates: notification.stateUpdates };
+    this.applyStateUpdates(notification.stateUpdates);
     const parsedValue = this.parseWatchValue(notification.value);
     enriched.parsedValue = parsedValue;
 

@@ -258,6 +258,14 @@ export interface TestResponseData {
 // EXECUTION CONTEXT
 // ============================================================================
 
+export type VizStateUpdateState = 'running' | 'completed' | 'not_running';
+
+export interface VizStateUpdate {
+  nodeId: number;
+  lexicalId: string;
+  newState: VizStateUpdateState;
+}
+
 export interface WatchNotification {
   variableName?: string;
   channelName?: string;
@@ -271,6 +279,8 @@ export interface WatchNotification {
   functionName?: string;
   isStream: boolean;
   value: string;
+  /** Optional reducer-driven state updates keyed by runtime node id / lexical id */
+  stateUpdates?: VizStateUpdate[];
 }
 
 // ============================================================================

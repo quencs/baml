@@ -66,6 +66,8 @@ export type {
   WatchVariableValue,
   WatchNotificationValue,
   RichWatchNotification,
+  VizStateUpdate,
+  VizStateUpdateState,
 
   // Function Call
   FunctionCall,

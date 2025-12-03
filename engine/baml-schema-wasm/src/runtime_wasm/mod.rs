@@ -1,6 +1,6 @@
 pub mod generator;
 pub mod runtime_prompt;
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, str::FromStr};
 
 use anyhow::Context;
 use baml_compiler::watch::shared_handler;
@@ -23,6 +23,7 @@ use baml_runtime::{
     BamlSrcReader, DiagnosticsError, IRHelper, InternalRuntimeInterface, RenderCurlSettings,
     RenderedPrompt,
 };
+use baml_viz_events::{LexicalState, VizStateReducer};
 use baml_types::{BamlValue, GeneratorOutputType, ResponseCheck};
 use generators_lib::version_check::{check_version, GeneratorType, VersionCheckMode};
 use indexmap::IndexMap;
@@ -2099,6 +2100,8 @@ impl WasmRuntime {
 
                     // Create watch handler callback for this test
                     let watch_handler_clone = watch_handler.clone();
+                    let viz_reducer = Rc::new(RefCell::new(VizStateReducer::default()));
+                    let viz_reducer_clone = viz_reducer.clone();
                     let watch_handler_cb = shared_handler(move |notification| {
                         let js_notification = js_sys::Object::new();
 
@@ -2133,6 +2136,16 @@ impl WasmRuntime {
                             &JsValue::from_bool(notification.is_stream),
                         )
                         .unwrap();
+
+                        // Compute viz state updates from control-flow events
+                        let state_updates = match &notification.value {
+                            baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
+                                viz_reducer_clone
+                                    .borrow_mut()
+                                    .apply(&notification.function_name, event)
+                            }
+                            _ => Vec::new(),
+                        };
 
                         // Serialize the value as JSON
                         let value_json = match &notification.value {
@@ -2173,6 +2186,43 @@ impl WasmRuntime {
                             &JsValue::from_str(&value_json),
                         )
                         .unwrap();
+
+                        if !state_updates.is_empty() {
+                            let updates_array = js_sys::Array::new();
+                            for update in state_updates {
+                                let update_obj = js_sys::Object::new();
+                                js_sys::Reflect::set(
+                                    &update_obj,
+                                    &JsValue::from_str("node_id"),
+                                    &JsValue::from(update.node_id),
+                                )
+                                .unwrap();
+                                js_sys::Reflect::set(
+                                    &update_obj,
+                                    &JsValue::from_str("lexical_id"),
+                                    &JsValue::from_str(&update.lexical_id),
+                                )
+                                .unwrap();
+                                let state_str = match update.new_state {
+                                    LexicalState::NotRunning => "not_running",
+                                    LexicalState::Running => "running",
+                                    LexicalState::Completed => "completed",
+                                };
+                                js_sys::Reflect::set(
+                                    &update_obj,
+                                    &JsValue::from_str("new_state"),
+                                    &JsValue::from_str(state_str),
+                                )
+                                .unwrap();
+                                updates_array.push(&update_obj);
+                            }
+                            js_sys::Reflect::set(
+                                &js_notification,
+                                &JsValue::from_str("state_updates"),
+                                updates_array.as_ref(),
+                            )
+                            .unwrap();
+                        }
 
                         watch_handler_clone
                             .call1(&JsValue::NULL, &js_notification)
@@ -2572,6 +2622,8 @@ impl WasmFunction {
             on_partial_response.call1(&this, &res).unwrap();
         });
 
+        let viz_reducer = Rc::new(RefCell::new(VizStateReducer::default()));
+        let viz_reducer_clone = viz_reducer.clone();
         let watch_handler_cb = shared_handler(move |notification| {
             // Convert notification to a JS object
             let js_notification = js_sys::Object::new();
@@ -2607,6 +2659,15 @@ impl WasmFunction {
                 &JsValue::from_bool(notification.is_stream),
             )
             .unwrap();
+
+            let state_updates = match &notification.value {
+                baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
+                    viz_reducer_clone
+                        .borrow_mut()
+                        .apply(&notification.function_name, event)
+                }
+                _ => Vec::new(),
+            };
 
             // Serialize the value as JSON
             let value_json = match &notification.value {
@@ -2645,6 +2706,43 @@ impl WasmFunction {
                 &JsValue::from_str(&value_json),
             )
             .unwrap();
+
+            if !state_updates.is_empty() {
+                let updates_array = js_sys::Array::new();
+                for update in state_updates {
+                    let update_obj = js_sys::Object::new();
+                    js_sys::Reflect::set(
+                        &update_obj,
+                        &JsValue::from_str("node_id"),
+                        &JsValue::from(update.node_id),
+                    )
+                    .unwrap();
+                    js_sys::Reflect::set(
+                        &update_obj,
+                        &JsValue::from_str("lexical_id"),
+                        &JsValue::from_str(&update.lexical_id),
+                    )
+                    .unwrap();
+                    let state_str = match update.new_state {
+                        LexicalState::NotRunning => "not_running",
+                        LexicalState::Running => "running",
+                        LexicalState::Completed => "completed",
+                    };
+                    js_sys::Reflect::set(
+                        &update_obj,
+                        &JsValue::from_str("new_state"),
+                        &JsValue::from_str(state_str),
+                    )
+                    .unwrap();
+                    updates_array.push(&update_obj);
+                }
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("state_updates"),
+                    updates_array.as_ref(),
+                )
+                .unwrap();
+            }
 
             watch_handler
                 .call1(&JsValue::NULL, &js_notification)
@@ -2763,6 +2861,8 @@ impl WasmFunction {
             on_partial_response.call1(&this, &res).unwrap();
         });
 
+        let viz_reducer = Rc::new(RefCell::new(VizStateReducer::default()));
+        let viz_reducer_clone = viz_reducer.clone();
         // Create the closure to handle watch notifications (similar to on_partial_response):
         let watch_handler_cb = shared_handler(move |notification| {
             // Convert notification to a JS object
@@ -2799,6 +2899,15 @@ impl WasmFunction {
                 &JsValue::from_bool(notification.is_stream),
             )
             .unwrap();
+
+            let state_updates = match &notification.value {
+                baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
+                    viz_reducer_clone
+                        .borrow_mut()
+                        .apply(&notification.function_name, event)
+                }
+                _ => Vec::new(),
+            };
 
             // Serialize the value as JSON
             let value_json = match &notification.value {
@@ -2837,6 +2946,43 @@ impl WasmFunction {
                 &JsValue::from_str(&value_json),
             )
             .unwrap();
+
+            if !state_updates.is_empty() {
+                let updates_array = js_sys::Array::new();
+                for update in state_updates {
+                    let update_obj = js_sys::Object::new();
+                    js_sys::Reflect::set(
+                        &update_obj,
+                        &JsValue::from_str("node_id"),
+                        &JsValue::from(update.node_id),
+                    )
+                    .unwrap();
+                    js_sys::Reflect::set(
+                        &update_obj,
+                        &JsValue::from_str("lexical_id"),
+                        &JsValue::from_str(&update.lexical_id),
+                    )
+                    .unwrap();
+                    let state_str = match update.new_state {
+                        LexicalState::NotRunning => "not_running",
+                        LexicalState::Running => "running",
+                        LexicalState::Completed => "completed",
+                    };
+                    js_sys::Reflect::set(
+                        &update_obj,
+                        &JsValue::from_str("new_state"),
+                        &JsValue::from_str(state_str),
+                    )
+                    .unwrap();
+                    updates_array.push(&update_obj);
+                }
+                js_sys::Reflect::set(
+                    &js_notification,
+                    &JsValue::from_str("state_updates"),
+                    updates_array.as_ref(),
+                )
+                .unwrap();
+            }
 
             watch_handler
                 .call1(&JsValue::NULL, &js_notification)

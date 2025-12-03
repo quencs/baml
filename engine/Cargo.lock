@@ -1334,6 +1334,7 @@ dependencies = [
  "baml-ids",
  "baml-runtime",
  "baml-types",
+ "baml-viz-events",
  "cfg-if",
  "console_error_panic_hook",
  "console_log",
