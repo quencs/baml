@@ -1,9 +1,10 @@
 pub mod generator;
 pub mod runtime_prompt;
-use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, str::FromStr};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anyhow::Context;
-use baml_compiler::{hir::HeaderContext, watch::shared_handler};
+use baml_compiler::watch::shared_handler;
+use futures::{channel::mpsc, stream::StreamExt};
 // Conditional runtime selection based on the "thir-interpreter" feature flag
 #[cfg(feature = "thir-interpreter")]
 pub use baml_runtime::async_interpreter_runtime::BamlAsyncInterpreterRuntime as CoreBamlRuntime;
@@ -35,6 +36,7 @@ use wasm_bindgen::{prelude::*, JsError, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 use self::runtime_prompt::WasmScope;
+use crate::abort_controller::js_abort_signal_to_tripwire;
 use crate::runtime_wasm::runtime_prompt::WasmPrompt;
 
 type JsResult<T> = core::result::Result<T, JsError>;
@@ -91,86 +93,6 @@ pub fn on_wasm_init() {
 extern "C" {
     #[wasm_bindgen(js_name = __onWasmPanic)]
     fn on_wasm_panic(msg: &str);
-}
-
-/// Helper to serialize a header to JSON.
-/// Used for both "header" (enter) and "header_stopped" (exit) events.
-fn serialize_header_to_json(header: &HeaderContext, event_type: &str) -> String {
-    let serialized_span = SerializedSpan::serialize(&header.span);
-    serde_json::json!({
-        "type": event_type,
-        "label": header.title,
-        "level": header.level,
-        "span": {
-            "file_path": serialized_span.file_path,
-            "start_line": serialized_span.start_line,
-            "start_column": serialized_span.start,
-            "end_line": serialized_span.end_line,
-            "end_column": serialized_span.end,
-        }
-    })
-    .to_string()
-}
-
-/// HACK: Tracks active headers and emits synthetic "stopped" events when new headers arrive.
-/// This is a workaround until proper exit events are emitted from the interpreter.
-///
-/// When a new header comes in at level N, we emit "stopped" events for all headers
-/// at level >= N (in reverse order, deepest first).
-struct HeaderTracker {
-    /// Stack of active headers, sorted by level (lower levels first)
-    active_headers: Vec<HeaderContext>,
-}
-
-impl HeaderTracker {
-    fn new() -> Self {
-        Self {
-            active_headers: Vec::new(),
-        }
-    }
-
-    /// Process a new header entering scope.
-    /// Returns headers that should be marked as stopped (in the order they should be emitted).
-    fn on_header_enter(&mut self, header: HeaderContext) -> Vec<HeaderContext> {
-        let new_level = header.level;
-
-        // Find all headers at level >= new_level and remove them
-        let mut stopped_headers = Vec::new();
-        while let Some(last) = self.active_headers.last() {
-            if last.level >= new_level {
-                stopped_headers.push(self.active_headers.pop().unwrap());
-            } else {
-                break;
-            }
-        }
-
-        // Push the new header onto the stack
-        self.active_headers.push(header);
-
-        // Return stopped headers (already in reverse order - deepest first)
-        stopped_headers
-    }
-
-    /// Flush all remaining active headers (e.g., at end of execution).
-    /// Returns headers that should be marked as stopped (deepest first).
-    fn flush(&mut self) -> Vec<HeaderContext> {
-        let mut stopped = Vec::new();
-        while let Some(header) = self.active_headers.pop() {
-            stopped.push(header);
-        }
-        stopped
-    }
-
-    /// Get count of active headers (for debugging)
-    fn active_count(&self) -> usize {
-        self.active_headers.len()
-    }
-
-    /// Get the current (deepest) active header, if any.
-    /// This is the header that variable notifications should be associated with.
-    fn current_header(&self) -> Option<&HeaderContext> {
-        self.active_headers.last()
-    }
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]
@@ -573,94 +495,6 @@ pub struct WasmEntityAtPosition {
     /// For test entities, the name of the test case
     #[wasm_bindgen(readonly)]
     pub test_name: Option<String>,
-}
-
-#[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum WasmControlFlowNodeType {
-    FunctionRoot,
-    HeaderContextEnter,
-    BranchGroup,
-    BranchArm,
-    Loop,
-    OtherScope,
-}
-
-#[wasm_bindgen(getter_with_clone, inspectable)]
-#[derive(Clone, Debug)]
-pub struct WasmControlFlowNode {
-    #[wasm_bindgen(readonly)]
-    pub id: u32,
-    #[wasm_bindgen(readonly)]
-    pub parent_id: Option<u32>,
-    #[wasm_bindgen(readonly)]
-    pub lexical_id: String,
-    #[wasm_bindgen(readonly)]
-    pub label: String,
-    #[wasm_bindgen(readonly)]
-    pub span: WasmSpan,
-    #[wasm_bindgen(readonly)]
-    pub node_type: WasmControlFlowNodeType,
-}
-
-#[wasm_bindgen(getter_with_clone, inspectable)]
-#[derive(Clone, Debug)]
-pub struct WasmControlFlowEdge {
-    #[wasm_bindgen(readonly)]
-    pub src: u32,
-    #[wasm_bindgen(readonly)]
-    pub dst: u32,
-}
-
-#[wasm_bindgen(getter_with_clone, inspectable)]
-#[derive(Clone, Debug, Default)]
-pub struct WasmControlFlowGraph {
-    #[wasm_bindgen(readonly)]
-    pub nodes: Vec<WasmControlFlowNode>,
-    #[wasm_bindgen(readonly)]
-    pub edges: Vec<WasmControlFlowEdge>,
-}
-
-impl From<&RuntimeNodeType> for WasmControlFlowNodeType {
-    fn from(value: &RuntimeNodeType) -> Self {
-        match value {
-            RuntimeNodeType::FunctionRoot => WasmControlFlowNodeType::FunctionRoot,
-            RuntimeNodeType::HeaderContextEnter => WasmControlFlowNodeType::HeaderContextEnter,
-            RuntimeNodeType::BranchGroup => WasmControlFlowNodeType::BranchGroup,
-            RuntimeNodeType::BranchArm => WasmControlFlowNodeType::BranchArm,
-            RuntimeNodeType::Loop => WasmControlFlowNodeType::Loop,
-            RuntimeNodeType::OtherScope => WasmControlFlowNodeType::OtherScope,
-        }
-    }
-}
-
-impl From<ControlFlowVisualization> for WasmControlFlowGraph {
-    fn from(viz: ControlFlowVisualization) -> Self {
-        let nodes = viz
-            .nodes
-            .values()
-            .map(|node| WasmControlFlowNode {
-                id: node.id.raw(),
-                parent_id: node.parent_node_id.map(|id| id.raw()),
-                lexical_id: node.lexical_id.clone(),
-                label: node.label.clone(),
-                span: (&node.span).into(),
-                node_type: WasmControlFlowNodeType::from(&node.node_type),
-            })
-            .collect();
-
-        let edges = viz
-            .edges_by_src
-            .values()
-            .flat_map(|edges| edges.iter())
-            .map(|edge| WasmControlFlowEdge {
-                src: edge.src.raw(),
-                dst: edge.dst.raw(),
-            })
-            .collect();
-
-        WasmControlFlowGraph { nodes, edges }
-    }
 }
 
 #[wasm_bindgen(getter_with_clone, inspectable)]
@@ -2203,7 +2037,7 @@ impl WasmRuntime {
     ) -> Result<WasmTestResponses, JsValue> {
         let parallel = parallel.unwrap_or(false);
         // Convert abort signal to tripwire
-        let tripwire = match crate::abort_controller::js_abort_signal_to_tripwire(abort_signal) {
+        let tripwire = match js_abort_signal_to_tripwire(abort_signal) {
             Ok(tripwire) => tripwire,
             Err(_e) => {
                 log::error!("WASM Parallel: Failed to setup abort handler");
@@ -2264,81 +2098,8 @@ impl WasmRuntime {
                     let on_tick = if false { Some(|| {}) } else { None };
 
                     // Create watch handler callback for this test
-                    // HACK: Track active headers to emit synthetic "stopped" events
-                    let header_tracker = Rc::new(RefCell::new(HeaderTracker::new()));
-                    let header_tracker_clone = header_tracker.clone();
-                    let header_tracker_for_flush = header_tracker.clone();
                     let watch_handler_clone = watch_handler.clone();
-                    // Clone for use after execution to flush remaining headers
-                    let watch_handler_for_flush = watch_handler.clone();
-                    let function_name_for_flush = function_name.clone();
-
                     let watch_handler_cb = shared_handler(move |notification| {
-                        // Helper to create and send a JS notification
-                        let send_notification =
-                            |function_name: &str, is_stream: bool, value_json: &str| {
-                                let js_notification = js_sys::Object::new();
-
-                                js_sys::Reflect::set(
-                                    &js_notification,
-                                    &JsValue::from_str("function_name"),
-                                    &JsValue::from_str(function_name),
-                                )
-                                .unwrap();
-
-                                js_sys::Reflect::set(
-                                    &js_notification,
-                                    &JsValue::from_str("is_stream"),
-                                    &JsValue::from_bool(is_stream),
-                                )
-                                .unwrap();
-
-                                js_sys::Reflect::set(
-                                    &js_notification,
-                                    &JsValue::from_str("value"),
-                                    &JsValue::from_str(value_json),
-                                )
-                                .unwrap();
-
-                                watch_handler_clone
-                                    .call1(&JsValue::NULL, &js_notification)
-                                    .unwrap();
-                            };
-
-                        // Check if this is a Header notification - if so, emit stopped events first
-                        if let baml_compiler::watch::WatchBamlValue::Header(header) =
-                            &notification.value
-                        {
-                            log::info!(
-                                "[WASM run_tests] Header enter: level={} title={:?}",
-                                header.level,
-                                header.title
-                            );
-                            // Get headers that need to be stopped
-                            let stopped_headers = header_tracker_clone
-                                .borrow_mut()
-                                .on_header_enter(header.clone());
-
-                            log::info!(
-                                "[WASM run_tests] After on_header_enter: {} headers to stop, {} active",
-                                stopped_headers.len(),
-                                header_tracker_clone.borrow().active_count()
-                            );
-
-                            // Emit stopped notifications for each (deepest first)
-                            for stopped_header in stopped_headers {
-                                let stopped_json =
-                                    serialize_header_to_json(&stopped_header, "header_stopped");
-                                send_notification(
-                                    &notification.function_name,
-                                    false,
-                                    &stopped_json,
-                                );
-                            }
-                        }
-
-                        // Now handle the actual notification
-                        // Convert notification to a JS object
                         let js_notification = js_sys::Object::new();
 
                         if let Some(ref var_name) = notification.variable_name {
@@ -2372,27 +2133,6 @@ impl WasmRuntime {
                             &JsValue::from_bool(notification.is_stream),
                         )
                         .unwrap();
-
-                        // HACK: For variable notifications, include the current header's title
-                        // as lexical_node_id so the UI knows which block the variable belongs to
-                        if matches!(
-                            &notification.value,
-                            baml_compiler::watch::WatchBamlValue::Value(_)
-                                | baml_compiler::watch::WatchBamlValue::StreamStart(_)
-                                | baml_compiler::watch::WatchBamlValue::StreamUpdate(_, _)
-                                | baml_compiler::watch::WatchBamlValue::StreamEnd(_)
-                        ) {
-                            if let Some(current_header) =
-                                header_tracker_clone.borrow().current_header()
-                            {
-                                js_sys::Reflect::set(
-                                    &js_notification,
-                                    &JsValue::from_str("lexical_node_id"),
-                                    &JsValue::from_str(&current_header.title),
-                                )
-                                .unwrap();
-                            }
-                        }
 
                         // Serialize the value as JSON
                         let value_json = match &notification.value {
@@ -2455,44 +2195,6 @@ impl WasmRuntime {
                                 Some(watch_handler_cb),
                             )
                             .await;
-
-                        // HACK: Flush remaining active headers after execution completes
-                        let remaining_headers = header_tracker_for_flush.borrow_mut().flush();
-                        log::info!(
-                            "[WASM run_tests] Flushing {} remaining headers for function={}",
-                            remaining_headers.len(),
-                            function_name_for_flush
-                        );
-                        for stopped_header in remaining_headers {
-                            let js_notification = js_sys::Object::new();
-
-                            js_sys::Reflect::set(
-                                &js_notification,
-                                &JsValue::from_str("function_name"),
-                                &JsValue::from_str(&function_name_for_flush),
-                            )
-                            .unwrap();
-
-                            js_sys::Reflect::set(
-                                &js_notification,
-                                &JsValue::from_str("is_stream"),
-                                &JsValue::from_bool(false),
-                            )
-                            .unwrap();
-
-                            let stopped_json =
-                                serialize_header_to_json(&stopped_header, "header_stopped");
-                            js_sys::Reflect::set(
-                                &js_notification,
-                                &JsValue::from_str("value"),
-                                &JsValue::from_str(&stopped_json),
-                            )
-                            .unwrap();
-
-                            watch_handler_for_flush
-                                .call1(&JsValue::NULL, &js_notification)
-                                .unwrap();
-                        }
 
                         // Return WasmTestResponse for this test
                         WasmTestResponse {
@@ -2857,7 +2559,7 @@ impl WasmFunction {
         );
 
         // Create the closure to handle partial responses:
-        let cb = Box::new(move |r: FunctionResult| {
+        let cb = Box::new(move |r: baml_runtime::FunctionResult| {
             let this = JsValue::NULL;
             let res = WasmFunctionResponse {
                 function_response: r,
