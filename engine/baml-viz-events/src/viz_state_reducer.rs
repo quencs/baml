@@ -39,7 +39,7 @@ pub struct VizStateReducer {
 impl VizStateReducer {
     /// Apply a single viz exec event and return the resulting state updates.
     pub fn apply(&mut self, function_name: &str, viz_event: &VizExecEvent) -> Vec<StateUpdate> {
-        dispatch(self, function_name, viz_event)
+        self.dispatch(function_name, viz_event)
     }
 
     /// Current stack of frames (root at index 0).
@@ -51,123 +51,110 @@ impl VizStateReducer {
     pub fn lexical_stack(&self) -> Vec<String> {
         self.frames.iter().map(|fr| fr.lexical_id.clone()).collect()
     }
-}
-
-fn dispatch(
-    reducer: &mut VizStateReducer,
-    function_name: &str,
-    viz_event: &VizExecEvent,
-) -> Vec<StateUpdate> {
-    match viz_event.event {
-        crate::VizExecDelta::Enter => handle_enter(reducer, function_name, viz_event),
-        crate::VizExecDelta::Exit => handle_exit(reducer, function_name, viz_event),
+    fn dispatch(&mut self, function_name: &str, viz_event: &VizExecEvent) -> Vec<StateUpdate> {
+        match viz_event.event {
+            crate::VizExecDelta::Enter => self.handle_enter(function_name, viz_event),
+            crate::VizExecDelta::Exit => self.handle_exit(function_name, viz_event),
+        }
     }
-}
 
-fn handle_enter(
-    reducer: &mut VizStateReducer,
-    function: &str,
-    viz_event: &VizExecEvent,
-) -> Vec<StateUpdate> {
-    let mut updates = Vec::new();
+    fn handle_enter(&mut self, function: &str, viz_event: &VizExecEvent) -> Vec<StateUpdate> {
+        let mut updates = Vec::new();
 
-    // Determine invocation context.
-    let invocation_fn = if viz_event.node_type == RuntimeNodeType::FunctionRoot {
-        function.to_string()
-    } else if let Some(top) = reducer.frames.last() {
-        top.function_name.clone()
-    } else {
-        function.to_string()
-    };
+        // Determine invocation context.
+        let invocation_fn = if viz_event.node_type == RuntimeNodeType::FunctionRoot {
+            function.to_string()
+        } else if let Some(top) = self.frames.last() {
+            top.function_name.clone()
+        } else {
+            function.to_string()
+        };
 
-    // Pop headers at or deeper than the incoming header level; mirrors HirTraversalContext::pop_headers_to_level.
-    if viz_event.node_type == RuntimeNodeType::HeaderContextEnter {
-        let new_level = viz_event.header_level.unwrap_or(1).max(1);
-        while let Some(top) = reducer.frames.last() {
-            if top.node_type == RuntimeNodeType::HeaderContextEnter
-                && top.function_name == invocation_fn
-            {
-                let top_level = top.header_level.unwrap_or(1);
-                if top_level >= new_level {
-                    let frame = reducer.frames.pop().expect("frame to exist");
-                    updates.push(StateUpdate {
-                        node_id: frame.node_id,
-                        lexical_id: frame.lexical_id.clone(),
-                        new_state: LexicalState::Completed,
-                    });
-                    continue;
+        // Pop headers at or deeper than the incoming header level; mirrors HirTraversalContext::pop_headers_to_level.
+        if viz_event.node_type == RuntimeNodeType::HeaderContextEnter {
+            let new_level = viz_event.header_level.unwrap_or(1).max(1);
+            while let Some(top) = self.frames.last() {
+                if top.node_type == RuntimeNodeType::HeaderContextEnter
+                    && top.function_name == invocation_fn
+                {
+                    let top_level = top.header_level.unwrap_or(1);
+                    if top_level >= new_level {
+                        let frame = self.frames.pop().expect("frame to exist");
+                        updates.push(StateUpdate {
+                            node_id: frame.node_id,
+                            lexical_id: frame.lexical_id.clone(),
+                            new_state: LexicalState::Completed,
+                        });
+                        continue;
+                    }
                 }
+                break;
             }
-            break;
         }
-    }
 
-    let lexical_id = {
-        let mut segments: Vec<PathSegment> = reducer
-            .frames
-            .iter()
-            .filter(|f| f.function_name == invocation_fn)
-            .map(|f| f.lexical_segment.clone())
-            .collect();
-        segments.push(viz_event.path_segment.clone());
-        encode_segments(&invocation_fn, &segments)
-    };
+        let lexical_id = {
+            let mut segments: Vec<PathSegment> = self
+                .frames
+                .iter()
+                .filter(|f| f.function_name == invocation_fn)
+                .map(|f| f.lexical_segment.clone())
+                .collect();
+            segments.push(viz_event.path_segment.clone());
+            encode_segments(&invocation_fn, &segments)
+        };
 
-    let frame = Frame {
-        node_id: viz_event.node_id,
-        lexical_segment: viz_event.path_segment.clone(),
-        lexical_id: lexical_id.clone(),
-        function_name: invocation_fn.clone(),
-        node_type: viz_event.node_type.clone(),
-        label: viz_event.label.clone(),
-        header_level: viz_event.header_level,
-    };
-    reducer.frames.push(frame);
+        let frame = Frame {
+            node_id: viz_event.node_id,
+            lexical_segment: viz_event.path_segment.clone(),
+            lexical_id: lexical_id.clone(),
+            function_name: invocation_fn.clone(),
+            node_type: viz_event.node_type.clone(),
+            label: viz_event.label.clone(),
+            header_level: viz_event.header_level,
+        };
+        self.frames.push(frame);
 
-    updates.push(StateUpdate {
-        node_id: viz_event.node_id,
-        lexical_id,
-        new_state: LexicalState::Running,
-    });
-
-    updates
-}
-
-fn handle_exit(
-    reducer: &mut VizStateReducer,
-    function: &str,
-    viz_event: &VizExecEvent,
-) -> Vec<StateUpdate> {
-    let mut updates = Vec::new();
-    let mut popped: Vec<Frame> = Vec::new();
-    let mut found = false;
-
-    while let Some(frame) = reducer.frames.pop() {
-        let matches =
-            frame.lexical_segment == viz_event.path_segment && frame.function_name == function;
-        popped.push(frame);
-        if matches {
-            found = true;
-            break;
-        }
-    }
-
-    if !found {
-        for frame in popped.into_iter().rev() {
-            reducer.frames.push(frame);
-        }
-        return updates;
-    }
-
-    for frame in popped {
         updates.push(StateUpdate {
-            node_id: frame.node_id,
-            lexical_id: frame.lexical_id.clone(),
-            new_state: LexicalState::Completed,
+            node_id: viz_event.node_id,
+            lexical_id,
+            new_state: LexicalState::Running,
         });
+
+        updates
     }
 
-    updates
+    fn handle_exit(&mut self, function: &str, viz_event: &VizExecEvent) -> Vec<StateUpdate> {
+        let mut updates = Vec::new();
+        let mut popped: Vec<Frame> = Vec::new();
+        let mut found = false;
+
+        while let Some(frame) = self.frames.pop() {
+            let matches =
+                frame.lexical_segment == viz_event.path_segment && frame.function_name == function;
+            popped.push(frame);
+            if matches {
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
+            for frame in popped.into_iter().rev() {
+                self.frames.push(frame);
+            }
+            return updates;
+        }
+
+        for frame in popped {
+            updates.push(StateUpdate {
+                node_id: frame.node_id,
+                lexical_id: frame.lexical_id.clone(),
+                new_state: LexicalState::Completed,
+            });
+        }
+
+        updates
+    }
 }
 
 /// Encode a full lexical id from function name + segments (matches control_flow.rs).
