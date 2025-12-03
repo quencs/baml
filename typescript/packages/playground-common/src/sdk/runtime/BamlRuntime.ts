@@ -852,6 +852,15 @@ export class BamlRuntime implements BamlRuntimeInterface {
               newState: u.new_state as 'not_running' | 'running' | 'completed',
             }))
           : undefined;
+        console.info('[BamlRuntime] watch notification', {
+          functionName: notification.function_name,
+          testName: notification.test_name,
+          value: notification.value,
+          stateUpdates,
+          variable: notification.variable_name,
+          channel: notification.channel_name,
+          isStream: notification.is_stream,
+        });
         const watchNotification = {
           variableName: notification.variable_name,
           channelName: notification.channel_name,

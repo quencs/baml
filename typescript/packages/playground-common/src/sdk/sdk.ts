@@ -1033,8 +1033,11 @@ export class BAMLSDK {
 
   private applyStateUpdates(stateUpdates?: VizStateUpdate[]) {
     if (!stateUpdates || stateUpdates.length === 0) {
+      console.info('[SDK] No viz state_updates in notification');
       return;
     }
+
+    console.info('[SDK] Applying viz state_updates', stateUpdates);
 
     for (const update of stateUpdates) {
       const mapped = this.mapReducerStateToNodeState(update.newState);
