@@ -23,8 +23,8 @@ use baml_runtime::{
     BamlSrcReader, DiagnosticsError, IRHelper, InternalRuntimeInterface, RenderCurlSettings,
     RenderedPrompt,
 };
-use baml_viz_events::{LexicalState, VizStateReducer};
 use baml_types::{BamlValue, GeneratorOutputType, ResponseCheck};
+use baml_viz_events::{LexicalState, VizStateReducer};
 use generators_lib::version_check::{check_version, GeneratorType, VersionCheckMode};
 use indexmap::IndexMap;
 use internal_baml_core::feature_flags::FeatureFlags;
@@ -2103,6 +2103,8 @@ impl WasmRuntime {
                     let viz_reducer = Rc::new(RefCell::new(VizStateReducer::default()));
                     let viz_reducer_clone = viz_reducer.clone();
                     let watch_handler_cb = shared_handler(move |notification| {
+                        log::info!("watch_handler_cb: {:#?}", notification);
+
                         let js_notification = js_sys::Object::new();
 
                         if let Some(ref var_name) = notification.variable_name {
@@ -2661,11 +2663,9 @@ impl WasmFunction {
             .unwrap();
 
             let state_updates = match &notification.value {
-                baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
-                    viz_reducer_clone
-                        .borrow_mut()
-                        .apply(&notification.function_name, event)
-                }
+                baml_compiler::watch::WatchBamlValue::VizExecState(event) => viz_reducer_clone
+                    .borrow_mut()
+                    .apply(&notification.function_name, event),
                 _ => Vec::new(),
             };
 
@@ -2901,11 +2901,9 @@ impl WasmFunction {
             .unwrap();
 
             let state_updates = match &notification.value {
-                baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
-                    viz_reducer_clone
-                        .borrow_mut()
-                        .apply(&notification.function_name, event)
-                }
+                baml_compiler::watch::WatchBamlValue::VizExecState(event) => viz_reducer_clone
+                    .borrow_mut()
+                    .apply(&notification.function_name, event),
                 _ => Vec::new(),
             };
 

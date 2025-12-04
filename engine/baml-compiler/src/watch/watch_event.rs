@@ -5,6 +5,7 @@ use std::{
 
 use baml_types::{BamlValueWithMeta, Completion, Constraint, ResponseCheck, TypeIR};
 pub use baml_viz_events::{RuntimeNodeType, VizExecDelta, VizExecEvent};
+use baml_viz_events::{StateUpdate, VizStateReducer};
 
 use crate::hir::HeaderContext;
 
@@ -93,6 +94,51 @@ pub enum WatchBamlValue {
     StreamStart(StreamId),
     StreamUpdate(StreamId, BamlValueWithMeta<WatchValueMetadata>),
     StreamEnd(StreamId),
+}
+
+#[derive(Debug, Clone)]
+pub enum ReducedWatchBamlValue {
+    Value(BamlValueWithMeta<WatchValueMetadata>),
+    VizStateUpdate(StateUpdate),
+    StreamStart(StreamId),
+    StreamUpdate(StreamId, BamlValueWithMeta<WatchValueMetadata>),
+    StreamEnd(StreamId),
+}
+
+pub struct WatchEventReducer(pub VizStateReducer);
+
+impl WatchEventReducer {
+    pub fn new() -> Self {
+        Self(VizStateReducer::default())
+    }
+
+    pub fn apply(
+        &mut self,
+        function_name: &str,
+        watch_event: WatchBamlValue,
+    ) -> Vec<ReducedWatchBamlValue> {
+        match watch_event {
+            WatchBamlValue::VizExecState(event) => self
+                .0
+                .apply(function_name, &event)
+                .into_iter()
+                .map(|update| ReducedWatchBamlValue::VizStateUpdate(update))
+                .collect(),
+            WatchBamlValue::Value(value) => vec![ReducedWatchBamlValue::Value(value.clone())],
+            WatchBamlValue::StreamStart(stream_id) => {
+                vec![ReducedWatchBamlValue::StreamStart(stream_id.clone())]
+            }
+            WatchBamlValue::StreamUpdate(stream_id, value) => {
+                vec![ReducedWatchBamlValue::StreamUpdate(
+                    stream_id.clone(),
+                    value.clone(),
+                )]
+            }
+            WatchBamlValue::StreamEnd(stream_id) => {
+                vec![ReducedWatchBamlValue::StreamEnd(stream_id.clone())]
+            }
+        }
+    }
 }
 
 /// The BamlValueWithMeta metadata for a
