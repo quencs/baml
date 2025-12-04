@@ -1044,7 +1044,7 @@ export class BAMLSDK {
       const mapped = this.mapReducerStateToNodeState(update.newState);
       if (!mapped) continue;
 
-      const nodeId = update.lexicalId || update.nodeId.toString();
+      const nodeId = update.nodeId.toString();
       this.storage.setNodeState(nodeId, mapped);
     }
   }
@@ -1088,29 +1088,15 @@ export class BAMLSDK {
     const parsedValue = this.parseWatchValue(notification.value);
     enriched.parsedValue = parsedValue;
 
-    // Handle header events - update lexicalNodeId and node state
+    // Handle header events - update lexicalNodeId only (state driven by reducer updates)
     if (parsedValue?.type === 'header') {
       enriched.lexicalNodeId = parsedValue.label;
-
-      // Find the matching node by label and update its state to 'running'
-      const nodeId = this.findNodeIdByLabel(functionName, parsedValue.label);
-      if (nodeId) {
-        console.log(`[SDK] Header event: setting node ${nodeId} to 'running'`);
-        this.storage.setNodeState(nodeId, 'running');
-      }
     }
 
     // HACK: Handle header_stopped events - set node state to 'success'
     // This is emitted synthetically when a new header comes in at the same or shallower level
     if (parsedValue?.type === 'header_stopped') {
       enriched.lexicalNodeId = parsedValue.label;
-
-      // Find the matching node by label and update its state to 'success'
-      const nodeId = this.findNodeIdByLabel(functionName, parsedValue.label);
-      if (nodeId) {
-        console.log(`[SDK] Header stopped event: setting node ${nodeId} to 'success'`);
-        this.storage.setNodeState(nodeId, 'success');
-      }
     }
 
     return enriched;

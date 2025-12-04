@@ -846,18 +846,13 @@ export class BamlRuntime implements BamlRuntimeInterface {
       (notification: WasmNotification & { function_name?: string; test_name?: string }) => {
         const rawStateUpdates = (notification as any).state_updates ?? (notification as any).stateUpdates;
         const stateUpdates = Array.isArray(rawStateUpdates)
-          ? (() => {
-              const update = rawStateUpdates.find((u) => u?.kind === 'viz_state_update');
-              return update
-                ? [
-                    {
-                      nodeId: update.node_id,
-                      lexicalId: update.lexical_id,
-                      newState: update.new_state as 'not_running' | 'running' | 'completed',
-                    },
-                  ]
-                : undefined;
-            })()
+          ? rawStateUpdates
+              .filter((u) => u?.kind === 'viz_state_update')
+              .map((u) => ({
+                nodeId: u.node_id,
+                lexicalId: u.lexical_id,
+                newState: u.new_state as 'not_running' | 'running' | 'completed',
+              }))
           : undefined;
 
         // Derive a display value from the reduced events, falling back to an empty string
