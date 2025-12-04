@@ -1,4 +1,5 @@
 
+
 function MyFunction4(flag: bool) -> string {
   //# Check
   let result = if (flag) {
@@ -15,12 +16,12 @@ function MyFunction4(flag: bool) -> string {
     "dolor"
   ]) {
     //# Extract1
-    ExtractResume(item);
+    LlmEcho(item);
 
     tagged = item;
   
     //# Extract2
-    ExtractResume(item);
+    LlmEcho(item);
   }
 
 
@@ -33,3 +34,4 @@ test default {
     flag true
   }
 }
+
