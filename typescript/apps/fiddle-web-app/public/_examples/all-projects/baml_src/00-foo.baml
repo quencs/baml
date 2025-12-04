@@ -7,7 +7,22 @@ function MyFunction4(flag: bool) -> string {
     "else-branch"
   };
 
-  watch let tagged = "branch:" + result;
+  watch let tagged = "before";
+  
+  for (let item in [
+    "lorem",
+    "ipsum",
+    "dolor"
+  ]) {
+    //# Extract1
+    ExtractResume(item);
+
+    tagged = item;
+  
+    //# Extract2
+    ExtractResume(item);
+  }
+
 
   tagged
 }
