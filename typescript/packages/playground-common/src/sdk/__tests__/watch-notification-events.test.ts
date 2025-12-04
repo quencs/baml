@@ -257,30 +257,33 @@ describe('Watch Notification Parsing', () => {
 describe('Node ID Matching', () => {
   const mockNodes: GraphNode[] = [
     {
-      id: 'SimpleWorkflow|root:0',
+      id: '0',
       type: 'group',
       label: 'SimpleWorkflow',
       functionName: 'SimpleWorkflow',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'SimpleWorkflow|root:0' },
     },
     {
-      id: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0',
+      id: '1',
       type: 'group',
       label: 'gather applicant context',
       functionName: 'SimpleWorkflow',
-      parent: 'SimpleWorkflow|root:0',
+      parent: '0',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0' },
     },
     {
-      id: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1',
+      id: '2',
       type: 'group',
       label: 'normalize profile signals',
       functionName: 'SimpleWorkflow',
-      parent: 'SimpleWorkflow|root:0',
+      parent: '0',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1' },
     },
   ];
 
@@ -288,19 +291,19 @@ describe('Node ID Matching', () => {
     it('should find node by exact label match', () => {
       const nodeId = findNodeIdByLabel(mockNodes, 'gather applicant context');
 
-      expect(nodeId).toBe('SimpleWorkflow|root:0|hdr:gather-applicant-context:0');
+      expect(nodeId).toBe('1');
     });
 
     it('should find second header node', () => {
       const nodeId = findNodeIdByLabel(mockNodes, 'normalize profile signals');
 
-      expect(nodeId).toBe('SimpleWorkflow|root:0|hdr:normalize-profile-signals:1');
+      expect(nodeId).toBe('2');
     });
 
     it('should find root node', () => {
       const nodeId = findNodeIdByLabel(mockNodes, 'SimpleWorkflow');
 
-      expect(nodeId).toBe('SimpleWorkflow|root:0');
+      expect(nodeId).toBe('0');
     });
 
     it('should return undefined for non-existent label', () => {
@@ -320,12 +323,13 @@ describe('Node ID Matching', () => {
 describe('Watch Notification Enrichment', () => {
   const mockNodes: GraphNode[] = [
     {
-      id: 'TestWorkflow|root:0|hdr:section-one:0',
+      id: '0',
       type: 'group',
       label: 'Section One',
       functionName: 'TestWorkflow',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'TestWorkflow|root:0|hdr:section-one:0' },
     },
   ];
 
@@ -393,7 +397,7 @@ describe('Node State Updates', () => {
   });
 
   it('should update node state to running when header event is received', () => {
-    const nodeId = 'TestWorkflow|root:0|hdr:section-one:0';
+    const nodeId = '0';
 
     // Register the node
     store.set(registerNodeAtom, nodeId);
@@ -407,8 +411,8 @@ describe('Node State Updates', () => {
   });
 
   it('should handle multiple node state updates', () => {
-    const nodeId1 = 'TestWorkflow|root:0|hdr:section-one:0';
-    const nodeId2 = 'TestWorkflow|root:0|hdr:section-two:1';
+    const nodeId1 = '0';
+    const nodeId2 = '1';
 
     // Register nodes
     store.set(registerNodeAtom, nodeId1);
@@ -430,7 +434,7 @@ describe('Node State Updates', () => {
   });
 
   it('should allow transitioning node states', () => {
-    const nodeId = 'TestWorkflow|root:0|hdr:section-one:0';
+    const nodeId = '0';
 
     // Register node
     store.set(registerNodeAtom, nodeId);
@@ -445,7 +449,7 @@ describe('Node State Updates', () => {
   });
 
   it('should handle error state', () => {
-    const nodeId = 'TestWorkflow|root:0|hdr:section-one:0';
+    const nodeId = '0';
 
     // Register node
     store.set(registerNodeAtom, nodeId);
@@ -462,30 +466,33 @@ describe('Node State Updates', () => {
 describe('End-to-End Watch Notification Flow', () => {
   const mockNodes: GraphNode[] = [
     {
-      id: 'SimpleWorkflow|root:0',
+      id: '0',
       type: 'group',
       label: 'SimpleWorkflow',
       functionName: 'SimpleWorkflow',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'SimpleWorkflow|root:0' },
     },
     {
-      id: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0',
+      id: '1',
       type: 'group',
       label: 'gather applicant context',
       functionName: 'SimpleWorkflow',
-      parent: 'SimpleWorkflow|root:0',
+      parent: '0',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0' },
     },
     {
-      id: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1',
+      id: '2',
       type: 'group',
       label: 'normalize profile signals',
       functionName: 'SimpleWorkflow',
-      parent: 'SimpleWorkflow|root:0',
+      parent: '0',
       codeHash: '',
       lastModified: Date.now(),
+      metadata: { logFilterKey: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1' },
     },
   ];
 
@@ -525,14 +532,14 @@ describe('End-to-End Watch Notification Flow', () => {
 
     // Find node and update state
     const nodeId1 = findNodeIdByLabel(mockNodes, enriched1.logFilterKey!);
-    expect(nodeId1).toBe('SimpleWorkflow|root:0|hdr:gather-applicant-context:0');
+    expect(nodeId1).toBe('1');
 
     if (nodeId1) {
       store.set(nodeStateAtomFamily(nodeId1), 'running');
     }
 
-    expect(store.get(nodeStateAtomFamily('SimpleWorkflow|root:0|hdr:gather-applicant-context:0'))).toBe('running');
-    expect(store.get(nodeStateAtomFamily('SimpleWorkflow|root:0|hdr:normalize-profile-signals:1'))).toBe('not-started');
+    expect(store.get(nodeStateAtomFamily('1'))).toBe('running');
+    expect(store.get(nodeStateAtomFamily('2'))).toBe('not-started');
 
     // 2. Second header event: "normalize profile signals"
     const notification2: WatchNotification = {
@@ -556,15 +563,15 @@ describe('End-to-End Watch Notification Flow', () => {
     expect(enriched2.logFilterKey).toBe('normalize profile signals');
 
     const nodeId2 = findNodeIdByLabel(mockNodes, enriched2.logFilterKey!);
-    expect(nodeId2).toBe('SimpleWorkflow|root:0|hdr:normalize-profile-signals:1');
+    expect(nodeId2).toBe('2');
 
     if (nodeId2) {
       store.set(nodeStateAtomFamily(nodeId2), 'running');
     }
 
     // Both should now be running (or first could be success)
-    expect(store.get(nodeStateAtomFamily('SimpleWorkflow|root:0|hdr:gather-applicant-context:0'))).toBe('running');
-    expect(store.get(nodeStateAtomFamily('SimpleWorkflow|root:0|hdr:normalize-profile-signals:1'))).toBe('running');
+    expect(store.get(nodeStateAtomFamily('1'))).toBe('running');
+    expect(store.get(nodeStateAtomFamily('2'))).toBe('running');
   });
 
   it('should handle stream events within workflow', () => {

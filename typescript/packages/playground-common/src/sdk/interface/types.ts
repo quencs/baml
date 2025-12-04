@@ -262,7 +262,7 @@ export type VizStateUpdateState = 'running' | 'completed' | 'not_running';
 
 export interface VizStateUpdate {
   nodeId: number;
-  logFilterKey: string;
+  logFilterKey?: string;
   newState: VizStateUpdateState;
 }
 
@@ -279,7 +279,9 @@ export interface WatchNotification {
   isStream: boolean;
   /** Optional serialized payload; may be synthesized from stateUpdates */
   value?: string;
-  /** Optional reducer-driven state updates keyed by runtime node id / log_filter_key */
+  /**
+   * Optional reducer-driven state updates keyed by runtime node id; logFilterKey is metadata.
+   */
   stateUpdates?: VizStateUpdate[];
 }
 
@@ -381,6 +383,8 @@ export type WatchNotificationValue =
 export interface RichWatchNotification extends WatchNotification {
   /** Parsed and typed value (if parseable) */
   parsedValue?: WatchNotificationValue;
+  /** Canonical graph node id (stringified nodeId) when resolvable */
+  graphNodeId?: string;
 }
 
 export interface TestExecutionContext {

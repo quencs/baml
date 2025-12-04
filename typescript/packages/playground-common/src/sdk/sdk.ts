@@ -1044,14 +1044,13 @@ export class BAMLSDK {
       const mapped = this.mapReducerStateToNodeState(update.newState);
       if (!mapped) continue;
 
-      const key = update.logFilterKey?.trim() || update.nodeId.toString();
+      const key = update.nodeId.toString();
       this.storage.setNodeState(key, mapped);
     }
   }
 
   /**
-   * Find graph node ID by matching label (header title) to control flow graph nodes
-   * Returns the node id (which is the log_filter_key) of the matching node
+   * Find graph node ID by matching label (header title) to control flow graph nodes.
    */
   private findNodeIdByLabel(
     functionName: string,
@@ -1076,7 +1075,7 @@ export class BAMLSDK {
   }
 
   /**
-   * Enrich watch notification with parsed value and logFilterKey
+   * Enrich watch notification with parsed value and derived node references
    * Also updates node state when reducer events are present
    */
   private enrichNotificationWithContext(
@@ -1086,17 +1085,25 @@ export class BAMLSDK {
     const parsedValue = this.parseWatchValue(notification.value);
 
     const stateUpdateKey = notification.stateUpdates?.find((u) => u.logFilterKey?.trim())?.logFilterKey?.trim();
+    const stateUpdateNodeId = notification.stateUpdates?.find((u) => typeof u.nodeId === 'number')?.nodeId;
     const parsedHeaderKey =
       parsedValue && (parsedValue.type === 'header' || parsedValue.type === 'header_stopped')
         ? parsedValue.label
         : undefined;
     const logFilterKey = (notification.logFilterKey ?? stateUpdateKey ?? parsedHeaderKey)?.trim();
+    const graphNodeId =
+      stateUpdateNodeId !== undefined
+        ? stateUpdateNodeId.toString()
+        : parsedHeaderKey
+          ? this.findNodeIdByLabel(functionName, parsedHeaderKey)
+          : undefined;
 
     const enriched: RichWatchNotification = {
       ...notification,
       stateUpdates: notification.stateUpdates,
       parsedValue,
       logFilterKey,
+      graphNodeId,
     };
 
     this.applyStateUpdates(notification.stateUpdates);
@@ -1287,8 +1294,9 @@ export class BAMLSDK {
               notification.functionName ?? ''
             );
             this.storage.addWatchNotification(enriched);
-            if (enriched.logFilterKey) {
-              this.storage.addHighlightedBlock(enriched.logFilterKey);
+            const highlightId = enriched.graphNodeId ?? enriched.logFilterKey;
+            if (highlightId) {
+              this.storage.addHighlightedBlock(highlightId);
             }
 
             // Emit proper event types based on notification content
@@ -1298,7 +1306,7 @@ export class BAMLSDK {
             if (enriched.parsedValue?.type === 'header') {
               // Header enter event
               const nodeId =
-                enriched.logFilterKey ||
+                enriched.graphNodeId ||
                 this.findNodeIdByLabel(functionName, enriched.parsedValue.label) ||
                 enriched.parsedValue.label;
               this.storage.appendExecutionLog({
@@ -1322,7 +1330,7 @@ export class BAMLSDK {
             } else if (enriched.parsedValue?.type === 'header_stopped') {
               // Header exit event
               const nodeId =
-                enriched.logFilterKey ||
+                enriched.graphNodeId ||
                 this.findNodeIdByLabel(functionName, enriched.parsedValue.label) ||
                 enriched.parsedValue.label;
               this.storage.appendExecutionLog({
@@ -1347,13 +1355,13 @@ export class BAMLSDK {
 
               this.storage.appendExecutionLog({
                 type: 'variable.update',
-                nodeId: enriched.logFilterKey || functionName,
+                nodeId: enriched.graphNodeId || enriched.lexicalNodeId || functionName,
                 timestamp: now,
                 iteration: 0,
                 executionId: `test-${functionName}`,
                 name: notification.variableName,
                 value: parsedValue,
-                parentHeaderId: enriched.logFilterKey,
+                parentHeaderId: enriched.graphNodeId || enriched.lexicalNodeId,
               });
             }
           },

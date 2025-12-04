@@ -132,20 +132,22 @@ describe('buildControlFlowArtifacts', () => {
     );
 
     expect(result).toBeTruthy();
-    // Root node now uses log_filter_key format with |root:0
-    expect(result?.callGraph.id).toBe('SimpleWorkflow|root:0');
+    // Root node now uses numeric wasm id, logFilterKey is metadata
+    expect(result?.callGraph.id).toBe('0');
     expect(result?.callGraph.type).toBe('block');
 
     const rootNode = result?.nodes[0];
-    expect(rootNode?.id).toBe('SimpleWorkflow|root:0');
+    expect(rootNode?.id).toBe('0');
     expect(rootNode?.type).toBe('group');
+    expect(rootNode?.metadata?.logFilterKey).toBe('SimpleWorkflow|root:0');
 
-    const child = result?.nodes.find((n) => n.id.includes('gather-applicant-context'));
-    expect(child?.parent).toBe('SimpleWorkflow|root:0');
+    const child = result?.nodes.find((n) => n.label === 'gather applicant context');
+    expect(child?.parent).toBe('0');
+    expect(child?.metadata?.logFilterKey).toBe('SimpleWorkflow|root:0|hdr:gather-applicant-context:0');
 
     expect(result?.edges[0]).toMatchObject({
-      source: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0',
-      target: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1',
+      source: '1',
+      target: '2',
     });
   });
 
@@ -180,16 +182,12 @@ describe('buildControlFlowArtifacts', () => {
     expect(result).toBeTruthy();
     const edgeSources = result?.edges.map((edge) => edge.source) ?? [];
     // Edge from header (id:1) to branch group (id:2) remains
-    expect(edgeSources).toContain(
-      'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0',
-    );
+    expect(edgeSources).toContain('1');
     // Edges from branch group to its arm headers should be removed because parent already conveys nesting
-    expect(
-      edgeSources.some((src) => src.includes('|bg:if-guard:0')),
-    ).toBe(false);
+    expect(edgeSources).not.toContain('2');
     const runEnrichmentNode = result?.nodes.find((n) => n.label === 'run enrichment');
     expect(runEnrichmentNode?.parent).toBe(
-      'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0|bg:if-guard:0',
+      '2',
     );
   });
 });

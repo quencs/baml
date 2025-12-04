@@ -214,9 +214,8 @@ export function buildControlFlowArtifacts(
 
   for (const node of nodes) {
     nodeById.set(node.id, node);
-    // Use log_filter_key for all nodes including root - this ensures we get
-    // IDs like "SimpleWorkflow|root:0" instead of just "SimpleWorkflow"
-    const key = deriveNodeKey(node, options.rootName);
+    // Use the wasm node id (stringified) as the canonical graph node id
+    const key = node.id.toString();
     nodeKeyById.set(node.id, key);
     if (node.parent_id !== undefined) {
       const siblings = childrenByParent.get(node.parent_id) ?? [];
@@ -355,14 +354,6 @@ function mapNodeTypeToBlockType(nodeType: WasmControlFlowNodeType): BlockType | 
     default:
       return undefined;
   }
-}
-
-function deriveNodeKey(node: WasmControlFlowNode, rootName: string): string {
-  const logFilterKey = node.log_filter_key?.trim();
-  if (logFilterKey) {
-    return logFilterKey;
-  }
-  return `${rootName}_${node.id}`;
 }
 
 function computeCallGraphDepth(node: CallGraphNode | undefined): number {
@@ -864,7 +855,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
           }
         }
 
-        const value = derivedValue ?? '';
+        const value = derivedValue ?? notification.value ?? '';
 
         const primaryLogFilterKey = stateUpdates?.[0]?.logFilterKey;
 
