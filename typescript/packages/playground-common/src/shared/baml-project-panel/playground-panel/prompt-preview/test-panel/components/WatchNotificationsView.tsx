@@ -101,7 +101,8 @@ function NotificationItem({ notification, index }: { notification: WatchNotifica
           <div className="flex items-start gap-2">
             <span className="text-muted-foreground text-xs">Value:</span>
             <pre className="text-xs text-muted-foreground overflow-x-auto flex-1">
-              {(() => {
+             {(() => {
+                if (notification.value === undefined) return ''
                 try {
                   // Try to parse as JSON and format it nicely
                   const parsed = JSON.parse(notification.value)

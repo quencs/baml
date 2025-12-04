@@ -942,7 +942,8 @@ export class BAMLSDK {
   /**
    * Parse the watch notification value JSON into a typed structure
    */
-  private parseWatchValue(value: string): WatchNotificationValue | undefined {
+  private parseWatchValue(value?: string): WatchNotificationValue | undefined {
+    if (!value) return undefined;
     try {
       const parsed = JSON.parse(value) as Record<string, unknown>;
       if (parsed && typeof parsed === 'object' && 'type' in parsed) {
@@ -1342,10 +1343,12 @@ export class BAMLSDK {
             } else if (notification.variableName) {
               // Variable update event
               let parsedValue: unknown;
-              try {
-                parsedValue = JSON.parse(notification.value);
-              } catch {
-                parsedValue = notification.value;
+              if (notification.value !== undefined) {
+                try {
+                  parsedValue = JSON.parse(notification.value);
+                } catch {
+                  parsedValue = notification.value;
+                }
               }
 
               this.storage.appendExecutionLog({

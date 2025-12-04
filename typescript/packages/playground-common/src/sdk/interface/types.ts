@@ -278,7 +278,8 @@ export interface WatchNotification {
   /** Function name that emitted this notification */
   functionName?: string;
   isStream: boolean;
-  value: string;
+  /** Optional serialized payload; may be synthesized from stateUpdates */
+  value?: string;
   /** Optional reducer-driven state updates keyed by runtime node id / lexical id */
   stateUpdates?: VizStateUpdate[];
 }

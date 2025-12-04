@@ -846,16 +846,35 @@ export class BamlRuntime implements BamlRuntimeInterface {
       (notification: WasmNotification & { function_name?: string; test_name?: string }) => {
         const rawStateUpdates = (notification as any).state_updates ?? (notification as any).stateUpdates;
         const stateUpdates = Array.isArray(rawStateUpdates)
-          ? rawStateUpdates.map((u) => ({
-              nodeId: u.node_id,
-              lexicalId: u.lexical_id,
-              newState: u.new_state as 'not_running' | 'running' | 'completed',
-            }))
+          ? (() => {
+              const update = rawStateUpdates.find((u) => u?.kind === 'viz_state_update');
+              return update
+                ? [
+                    {
+                      nodeId: update.node_id,
+                      lexicalId: update.lexical_id,
+                      newState: update.new_state as 'not_running' | 'running' | 'completed',
+                    },
+                  ]
+                : undefined;
+            })()
           : undefined;
+
+        // Derive a display value from the reduced events, falling back to an empty string
+        let derivedValue: string | undefined;
+        if (Array.isArray(rawStateUpdates)) {
+          const valueEvent = rawStateUpdates.find((u) => u?.kind === 'value');
+          if (valueEvent && typeof valueEvent.value === 'string') {
+            derivedValue = valueEvent.value;
+          }
+        }
+
+        const value = derivedValue ?? '';
+
         console.info('[BamlRuntime] watch notification', {
           functionName: notification.function_name,
           testName: notification.test_name,
-          value: notification.value,
+          value,
           stateUpdates,
           variable: notification.variable_name,
           channel: notification.channel_name,
@@ -867,7 +886,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
           blockName: notification.block_name,
           functionName: notification.function_name,
           isStream: notification.is_stream,
-          value: notification.value,
+          value,
           stateUpdates,
         };
         if (context.onWatchNotification) {
