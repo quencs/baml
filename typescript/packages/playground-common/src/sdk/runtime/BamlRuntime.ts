@@ -84,7 +84,7 @@ type RichWasmFunction = WasmFunction & { function_type: WasmFunctionKind };
 
 // Type for test execution callbacks
 type WasmPartialResponse = WasmFunctionResponse | WasmTestResponse; // Can be either partial or complete response
-type WasmStateUpdate = { node_id: number; lexical_id: string; new_state: 'not_running' | 'running' | 'completed' };
+type WasmStateUpdate = { node_id: number; log_filter_key: string; new_state: 'not_running' | 'running' | 'completed' };
 type WasmNotification = {
   variable_name?: string;
   channel_name?: string;
@@ -214,7 +214,7 @@ export function buildControlFlowArtifacts(
 
   for (const node of nodes) {
     nodeById.set(node.id, node);
-    // Use lexical_id for all nodes including root - this ensures we get
+    // Use log_filter_key for all nodes including root - this ensures we get
     // IDs like "SimpleWorkflow|root:0" instead of just "SimpleWorkflow"
     const key = deriveNodeKey(node, options.rootName);
     nodeKeyById.set(node.id, key);
@@ -258,7 +258,7 @@ export function buildControlFlowArtifacts(
       llmClient: node.node_type === WasmControlFlowNodeType.FunctionRoot ? options.llmClient : undefined,
       metadata: {
         wasmNodeId: node.id,
-        lexicalId: node.lexical_id,
+        logFilterKey: node.log_filter_key,
         controlFlowType: WasmControlFlowNodeType[node.node_type] ?? 'Unknown',
       },
     };
@@ -358,9 +358,9 @@ function mapNodeTypeToBlockType(nodeType: WasmControlFlowNodeType): BlockType | 
 }
 
 function deriveNodeKey(node: WasmControlFlowNode, rootName: string): string {
-  const lexical = node.lexical_id?.trim();
-  if (lexical) {
-    return lexical;
+  const logFilterKey = node.log_filter_key?.trim();
+  if (logFilterKey) {
+    return logFilterKey;
   }
   return `${rootName}_${node.id}`;
 }
@@ -850,7 +850,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
               .filter((u) => u?.kind === 'viz_state_update')
               .map((u) => ({
                 nodeId: u.node_id,
-                lexicalId: u.lexical_id,
+                logFilterKey: u.log_filter_key,
                 newState: u.new_state as 'not_running' | 'running' | 'completed',
               }))
           : undefined;

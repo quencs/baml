@@ -160,7 +160,7 @@ fn build_watch_handler(
             let state_after = reducer_guard.dump();
             (Vec::new(), state_after)
         };
-        let stack_after: Vec<String> = state_after.iter().map(|f| f.lexical_id.clone()).collect();
+        let stack_after: Vec<String> = state_after.iter().map(|f| f.log_filter_key.clone()).collect();
         drop(reducer_guard);
 
         events.lock().unwrap().push(event);

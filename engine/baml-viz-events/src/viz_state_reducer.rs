@@ -15,7 +15,7 @@ pub enum LexicalState {
 pub struct StateUpdate {
     /// Raw node id.
     pub node_id: u32,
-    pub lexical_id: String,
+    pub log_filter_key: String,
     pub new_state: LexicalState,
 }
 
@@ -23,7 +23,7 @@ pub struct StateUpdate {
 pub struct Frame {
     pub node_id: u32,
     pub lexical_segment: PathSegment,
-    pub lexical_id: String,
+    pub log_filter_key: String,
     pub function_name: String,
     pub node_type: RuntimeNodeType,
     pub label: String,
@@ -47,9 +47,9 @@ impl VizStateReducer {
         self.frames.clone()
     }
 
-    /// Current lexical_id stack (root at index 0).
-    pub fn lexical_stack(&self) -> Vec<String> {
-        self.frames.iter().map(|fr| fr.lexical_id.clone()).collect()
+    /// Current log_filter_key stack (root at index 0).
+    pub fn log_filter_stack(&self) -> Vec<String> {
+        self.frames.iter().map(|fr| fr.log_filter_key.clone()).collect()
     }
     fn dispatch(&mut self, function_name: &str, viz_event: &VizExecEvent) -> Vec<StateUpdate> {
         match viz_event.event {
@@ -82,7 +82,7 @@ impl VizStateReducer {
                         let frame = self.frames.pop().expect("frame to exist");
                         updates.push(StateUpdate {
                             node_id: frame.node_id,
-                            lexical_id: frame.lexical_id.clone(),
+                            log_filter_key: frame.log_filter_key.clone(),
                             new_state: LexicalState::Completed,
                         });
                         continue;
@@ -92,7 +92,7 @@ impl VizStateReducer {
             }
         }
 
-        let lexical_id = {
+        let log_filter_key = {
             let mut segments: Vec<PathSegment> = self
                 .frames
                 .iter()
@@ -106,7 +106,7 @@ impl VizStateReducer {
         let frame = Frame {
             node_id: viz_event.node_id,
             lexical_segment: viz_event.path_segment.clone(),
-            lexical_id: lexical_id.clone(),
+            log_filter_key: log_filter_key.clone(),
             function_name: invocation_fn.clone(),
             node_type: viz_event.node_type.clone(),
             label: viz_event.label.clone(),
@@ -116,7 +116,7 @@ impl VizStateReducer {
 
         updates.push(StateUpdate {
             node_id: viz_event.node_id,
-            lexical_id,
+            log_filter_key,
             new_state: LexicalState::Running,
         });
 
@@ -148,7 +148,7 @@ impl VizStateReducer {
         for frame in popped {
             updates.push(StateUpdate {
                 node_id: frame.node_id,
-                lexical_id: frame.lexical_id.clone(),
+                log_filter_key: frame.log_filter_key.clone(),
                 new_state: LexicalState::Completed,
             });
         }
@@ -157,7 +157,7 @@ impl VizStateReducer {
     }
 }
 
-/// Encode a full lexical id from function name + segments (matches control_flow.rs).
+/// Encode a full log_filter_key from function name + segments (matches control_flow.rs).
 pub fn encode_segments(function: &str, segments: &[PathSegment]) -> String {
     let mut encoded = String::from(function);
     for segment in segments {

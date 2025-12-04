@@ -92,17 +92,17 @@ struct Frame {
     lexical_segment: Option<PathSegment>,
     counters: Counters,
     last_linear_child: Option<String>,
-    lexical_id: String,
+    log_filter_key: String,
 }
 
 impl Frame {
-    fn new(entry: FrameEntry, lexical_segment: Option<PathSegment>, lexical_id: String) -> Self {
+    fn new(entry: FrameEntry, lexical_segment: Option<PathSegment>, log_filter_key: String) -> Self {
         Self {
             entry,
             lexical_segment,
             counters: Counters::default(),
             last_linear_child: None,
-            lexical_id,
+            log_filter_key,
         }
     }
 
@@ -128,12 +128,12 @@ impl Builder {
         };
 
         let segment = PathSegment::FunctionRoot { ordinal: 0 };
-        let lexical_id = encode_segments(function_name, &[segment.clone()]);
+        let log_filter_key = encode_segments(function_name, &[segment.clone()]);
         let node_id = builder.allocate_node_id();
         builder.nodes.push(VizNode {
             node_id,
-            id: lexical_id.clone(),
-            parent: None,
+            log_filter_key: log_filter_key.clone(),
+            parent_log_filter_key: None,
             node_type: RuntimeNodeType::FunctionRoot,
             label: function_name.to_string(),
             header_level: None,
@@ -142,7 +142,7 @@ impl Builder {
         builder.frames.push(Frame::new(
             FrameEntry::FunctionRoot,
             Some(segment),
-            lexical_id,
+            log_filter_key,
         ));
         builder
     }
@@ -151,11 +151,11 @@ impl Builder {
         self.nodes
     }
 
-    fn current_parent_lexical(&self) -> Option<String> {
-        self.frames.last().map(|f| f.lexical_id.clone())
+    fn current_parent_log_filter_key(&self) -> Option<String> {
+        self.frames.last().map(|f| f.log_filter_key.clone())
     }
 
-    fn build_lexical_id(&self, segment: &PathSegment) -> String {
+    fn build_log_filter_key(&self, segment: &PathSegment) -> String {
         let mut segments: Vec<PathSegment> = self
             .frames
             .iter()
@@ -172,18 +172,18 @@ impl Builder {
     }
 
     fn push_child(&mut self, node: VizNode, entry: FrameEntry, segment: PathSegment) {
-        let lexical_id = node.id.clone();
+        let log_filter_key = node.log_filter_key.clone();
         let parent_index = self.frames.len() - 1;
         if self.frames[parent_index].entry.children_are_linear() {
             if let Some(prev) = self.frames[parent_index].last_linear_child.clone() {
                 // Edges are not stored here, but we maintain last child to mirror ordering.
                 let _ = prev;
             }
-            self.frames[parent_index].last_linear_child = Some(lexical_id.clone());
+            self.frames[parent_index].last_linear_child = Some(log_filter_key.clone());
         }
         self.nodes.push(node);
         self.frames
-            .push(Frame::new(entry, Some(segment), lexical_id));
+            .push(Frame::new(entry, Some(segment), log_filter_key));
     }
 
     fn pop_to(&mut self, depth: usize) {
@@ -317,12 +317,12 @@ impl Builder {
         let label = format!("if ({})", render_expr(condition));
         let slug = slug_or_default(&label, &format!("if-{ordinal}"));
         let segment = PathSegment::BranchGroup { slug, ordinal };
-        let lexical_id = self.build_lexical_id(&segment);
-        let parent = self.current_parent_lexical();
+        let log_filter_key = self.build_log_filter_key(&segment);
+        let parent = self.current_parent_log_filter_key();
         let node = VizNode {
             node_id: self.allocate_node_id(),
-            id: lexical_id.clone(),
-            parent,
+            log_filter_key: log_filter_key.clone(),
+            parent_log_filter_key: parent,
             node_type: RuntimeNodeType::BranchGroup,
             label: label.clone(),
             header_level: None,
@@ -361,12 +361,12 @@ impl Builder {
             .next_ordinal(CounterKind::BranchArm);
         let slug = slug_or_default(&label, &format!("branch-arm-{ordinal}"));
         let segment = PathSegment::BranchArm { slug, ordinal };
-        let lexical_id = self.build_lexical_id(&segment);
-        let parent = self.current_parent_lexical();
+        let log_filter_key = self.build_log_filter_key(&segment);
+        let parent = self.current_parent_log_filter_key();
         let node = VizNode {
             node_id: self.allocate_node_id(),
-            id: lexical_id.clone(),
-            parent,
+            log_filter_key: log_filter_key.clone(),
+            parent_log_filter_key: parent,
             node_type: RuntimeNodeType::BranchArm,
             label,
             header_level: None,
@@ -391,12 +391,12 @@ impl Builder {
         let label = flavor.label();
         let slug = slug_or_default(&label, &format!("loop-{ordinal}"));
         let segment = PathSegment::Loop { slug, ordinal };
-        let lexical_id = self.build_lexical_id(&segment);
-        let parent = self.current_parent_lexical();
+        let log_filter_key = self.build_log_filter_key(&segment);
+        let parent = self.current_parent_log_filter_key();
         let node = VizNode {
             node_id: self.allocate_node_id(),
-            id: lexical_id.clone(),
-            parent,
+            log_filter_key: log_filter_key.clone(),
+            parent_log_filter_key: parent,
             node_type: RuntimeNodeType::Loop,
             label,
             header_level: None,
@@ -423,12 +423,12 @@ impl Builder {
             &format!("other-scope-{ordinal}"),
         );
         let segment = PathSegment::OtherScope { slug, ordinal };
-        let lexical_id = self.build_lexical_id(&segment);
-        let parent = self.current_parent_lexical();
+        let log_filter_key = self.build_log_filter_key(&segment);
+        let parent = self.current_parent_log_filter_key();
         let node = VizNode {
             node_id: self.allocate_node_id(),
-            id: lexical_id.clone(),
-            parent,
+            log_filter_key: log_filter_key.clone(),
+            parent_log_filter_key: parent,
             node_type: RuntimeNodeType::OtherScope,
             label: label.unwrap_or_default(),
             header_level: None,
@@ -448,12 +448,12 @@ impl Builder {
             .next_ordinal(CounterKind::Header);
         let slug = slug_or_default(&header.title, &format!("header-{ordinal}"));
         let segment = PathSegment::Header { slug, ordinal };
-        let lexical_id = self.build_lexical_id(&segment);
-        let parent = self.current_parent_lexical();
+        let log_filter_key = self.build_log_filter_key(&segment);
+        let parent = self.current_parent_log_filter_key();
         let node = VizNode {
             node_id: self.allocate_node_id(),
-            id: lexical_id.clone(),
-            parent,
+            log_filter_key: log_filter_key.clone(),
+            parent_log_filter_key: parent,
             node_type: RuntimeNodeType::HeaderContextEnter,
             label: header.title.clone(),
             header_level: Some(header.level),

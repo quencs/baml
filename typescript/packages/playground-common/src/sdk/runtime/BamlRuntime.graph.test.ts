@@ -37,7 +37,7 @@ const workflowGraph = {
     {
       id: 0,
       parent_id: undefined,
-      lexical_id: 'SimpleWorkflow|root:0',
+      log_filter_key: 'SimpleWorkflow|root:0',
       label: 'SimpleWorkflow',
       span: span(0, 293),
       node_type: WasmControlFlowNodeType.FunctionRoot,
@@ -45,7 +45,7 @@ const workflowGraph = {
     {
       id: 1,
       parent_id: 0,
-      lexical_id: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0',
+      log_filter_key: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0',
       label: 'gather applicant context',
       span: span(55, 83),
       node_type: WasmControlFlowNodeType.HeaderContextEnter,
@@ -53,7 +53,7 @@ const workflowGraph = {
     {
       id: 2,
       parent_id: 0,
-      lexical_id: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1',
+      log_filter_key: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1',
       label: 'normalize profile signals',
       span: span(123, 152),
       node_type: WasmControlFlowNodeType.HeaderContextEnter,
@@ -76,7 +76,7 @@ const conditionalGraph = {
     {
       id: 0,
       parent_id: undefined,
-      lexical_id: 'ConditionalWorkflow|root:0',
+      log_filter_key: 'ConditionalWorkflow|root:0',
       label: 'ConditionalWorkflow',
       span: span(0, 500),
       node_type: WasmControlFlowNodeType.FunctionRoot,
@@ -84,7 +84,7 @@ const conditionalGraph = {
     {
       id: 1,
       parent_id: 0,
-      lexical_id: 'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0',
+      log_filter_key: 'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0',
       label: 'check summary confidence',
       span: span(100, 150),
       node_type: WasmControlFlowNodeType.HeaderContextEnter,
@@ -92,7 +92,7 @@ const conditionalGraph = {
     {
       id: 2,
       parent_id: 1,
-      lexical_id: 'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0|bg:if-guard:0',
+      log_filter_key: 'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0|bg:if-guard:0',
       label: 'if (guard)',
       span: span(160, 400),
       node_type: WasmControlFlowNodeType.BranchGroup,
@@ -100,7 +100,7 @@ const conditionalGraph = {
     {
       id: 3,
       parent_id: 2,
-      lexical_id:
+      log_filter_key:
         'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0|bg:if-guard:0|arm:true:0|hdr:run-enrichment:0',
       label: 'run enrichment',
       span: span(200, 250),
@@ -109,7 +109,7 @@ const conditionalGraph = {
     {
       id: 4,
       parent_id: 2,
-      lexical_id:
+      log_filter_key:
         'ConditionalWorkflow|root:0|hdr:check-summary-confidence:0|bg:if-guard:0|arm:false:1|hdr:return-guidance:0',
       label: 'return guidance',
       span: span(300, 350),
@@ -132,7 +132,7 @@ describe('buildControlFlowArtifacts', () => {
     );
 
     expect(result).toBeTruthy();
-    // Root node now uses lexical_id format with |root:0
+    // Root node now uses log_filter_key format with |root:0
     expect(result?.callGraph.id).toBe('SimpleWorkflow|root:0');
     expect(result?.callGraph.type).toBe('block');
 

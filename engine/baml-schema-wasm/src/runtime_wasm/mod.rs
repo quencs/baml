@@ -401,7 +401,7 @@ pub struct WasmControlFlowNode {
     #[wasm_bindgen(readonly)]
     pub parent_id: Option<u32>,
     #[wasm_bindgen(readonly)]
-    pub lexical_id: String,
+    pub log_filter_key: String,
     #[wasm_bindgen(readonly)]
     pub label: String,
     #[wasm_bindgen(readonly)]
@@ -449,7 +449,7 @@ impl From<ControlFlowVisualization> for WasmControlFlowGraph {
             .map(|node| WasmControlFlowNode {
                 id: node.id.raw(),
                 parent_id: node.parent_node_id.map(|id| id.raw()),
-                lexical_id: node.lexical_id.clone(),
+                log_filter_key: node.log_filter_key.clone(),
                 label: node.label.clone(),
                 span: (&node.span).into(),
                 node_type: WasmControlFlowNodeType::from(&node.node_type),
@@ -1783,7 +1783,7 @@ impl WasmRuntime {
                             function_name: function.name.clone(),
                             span: node.span.clone(),
                             function_type: Some(function.function_type),
-                            node_id: Some(node.lexical_id.clone()),
+                            node_id: Some(node.log_filter_key.clone()),
                             node_label: Some(node.label.clone()),
                             test_name: None,
                         });
@@ -2168,8 +2168,8 @@ impl WasmRuntime {
                                     .unwrap();
                                     js_sys::Reflect::set(
                                         &js_update,
-                                        &JsValue::from_str("lexical_id"),
-                                        &JsValue::from_str(&update.lexical_id),
+                                        &JsValue::from_str("log_filter_key"),
+                                        &JsValue::from_str(&update.log_filter_key),
                                     )
                                     .unwrap();
                                     js_sys::Reflect::set(
@@ -2724,8 +2724,8 @@ impl WasmFunction {
                         .unwrap();
                         js_sys::Reflect::set(
                             &js_update,
-                            &JsValue::from_str("lexical_id"),
-                            &JsValue::from_str(&update.lexical_id),
+                            &JsValue::from_str("log_filter_key"),
+                            &JsValue::from_str(&update.log_filter_key),
                         )
                         .unwrap();
                         js_sys::Reflect::set(
@@ -2993,8 +2993,8 @@ impl WasmFunction {
                     .unwrap();
                     js_sys::Reflect::set(
                         &update_obj,
-                        &JsValue::from_str("lexical_id"),
-                        &JsValue::from_str(&update.lexical_id),
+                        &JsValue::from_str("log_filter_key"),
+                        &JsValue::from_str(&update.log_filter_key),
                     )
                     .unwrap();
                     js_sys::Reflect::set(

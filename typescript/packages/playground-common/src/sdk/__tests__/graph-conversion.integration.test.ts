@@ -4,7 +4,7 @@ import type { GraphNode, GraphEdge } from '../interface';
 
 describe('Graph conversion integration', () => {
   it('converts ConditionalWorkflow graph to expected structure', () => {
-    // Root node now has lexical_id format with |root:0
+    // Root node now has log_filter_key format with |root:0
     const nodes: GraphNode[] = [
       {
         id: 'ConditionalWorkflow|root:0',

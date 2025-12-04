@@ -97,7 +97,7 @@ pub struct VizExecEvent {
     pub node_id: u32,
     /// The logical node type being visited.
     pub node_type: RuntimeNodeType,
-    /// Path segment identifying this node (lexical_id is reconstructed by the reducer).
+    /// Path segment identifying this node (log_filter_key is reconstructed by the reducer).
     pub path_segment: PathSegment,
     /// Human-readable label for the node (header text or synthetic scope label).
     pub label: String,

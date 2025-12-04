@@ -364,11 +364,11 @@ fn viz_metadata(index: usize, nodes: &[VizNodeMeta]) -> String {
         Some(node) => {
             let mut metadata = vec![
                 format!("node_id={}", node.node_id),
-                format!("id={}", node.id),
+                format!("log_filter_key={}", node.log_filter_key),
                 format!("type={:?}", node.node_type),
             ];
-            if let Some(parent) = &node.parent {
-                metadata.push(format!("parent={parent}"));
+            if let Some(parent) = &node.parent_log_filter_key {
+                metadata.push(format!("parent_log_filter_key={parent}"));
             }
             if !node.label.is_empty() {
                 metadata.push(format!("label=\"{}\"", node.label));

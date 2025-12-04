@@ -134,11 +134,11 @@ impl std::fmt::Display for Variant {
 pub struct VizNodeMeta {
     /// Stable, pre-order node id matching control_flow.rs ordering.
     pub node_id: u32,
-    /// Unique lexical node id within a function.
-    pub id: String,
+    /// Unique log-filter key within a function (formerly lexical id).
+    pub log_filter_key: String,
 
-    /// Parent lexical node id, if any.
-    pub parent: Option<String>,
+    /// Parent log-filter key, if any.
+    pub parent_log_filter_key: Option<String>,
 
     /// Logical node type, shared with the viz events crate.
     pub node_type: RuntimeNodeType,

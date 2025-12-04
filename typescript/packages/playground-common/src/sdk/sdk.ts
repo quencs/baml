@@ -1044,14 +1044,14 @@ export class BAMLSDK {
       const mapped = this.mapReducerStateToNodeState(update.newState);
       if (!mapped) continue;
 
-      const nodeId = update.nodeId.toString();
-      this.storage.setNodeState(nodeId, mapped);
+      const key = update.logFilterKey?.trim() || update.nodeId.toString();
+      this.storage.setNodeState(key, mapped);
     }
   }
 
   /**
    * Find graph node ID by matching label (header title) to control flow graph nodes
-   * Returns the node id (which is the lexical_id) of the matching node
+   * Returns the node id (which is the log_filter_key) of the matching node
    */
   private findNodeIdByLabel(
     functionName: string,

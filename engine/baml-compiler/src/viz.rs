@@ -5,8 +5,8 @@ use baml_vm::VizNodeMeta;
 #[derive(Clone, Debug)]
 pub struct VizNode {
     pub node_id: u32,
-    pub id: String,
-    pub parent: Option<String>,
+    pub log_filter_key: String,
+    pub parent_log_filter_key: Option<String>,
     pub node_type: RuntimeNodeType,
     pub label: String,
     pub header_level: Option<u8>,
@@ -42,8 +42,8 @@ impl VizNodes {
             .into_iter()
             .map(|node| VizNodeMeta {
                 node_id: node.node_id,
-                id: node.id,
-                parent: node.parent,
+                log_filter_key: node.log_filter_key,
+                parent_log_filter_key: node.parent_log_filter_key,
                 node_type: node.node_type,
                 label: node.label,
                 header_level: node.header_level,

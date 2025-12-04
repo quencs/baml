@@ -262,7 +262,7 @@ export type VizStateUpdateState = 'running' | 'completed' | 'not_running';
 
 export interface VizStateUpdate {
   nodeId: number;
-  lexicalId: string;
+  logFilterKey: string;
   newState: VizStateUpdateState;
 }
 
@@ -280,7 +280,7 @@ export interface WatchNotification {
   isStream: boolean;
   /** Optional serialized payload; may be synthesized from stateUpdates */
   value?: string;
-  /** Optional reducer-driven state updates keyed by runtime node id / lexical id */
+  /** Optional reducer-driven state updates keyed by runtime node id / log_filter_key */
   stateUpdates?: VizStateUpdate[];
 }
 

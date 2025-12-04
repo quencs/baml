@@ -21,7 +21,7 @@ snapshots:
       - "Main|root:0"
     emitted_events:
       - node_id: 0
-        lexical_id: "Main|root:0"
+        log_filter_key: "Main|root:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
@@ -40,7 +40,7 @@ snapshots:
       - "MyFunction1|root:0"
     emitted_events:
       - node_id: 0
-        lexical_id: "MyFunction1|root:0"
+        log_filter_key: "MyFunction1|root:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
@@ -61,7 +61,7 @@ snapshots:
       - "MyFunction1|root:0|hdr:start:0"
     emitted_events:
       - node_id: 1
-        lexical_id: "MyFunction1|root:0|hdr:start:0"
+        log_filter_key: "MyFunction1|root:0|hdr:start:0"
         new_state: running
   - watch_event:
       kind: viz_exec_state
@@ -82,10 +82,10 @@ snapshots:
       - "MyFunction1|root:0|hdr:finish:1"
     emitted_events:
       - node_id: 1
-        lexical_id: "MyFunction1|root:0|hdr:start:0"
+        log_filter_key: "MyFunction1|root:0|hdr:start:0"
         new_state: completed
       - node_id: 2
-        lexical_id: "MyFunction1|root:0|hdr:finish:1"
+        log_filter_key: "MyFunction1|root:0|hdr:finish:1"
         new_state: running
   - watch_event:
       kind: viz_exec_state
@@ -103,10 +103,10 @@ snapshots:
       - "Main|root:0"
     emitted_events:
       - node_id: 2
-        lexical_id: "MyFunction1|root:0|hdr:finish:1"
+        log_filter_key: "MyFunction1|root:0|hdr:finish:1"
         new_state: completed
       - node_id: 0
-        lexical_id: "MyFunction1|root:0"
+        log_filter_key: "MyFunction1|root:0"
         new_state: completed
   - watch_event:
       kind: viz_exec_state
@@ -123,5 +123,5 @@ snapshots:
     stack_after: []
     emitted_events:
       - node_id: 0
-        lexical_id: "Main|root:0"
+        log_filter_key: "Main|root:0"
         new_state: completed

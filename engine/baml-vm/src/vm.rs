@@ -58,7 +58,7 @@ fn build_viz_exec_event(
     };
 
     let path_segment =
-        parse_node_segment(&node.id).unwrap_or(PathSegment::FunctionRoot { ordinal: 0 });
+        parse_node_segment(&node.log_filter_key).unwrap_or(PathSegment::FunctionRoot { ordinal: 0 });
 
     Ok(VizExecEvent {
         event: delta,
@@ -70,9 +70,9 @@ fn build_viz_exec_event(
     })
 }
 
-fn parse_node_segment(lexical_id: &str) -> Option<PathSegment> {
-    // lexical_id is encoded as "<function>|<segment>|<segment>..."
-    let segment = lexical_id.rsplit('|').next().unwrap_or(lexical_id);
+fn parse_node_segment(log_filter_key: &str) -> Option<PathSegment> {
+    // log_filter_key is encoded as "<function>|<segment>|<segment>..."
+    let segment = log_filter_key.rsplit('|').next().unwrap_or(log_filter_key);
     parse_path_segment(segment)
 }
 
