@@ -1355,13 +1355,13 @@ export class BAMLSDK {
 
               this.storage.appendExecutionLog({
                 type: 'variable.update',
-                nodeId: enriched.graphNodeId || enriched.lexicalNodeId || functionName,
+                nodeId: enriched.graphNodeId || enriched.logFilterKey || functionName,
                 timestamp: now,
                 iteration: 0,
                 executionId: `test-${functionName}`,
                 name: notification.variableName,
                 value: parsedValue,
-                parentHeaderId: enriched.graphNodeId || enriched.lexicalNodeId,
+                parentHeaderId: enriched.graphNodeId || enriched.logFilterKey,
               });
             }
           },
