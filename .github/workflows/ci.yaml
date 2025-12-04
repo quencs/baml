@@ -241,6 +241,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "baml_language -> target"
+          prefix-key: v1-rust-shared
+          shared-key: ${{ hashFiles('baml_language/Cargo.lock') }}
+          cache-workspace-crates: true
+          save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/canary' }}
 
       - name: "Install Rust toolchain"
         run: rustup show
