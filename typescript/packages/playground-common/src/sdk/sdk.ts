@@ -1032,15 +1032,20 @@ export class BAMLSDK {
     }
   }
 
-  private applyStateUpdates(stateUpdates?: VizStateUpdate[]) {
-    if (!stateUpdates || stateUpdates.length === 0) {
-      console.info('[SDK] No viz state_updates in notification');
+  private applyStateUpdates(stateUpdate?: VizStateUpdate | VizStateUpdate[]) {
+    const updates = Array.isArray(stateUpdate)
+      ? stateUpdate
+      : stateUpdate
+        ? [stateUpdate]
+        : [];
+    if (updates.length === 0) {
+      console.info('[SDK] No viz state_update in notification');
       return;
     }
 
-    console.info('[SDK] Applying viz state_updates', stateUpdates);
+    console.info('[SDK] Applying viz state_updates', updates);
 
-    for (const update of stateUpdates) {
+    for (const update of updates) {
       const mapped = this.mapReducerStateToNodeState(update.newState);
       if (!mapped) continue;
 
@@ -1050,63 +1055,26 @@ export class BAMLSDK {
   }
 
   /**
-   * Find graph node ID by matching label (header title) to control flow graph nodes.
-   */
-  private findNodeIdByLabel(
-    functionName: string,
-    label: string
-  ): string | undefined {
-    // Get the function's control flow graph
-    const functions = this.storage.getFunctions();
-    const func = functions.find((f) => f.name === functionName);
-    if (!func || !func.nodes) {
-      return undefined;
-    }
-
-    // Find a node whose label matches the header title
-    // Node labels are set from the header title during control flow graph building
-    for (const node of func.nodes) {
-      if (node.label === label) {
-        return node.id;
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
    * Enrich watch notification with parsed value and derived node references
    * Also updates node state when reducer events are present
    */
   private enrichNotificationWithContext(
     notification: WatchNotification,
-    functionName: string
   ): RichWatchNotification {
     const parsedValue = this.parseWatchValue(notification.value);
 
-    const stateUpdateKey = notification.stateUpdates?.find((u) => u.logFilterKey?.trim())?.logFilterKey?.trim();
-    const stateUpdateNodeId = notification.stateUpdates?.find((u) => typeof u.nodeId === 'number')?.nodeId;
-    const parsedHeaderKey =
-      parsedValue && (parsedValue.type === 'header' || parsedValue.type === 'header_stopped')
-        ? parsedValue.label
-        : undefined;
-    const logFilterKey = (notification.logFilterKey ?? stateUpdateKey ?? parsedHeaderKey)?.trim();
-    const graphNodeId =
-      stateUpdateNodeId !== undefined
-        ? stateUpdateNodeId.toString()
-        : parsedHeaderKey
-          ? this.findNodeIdByLabel(functionName, parsedHeaderKey)
-          : undefined;
+    const stateUpdateNodeId = notification.stateUpdate?.nodeId;
+    const logFilterKey = notification.stateUpdate?.logFilterKey?.trim();
 
     const enriched: RichWatchNotification = {
       ...notification,
-      stateUpdates: notification.stateUpdates,
+      stateUpdate: notification.stateUpdate,
       parsedValue,
       logFilterKey,
-      graphNodeId,
+      vizNodeId: stateUpdateNodeId?.toString(),
     };
 
-    this.applyStateUpdates(notification.stateUpdates);
+    this.applyStateUpdates(notification.stateUpdate);
 
     return enriched;
   }
@@ -1291,12 +1259,14 @@ export class BAMLSDK {
             // If functionName is missing, use empty string (won't match any nodes for state updates)
             const enriched = this.enrichNotificationWithContext(
               notification,
-              notification.functionName ?? ''
             );
             this.storage.addWatchNotification(enriched);
-            const highlightId = enriched.graphNodeId ?? enriched.logFilterKey;
-            if (highlightId) {
-              this.storage.addHighlightedBlock(highlightId);
+            if (!enriched.vizNodeId) {
+              console.warn('[SDK] Missing vizNodeId on notification; skipping node-bound side effects');
+            }
+
+            if (enriched.vizNodeId) {
+              this.storage.addHighlightedBlock(enriched.vizNodeId);
             }
 
             // Emit proper event types based on notification content
@@ -1305,10 +1275,11 @@ export class BAMLSDK {
 
             if (enriched.parsedValue?.type === 'header') {
               // Header enter event
-              const nodeId =
-                enriched.graphNodeId ||
-                this.findNodeIdByLabel(functionName, enriched.parsedValue.label) ||
-                enriched.parsedValue.label;
+              const nodeId = enriched.vizNodeId;
+              if (!nodeId) {
+                console.warn('[SDK] header.enter missing vizNodeId; skipping execution log append');
+                return;
+              }
               this.storage.appendExecutionLog({
                 type: 'header.enter',
                 nodeId,
@@ -1329,10 +1300,11 @@ export class BAMLSDK {
               });
             } else if (enriched.parsedValue?.type === 'header_stopped') {
               // Header exit event
-              const nodeId =
-                enriched.graphNodeId ||
-                this.findNodeIdByLabel(functionName, enriched.parsedValue.label) ||
-                enriched.parsedValue.label;
+              const nodeId = enriched.vizNodeId;
+              if (!nodeId) {
+                console.warn('[SDK] header.exit missing vizNodeId; skipping execution log append');
+                return;
+              }
               this.storage.appendExecutionLog({
                 type: 'header.exit',
                 nodeId,
@@ -1353,16 +1325,20 @@ export class BAMLSDK {
                 }
               }
 
-              this.storage.appendExecutionLog({
-                type: 'variable.update',
-                nodeId: enriched.graphNodeId || enriched.logFilterKey || functionName,
-                timestamp: now,
-                iteration: 0,
-                executionId: `test-${functionName}`,
-                name: notification.variableName,
-                value: parsedValue,
-                parentHeaderId: enriched.graphNodeId || enriched.logFilterKey,
-              });
+              if (!enriched.vizNodeId) {
+                console.warn('[SDK] variable.update missing vizNodeId; skipping execution log append');
+              } else {
+                this.storage.appendExecutionLog({
+                  type: 'variable.update',
+                  nodeId: enriched.vizNodeId,
+                  timestamp: now,
+                  iteration: 0,
+                  executionId: `test-${functionName}`,
+                  name: notification.variableName,
+                  value: parsedValue,
+                  parentHeaderId: enriched.vizNodeId,
+                });
+              }
             }
           },
 

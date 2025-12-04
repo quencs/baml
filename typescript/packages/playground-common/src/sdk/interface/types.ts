@@ -86,10 +86,10 @@ export interface TestCaseMetadata {
  * No WASM dependencies - pure TypeScript types
  */
 export interface FunctionMetadata {
-    name: string;
-    type: 'function' | 'llm_function' | 'workflow';
-    functionFlavor: 'llm' | 'expr';
-    span: SpanInfo;
+  name: string;
+  type: 'function' | 'llm_function' | 'workflow';
+  functionFlavor: 'llm' | 'expr';
+  span: SpanInfo;
   signature: string;
   testSnippet: string;
 
@@ -269,20 +269,15 @@ export interface VizStateUpdate {
 export interface WatchNotification {
   variableName?: string;
   channelName?: string;
-  /**
-   * The log_filter_key this notification is associated with.
-   * Prefer reducer-provided keys; fall back to parsed header labels only if absent.
-   */
-  logFilterKey?: string;
   /** Function name that emitted this notification */
   functionName?: string;
   isStream: boolean;
-  /** Optional serialized payload; may be synthesized from stateUpdates */
+  /** Optional serialized payload; may be synthesized from stateUpdate */
   value?: string;
   /**
-   * Optional reducer-driven state updates keyed by runtime node id; logFilterKey is metadata.
+   * Optional reducer-driven state update keyed by runtime node id; logFilterKey is metadata.
    */
-  stateUpdates?: VizStateUpdate[];
+  stateUpdate?: VizStateUpdate;
 }
 
 // ============================================================================
@@ -383,8 +378,10 @@ export type WatchNotificationValue =
 export interface RichWatchNotification extends WatchNotification {
   /** Parsed and typed value (if parseable) */
   parsedValue?: WatchNotificationValue;
+  /** Optional log_filter_key metadata derived from reducer updates */
+  logFilterKey?: string;
   /** Canonical graph node id (stringified nodeId) when resolvable */
-  graphNodeId?: string;
+  vizNodeId?: string;
 }
 
 export interface TestExecutionContext {

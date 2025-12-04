@@ -836,7 +836,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
       // watch_handler - for watch notifications
       (notification: WasmNotification & { function_name?: string; test_name?: string }) => {
         const rawStateUpdates = (notification as any).state_updates ?? (notification as any).stateUpdates;
-        const stateUpdates = Array.isArray(rawStateUpdates)
+        const vizUpdates = Array.isArray(rawStateUpdates)
           ? rawStateUpdates
               .filter((u) => u?.kind === 'viz_state_update')
               .map((u) => ({
@@ -857,29 +857,35 @@ export class BamlRuntime implements BamlRuntimeInterface {
 
         const value = derivedValue ?? notification.value ?? '';
 
-        const primaryLogFilterKey = stateUpdates?.[0]?.logFilterKey;
-
         console.info('[BamlRuntime] watch notification', {
           functionName: notification.function_name,
           testName: notification.test_name,
           value,
-          stateUpdates,
+          stateUpdates: vizUpdates,
           variable: notification.variable_name,
           channel: notification.channel_name,
           isStream: notification.is_stream,
         });
-        const watchNotification = {
+        const baseNotification = {
           variableName: notification.variable_name,
           channelName: notification.channel_name,
           blockName: notification.block_name,
           functionName: notification.function_name,
           isStream: notification.is_stream,
           value,
-          logFilterKey: primaryLogFilterKey,
-          stateUpdates,
         };
-        if (context.onWatchNotification) {
-          context.onWatchNotification(watchNotification);
+        const notifications: Array<typeof baseNotification & { stateUpdate?: { nodeId: number; logFilterKey?: string; newState: 'not_running' | 'running' | 'completed' } }> = [];
+        if (vizUpdates && vizUpdates.length > 0) {
+          for (const update of vizUpdates) {
+            notifications.push({ ...baseNotification, stateUpdate: update });
+          }
+        } else {
+          notifications.push({ ...baseNotification, stateUpdate: undefined });
+        }
+
+        const watchHandler = context.onWatchNotification;
+        if (watchHandler) {
+          notifications.forEach((n) => watchHandler(n));
         }
       },
       // parallel - whether to run tests in parallel (default: false, optional in WASM)

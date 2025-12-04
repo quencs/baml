@@ -109,8 +109,10 @@ function enrichNotificationWithContext(
   const parsedValue = parseWatchValue(notification.value);
   enriched.parsedValue = parsedValue;
 
-  if (parsedValue?.type === 'header') {
-    enriched.logFilterKey = parsedValue.label;
+  const primaryUpdate = notification.stateUpdate;
+  if (primaryUpdate) {
+    enriched.logFilterKey = primaryUpdate.logFilterKey;
+    enriched.vizNodeId = primaryUpdate.nodeId.toString();
   }
 
   return enriched;
@@ -338,6 +340,11 @@ describe('Watch Notification Enrichment', () => {
       const notification: WatchNotification = {
         functionName: 'TestWorkflow',
         isStream: false,
+        stateUpdate: {
+          nodeId: 0,
+          logFilterKey: 'TestWorkflow|root:0|hdr:section-one:0',
+          newState: 'running',
+        },
         value: JSON.stringify({
           type: 'header',
           label: 'Section One',
@@ -347,7 +354,8 @@ describe('Watch Notification Enrichment', () => {
 
       const enriched = enrichNotificationWithContext(notification, mockNodes);
 
-      expect(enriched.logFilterKey).toBe('Section One');
+      expect(enriched.logFilterKey).toBe('TestWorkflow|root:0|hdr:section-one:0');
+      expect(enriched.vizNodeId).toBe('0');
       expect(enriched.parsedValue).toBeDefined();
       expect(enriched.parsedValue?.type).toBe('header');
     });
@@ -513,6 +521,11 @@ describe('End-to-End Watch Notification Flow', () => {
     const notification1: WatchNotification = {
       functionName: 'SimpleWorkflow',
       isStream: false,
+      stateUpdate: {
+        nodeId: 1,
+        logFilterKey: 'SimpleWorkflow|root:0|hdr:gather-applicant-context:0',
+        newState: 'running',
+      },
       value: JSON.stringify({
         type: 'header',
         label: 'gather applicant context',
@@ -528,10 +541,10 @@ describe('End-to-End Watch Notification Flow', () => {
     };
 
     const enriched1 = enrichNotificationWithContext(notification1, mockNodes);
-    expect(enriched1.logFilterKey).toBe('gather applicant context');
+    expect(enriched1.logFilterKey).toBe('SimpleWorkflow|root:0|hdr:gather-applicant-context:0');
 
     // Find node and update state
-    const nodeId1 = findNodeIdByLabel(mockNodes, enriched1.logFilterKey!);
+    const nodeId1 = enriched1.vizNodeId;
     expect(nodeId1).toBe('1');
 
     if (nodeId1) {
@@ -545,6 +558,11 @@ describe('End-to-End Watch Notification Flow', () => {
     const notification2: WatchNotification = {
       functionName: 'SimpleWorkflow',
       isStream: false,
+      stateUpdate: {
+        nodeId: 2,
+        logFilterKey: 'SimpleWorkflow|root:0|hdr:normalize-profile-signals:1',
+        newState: 'running',
+      },
       value: JSON.stringify({
         type: 'header',
         label: 'normalize profile signals',
@@ -560,9 +578,9 @@ describe('End-to-End Watch Notification Flow', () => {
     };
 
     const enriched2 = enrichNotificationWithContext(notification2, mockNodes);
-    expect(enriched2.logFilterKey).toBe('normalize profile signals');
+    expect(enriched2.logFilterKey).toBe('SimpleWorkflow|root:0|hdr:normalize-profile-signals:1');
 
-    const nodeId2 = findNodeIdByLabel(mockNodes, enriched2.logFilterKey!);
+    const nodeId2 = enriched2.vizNodeId;
     expect(nodeId2).toBe('2');
 
     if (nodeId2) {

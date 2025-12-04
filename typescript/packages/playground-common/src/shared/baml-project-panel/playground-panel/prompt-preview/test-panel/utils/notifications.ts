@@ -11,6 +11,10 @@ export function parseNotificationValue(value: string | undefined): any {
   }
 }
 
+export function getNotificationLogFilterKey(notification: WatchNotification): string | undefined {
+  return notification.stateUpdate?.logFilterKey;
+}
+
 export function getNotificationLabel(notification: WatchNotification): string {
   if (notification.variableName) {
     return notification.variableName;
@@ -33,10 +37,11 @@ export function getNotificationLabel(notification: WatchNotification): string {
     }
   }
 
+  const blockKey = getNotificationLogFilterKey(notification);
   if (notification.isStream) {
-    return `Stream: ${notification.logFilterKey ?? 'unknown'}`;
+    return `Stream: ${blockKey ?? 'unknown'}`;
   }
-  return notification.logFilterKey ?? 'Block';
+  return blockKey ?? 'Block';
 }
 
 export function getNotificationType(notification: WatchNotification): 'variable' | 'block' | 'stream' {
