@@ -270,11 +270,10 @@ export interface WatchNotification {
   variableName?: string;
   channelName?: string;
   /**
-   * The lexical node ID (header title) this notification belongs to.
-   * For variable/stream notifications, this is set by the WASM runtime
-   * based on the most recent header that was entered.
+   * The log_filter_key this notification is associated with.
+   * Prefer reducer-provided keys; fall back to parsed header labels only if absent.
    */
-  lexicalNodeId?: string;
+  logFilterKey?: string;
   /** Function name that emitted this notification */
   functionName?: string;
   isStream: boolean;

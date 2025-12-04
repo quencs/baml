@@ -866,6 +866,8 @@ export class BamlRuntime implements BamlRuntimeInterface {
 
         const value = derivedValue ?? '';
 
+        const primaryLogFilterKey = stateUpdates?.[0]?.logFilterKey;
+
         console.info('[BamlRuntime] watch notification', {
           functionName: notification.function_name,
           testName: notification.test_name,
@@ -882,6 +884,7 @@ export class BamlRuntime implements BamlRuntimeInterface {
           functionName: notification.function_name,
           isStream: notification.is_stream,
           value,
+          logFilterKey: primaryLogFilterKey,
           stateUpdates,
         };
         if (context.onWatchNotification) {

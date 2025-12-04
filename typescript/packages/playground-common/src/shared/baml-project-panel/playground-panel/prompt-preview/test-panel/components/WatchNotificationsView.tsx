@@ -114,9 +114,9 @@ function NotificationItem({ notification, index }: { notification: WatchNotifica
               })()}
             </pre>
           </div>
-          {notification.lexicalNodeId && (
+          {notification.logFilterKey && (
             <div className="mt-1">
-              <span className="text-muted-foreground text-xs">Block: {notification.lexicalNodeId}</span>
+              <span className="text-muted-foreground text-xs">Block: {notification.logFilterKey}</span>
             </div>
           )}
         </div>

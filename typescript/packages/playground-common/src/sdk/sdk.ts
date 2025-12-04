@@ -1076,28 +1076,30 @@ export class BAMLSDK {
   }
 
   /**
-   * Enrich watch notification with parsed value and blockName
-   * Also updates node state when header events are received
+   * Enrich watch notification with parsed value and logFilterKey
+   * Also updates node state when reducer events are present
    */
   private enrichNotificationWithContext(
     notification: WatchNotification,
     functionName: string
   ): RichWatchNotification {
-    const enriched: RichWatchNotification = { ...notification, stateUpdates: notification.stateUpdates };
-    this.applyStateUpdates(notification.stateUpdates);
     const parsedValue = this.parseWatchValue(notification.value);
-    enriched.parsedValue = parsedValue;
 
-    // Handle header events - update lexicalNodeId only (state driven by reducer updates)
-    if (parsedValue?.type === 'header') {
-      enriched.lexicalNodeId = parsedValue.label;
-    }
+    const stateUpdateKey = notification.stateUpdates?.find((u) => u.logFilterKey?.trim())?.logFilterKey?.trim();
+    const parsedHeaderKey =
+      parsedValue && (parsedValue.type === 'header' || parsedValue.type === 'header_stopped')
+        ? parsedValue.label
+        : undefined;
+    const logFilterKey = (notification.logFilterKey ?? stateUpdateKey ?? parsedHeaderKey)?.trim();
 
-    // HACK: Handle header_stopped events - set node state to 'success'
-    // This is emitted synthetically when a new header comes in at the same or shallower level
-    if (parsedValue?.type === 'header_stopped') {
-      enriched.lexicalNodeId = parsedValue.label;
-    }
+    const enriched: RichWatchNotification = {
+      ...notification,
+      stateUpdates: notification.stateUpdates,
+      parsedValue,
+      logFilterKey,
+    };
+
+    this.applyStateUpdates(notification.stateUpdates);
 
     return enriched;
   }
@@ -1285,8 +1287,8 @@ export class BAMLSDK {
               notification.functionName ?? ''
             );
             this.storage.addWatchNotification(enriched);
-            if (enriched.lexicalNodeId) {
-              this.storage.addHighlightedBlock(enriched.lexicalNodeId);
+            if (enriched.logFilterKey) {
+              this.storage.addHighlightedBlock(enriched.logFilterKey);
             }
 
             // Emit proper event types based on notification content
@@ -1295,7 +1297,10 @@ export class BAMLSDK {
 
             if (enriched.parsedValue?.type === 'header') {
               // Header enter event
-              const nodeId = this.findNodeIdByLabel(functionName, enriched.parsedValue.label) || enriched.parsedValue.label;
+              const nodeId =
+                enriched.logFilterKey ||
+                this.findNodeIdByLabel(functionName, enriched.parsedValue.label) ||
+                enriched.parsedValue.label;
               this.storage.appendExecutionLog({
                 type: 'header.enter',
                 nodeId,
@@ -1316,7 +1321,10 @@ export class BAMLSDK {
               });
             } else if (enriched.parsedValue?.type === 'header_stopped') {
               // Header exit event
-              const nodeId = this.findNodeIdByLabel(functionName, enriched.parsedValue.label) || enriched.parsedValue.label;
+              const nodeId =
+                enriched.logFilterKey ||
+                this.findNodeIdByLabel(functionName, enriched.parsedValue.label) ||
+                enriched.parsedValue.label;
               this.storage.appendExecutionLog({
                 type: 'header.exit',
                 nodeId,
@@ -1339,13 +1347,13 @@ export class BAMLSDK {
 
               this.storage.appendExecutionLog({
                 type: 'variable.update',
-                nodeId: enriched.lexicalNodeId || functionName,
+                nodeId: enriched.logFilterKey || functionName,
                 timestamp: now,
                 iteration: 0,
                 executionId: `test-${functionName}`,
                 name: notification.variableName,
                 value: parsedValue,
-                parentHeaderId: enriched.lexicalNodeId,
+                parentHeaderId: enriched.logFilterKey,
               });
             }
           },

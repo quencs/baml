@@ -34,9 +34,9 @@ export function getNotificationLabel(notification: WatchNotification): string {
   }
 
   if (notification.isStream) {
-    return `Stream: ${notification.lexicalNodeId ?? 'unknown'}`;
+    return `Stream: ${notification.logFilterKey ?? 'unknown'}`;
   }
-  return notification.lexicalNodeId ?? 'Block';
+  return notification.logFilterKey ?? 'Block';
 }
 
 export function getNotificationType(notification: WatchNotification): 'variable' | 'block' | 'stream' {
