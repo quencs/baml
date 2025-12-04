@@ -2139,40 +2139,116 @@ impl WasmRuntime {
                         )
                         .unwrap();
 
-                        // Compute viz state updates from control-flow events
+                        // Compute reduced watch events (includes viz state updates)
                         let reduced_events = viz_reducer_clone
                             .borrow_mut()
                             .apply(&notification.function_name, notification.value.clone());
 
                         let js_state_updates = js_sys::Array::new();
                         for reduced in reduced_events {
-                            if let ReducedWatchBamlValue::VizStateUpdate(update) = reduced {
-                                let js_update = js_sys::Object::new();
-                                let new_state = match update.new_state {
-                                    LexicalState::NotRunning => "not_running",
-                                    LexicalState::Running => "running",
-                                    LexicalState::Completed => "completed",
-                                };
-                                js_sys::Reflect::set(
-                                    &js_update,
-                                    &JsValue::from_str("node_id"),
-                                    &JsValue::from_f64(update.node_id as f64),
-                                )
-                                .unwrap();
-                                js_sys::Reflect::set(
-                                    &js_update,
-                                    &JsValue::from_str("lexical_id"),
-                                    &JsValue::from_str(&update.lexical_id),
-                                )
-                                .unwrap();
-                                js_sys::Reflect::set(
-                                    &js_update,
-                                    &JsValue::from_str("new_state"),
-                                    &JsValue::from_str(new_state),
-                                )
-                                .unwrap();
-                                js_state_updates.push(&js_update);
+                            let js_update = js_sys::Object::new();
+                            match reduced {
+                                ReducedWatchBamlValue::VizStateUpdate(update) => {
+                                    let new_state = match update.new_state {
+                                        LexicalState::NotRunning => "not_running",
+                                        LexicalState::Running => "running",
+                                        LexicalState::Completed => "completed",
+                                    };
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("kind"),
+                                        &JsValue::from_str("viz_state_update"),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("node_id"),
+                                        &JsValue::from_f64(update.node_id as f64),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("lexical_id"),
+                                        &JsValue::from_str(&update.lexical_id),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("new_state"),
+                                        &JsValue::from_str(new_state),
+                                    )
+                                    .unwrap();
+                                }
+                                ReducedWatchBamlValue::Value(v) => {
+                                    let value: BamlValue = v.clone().into();
+                                    let value_json = serde_json::to_string(&value)
+                                        .unwrap_or_else(|_| format!("{value:?}"));
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("kind"),
+                                        &JsValue::from_str("value"),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("value"),
+                                        &JsValue::from_str(&value_json),
+                                    )
+                                    .unwrap();
+                                }
+                                ReducedWatchBamlValue::StreamStart(id) => {
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("kind"),
+                                        &JsValue::from_str("stream_start"),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("id"),
+                                        &JsValue::from_str(&id),
+                                    )
+                                    .unwrap();
+                                }
+                                ReducedWatchBamlValue::StreamUpdate(id, v) => {
+                                    let value: BamlValue = v.clone().into();
+                                    let value_json = serde_json::to_string(&value)
+                                        .unwrap_or_else(|_| format!("{value:?}"));
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("kind"),
+                                        &JsValue::from_str("stream_update"),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("id"),
+                                        &JsValue::from_str(&id),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("value"),
+                                        &JsValue::from_str(&value_json),
+                                    )
+                                    .unwrap();
+                                }
+                                ReducedWatchBamlValue::StreamEnd(id) => {
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("kind"),
+                                        &JsValue::from_str("stream_end"),
+                                    )
+                                    .unwrap();
+                                    js_sys::Reflect::set(
+                                        &js_update,
+                                        &JsValue::from_str("id"),
+                                        &JsValue::from_str(&id),
+                                    )
+                                    .unwrap();
+                                }
                             }
+                            js_state_updates.push(&js_update);
                         }
 
                         if js_state_updates.length() > 0 {
@@ -2183,46 +2259,6 @@ impl WasmRuntime {
                             )
                             .unwrap();
                         }
-
-                        // Serialize the value as JSON
-                        let value_json = match &notification.value {
-                            baml_compiler::watch::WatchBamlValue::Value(v) => {
-                                let value: BamlValue = v.clone().into();
-                                serde_json::to_string(&value)
-                                    .unwrap_or_else(|_| format!("{value:?}"))
-                            }
-                            baml_compiler::watch::WatchBamlValue::VizExecState(event) => {
-                                serde_json::json!({
-                                    "type": "control_flow_context",
-                                    "event": event.event,
-                                    "node_id": event.node_id,
-                                    "path_segment": event.path_segment,
-                                    "node_type": event.node_type,
-                                    "label": event.label,
-                                    "header_level": event.header_level,
-                                })
-                                .to_string()
-                            }
-                            baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
-                                serde_json::json!({ "type": "stream_start", "id": id }).to_string()
-                            }
-                            baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
-                                let value: BamlValue = v.clone().into();
-                                let value_json = serde_json::to_string(&value)
-                                    .unwrap_or_else(|_| format!("{value:?}"));
-                                serde_json::json!({ "type": "stream_update", "id": id, "value": value_json }).to_string()
-                            }
-                            baml_compiler::watch::WatchBamlValue::StreamEnd(id) => {
-                                serde_json::json!({ "type": "stream_end", "id": id }).to_string()
-                            }
-                        };
-
-                        js_sys::Reflect::set(
-                            &js_notification,
-                            &JsValue::from_str("value"),
-                            &JsValue::from_str(&value_json),
-                        )
-                        .unwrap();
 
                         watch_handler_clone
                             .call1(&JsValue::NULL, &js_notification)
@@ -2666,33 +2702,109 @@ impl WasmFunction {
 
             let js_state_updates = js_sys::Array::new();
             for reduced in reduced_events {
-                if let ReducedWatchBamlValue::VizStateUpdate(update) = reduced {
-                    let js_update = js_sys::Object::new();
-                    let new_state = match update.new_state {
-                        LexicalState::NotRunning => "not_running",
-                        LexicalState::Running => "running",
-                        LexicalState::Completed => "completed",
-                    };
-                    js_sys::Reflect::set(
-                        &js_update,
-                        &JsValue::from_str("node_id"),
-                        &JsValue::from_f64(update.node_id as f64),
-                    )
-                    .unwrap();
-                    js_sys::Reflect::set(
-                        &js_update,
-                        &JsValue::from_str("lexical_id"),
-                        &JsValue::from_str(&update.lexical_id),
-                    )
-                    .unwrap();
-                    js_sys::Reflect::set(
-                        &js_update,
-                        &JsValue::from_str("new_state"),
-                        &JsValue::from_str(new_state),
-                    )
-                    .unwrap();
-                    js_state_updates.push(&js_update);
+                let js_update = js_sys::Object::new();
+                match reduced {
+                    ReducedWatchBamlValue::VizStateUpdate(update) => {
+                        let state_str = match update.new_state {
+                            LexicalState::NotRunning => "not_running",
+                            LexicalState::Running => "running",
+                            LexicalState::Completed => "completed",
+                        };
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("kind"),
+                            &JsValue::from_str("viz_state_update"),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("node_id"),
+                            &JsValue::from_f64(update.node_id as f64),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("lexical_id"),
+                            &JsValue::from_str(&update.lexical_id),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("new_state"),
+                            &JsValue::from_str(state_str),
+                        )
+                        .unwrap();
+                    }
+                    ReducedWatchBamlValue::Value(v) => {
+                        let value: BamlValue = v.clone().into();
+                        let value_json =
+                            serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"));
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("kind"),
+                            &JsValue::from_str("value"),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("value"),
+                            &JsValue::from_str(&value_json),
+                        )
+                        .unwrap();
+                    }
+                    ReducedWatchBamlValue::StreamStart(id) => {
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("kind"),
+                            &JsValue::from_str("stream_start"),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("id"),
+                            &JsValue::from_str(&id),
+                        )
+                        .unwrap();
+                    }
+                    ReducedWatchBamlValue::StreamUpdate(id, v) => {
+                        let value: BamlValue = v.clone().into();
+                        let value_json =
+                            serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"));
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("kind"),
+                            &JsValue::from_str("stream_update"),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("id"),
+                            &JsValue::from_str(&id),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("value"),
+                            &JsValue::from_str(&value_json),
+                        )
+                        .unwrap();
+                    }
+                    ReducedWatchBamlValue::StreamEnd(id) => {
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("kind"),
+                            &JsValue::from_str("stream_end"),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_update,
+                            &JsValue::from_str("id"),
+                            &JsValue::from_str(&id),
+                        )
+                        .unwrap();
+                    }
                 }
+                js_state_updates.push(&js_update);
             }
 
             if js_state_updates.length() > 0 {
@@ -2703,44 +2815,6 @@ impl WasmFunction {
                 )
                 .unwrap();
             }
-
-            // Serialize the value as JSON
-            let value_json = match &notification.value {
-                baml_compiler::watch::WatchBamlValue::Value(v) => {
-                    let value: BamlValue = v.clone().into();
-                    serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"))
-                }
-                baml_compiler::watch::WatchBamlValue::VizExecState(event) => serde_json::json!({
-                    "type": "control_flow_context",
-                    "event": event.event,
-                    "node_id": event.node_id,
-                    "path_segment": event.path_segment,
-                    "node_type": event.node_type,
-                    "label": event.label,
-                    "header_level": event.header_level,
-                })
-                .to_string(),
-                baml_compiler::watch::WatchBamlValue::StreamStart(id) => {
-                    serde_json::json!({ "type": "stream_start", "id": id }).to_string()
-                }
-                baml_compiler::watch::WatchBamlValue::StreamUpdate(id, v) => {
-                    let value: BamlValue = v.clone().into();
-                    let value_json =
-                        serde_json::to_string(&value).unwrap_or_else(|_| format!("{value:?}"));
-                    serde_json::json!({ "type": "stream_update", "id": id, "value": value_json })
-                        .to_string()
-                }
-                baml_compiler::watch::WatchBamlValue::StreamEnd(id) => {
-                    serde_json::json!({ "type": "stream_end", "id": id }).to_string()
-                }
-            };
-
-            js_sys::Reflect::set(
-                &js_notification,
-                &JsValue::from_str("value"),
-                &JsValue::from_str(&value_json),
-            )
-            .unwrap();
 
             watch_handler
                 .call1(&JsValue::NULL, &js_notification)
