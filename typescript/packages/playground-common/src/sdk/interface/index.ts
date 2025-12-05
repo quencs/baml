@@ -65,7 +65,6 @@ export type {
   WatchStreamEndValue,
   WatchVariableValue,
   WatchNotificationValue,
-  RichWatchNotification,
   VizStateUpdate,
   VizStateUpdateState,
 

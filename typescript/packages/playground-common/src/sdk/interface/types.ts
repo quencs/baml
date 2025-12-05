@@ -372,18 +372,6 @@ export type WatchNotificationValue =
   | WatchStreamEndValue
   | WatchVariableValue;
 
-/**
- * Extended watch notification with parsed value
- */
-export interface RichWatchNotification extends WatchNotification {
-  /** Parsed and typed value (if parseable) */
-  parsedValue?: WatchNotificationValue;
-  /** Optional log_filter_key metadata derived from reducer updates */
-  logFilterKey?: string;
-  /** Canonical graph node id (stringified nodeId) when resolvable */
-  vizNodeId?: string;
-}
-
 export interface TestExecutionContext {
   apiKeys?: Record<string, string>;
   abortSignal?: AbortSignal;
