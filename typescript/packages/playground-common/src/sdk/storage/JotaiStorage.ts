@@ -169,6 +169,7 @@ export class JotaiStorage implements SDKStorage {
   // ============================================================================
 
   setNodeState(nodeId: string, state: NodeExecutionState) {
+    console.info('[sam] updating node state', { nodeId, state })
     // Register node first (ensures atom exists)
     this.store.set(registerNodeAtom, nodeId);
     // Set state
