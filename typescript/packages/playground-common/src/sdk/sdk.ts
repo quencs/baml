@@ -1207,8 +1207,7 @@ export class BAMLSDK {
           // Called when a watch notification is received
           onWatchNotification: (notification) => {
             console.log('[SDK] onWatchNotification:', notification);
-            const parsedValue = this.parseWatchValue(notification.value);
-            const vizNodeId = notification.stateUpdate?.nodeId.toString();
+            const _parsedValue = this.parseWatchValue(notification.value);
 
             if (notification.stateUpdate) {
               const mapped = this.mapReducerStateToNodeState(notification.stateUpdate.newState);
@@ -1219,57 +1218,10 @@ export class BAMLSDK {
 
             this.storage.addWatchNotification(notification);
 
-            if (!vizNodeId) {
-              console.warn('[SDK] Missing vizNodeId on notification; skipping node-bound side effects');
-            }
-
-            if (vizNodeId) {
-              this.storage.addHighlightedBlock(vizNodeId);
-            }
-
             const now = Date.now();
             const functionName = notification.functionName ?? 'unknown';
 
-            if (parsedValue?.type === 'header') {
-              const nodeId = vizNodeId;
-              if (!nodeId) {
-                console.warn('[SDK] header.enter missing vizNodeId; skipping execution log append');
-                return;
-              }
-              this.storage.appendExecutionLog({
-                type: 'header.enter',
-                nodeId,
-                timestamp: now,
-                iteration: 0,
-                executionId: `test-${functionName}`,
-                label: parsedValue.label,
-                level: parsedValue.level,
-                span: parsedValue.span ? {
-                  filePath: parsedValue.span.filePath,
-                  startLine: parsedValue.span.startLine,
-                  startColumn: parsedValue.span.startColumn,
-                  start: parsedValue.span.startColumn,
-                  endLine: parsedValue.span.endLine,
-                  endColumn: parsedValue.span.endColumn,
-                  end: parsedValue.span.endColumn,
-                } : undefined,
-              });
-            } else if (parsedValue?.type === 'header_stopped') {
-              const nodeId = vizNodeId;
-              if (!nodeId) {
-                console.warn('[SDK] header.exit missing vizNodeId; skipping execution log append');
-                return;
-              }
-              this.storage.appendExecutionLog({
-                type: 'header.exit',
-                nodeId,
-                timestamp: now,
-                iteration: 0,
-                executionId: `test-${functionName}`,
-                label: parsedValue.label,
-                level: parsedValue.level,
-              });
-            } else if (notification.variableName) {
+            if (notification.variableName) {
               let parsedVarValue: unknown;
               if (notification.value !== undefined) {
                 try {
@@ -1279,20 +1231,16 @@ export class BAMLSDK {
                 }
               }
 
-              if (!vizNodeId) {
-                console.warn('[SDK] variable.update missing vizNodeId; skipping execution log append');
-              } else {
-                this.storage.appendExecutionLog({
-                  type: 'variable.update',
-                  nodeId: vizNodeId,
-                  timestamp: now,
-                  iteration: 0,
-                  executionId: `test-${functionName}`,
-                  name: notification.variableName,
-                  value: parsedVarValue,
-                  parentHeaderId: vizNodeId,
-                });
-              }
+              this.storage.appendExecutionLog({
+                type: 'variable.update',
+                nodeId: '00-placeholder-should-delete',
+                timestamp: now,
+                iteration: 0,
+                executionId: `test-${functionName}`,
+                name: notification.variableName,
+                value: parsedVarValue,
+                parentHeaderId: '00-placeholder-should-delete',
+              });
             }
 
           },
