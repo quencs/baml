@@ -577,7 +577,7 @@ impl<'g> HirCompiler<'g> {
                 self.viz_emit_enter(false);
             }
             thir::Statement::Let { name, value, .. } => {
-                self.compile_expression(value);
+                self.compile_expression_with_block_behavior(value, true);
                 self.track_local(name);
             }
             thir::Statement::Declare { name, .. } => {
@@ -586,7 +586,7 @@ impl<'g> HirCompiler<'g> {
             thir::Statement::Assign { left, value, .. } => {
                 match left {
                     thir::Expr::Var(name, _) => {
-                        self.compile_expression(value);
+                        self.compile_expression_with_block_behavior(value, true);
                         self.emit(Instruction::StoreVar(self.locals[name]));
                     }
                     thir::Expr::FieldAccess { base, field, meta: _ } => {
@@ -606,14 +606,14 @@ impl<'g> HirCompiler<'g> {
 
                         // Generate bytecode: load base, load value, store field
                         self.compile_expression(base);
-                        self.compile_expression(value);
+                        self.compile_expression_with_block_behavior(value, true);
                         self.emit(Instruction::StoreField(field_index));
                     }
                     thir::Expr::ArrayAccess {base, index, meta: _} => {
 
                         self.compile_expression(base);
                         self.compile_expression(index);
-                        self.compile_expression(value);
+                        self.compile_expression_with_block_behavior(value, true);
 
                         self.emit(match base.meta().1.as_ref().expect("must have a resolved type") {
                             TypeIR::List(_, _) => Instruction::StoreArrayElement,
@@ -739,7 +739,7 @@ impl<'g> HirCompiler<'g> {
             thir::Statement::DeclareAndAssign {
                 name, value, watch, ..
             } => {
-                self.compile_expression(value);
+                self.compile_expression_with_block_behavior(value, true);
                 let local_index = self.track_local(name);
                 if let Some(spec) = watch {
                     self.emit_string_literal(&spec.name); // This adds LoadConst
@@ -773,10 +773,10 @@ impl<'g> HirCompiler<'g> {
                 self.emit(Instruction::Return);
             }
             thir::Statement::Expression { expr, .. } => {
-                self.compile_expression(expr);
+                self.compile_expression_with_block_behavior(expr, true);
             }
             thir::Statement::SemicolonExpression { expr, .. } => {
-                self.compile_expression(expr);
+                self.compile_expression_with_block_behavior(expr, true);
                 // This could be a function call or any other random expression
                 // like:
                 //
@@ -1111,12 +1111,7 @@ impl<'g> HirCompiler<'g> {
                 _ => panic!("unsupported atom: {value:#?}"),
             },
 
-            thir::Expr::Block(block, _) => {
-                let depth = self.viz_open_stack.len();
-                self.viz_enter_scope();
-                self.compile_block(block);
-                self.viz_exit_to_depth(depth);
-            }
+            thir::Expr::Block(block, _) => self.compile_block(block),
 
             thir::Expr::ArrayAccess {
                 base,
@@ -1613,6 +1608,28 @@ impl<'g> HirCompiler<'g> {
                 todo!("unsupported expression: {:#?}", expr)
             }
         }
+    }
+
+    /// Compiles an expression while mirroring viz block behavior from the viz builder.
+    /// When `wrap_block_in_viz` is true and the expression is a block, we emit a viz scope
+    /// around the block to keep bytecode visualization instructions aligned with the
+    /// precomputed viz node order.
+    fn compile_expression_with_block_behavior(
+        &mut self,
+        expr: &thir::Expr<(Span, Option<TypeIR>)>,
+        wrap_block_in_viz: bool,
+    ) {
+        if wrap_block_in_viz {
+            if let thir::Expr::Block(block, _) = expr {
+                let depth = self.viz_open_stack.len();
+                self.viz_enter_scope();
+                self.compile_block(block);
+                self.viz_exit_to_depth(depth);
+                return;
+            }
+        }
+
+        self.compile_expression(expr);
     }
 
     fn emit_string_literal(&mut self, v: &str) {

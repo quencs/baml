@@ -59,64 +59,61 @@ test default {
 //
 // 7    2    VIZ_ENTER 2        (node_id=2, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, type=BranchGroup, parent_log_filter_key=MyFunction5|root:0|hdr:check:0, label="if (flag)")
 //      3    LOAD_VAR 1         (flag)
-//      4    JUMP_IF_FALSE +8   (to 12)
+//      4    JUMP_IF_FALSE +6   (to 10)
 //      5    POP 1              
 //      6    VIZ_ENTER 3        (node_id=3, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="if (flag)")
-//      7    VIZ_ENTER 4        (node_id=4, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:else:1, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="else")
 //
-// 8    8    LOAD_CONST 0       (then-branch)
-//      9    VIZ_EXIT 4         (node_id=4, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:else:1, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="else")
-//      10   VIZ_EXIT 3         (node_id=3, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="if (flag)")
-//      11   JUMP +7            (to 18)
-//      12   POP 1              
-//      13   VIZ_ENTER 5        (node_id=5, log_filter_key=MyFunction5|root:0|hdr:extract1:1, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract1", level=1)
+// 8    7    LOAD_CONST 0       (then-branch)
+//      8    VIZ_EXIT 3         (node_id=3, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:if-flag:0, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="if (flag)")
+//      9    JUMP +5            (to 14)
+//      10   POP 1              
+//      11   VIZ_ENTER 4        (node_id=4, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:else:1, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="else")
 //
-// 9    14   VIZ_ENTER 6        (node_id=6, log_filter_key=MyFunction5|root:0|hdr:extract2:2, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract2", level=1)
+// 10   12   LOAD_CONST 1       (else-branch)
+//      13   VIZ_EXIT 4         (node_id=4, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0|arm:else:1, type=BranchArm, parent_log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, label="else")
+//      14   VIZ_EXIT 2         (node_id=2, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, type=BranchGroup, parent_log_filter_key=MyFunction5|root:0|hdr:check:0, label="if (flag)")
+//      15   VIZ_ENTER 5        (node_id=5, log_filter_key=MyFunction5|root:0|hdr:extract1:1, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract1", level=1)
 //
-// 10   15   LOAD_CONST 1       (else-branch)
-//      16   VIZ_EXIT 6         (node_id=6, log_filter_key=MyFunction5|root:0|hdr:extract2:2, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract2", level=1)
-//      17   VIZ_EXIT 5         (node_id=5, log_filter_key=MyFunction5|root:0|hdr:extract1:1, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract1", level=1)
-//      18   VIZ_EXIT 2         (node_id=2, log_filter_key=MyFunction5|root:0|hdr:check:0|bg:if-flag:0, type=BranchGroup, parent_log_filter_key=MyFunction5|root:0|hdr:check:0, label="if (flag)")
-//      19   VIZ_ENTER 7        (node_id=7, log_filter_key=MyFunction5|root:0|hdr:extract3:3, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract3", level=1)
+// 14   16   LOAD_CONST 2       (before)
+//      17   LOAD_CONST 3       (item)
+//      18   LOAD_CONST 4       (null)
+//      19   WATCH 3            (item)
 //
-// 14   20   LOAD_CONST 2       (before)
-//      21   LOAD_CONST 3       (item)
-//      22   LOAD_CONST 4       (null)
-//      23   WATCH 3            (item)
+// 15   20   LOAD_GLOBAL 0      (<fn LlmEcho>)
+//      21   LOAD_VAR 3         (item)
+//      22   CALL 1             
+//      23   POP 1              
+//      24   VIZ_ENTER 6        (node_id=6, log_filter_key=MyFunction5|root:0|hdr:extract2:2, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract2", level=1)
 //
-// 15   24   LOAD_GLOBAL 0      (<fn LlmEcho>)
-//      25   LOAD_VAR 3         (item)
-//      26   CALL 1             
-//      27   POP 1              
-//      28   VIZ_ENTER 8        (node_id=8, log_filter_key=MyFunction5|root:0|hdr:extract4:4, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract4", level=1)
+// 18   25   LOAD_CONST 5       (extract2)
+//      26   STORE_VAR 3        (item)
 //
-// 18   29   LOAD_CONST 5       (extract2)
-//      30   STORE_VAR 3        (item)
+// 19   27   LOAD_GLOBAL 0      (<fn LlmEcho>)
+//      28   LOAD_VAR 3         (item)
+//      29   CALL 1             
+//      30   POP 1              
+//      31   VIZ_ENTER 7        (node_id=7, log_filter_key=MyFunction5|root:0|hdr:extract3:3, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract3", level=1)
 //
-// 19   31   LOAD_GLOBAL 0      (<fn LlmEcho>)
-//      32   LOAD_VAR 3         (item)
-//      33   CALL 1             
-//      34   POP 1              
+// 22   32   LOAD_CONST 6       (extract3)
+//      33   STORE_VAR 3        (item)
 //
-// 22   35   LOAD_CONST 6       (extract3)
-//      36   STORE_VAR 3        (item)
+// 23   34   LOAD_GLOBAL 0      (<fn LlmEcho>)
+//      35   LOAD_VAR 3         (item)
+//      36   CALL 1             
+//      37   POP 1              
+//      38   VIZ_ENTER 8        (node_id=8, log_filter_key=MyFunction5|root:0|hdr:extract4:4, type=HeaderContextEnter, parent_log_filter_key=MyFunction5|root:0, label="Extract4", level=1)
 //
-// 23   37   LOAD_GLOBAL 0      (<fn LlmEcho>)
-//      38   LOAD_VAR 3         (item)
-//      39   CALL 1             
-//      40   POP 1              
+// 26   39   LOAD_CONST 7       (extract4)
+//      40   STORE_VAR 3        (item)
 //
-// 26   41   LOAD_CONST 7       (extract4)
-//      42   STORE_VAR 3        (item)
+// 27   41   LOAD_GLOBAL 0      (<fn LlmEcho>)
+//      42   LOAD_VAR 3         (item)
+//      43   CALL 1             
+//      44   POP 1              
 //
-// 27   43   LOAD_GLOBAL 0      (<fn LlmEcho>)
-//      44   LOAD_VAR 3         (item)
-//      45   CALL 1             
-//      46   POP 1              
-//
-// 29   47   LOAD_VAR 3         (item)
-//      48   VIZ_EXIT 0         (node_id=0, log_filter_key=MyFunction5|root:0, type=FunctionRoot, label="MyFunction5")
-//      49   RETURN             
+// 29   45   LOAD_VAR 3         (item)
+//      46   VIZ_EXIT 0         (node_id=0, log_filter_key=MyFunction5|root:0, type=FunctionRoot, label="MyFunction5")
+//      47   RETURN             
 //
 // Function: Main
 //      0   VIZ_ENTER 0     (node_id=0, log_filter_key=Main|root:0, type=FunctionRoot, label="Main")
