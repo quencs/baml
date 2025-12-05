@@ -1515,14 +1515,16 @@ impl<'g> HirCompiler<'g> {
                     self.viz_exit_to_depth(arm_depth);
                 }
 
-                self.viz_exit_to_depth(group_depth);
-
                 // Patch the skip else jump. If there's no else, this will
                 // simply skip the POP above, because the if branch has its
                 // own POP. We can simplify this stuff by creating a specialized
                 // POP_JUMP instruction like Python does, but for now I want
                 // the simplest possible VM (very limited instructions).
                 self.patch_jump(skip_else);
+
+                // Close the branch group scope after both arms have been handled.
+                // This ensures the branch group exits on both true and false paths.
+                self.viz_exit_to_depth(group_depth);
             }
 
             thir::Expr::BinaryOperation {
