@@ -137,6 +137,53 @@ impl ArgCoercer {
                 (TypeValue::String, BamlValue::String(v)) => {
                     Ok(BamlValueWithMeta::String(v.clone(), TypeIR::string()))
                 }
+                // Handle { file "path/to/file" } syntax for string types - read file contents as string
+                (TypeValue::String, BamlValue::Map(kv)) => {
+                    if let Some(BamlValue::String(file_path)) = kv.get("file") {
+                        // Validate that only "file" key is present
+                        for key in kv.keys() {
+                            if key != "file" {
+                                scope.push_error(format!(
+                                    "Invalid property `{key}` on file string: only `file` is supported"
+                                ));
+                            }
+                        }
+                        match self.span_path.as_ref() {
+                            Some(span_path) => {
+                                // Resolve the file path relative to the BAML file location
+                                let resolved_path = span_path
+                                    .parent()
+                                    .map(|p| p.join(file_path))
+                                    .unwrap_or_else(|| PathBuf::from(file_path));
+
+                                // Read the file contents as UTF-8 string
+                                match std::fs::read_to_string(&resolved_path) {
+                                    Ok(contents) => {
+                                        Ok(BamlValueWithMeta::String(contents, TypeIR::string()))
+                                    }
+                                    Err(e) => {
+                                        scope.push_error(format!(
+                                            "Failed to read file '{}': {}",
+                                            resolved_path.display(),
+                                            e
+                                        ));
+                                        Err(ArgCoerceError)
+                                    }
+                                }
+                            }
+                            None => {
+                                scope.push_error(
+                                    "BAML internal error: span is missing, cannot resolve file ref"
+                                        .to_string(),
+                                );
+                                Err(ArgCoerceError)
+                            }
+                        }
+                    } else {
+                        scope.push_error(format!("Expected type String, got `{value}`"));
+                        Err(ArgCoerceError)
+                    }
+                }
                 (TypeValue::String, v) if self.allow_implicit_cast_to_string => match v {
                     BamlValue::Int(i) => {
                         Ok(BamlValueWithMeta::String(i.to_string(), TypeIR::string()))
@@ -511,6 +558,8 @@ fn first_failing_assert_nested<'a>(
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
     use baml_types::{
         type_meta::base::{StreamingBehavior, TypeMeta},
         JinjaExpression,
@@ -590,5 +639,163 @@ type JsonArray = JsonValue[]
         // );
 
         // assert_eq!(res, Ok(json));
+    }
+
+    #[test]
+    fn test_file_as_string() {
+        // Create a temporary file with known content
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("test_file_as_string.txt");
+        let content = "Hello, this is test content!\nWith multiple lines.";
+
+        let mut file = std::fs::File::create(&temp_file).expect("Failed to create temp file");
+        file.write_all(content.as_bytes())
+            .expect("Failed to write to temp file");
+
+        let ir = make_test_ir(
+            r##"
+            client<llm> GPT4 {
+              provider openai
+              options {
+                model gpt-4o
+                api_key env.OPENAI_API_KEY
+              }
+            }
+            function Foo(text: string) -> string {
+              client GPT4
+              prompt #"{{ text }}"#
+            }
+            "##,
+        )
+        .unwrap();
+
+        // Create a BamlValue::Map with the "file" key pointing to our temp file
+        let mut kv = BamlMap::new();
+        kv.insert(
+            "file".to_string(),
+            BamlValue::String(temp_file.to_string_lossy().to_string()),
+        );
+        let value = BamlValue::Map(kv);
+
+        // Use temp_dir as the span_path to resolve relative paths
+        let arg_coercer = ArgCoercer {
+            span_path: Some(temp_dir.join("fake_baml_file.baml")),
+            allow_implicit_cast_to_string: true,
+        };
+
+        let result = arg_coercer.coerce_arg(&ir, &TypeIR::string(), &value, &mut ScopeStack::new());
+
+        // Clean up temp file
+        std::fs::remove_file(&temp_file).ok();
+
+        // Verify the result
+        match result {
+            Ok(BamlValueWithMeta::String(s, _)) => {
+                assert_eq!(s, content);
+            }
+            Ok(other) => panic!("Expected String, got {:?}", other),
+            Err(_) => panic!("Expected Ok, got error"),
+        }
+    }
+
+    #[test]
+    fn test_file_as_string_relative_path() {
+        // Create a temporary file with known content
+        let temp_dir = std::env::temp_dir();
+        let test_subdir = temp_dir.join("baml_test_subdir");
+        std::fs::create_dir_all(&test_subdir).expect("Failed to create test subdir");
+
+        let temp_file = test_subdir.join("relative_test.txt");
+        let content = "Relative path content!";
+
+        let mut file = std::fs::File::create(&temp_file).expect("Failed to create temp file");
+        file.write_all(content.as_bytes())
+            .expect("Failed to write to temp file");
+
+        let ir = make_test_ir(
+            r##"
+            client<llm> GPT4 {
+              provider openai
+              options {
+                model gpt-4o
+                api_key env.OPENAI_API_KEY
+              }
+            }
+            function Foo(text: string) -> string {
+              client GPT4
+              prompt #"{{ text }}"#
+            }
+            "##,
+        )
+        .unwrap();
+
+        // Create a BamlValue::Map with the "file" key using a relative path
+        let mut kv = BamlMap::new();
+        kv.insert(
+            "file".to_string(),
+            BamlValue::String("relative_test.txt".to_string()),
+        );
+        let value = BamlValue::Map(kv);
+
+        // The span_path is in the same directory as the file
+        let arg_coercer = ArgCoercer {
+            span_path: Some(test_subdir.join("fake_baml_file.baml")),
+            allow_implicit_cast_to_string: true,
+        };
+
+        let result = arg_coercer.coerce_arg(&ir, &TypeIR::string(), &value, &mut ScopeStack::new());
+
+        // Clean up
+        std::fs::remove_file(&temp_file).ok();
+        std::fs::remove_dir(&test_subdir).ok();
+
+        // Verify the result
+        match result {
+            Ok(BamlValueWithMeta::String(s, _)) => {
+                assert_eq!(s, content);
+            }
+            Ok(other) => panic!("Expected String, got {:?}", other),
+            Err(_) => panic!("Expected Ok, got error"),
+        }
+    }
+
+    #[test]
+    fn test_file_as_string_missing_file() {
+        let temp_dir = std::env::temp_dir();
+
+        let ir = make_test_ir(
+            r##"
+            client<llm> GPT4 {
+              provider openai
+              options {
+                model gpt-4o
+                api_key env.OPENAI_API_KEY
+              }
+            }
+            function Foo(text: string) -> string {
+              client GPT4
+              prompt #"{{ text }}"#
+            }
+            "##,
+        )
+        .unwrap();
+
+        // Create a BamlValue::Map with the "file" key pointing to a non-existent file
+        let mut kv = BamlMap::new();
+        kv.insert(
+            "file".to_string(),
+            BamlValue::String("nonexistent_file_12345.txt".to_string()),
+        );
+        let value = BamlValue::Map(kv);
+
+        let arg_coercer = ArgCoercer {
+            span_path: Some(temp_dir.join("fake_baml_file.baml")),
+            allow_implicit_cast_to_string: true,
+        };
+
+        let result = arg_coercer.coerce_arg(&ir, &TypeIR::string(), &value, &mut ScopeStack::new());
+
+        // Should fail because file doesn't exist
+        assert!(result.is_err());
     }
 }

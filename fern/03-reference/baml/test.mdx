@@ -291,6 +291,26 @@ test LongTextTest {
 }
 ```
 
+## String from File
+
+For very long text inputs or for better organization, you can load string content from external files using the `file` syntax:
+
+```baml
+test TextFromFileTest {
+    functions [AnalyzeText]
+    args {
+        content { file "./data/sample-text.txt" }
+    }
+}
+```
+
+The file path is resolved relative to the BAML file containing the test. This is especially useful for:
+- Large test inputs that would clutter the BAML file
+- Reusing the same test data across multiple tests
+- Test inputs that are easier to edit in their native format (e.g., JSON, XML, Markdown)
+
+**Note**: This syntax works only for string parameters. For media types (images, audio, PDFs, videos), use the dedicated media syntax documented in [Media Inputs](#media-inputs).
+
 ## Testing Multiple Functions
 
 This requires each function to have the exact same parameters:
