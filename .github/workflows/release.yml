@@ -58,11 +58,11 @@ jobs:
           then
             # Use sanitized tag name for version initially
             VERSION=$(echo "$REF_NAME" | sed 's|/|-|g')
-            # Check if it's a release tag matching vX.Y.Z
-            if [[ "$REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            # Check if it's a release tag matching X.Y.Z or vX.Y.Z
+            if [[ "$REF_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               IS_RELEASE="true"
-              # Use the exact tag name for releases
-              VERSION="$REF_NAME"
+              # Strip 'v' prefix if present for version string
+              VERSION="${REF_NAME#v}"
             fi
           fi
 

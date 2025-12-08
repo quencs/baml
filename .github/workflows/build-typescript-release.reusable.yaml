@@ -107,8 +107,9 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           targets: ${{ matrix._.target }}
-          prefix-key: v5-rust-${{ matrix._.target }}
+          prefix-key: v6-rust-ts-${{ matrix._.target }}
           cache-on-failure: true
+          workspace: engine
 
       - name: Setup Go
         uses: ./.github/actions/setup-go

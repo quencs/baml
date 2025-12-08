@@ -78,7 +78,10 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           targets: ${{ matrix._.target }}
-          enable-cache: false
+          enable-cache: true
+          prefix-key: v2-rust-cli-${{ matrix._.target }}
+          cache-on-failure: true
+          workspace: engine
 
       - name: Setup Go
         uses: ./.github/actions/setup-go
