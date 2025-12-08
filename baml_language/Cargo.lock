@@ -155,6 +155,7 @@ name = "baml_hir"
 version = "0.0.0"
 dependencies = [
  "baml_base",
+ "baml_diagnostics",
  "baml_parser",
  "baml_syntax",
  "baml_workspace",
@@ -188,6 +189,7 @@ dependencies = [
  "baml_lexer",
  "baml_parser",
  "baml_thir",
+ "baml_vm",
  "baml_workspace",
  "clap",
  "crossterm",
@@ -227,6 +229,7 @@ version = "0.0.0"
 dependencies = [
  "baml_db",
  "baml_diagnostics",
+ "baml_hir",
  "baml_vm",
  "codspeed-divan-compat",
  "insta",
@@ -245,7 +248,9 @@ dependencies = [
  "baml_base",
  "baml_diagnostics",
  "baml_hir",
+ "baml_workspace",
  "salsa",
+ "smol_str",
  "text-size",
 ]
 

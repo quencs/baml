@@ -10,16 +10,17 @@ use std::{
 use anyhow::Result;
 use baml_db::{
     FileId, RootDatabase, SourceFile, baml_codegen, baml_hir, baml_lexer, baml_parser, baml_syntax,
-    baml_thir, baml_workspace, function_body, function_signature,
+    baml_thir, baml_workspace,
 };
 use baml_diagnostics::compiler_error::{
     CompilerError, ParseError, TypeError, render_parse_error, render_type_error,
 };
-use baml_hir::ItemId;
+use baml_hir::{ItemId, function_body, function_signature};
 use baml_syntax::{
     SyntaxElement, SyntaxNode, SyntaxToken, WalkEvent,
     ast::{Item as AstItem, SourceFile as AstSourceFile},
 };
+use baml_thir::{build_class_fields_from_files, build_typing_context_from_files};
 use regex::Regex;
 use rowan::{GreenNode, NodeCache, ast::AstNode};
 use salsa::{Event, EventKind, Setter};
@@ -93,7 +94,7 @@ pub(crate) type StoredCompilerError = CompilerError<String>;
 
 pub(crate) struct CompilerRunner {
     db: RootDatabase,
-    project_root: baml_workspace::ProjectRoot,
+    project_root: baml_workspace::Project,
     is_directory: bool,
     /// Source files currently in the database (path -> `SourceFile`)
     source_files: HashMap<PathBuf, SourceFile>,
@@ -203,7 +204,7 @@ impl CompilerRunner {
             }));
 
         Self {
-            project_root: baml_workspace::ProjectRoot::new(&db, PathBuf::new()),
+            project_root: baml_workspace::Project::new(&db, PathBuf::new(), vec![]),
             db,
             is_directory,
             source_files: HashMap::new(),
@@ -318,6 +319,10 @@ impl CompilerRunner {
                 self.modified_files.insert(path.clone());
             }
         }
+
+        // Update project root with the list of files for proper Salsa tracking
+        let file_list: Vec<_> = self.source_files.values().copied().collect();
+        self.project_root.set_files(&mut self.db).to(file_list);
 
         // Run all compiler phases
         self.run_all_phases();
@@ -585,7 +590,8 @@ impl CompilerRunner {
 
         // Build initial typing context with all function types
         let file_list: Vec<_> = self.source_files.values().copied().collect();
-        let globals = baml_db::build_typing_context_from_files(&self.db, &file_list);
+        let globals = build_typing_context_from_files(&self.db, &file_list);
+        let class_fields = build_class_fields_from_files(&self.db, self.project_root);
 
         // Sort files alphabetically
         let mut sorted_files: Vec<_> = self.source_files.iter().collect();
@@ -612,9 +618,9 @@ impl CompilerRunner {
 
             for item in items {
                 if let ItemId::Function(func_id) = item {
-                    let signature = function_signature(&self.db, *source_file, *func_id);
+                    let signature = function_signature(&self.db, *func_id);
                     let func_name = signature.name.to_string();
-                    let body = function_body(&self.db, *source_file, *func_id);
+                    let body = function_body(&self.db, *func_id);
 
                     // Run type inference with global function types
                     let inference_result = baml_thir::infer_function(
@@ -622,6 +628,7 @@ impl CompilerRunner {
                         &signature,
                         &body,
                         Some(globals.clone()),
+                        Some(class_fields.clone()),
                     );
 
                     // Collect type errors from inference
@@ -697,6 +704,9 @@ impl CompilerRunner {
                 }
                 CompilerError::TypeError(e) => {
                     type_errors_by_file.entry(file_id).or_default().push(e);
+                }
+                CompilerError::NameError(_) => {
+                    // TODO: Handle name errors in diagnostics display
                 }
             }
         }
@@ -820,23 +830,84 @@ impl CompilerRunner {
     }
 
     fn run_codegen(&mut self) {
-        let bytecode = baml_codegen::generate_project_bytecode(&self.db, self.project_root);
-        let output = format!("{bytecode:#?}");
+        // Use compile_files directly with our source files instead of generate_project_bytecode,
+        // because project_files(db, root) returns an empty vector (not yet implemented).
+        let files: Vec<_> = self.source_files.values().copied().collect();
+        let program = baml_codegen::compile_files(&self.db, &files);
+        let file_recomputed = !self.modified_files.is_empty();
 
-        let file_recomputed = self.was_query_recomputed("generate_project_bytecode(");
-        let output_annotated: Vec<_> = output
-            .lines()
-            .map(|line| {
-                (
-                    line.to_string(),
-                    if file_recomputed {
-                        LineStatus::Recomputed
-                    } else {
-                        LineStatus::Cached
-                    },
-                )
-            })
-            .collect();
+        let mut output = String::new();
+        let mut output_annotated = Vec::new();
+
+        // Summary header
+        writeln!(output, "=== BYTECODE ===").ok();
+        output_annotated.push(("=== BYTECODE ===".to_string(), LineStatus::Unknown));
+
+        writeln!(output, "Functions: {}", program.function_indices.len()).ok();
+        output_annotated.push((
+            format!("Functions: {}", program.function_indices.len()),
+            LineStatus::Unknown,
+        ));
+
+        writeln!(output, "Objects: {}", program.objects.len()).ok();
+        output_annotated.push((
+            format!("Objects: {}", program.objects.len()),
+            LineStatus::Unknown,
+        ));
+
+        writeln!(output, "Globals: {}", program.globals.len()).ok();
+        output_annotated.push((
+            format!("Globals: {}", program.globals.len()),
+            LineStatus::Unknown,
+        ));
+
+        // Show functions and their bytecode using debug formatting (same as baml_test)
+        let mut func_names: Vec<_> = program.function_indices.keys().collect();
+        func_names.sort();
+        for func_name in func_names {
+            if let Some(&idx) = program.function_indices.get(func_name)
+                && let Some(baml_codegen::Object::Function(func)) = program.objects.get(idx)
+            {
+                let func_header = format!(
+                    "\nFunction {} (arity: {}, kind: {:?}):",
+                    func_name, func.arity, func.kind
+                );
+                writeln!(output, "{}", func_header).ok();
+                output_annotated.push((func_header, LineStatus::Unknown));
+
+                let bytecode_table = baml_vm::debug::display_bytecode(
+                    func,
+                    &[], // Empty stack for static display
+                    &program.objects,
+                    &program.globals,
+                );
+
+                if bytecode_table.is_empty() {
+                    writeln!(output, "  (no bytecode)").ok();
+                    output_annotated.push((
+                        "  (no bytecode)".to_string(),
+                        if file_recomputed {
+                            LineStatus::Recomputed
+                        } else {
+                            LineStatus::Cached
+                        },
+                    ));
+                } else {
+                    for line in bytecode_table.lines() {
+                        let formatted_line = format!("  {}", line);
+                        writeln!(output, "{}", formatted_line).ok();
+                        output_annotated.push((
+                            formatted_line,
+                            if file_recomputed {
+                                LineStatus::Recomputed
+                            } else {
+                                LineStatus::Cached
+                            },
+                        ));
+                    }
+                }
+            }
+        }
 
         self.phase_outputs.insert(CompilerPhase::Codegen, output);
         self.phase_outputs_annotated
@@ -876,14 +947,6 @@ impl CompilerRunner {
         self.phase_outputs.insert(CompilerPhase::Metrics, output);
         self.phase_outputs_annotated
             .insert(CompilerPhase::Metrics, output_annotated);
-    }
-
-    fn was_query_recomputed(&self, query_pattern: &str) -> bool {
-        self.recomputed_queries
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|q| q.contains(query_pattern))
     }
 
     pub(crate) fn get_phase_output(&self, phase: CompilerPhase) -> Option<&str> {
@@ -1525,6 +1588,9 @@ fn get_error_file_id(error: &StoredCompilerError) -> FileId {
             TypeError::NotCallable { span, .. } => span.file_id,
             TypeError::NoSuchField { span, .. } => span.file_id,
             TypeError::NotIndexable { span, .. } => span.file_id,
+        },
+        CompilerError::NameError(e) => match e {
+            baml_diagnostics::NameError::DuplicateName { second, .. } => second.file_id,
         },
     }
 }
