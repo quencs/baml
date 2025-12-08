@@ -208,15 +208,11 @@ export function buildControlFlowArtifacts(
     ? 'workflow'
     : options.rootType;
 
-  const nodeById = new Map<number, WasmControlFlowNode>();
-  const nodeKeyById = new Map<number, string>();
-  const childrenByParent = new Map<number, WasmControlFlowNode[]>();
+  const nodeById = new Map<string, WasmControlFlowNode>();
+  const childrenByParent = new Map<string, WasmControlFlowNode[]>();
 
   for (const node of nodes) {
-    nodeById.set(node.id, node);
-    // Use the wasm node id (stringified) as the canonical graph node id
-    const key = node.id.toString();
-    nodeKeyById.set(node.id, key);
+    nodeById.set(node.node_id, node);
     if (node.parent_id !== undefined) {
       const siblings = childrenByParent.get(node.parent_id) ?? [];
       siblings.push(node);
@@ -230,9 +226,9 @@ export function buildControlFlowArtifacts(
   }
 
   const toCallGraphNode = (node: WasmControlFlowNode): CallGraphNode => {
-    const children = (childrenByParent.get(node.id) ?? []).map((child) => toCallGraphNode(child));
+    const children = (childrenByParent.get(node.node_id) ?? []).map((child) => toCallGraphNode(child));
     return {
-      id: nodeKeyById.get(node.id)!,
+      id: node.node_id,
       type: mapNodeTypeToCallGraphType(node.node_type, normalizedRootType),
       blockType: mapNodeTypeToBlockType(node.node_type),
       annotation: node.label || undefined,
@@ -245,18 +241,17 @@ export function buildControlFlowArtifacts(
   const callGraphDepth = computeCallGraphDepth(callGraph);
 
   const graphNodes: GraphNode[] = nodes.map((node) => {
-    const id = nodeKeyById.get(node.id)!;
     return {
-      id,
+      id: node.node_id,
       type: mapNodeTypeToGraphNodeType(node.node_type, normalizedRootType),
-      label: node.label || id,
+      label: node.label || node.node_id,
       functionName: options.rootName,
-      parent: node.parent_id !== undefined ? nodeKeyById.get(node.parent_id) : undefined,
+      parent: node.parent_id,
       codeHash: '',
       lastModified: options.timestamp,
       llmClient: node.node_type === WasmControlFlowNodeType.FunctionRoot ? options.llmClient : undefined,
       metadata: {
-        wasmNodeId: node.id,
+        wasmNodeId: node.node_id,
         logFilterKey: node.log_filter_key,
         controlFlowType: WasmControlFlowNodeType[node.node_type] ?? 'Unknown',
       },
@@ -264,11 +259,8 @@ export function buildControlFlowArtifacts(
   });
 
   const graphEdges: GraphEdge[] = (graph.edges ?? []).flatMap((edge) => {
-    const source = nodeKeyById.get(edge.src);
-    const target = nodeKeyById.get(edge.dst);
-    if (!source || !target) {
-      return [];
-    }
+    const source = edge.src;
+    const target = edge.dst;
 
     const srcNode = nodeById.get(edge.src);
     const dstNode = nodeById.get(edge.dst);

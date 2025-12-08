@@ -106,30 +106,6 @@ function HeaderEnterCard({
   );
 }
 
-function HeaderExitCard({
-  event,
-  state,
-  isHighlighted,
-}: {
-  event: RichExecutionEvent;
-  state: NodeExecutionState;
-  isHighlighted?: boolean;
-}) {
-  if (event.type !== 'header.exit') return null;
-
-  return (
-    <div
-      className={`flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground ${isHighlighted ? 'ring-2 ring-blue-500' : ''}`}
-      data-node-id={event.nodeId}
-    >
-      <CheckCircle2 className="w-3 h-3 text-green-500" />
-      <span>Completed: {event.label}</span>
-      {event.duration !== undefined && (
-        <span className="ml-auto">{event.duration}ms</span>
-      )}
-    </div>
-  );
-}
 
 // ============================================================================
 // VARIABLE CARD
@@ -356,20 +332,16 @@ type EventWithIndent = { event: RichExecutionEvent; indent: number };
 
 function computeIndentLevels(events: RichExecutionEvent[]): EventWithIndent[] {
   const result: EventWithIndent[] = [];
-  let currentIndent = 0;
 
   for (const event of events) {
     if (event.type === 'header.enter') {
-      // Header itself is at current level, then increase for children
-      result.push({ event, indent: currentIndent });
-      currentIndent++;
+      // Use the level from the event (calculated from graph depth)
+      result.push({ event, indent: Math.max(0, event.level - 1) });
     } else if (event.type === 'header.exit') {
-      // Decrease indent first, then show exit at that level
-      currentIndent = Math.max(0, currentIndent - 1);
-      result.push({ event, indent: currentIndent });
+      result.push({ event, indent: Math.max(0, event.level - 1) });
     } else {
-      // All other events are at current indent level
-      result.push({ event, indent: currentIndent });
+      // Other events don't have indent
+      result.push({ event, indent: 0 });
     }
   }
 
@@ -452,7 +424,7 @@ export function ExecutionLogPanel() {
       {/* Event List */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto p-2 space-y-1"
+        className="flex-1 overflow-auto p-2 pb-16 space-y-1"
       >
         {eventsWithIndent.map(({ event, indent }, index) => {
           const isHighlighted = event.nodeId === scrollToNodeId;
@@ -472,15 +444,8 @@ export function ExecutionLogPanel() {
                 </div>
               );
             case 'header.exit':
-              return (
-                <div key={`${event.type}-${event.nodeId}-${index}`} style={indentStyle}>
-                  <HeaderExitCard
-                    event={event}
-                    state={nodeState}
-                    isHighlighted={isHighlighted}
-                  />
-                </div>
-              );
+              // Don't render exit cards
+              return null;
             case 'variable.update':
               return (
                 <div key={`${event.type}-${event.name}-${index}`} style={indentStyle}>

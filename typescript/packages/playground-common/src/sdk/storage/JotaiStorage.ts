@@ -22,6 +22,7 @@ import {
   workflowExecutionsAtomFamily,
   nodeStateAtomFamily,
   registerNodeAtom,
+  clearAllNodeStatesAtom,
   cacheAtom,
   getCacheKey,
   versionAtom,
@@ -181,10 +182,7 @@ export class JotaiStorage implements SDKStorage {
   }
 
   clearAllNodeStates() {
-    // Note: We can't iterate over all atom family instances
-    // So we rely on the SDK to track which nodes were used
-    // For now, this is a no-op since we can't access all instances
-    // The atoms will naturally reset when new execution starts
+    this.store.set(clearAllNodeStatesAtom);
   }
 
   // ============================================================================
