@@ -49,23 +49,6 @@ function StatusIndicator({ state }: { state: NodeExecutionState }) {
   }
 }
 
-function StatusBadge({ state }: { state: NodeExecutionState }) {
-  const styles: Record<NodeExecutionState, string> = {
-    'not-started': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-    'pending': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-    'running': 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-    'success': 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-    'error': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
-    'skipped': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-    'cached': 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  };
-
-  return (
-    <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${styles[state]}`}>
-      {state}
-    </span>
-  );
-}
 
 // ============================================================================
 // HEADER CARDS
@@ -82,26 +65,22 @@ function HeaderEnterCard({
 }) {
   if (event.type !== 'header.enter') return null;
 
-  // Level-based styling
-  const levelStyles = [
-    'border-l-purple-500 bg-purple-500/5',
-    'border-l-blue-500 bg-blue-500/5',
-    'border-l-cyan-500 bg-cyan-500/5',
-    'border-l-teal-500 bg-teal-500/5',
+  // Level-based left border colors only
+  const levelColors = [
+    'border-l-purple-500',
+    'border-l-blue-500',
+    'border-l-cyan-500',
+    'border-l-teal-500',
   ];
-  const levelStyle = levelStyles[(event.level - 1) % levelStyles.length];
+  const levelColor = levelColors[(event.level - 1) % levelColors.length];
 
   return (
     <div
-      className={`border border-border rounded-md overflow-hidden ${isHighlighted ? 'ring-2 ring-blue-500' : ''}`}
+      className={`flex items-center gap-2 px-3 py-1.5 border-l-2 ${levelColor} ${isHighlighted ? 'bg-blue-500/10' : ''}`}
       data-node-id={event.nodeId}
     >
-      <div className={`flex items-center gap-2 px-3 py-2 border-l-2 ${levelStyle}`}>
-        <Hash className="w-3 h-3 text-muted-foreground" />
-        <StatusIndicator state={state} />
-        <span className="text-xs font-medium flex-1">{event.label}</span>
-        <StatusBadge state={state} />
-      </div>
+      <StatusIndicator state={state} />
+      <span className="text-xs text-foreground">{event.label}</span>
     </div>
   );
 }
@@ -124,10 +103,10 @@ function VariableCard({ event, isHighlighted }: { event: RichExecutionEvent; isH
 
   return (
     <div
-      className={`px-3 py-1.5 bg-blue-500/5 border-l-2 border-l-blue-500 rounded-r text-[11px] ${isHighlighted ? 'ring-2 ring-blue-500' : ''}`}
+      className={`px-3 py-1 border-l-2 border-l-blue-400 text-[11px] ${isHighlighted ? 'bg-blue-500/10' : ''}`}
       data-node-id={event.nodeId}
     >
-      <span className="text-blue-600 dark:text-blue-400 font-medium">{event.name}</span>
+      <span className="text-muted-foreground">{event.name}</span>
       <span className="text-muted-foreground mx-1">=</span>
       <span className="font-mono text-foreground">{displayValue}</span>
     </div>
@@ -144,11 +123,11 @@ function NodeEnterCard({ event, isHighlighted }: { event: RichExecutionEvent; is
 
   return (
     <div
-      className={`border border-border rounded-md overflow-hidden ${isHighlighted ? 'ring-2 ring-blue-500' : ''}`}
+      className={`border-l-2 border-l-green-500 ${isHighlighted ? 'bg-blue-500/10' : ''}`}
       data-node-id={event.nodeId}
     >
       <div
-        className="flex items-center gap-2 px-3 py-2 bg-muted/30 cursor-pointer hover:bg-muted/50"
+        className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-muted/30"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {isExpanded ? (
@@ -156,14 +135,14 @@ function NodeEnterCard({ event, isHighlighted }: { event: RichExecutionEvent; is
         ) : (
           <ChevronRight className="w-3 h-3 text-muted-foreground" />
         )}
-        <Play className="w-3 h-3 text-blue-500" />
-        <span className="text-xs font-medium">Enter: {event.nodeId}</span>
+        <Play className="w-3 h-3 text-green-500" />
+        <span className="text-xs text-foreground">{event.nodeId}</span>
         <span className="text-[10px] text-muted-foreground ml-auto">
           {new Date(event.timestamp).toLocaleTimeString()}
         </span>
       </div>
       {isExpanded && event.inputs && Object.keys(event.inputs).length > 0 && (
-        <div className="px-3 py-2 border-t border-border bg-background">
+        <div className="px-3 py-2 ml-4">
           <div className="text-[10px] text-muted-foreground mb-1">Inputs:</div>
           <pre className="text-[10px] font-mono overflow-auto max-h-24">
             {JSON.stringify(event.inputs, null, 2)}
@@ -181,11 +160,11 @@ function NodeExitCard({ event, isHighlighted }: { event: RichExecutionEvent; isH
 
   return (
     <div
-      className={`border rounded-md overflow-hidden ${hasError ? 'border-red-500/50' : 'border-border'} ${isHighlighted ? 'ring-2 ring-blue-500' : ''}`}
+      className={`border-l-2 ${hasError ? 'border-l-red-500' : 'border-l-green-500'} ${isHighlighted ? 'bg-blue-500/10' : ''}`}
       data-node-id={event.nodeId}
     >
       <div
-        className={`flex items-center gap-2 px-3 py-2 cursor-pointer ${hasError ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-muted/30 hover:bg-muted/50'}`}
+        className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-muted/30"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {isExpanded ? (
@@ -198,16 +177,16 @@ function NodeExitCard({ event, isHighlighted }: { event: RichExecutionEvent; isH
         ) : (
           <CheckCircle2 className="w-3 h-3 text-green-500" />
         )}
-        <span className="text-xs font-medium">Exit: {event.nodeId}</span>
+        <span className="text-xs text-foreground">{event.nodeId}</span>
         <span className="text-[10px] text-muted-foreground">
-          ({event.duration}ms)
+          {event.duration}ms
         </span>
         <span className="text-[10px] text-muted-foreground ml-auto">
           {new Date(event.timestamp).toLocaleTimeString()}
         </span>
       </div>
       {isExpanded && (
-        <div className="px-3 py-2 border-t border-border bg-background space-y-2">
+        <div className="px-3 py-2 ml-4 space-y-2">
           {event.outputs && Object.keys(event.outputs).length > 0 && (
             <>
               <div className="text-[10px] text-muted-foreground">Output:</div>
