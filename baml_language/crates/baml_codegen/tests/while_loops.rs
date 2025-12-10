@@ -11,7 +11,7 @@ use baml_vm::{BinOp, CmpOp};
 // ============================================================================
 
 #[test]
-#[ignore = "assignment statements not yet in HIR"]
+#[ignore = "function parameters not yet tracked in HIR"]
 fn while_loop_gcd() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: r#"
@@ -60,7 +60,6 @@ fn while_loop_gcd() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "break statement and assignment not yet in HIR"]
 fn while_loop_with_ending_if() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: "
@@ -96,9 +95,9 @@ fn while_loop_with_ending_if() -> anyhow::Result<()> {
                 Instruction::CmpOp(CmpOp::Eq),
                 Instruction::JumpIfFalse(4),
                 Instruction::Pop(1),
-                Instruction::Jump(5),
-                Instruction::Jump(2),
-                Instruction::Pop(1),
+                Instruction::Jump(5), // break jumps past if-without-else and loop
+                Instruction::Jump(2), // skip false-path pop
+                Instruction::Pop(1),  // pop condition (false path)
                 Instruction::Jump(-17),
                 Instruction::Pop(1),
                 Instruction::LoadVar("a".to_string()),
@@ -109,7 +108,6 @@ fn while_loop_with_ending_if() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "break statement and assignment not yet in HIR"]
 fn while_loop_with_break() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: "
@@ -145,9 +143,9 @@ fn while_loop_with_break() -> anyhow::Result<()> {
                 Instruction::CmpOp(CmpOp::Eq),
                 Instruction::JumpIfFalse(4),
                 Instruction::Pop(1),
-                Instruction::Jump(5),
-                Instruction::Jump(2),
-                Instruction::Pop(1),
+                Instruction::Jump(5), // break jumps past if-without-else and loop
+                Instruction::Jump(2), // skip false-path pop
+                Instruction::Pop(1),  // pop condition (false path)
                 Instruction::Jump(-17),
                 Instruction::Pop(1),
                 Instruction::LoadVar("a".to_string()),
@@ -158,7 +156,7 @@ fn while_loop_with_break() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "break statement and assignment not yet in HIR"]
+#[ignore = "function parameters not yet tracked in HIR"]
 fn break_factorial() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: r#"
@@ -209,7 +207,7 @@ fn break_factorial() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "continue statement and assignment not yet in HIR"]
+#[ignore = "function parameters not yet tracked in HIR"]
 fn continue_factorial() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: r#"
@@ -267,7 +265,6 @@ fn continue_factorial() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "continue statement not yet in HIR"]
 fn continue_nested() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: r#"
@@ -298,9 +295,9 @@ fn continue_nested() -> anyhow::Result<()> {
                 Instruction::LoadConst(Value::Bool(false)),
                 Instruction::JumpIfFalse(4),
                 Instruction::Pop(1),
-                Instruction::Jump(3),
-                Instruction::Jump(2),
-                Instruction::Pop(1),
+                Instruction::Jump(3), // continue jumps to loop start
+                Instruction::Jump(2), // skip false-path pop
+                Instruction::Pop(1),  // pop condition (false path)
                 Instruction::Jump(-15),
                 Instruction::Pop(1),
                 Instruction::LoadConst(Value::Int(5)),
@@ -311,7 +308,6 @@ fn continue_nested() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "break statement and assignment not yet in HIR"]
 fn break_nested() -> anyhow::Result<()> {
     assert_compiles(Program {
         source: r#"
