@@ -545,7 +545,7 @@ impl From<&BamlValueWithFlags> for BamlValue {
 }
 
 impl BamlValueWithFlags {
-    pub(super) fn add_flag(&mut self, flag: Flag) {
+    pub(crate) fn add_flag(&mut self, flag: Flag) {
         match self {
             BamlValueWithFlags::String(v) => v.flags.add_flag(flag),
             BamlValueWithFlags::Int(v) => v.flags.add_flag(flag),

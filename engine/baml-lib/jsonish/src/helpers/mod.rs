@@ -82,9 +82,17 @@ fn find_existing_class_field(
 
     let name = Name::new_with_alias(field_name.to_string(), field_walker.alias(env_values)?);
     let desc = field_walker.description(env_values)?;
-    let r#type = field_walker.r#type();
+
+    // Get the field type and merge constraints from field attributes
+    let mut r#type = field_walker.r#type().clone();
+    let field_type_constraints = &field_walker.item.elem.r#type.attributes.constraints;
+    if !field_type_constraints.is_empty() {
+        // Merge constraints from field attributes into the type's metadata
+        r#type.meta_mut().constraints.extend(field_type_constraints.iter().cloned());
+    }
+
     let streaming_needed = field_walker.item.attributes.streaming_behavior().needed;
-    Ok((name, r#type.clone(), desc, streaming_needed))
+    Ok((name, r#type, desc, streaming_needed))
 }
 
 fn find_enum_value(

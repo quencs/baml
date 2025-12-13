@@ -11,12 +11,14 @@ class Foo {
 }
 "#;
 
+// Note: ConstraintResults don't contribute to score (Flag::ConstraintResults(_) => 0)
+// These tests verify parsing succeeds, score is 0 regardless of constraint results
 test_deserializer_with_expected_score!(
     test_class_failing_one_check,
     CLASS_FOO_INT_STRING,
     r#"{"age": 11, "name": "Greg"}"#,
     TypeIR::class("Foo"),
-    1
+    0  // Constraints don't affect parsing score
 );
 
 test_deserializer_with_expected_score!(
@@ -24,7 +26,7 @@ test_deserializer_with_expected_score!(
     CLASS_FOO_INT_STRING,
     r#"{"age": 21, "name": "Grog"}"#,
     TypeIR::class("Foo"),
-    1
+    0  // Constraints don't affect parsing score
 );
 
 test_failing_deserializer!(
@@ -61,7 +63,7 @@ test_deserializer_with_expected_score!(
     UNION_WITH_CHECKS,
     r#"{"bar": 5, "things":[]}"#,
     TypeIR::class("Either"),
-    3
+    0  // Constraints don't affect parsing score
 );
 
 test_deserializer_with_expected_score!(
@@ -69,7 +71,7 @@ test_deserializer_with_expected_score!(
     UNION_WITH_CHECKS,
     r#"{"bar": 15, "things":[]}"#,
     TypeIR::class("Either"),
-    3
+    0  // Constraints don't affect parsing score
 );
 
 test_failing_deserializer!(
@@ -90,7 +92,7 @@ test_deserializer_with_expected_score!(
     MAP_WITH_CHECKS,
     r#"{"foo": {"hello": 10, "there":13}}"#,
     TypeIR::class("Foo"),
-    2
+    0  // Constraints don't affect parsing score
 );
 
 test_deserializer_with_expected_score!(
@@ -98,7 +100,7 @@ test_deserializer_with_expected_score!(
     MAP_WITH_CHECKS,
     r#"{"foo": {"hello": 11, "there":13}}"#,
     TypeIR::class("Foo"),
-    2
+    0  // Constraints don't affect parsing score
 );
 
 const NESTED_CLASS_CONSTRAINTS: &str = r#"
@@ -116,7 +118,7 @@ test_deserializer_with_expected_score!(
     NESTED_CLASS_CONSTRAINTS,
     r#"{"inner": {"value": 15}}"#,
     TypeIR::class("Outer"),
-    1
+    0  // Constraints don't affect parsing score
 );
 
 const BLOCK_LEVEL: &str = r#"

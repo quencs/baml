@@ -1,5 +1,6 @@
 pub mod helpers;
 pub mod tests;
+pub mod typed_stream;
 
 use anyhow::Result;
 use indexmap::IndexMap;
@@ -26,6 +27,26 @@ use serde::{
 };
 
 use crate::deserializer::score::WithScore;
+
+/// Parser mode selection for JSON parsing
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ParserMode {
+    /// Legacy parser: jsonish::parse() + TypeIR::coerce()
+    #[default]
+    Legacy,
+    /// New typed stream parser: direct type-directed parsing with bounded beam
+    TypedStream,
+}
+
+impl ParserMode {
+    /// Check environment variable BAML_PARSER_MODE to override default
+    pub fn from_env() -> Self {
+        match std::env::var("BAML_PARSER_MODE").as_deref() {
+            Ok("typed_stream") | Ok("typed") | Ok("new") => ParserMode::TypedStream,
+            _ => ParserMode::Legacy,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ResponseBamlValue(pub BamlValueWithMeta<ResponseValueMeta>);
@@ -222,20 +243,51 @@ fn serialize_with_meta<S: Serializer, T: Serialize>(
     }
 }
 
+/// Parse raw string to typed value using the new typed stream parser (default)
 pub fn from_str(
     of: &OutputFormatContent,
     target: &TypeIR,
     raw_string: &str,
     raw_string_is_done: bool,
 ) -> Result<BamlValueWithFlags> {
-    // println!("--------------{raw_string_is_done}-----------------");
-    // println!("from_str target: {raw_string}");
+    from_str_with_mode(of, target, raw_string, raw_string_is_done, ParserMode::TypedStream)
+}
+
+/// Parse raw string to typed value with explicit parser mode selection
+pub fn from_str_with_mode(
+    of: &OutputFormatContent,
+    target: &TypeIR,
+    raw_string: &str,
+    raw_string_is_done: bool,
+    mode: ParserMode,
+) -> Result<BamlValueWithFlags> {
+    // Fast path for string target
     if matches!(target, TypeIR::Primitive(TypeValue::String, _)) {
         return Ok(BamlValueWithFlags::String(
             (raw_string.to_string(), target).into(),
         ));
     }
 
+    match mode {
+        ParserMode::TypedStream => {
+            // New typed stream parser: direct type-directed parsing
+            log::debug!("Using TypedStream parser");
+            typed_stream::parse(of, target, raw_string, !raw_string_is_done)
+        }
+        ParserMode::Legacy => {
+            // Legacy parser: jsonish::parse() + TypeIR::coerce()
+            from_str_legacy(of, target, raw_string, raw_string_is_done)
+        }
+    }
+}
+
+/// Legacy parser implementation
+fn from_str_legacy(
+    of: &OutputFormatContent,
+    target: &TypeIR,
+    raw_string: &str,
+    raw_string_is_done: bool,
+) -> Result<BamlValueWithFlags> {
     // When the schema is just a string, i should really just return the raw_string w/o parsing it.
     let value = jsonish::parse(
         raw_string,

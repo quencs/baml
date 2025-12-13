@@ -8,6 +8,8 @@ mod field_type;
 mod ir_ref;
 mod match_string;
 
+pub use field_type::validate_asserts;
+
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
