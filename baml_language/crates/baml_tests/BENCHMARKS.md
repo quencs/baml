@@ -42,6 +42,14 @@ Test compiler performance with large files.
 
 Complete, real-world BAML projects for end-to-end performance testing.
 
+**Current benchmarks:**
+- `integ_tests` - The full `integ-tests/baml_src` project (~120 files)
+
+**How it works:**
+- Each subdirectory contains a `project_path.txt` file pointing to the external project
+- The path is relative to the `baml_tests` crate directory
+- All `.baml` files in the project are discovered and compiled
+
 ## Adding New Benchmarks
 
 ### Adding an Incremental Benchmark
@@ -80,13 +88,27 @@ benches/scale/your_benchmark.baml
 
 ### Adding a Realistic Benchmark
 
-Create a complete project under `benches/realistic/`:
-```
-benches/realistic/your_app/
-├── models/
-├── functions/
-└── clients/
-```
+Realistic benchmarks can reference external BAML projects without copying files.
+
+1. Create a directory under `benches/realistic/`:
+   ```
+   benches/realistic/your_benchmark/
+   ```
+
+2. Add a `project_path.txt` file with the relative path to the project:
+   ```
+   ../../../path/to/your/baml_project
+   ```
+   The path is relative to the `baml_tests` crate directory.
+
+3. Optionally add a `description.md` explaining the benchmark:
+   ```
+   benches/realistic/your_benchmark/
+   ├── project_path.txt     # Required: path to project
+   └── description.md       # Optional: description
+   ```
+
+4. The build script will automatically discover all `.baml` files in the referenced project.
 
 ## Benchmark Implementation
 

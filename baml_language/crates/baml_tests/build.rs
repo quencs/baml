@@ -25,6 +25,8 @@ fn main() {
     // Watch the projects and benches directories for changes
     println!("cargo:rerun-if-changed=projects");
     println!("cargo:rerun-if-changed=benches");
+    // Also watch integ-tests/baml_src for the realistic benchmark
+    println!("cargo:rerun-if-changed=../../../integ-tests/baml_src");
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -88,6 +90,12 @@ fn generate_benchmarks(out_dir: &str, manifest_dir: &str) {
     let scale_dir = benches_dir.join("scale");
     if scale_dir.exists() {
         discover_scale_benchmarks(&scale_dir, &mut benchmarks);
+    }
+
+    // Discover realistic benchmarks (external project references)
+    let realistic_dir = benches_dir.join("realistic");
+    if realistic_dir.exists() {
+        discover_realistic_benchmarks(&realistic_dir, &mut benchmarks, manifest_dir);
     }
 
     let benchmark_fns: TokenStream = benchmarks.iter().map(generate_benchmark).collect();
@@ -697,6 +705,10 @@ enum Benchmark {
         name: String,
         path: PathBuf,
     },
+    Realistic {
+        name: String,
+        files: Vec<RealisticFile>,
+    },
 }
 
 fn discover_incremental_benchmarks(dir: &Path, benchmarks: &mut Vec<Benchmark>) {
@@ -785,6 +797,7 @@ fn generate_benchmark(benchmark: &Benchmark) -> TokenStream {
             delete_files,
         } => generate_incremental_benchmark(name, before_files, after_files, delete_files),
         Benchmark::Scale { name, path } => generate_scale_benchmark(name, path),
+        Benchmark::Realistic { name, files } => generate_realistic_benchmark(name, files),
     }
 }
 
@@ -896,6 +909,137 @@ fn generate_scale_benchmark(name: &str, path: &Path) -> TokenStream {
                 let mut db = RootDatabase::new();
                 let root = db.set_project_root(std::path::PathBuf::from("."));
                 db.add_file(#file_name, &content);
+                let _ = black_box(baml_hir::project_items(&db, root));
+            });
+        }
+    }
+}
+
+/// Realistic benchmark files with their absolute and relative paths.
+struct RealisticFile {
+    /// Absolute path for include_str!
+    absolute_path: PathBuf,
+    /// Relative path within the project for use in db.add_file
+    relative_path: PathBuf,
+}
+
+/// Discovers realistic benchmarks from the realistic/ directory.
+///
+/// Each subdirectory should contain a `project_path.txt` file pointing to
+/// an external project directory (relative to the manifest directory).
+fn discover_realistic_benchmarks(dir: &Path, benchmarks: &mut Vec<Benchmark>, manifest_dir: &str) {
+    for entry in fs::read_dir(dir).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+
+        if !path.is_dir() {
+            continue;
+        }
+
+        let project_path_file = path.join("project_path.txt");
+        if !project_path_file.exists() {
+            continue;
+        }
+
+        // Read the project path from the file
+        let project_path_content = fs::read_to_string(&project_path_file).unwrap();
+        let relative_project_path = project_path_content.trim();
+
+        // Resolve the project path relative to the manifest directory
+        let project_dir = Path::new(manifest_dir).join(relative_project_path);
+
+        if !project_dir.exists() {
+            eprintln!(
+                "Warning: Realistic benchmark '{}' points to non-existent path: {}",
+                path.display(),
+                project_dir.display()
+            );
+            continue;
+        }
+
+        // Watch the external project directory for changes
+        println!(
+            "cargo:rerun-if-changed={}",
+            project_dir.canonicalize().unwrap().display()
+        );
+
+        let name = path.file_name().unwrap().to_str().unwrap().to_string();
+        let files = collect_realistic_baml_files(&project_dir);
+
+        if !files.is_empty() {
+            benchmarks.push(Benchmark::Realistic { name, files });
+        }
+    }
+}
+
+/// Collects BAML files from a directory, preserving relative paths.
+fn collect_realistic_baml_files(dir: &Path) -> Vec<RealisticFile> {
+    let mut files = Vec::new();
+
+    for entry in WalkDir::new(dir) {
+        let entry = entry.unwrap();
+        let path = entry.path();
+
+        if path.extension().and_then(|s| s.to_str()) == Some("baml") {
+            let relative_path = path.strip_prefix(dir).unwrap().to_path_buf();
+            files.push(RealisticFile {
+                absolute_path: path.to_path_buf(),
+                relative_path,
+            });
+        }
+    }
+
+    files.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
+    files
+}
+
+/// Generates a benchmark for a realistic multi-file project.
+fn generate_realistic_benchmark(name: &str, files: &[RealisticFile]) -> TokenStream {
+    let fn_name = format_ident!("bench_realistic_{}", name.replace("-", "_"));
+
+    // Generate file includes for all files
+    let file_includes: TokenStream = files
+        .iter()
+        .enumerate()
+        .map(|(i, file)| {
+            let var_raw = format_ident!("file_{}_raw", i);
+            let var = format_ident!("file_{}", i);
+            let path_str = file.absolute_path.display().to_string();
+            let include_content = make_include_str(&path_str);
+            quote! {
+                let #var_raw = #include_content;
+                let #var = #var_raw.replace("\r\n", "\n");
+            }
+        })
+        .collect();
+
+    // Generate file loading statements
+    let file_loads: TokenStream = files
+        .iter()
+        .enumerate()
+        .map(|(i, file)| {
+            let var = format_ident!("file_{}", i);
+            // Use the relative path within the project
+            let rel_path = file.relative_path.display().to_string();
+            quote! {
+                db.add_file(#rel_path, &#var);
+            }
+        })
+        .collect();
+
+    quote! {
+        #[divan::bench]
+        fn #fn_name(bencher: divan::Bencher) {
+            #file_includes
+
+            bencher.bench_local(|| {
+                let mut db = RootDatabase::new();
+                let root = db.set_project_root(std::path::PathBuf::from("."));
+
+                // Load all files
+                #file_loads
+
+                // Full project compilation
                 let _ = black_box(baml_hir::project_items(&db, root));
             });
         }
