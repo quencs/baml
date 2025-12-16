@@ -106,18 +106,20 @@ cmd: "start" | "stop"
 When binding a union pattern, the bound variable retains the **exact union type**, not a collapsed/widened type:
 
 ```baml
-enum Status { Active, Inactive, Pending }
+class Success { data string }
+class Failure { reason string }
+class Pending { eta int }
 
-match (s) {
-  x: Status.Active | Status.Inactive => {
-    // x has type `Status.Active | Status.Inactive`, NOT `Status`
+match (result) {
+  x: Success | Failure => {
+    // x has type `Success | Failure`, NOT some supertype
     handle(x)
   }
-  _: Status.Pending => "pending"
+  _: Pending => "pending"
 }
 ```
 
-This preserves precision: you know exactly which variants `x` could be.
+This preserves precision: you know exactly which types `x` could be.
 
 ### Decision 6: Exhaustiveness via Untyped Binding
 
@@ -168,19 +170,21 @@ type_expr      := ... (existing type expression grammar)
 
 ### Pattern Forms
 
-| Pattern          | Matches                         | Binding                   | Example                     |
-| ---------------- | ------------------------------- | ------------------------- | --------------------------- |
-| `name`           | Anything                        | `name` bound to scrutinee | `other => use(other)`       |
-| `_`              | Anything                        | Discarded                 | `_ => "fallback"`           |
-| `name: Type`     | Values of type `T`              | `name` bound (narrowed)   | `s: Success => s.data`      |
-| `_: Type`        | Values of `T`                   | Discarded                 | `_: Failure => "failed"`    |
-| `null`           | `null` value                    | None                      | `null => "nothing"`         |
-| `true` / `false` | Boolean literal                 | None                      | `true => "yes"`             |
-| `42` / `3.14`    | Numeric literal                 | None                      | `200 => "OK"`               |
-| `"foo"`          | String literal                  | None                      | `"start" => "starting"`     |
-| `Enum.Variant`   | Enum variant (value equality)   | None                      | `Status.Active => "active"` |
-| `A \| B`         | Union of literals/enum variants | None                      | `200 \| 201 => "success"`   |
-| `x: A \| B`      | Union of types                  | `x` bound                 | `x: int \| bool => use(x)`  |
+| Pattern          | Matches                         | Binding                   | Example                                  |
+| ---------------- | ------------------------------- | ------------------------- | ---------------------------------------- |
+| `name`           | Anything                        | `name` bound to scrutinee | `other => use(other)`                    |
+| `_`              | Anything                        | Discarded                 | `_ => "fallback"`                        |
+| `name: Type`     | Values of type `T`              | `name` bound (narrowed)   | `s: Success => s.data`                   |
+| `_: Type`        | Values of type `T`              | Discarded                 | `_: Failure => "failed"`                 |
+| `null`           | `null` value                    | None                      | `null => "nothing"`                      |
+| `true` / `false` | Boolean literal                 | None                      | `true => "yes"`                          |
+| `42` / `3.14`    | Numeric literal                 | None                      | `200 => "OK"`                            |
+| `"foo"`          | String literal                  | None                      | `"start" => "starting"`                  |
+| `Enum.Variant`   | Enum variant (value equality)   | None                      | `Status.Active => "active"`              |
+| `A \| B`         | Union of literals/enum variants | None                      | `Status.Active \| Status.Pending => ...` |
+| `x: A \| B`      | Union of **types** (not values) | `x` bound                 | `x: Success \| Failure => ...`           |
+
+> **Note:** The `Type` after `:` must be an actual type (class, primitive, type alias), not an enum variant. Enum variants are values and must be matched directly without `:` binding.
 
 ### Precedence
 
@@ -435,6 +439,32 @@ match (x) {
 
 The following features are explicitly **deferred** for future consideration:
 
+### Enum Variants as Types
+
+Enum variants are **values**, not types. You cannot use them after `:` in a binding pattern:
+
+```baml
+enum Status { Active, Inactive, Pending }
+
+// ✗ NOT SUPPORTED — enum variants are not types:
+match (s) {
+  x: Status.Active => ...              // ERROR
+  x: Status.Active | Status.Pending => ...  // ERROR
+}
+
+// ✓ CORRECT — match variants as values directly:
+match (s) {
+  Status.Active => "active"
+  Status.Active | Status.Pending => "actionable"
+  Status.Inactive => "inactive"
+}
+
+// ✓ CORRECT — or bind the whole enum type:
+match (s) {
+  x: Status => "got status: " + x
+}
+```
+
 ### Destructuring (Phase 3 - Future)
 
 ```baml
@@ -543,28 +573,46 @@ other => "fallback"
 ### 2. Type Expressions vs Value Expressions
 
 After `:`, we parse a **type expression**, not a value expression. This means:
-- `s: Success` — `Success` is resolved as a type
-- `s: 200 | 201` — `200` and `201` are literal types (not values)
-- `s: Status.Active | Status.Inactive` — these are enum variant types
+- `s: Success` — `Success` is resolved as a type (class name)
+- `s: 200 | 201` — `200` and `201` are literal types
+- `s: Success | Failure` — union of class types
 
 Without the `:`, we have value patterns:
 - `200` — matches the integer value 200
 - `Status.Active` — matches the enum variant (via value equality)
 - `other` — binds to any value
 
-### 3. Enum Variants in Patterns
+### 3. Enum Variants Are Values, Not Types
 
-Enum variants can appear in two contexts:
+**Important distinction:** Enum variants like `Status.Active` are **values**, not types. You match them directly as value patterns:
 
 ```baml
-// As a bare pattern (value equality):
+// CORRECT: Enum variant as value pattern (no binding needed)
 Status.Active => "active"
+Status.Active | Status.Pending => "actionable"
 
-// As a type after `:` (type matching):
-s: Status.Active | Status.Inactive => use(s)
+// INCORRECT: Cannot use enum variant after `:` — it's not a type!
+// x: Status.Active => ...  // ✗ ERROR: Status.Active is a value, not a type
 ```
 
-Both are valid. The first checks value equality; the second does type narrowing and binding.
+To match an enum with binding, match the entire enum type and use guards:
+
+```baml
+enum Status { Active, Inactive, Pending }
+
+match (s) {
+  // Match specific variants as values (no binding):
+  Status.Active => "active"
+  Status.Inactive => "inactive"
+  Status.Pending => "pending"
+}
+
+// Or match the enum type with binding and use guards:
+match (s) {
+  x: Status if x == Status.Active => "active: " + x
+  _: Status => "other status"
+}
+```
 
 ### 4. Guards Don't Affect Exhaustiveness
 
@@ -603,13 +651,16 @@ if (expensiveCall() instanceof A) { ... }  // Wrong: multiple calls!
 When `x: A | B` matches, `x` has type `A | B`, not a supertype:
 
 ```baml
-enum Status { Active, Inactive, Pending }
+class Success { data string }
+class Failure { reason string }
+class Pending { eta int }
 
-match (s) {
-  x: Status.Active | Status.Inactive => {
-    // x: Status.Active | Status.Inactive
-    // NOT x: Status
+match (result) {
+  x: Success | Failure => {
+    // x has type: Success | Failure
+    // NOT some broader type
   }
+  _: Pending => "pending"
 }
 ```
 
