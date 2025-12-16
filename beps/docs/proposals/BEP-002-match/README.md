@@ -566,7 +566,7 @@ Status.Active => "active"
 Status.Active | Status.Pending => "actionable"
 
 // INCORRECT: Cannot use enum variant after `:` — it's not a type!
-// x: Status.Active => ...  // ✗ ERROR: Status.Active is a value, not a type
+// x: Status.Active => ...  // ERROR: Status.Active is a value, not a type
 ```
 
 To match an enum with binding, match the entire enum type and use guards:
