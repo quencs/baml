@@ -439,32 +439,6 @@ match (x) {
 
 The following features are explicitly **deferred** for future consideration:
 
-### Enum Variants as Types
-
-Enum variants are **values**, not types. You cannot use them after `:` in a binding pattern:
-
-```baml
-enum Status { Active, Inactive, Pending }
-
-// NOT SUPPORTED — enum variants are not types:
-match (s) {
-  x: Status.Active => ...              // ERROR
-  x: Status.Active | Status.Pending => ...  // ERROR
-}
-
-// CORRECT — match variants as values directly:
-match (s) {
-  Status.Active => "active"
-  Status.Active | Status.Pending => "actionable"
-  Status.Inactive => "inactive"
-}
-
-// CORRECT — or bind the whole enum type:
-match (s) {
-  x: Status => "got status: " + x
-}
-```
-
 ### Destructuring (Phase 3 - Future)
 
 ```baml
