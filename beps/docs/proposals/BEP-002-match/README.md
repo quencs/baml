@@ -168,19 +168,19 @@ type_expr      := ... (existing type expression grammar)
 
 ### Pattern Forms
 
-| Pattern          | Matches                       | Binding                   | Example                     |
-| ---------------- | ----------------------------- | ------------------------- | --------------------------- |
-| `name`           | Anything                      | `name` bound to scrutinee | `other => use(other)`       |
-| `_`              | Anything                      | Discarded                 | `_ => "fallback"`           |
-| `name: Type`     | Values of `Type`              | `name` bound (narrowed)   | `s: Success => s.data`      |
-| `_: Type`        | Values of `Type`              | Discarded                 | `_: Failure => "failed"`    |
-| `null`           | `null` value                  | None                      | `null => "nothing"`         |
-| `true` / `false` | Boolean literal               | None                      | `true => "yes"`             |
-| `42` / `3.14`    | Numeric literal               | None                      | `200 => "OK"`               |
-| `"foo"`          | String literal                | None                      | `"start" => "starting"`     |
-| `Enum.Variant`   | Enum variant (value equality) | None                      | `Status.Active => "active"` |
-| `A \| B`         | Union of literals/variants    | None                      | `200 \| 201 => "success"`   |
-| `x: A \| B`      | Union of types                | `x` bound                 | `x: int \| bool => use(x)`  |
+| Pattern          | Matches                         | Binding                   | Example                     |
+| ---------------- | ------------------------------- | ------------------------- | --------------------------- |
+| `name`           | Anything                        | `name` bound to scrutinee | `other => use(other)`       |
+| `_`              | Anything                        | Discarded                 | `_ => "fallback"`           |
+| `name: Type`     | Values of type `T`              | `name` bound (narrowed)   | `s: Success => s.data`      |
+| `_: Type`        | Values of `T`                   | Discarded                 | `_: Failure => "failed"`    |
+| `null`           | `null` value                    | None                      | `null => "nothing"`         |
+| `true` / `false` | Boolean literal                 | None                      | `true => "yes"`             |
+| `42` / `3.14`    | Numeric literal                 | None                      | `200 => "OK"`               |
+| `"foo"`          | String literal                  | None                      | `"start" => "starting"`     |
+| `Enum.Variant`   | Enum variant (value equality)   | None                      | `Status.Active => "active"` |
+| `A \| B`         | Union of literals/enum variants | None                      | `200 \| 201 => "success"`   |
+| `x: A \| B`      | Union of types                  | `x` bound                 | `x: int \| bool => use(x)`  |
 
 ### Precedence
 
@@ -230,6 +230,8 @@ function Classify(result: Result) -> string {
 ```
 
 **Important:** Guards do not contribute to exhaustiveness. A guarded pattern `s: Success if cond` does not cover all `Success` values. You must have an unguarded fallback.
+
+> **Scope note:** This is a simplification for the current proposal. Future versions may support smarter exhaustiveness analysis that recognizes complementary guards (e.g., `if x > 0` and `if x <= 0`) as covering all cases.
 
 ### Example 3: Enum Matching
 
@@ -338,7 +340,7 @@ The compiler performs exhaustiveness analysis to ensure all possible values are 
 1. **All cases must be covered** — either explicitly or via catch-all
 2. **Guarded arms don't guarantee coverage** — `s: T if cond` covers only a subset of `T`
 3. **Catch-all covers remaining cases** — an untyped binding (`_` or `name`) covers everything not yet matched
-4. **Order matters** — first matching arm wins; unreachable arms should warn
+4. **Order matters** — first matching arm wins; unreachable arms are a compile error
 
 ### Examples
 
@@ -364,7 +366,7 @@ match (x) {
   _: B => "b"
 }
 
-// WARNING: unreachable arm (B already covered by catch-all)
+// ERROR: unreachable arm (B already covered by catch-all)
 match (x) {
   _: A => "a"
   _ => "other"
@@ -489,7 +491,7 @@ Each `MATCH_ARM` contains:
 
 1. **Pattern type inference** — determine what type each pattern matches
 2. **Exhaustiveness analysis** — compute coverage, error on gaps
-3. **Unreachable arm detection** — warn on arms that can never match
+3. **Unreachable arm detection** — error on arms that can never match
 4. **Type narrowing** — narrow bound variable types within arms
 
 ### Codegen Changes
@@ -615,12 +617,12 @@ This requires the type checker to construct the exact union type from the patter
 
 ### 7. First-Match Semantics and Warnings
 
-Order matters. The compiler should warn on unreachable arms:
+Order matters. The compiler should error on unreachable arms:
 
 ```baml
 match (x) {
   _ => "catch all"
-  _: Success => "never reached"  // WARNING: unreachable
+  _: Success => "never reached"  // ERROR: unreachable
 }
 ```
 
