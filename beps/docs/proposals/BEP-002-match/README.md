@@ -2,9 +2,8 @@
 id: BEP-002
 title: "match"
 shepherds: hellovai <vbv@boundaryml.com>, rossirpaulo <rossir.paulo@gmail.com>
-status: Draft
+status: Accepted
 created: 2025-12-15
-feedback:
 ---
 
 The `match` expression in BAML provides exhaustive, type-safe pattern matching over union types, enums, and literal values. It enables declarative handling of different data shapes while ensuring at compile time that all cases are covered.
