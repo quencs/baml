@@ -446,20 +446,20 @@ Enum variants are **values**, not types. You cannot use them after `:` in a bind
 ```baml
 enum Status { Active, Inactive, Pending }
 
-// ✗ NOT SUPPORTED — enum variants are not types:
+// NOT SUPPORTED — enum variants are not types:
 match (s) {
   x: Status.Active => ...              // ERROR
   x: Status.Active | Status.Pending => ...  // ERROR
 }
 
-// ✓ CORRECT — match variants as values directly:
+// CORRECT — match variants as values directly:
 match (s) {
   Status.Active => "active"
   Status.Active | Status.Pending => "actionable"
   Status.Inactive => "inactive"
 }
 
-// ✓ CORRECT — or bind the whole enum type:
+// CORRECT — or bind the whole enum type:
 match (s) {
   x: Status => "got status: " + x
 }
