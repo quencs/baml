@@ -25,6 +25,9 @@ mod baml_project;
 mod baml_source_file;
 mod baml_text_size;
 
+// New baml_language compiler infrastructure integration
+pub mod lsp_db;
+
 pub(crate) const SERVER_NAME: &str = "baml-lsp";
 pub(crate) const DIAGNOSTIC_NAME: &str = "BAML";
 

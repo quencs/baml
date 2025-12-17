@@ -40,7 +40,7 @@ impl Default for BamlSettings {
         BamlSettings {
             cli_path: None,
             generate_code_on_save: None,
-            feature_flags: Some(vec!["beta".to_string()]),
+            feature_flags: default_feature_flags(),
             client_version: None,
             enable_playground_proxy: Some(true),
             lsp_methods_to_forward_to_webview: None,
@@ -59,10 +59,23 @@ impl BamlSettings {
     pub fn get_client_version(&self) -> Option<&str> {
         self.client_version.as_ref().map(AsRef::as_ref)
     }
+
+    /// Check if a specific feature flag is enabled.
+    pub fn has_feature(&self, flag: &str) -> bool {
+        self.feature_flags
+            .as_ref()
+            .is_some_and(|flags| flags.iter().any(|f| f == flag))
+    }
+
+    /// Check if the new Salsa-based LSP infrastructure should be used.
+    /// Enabled when `--features beta` is passed or `"beta"` is in feature flags.
+    pub fn use_new_lsp(&self) -> bool {
+        self.has_feature("beta")
+    }
 }
 
 fn default_feature_flags() -> Option<Vec<String>> {
-    Some(vec!["beta".to_string()])
+    None
 }
 
 /// This is a direct representation of the settings schema sent by the client.

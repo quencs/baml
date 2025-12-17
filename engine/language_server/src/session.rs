@@ -24,6 +24,7 @@ pub use self::{
 use crate::{
     baml_project::{file_utils::find_top_level_parent, BamlProject, Project},
     edit::{DocumentKey, DocumentVersion},
+    lsp_db::LspDatabase,
     server::client::Notifier,
 };
 // use crate::system::{url_to_any_system_path, AnySystemPath, LSPSystem};
@@ -44,6 +45,10 @@ pub struct Session {
     /// Maps baml_src directories to their respective project databases.
     pub baml_src_projects: Arc<Mutex<HashMap<PathBuf, Arc<Mutex<Project>>>>>,
 
+    /// New Salsa-based LSP databases (one per project root).
+    /// Used when `salsa-lsp` feature flag is enabled.
+    pub lsp_databases: Arc<Mutex<HashMap<PathBuf, Arc<Mutex<LspDatabase>>>>>,
+
     /// The global position encoding, negotiated during LSP initialization.
     pub position_encoding: PositionEncoding,
     /// Tracks what LSP features the client supports and doesn't support.
@@ -60,6 +65,7 @@ impl Clone for Session {
         Self {
             index: self.index.clone(),
             baml_src_projects: self.baml_src_projects.clone(),
+            lsp_databases: self.lsp_databases.clone(),
             position_encoding: self.position_encoding,
             resolved_client_capabilities: self.resolved_client_capabilities.clone(),
             baml_settings: self.baml_settings.clone(),
@@ -112,6 +118,7 @@ impl Session {
         Ok(Self {
             position_encoding,
             baml_src_projects: Arc::new(Mutex::new(projects)),
+            lsp_databases: Arc::new(Mutex::new(HashMap::new())),
             index: Arc::new(Mutex::new(index)),
             resolved_client_capabilities: Arc::new(ResolvedClientCapabilities::new(
                 client_capabilities,
@@ -208,6 +215,35 @@ impl Session {
         // Insert and return the new project
         projects.insert(baml_src_root_path, new_project.clone());
         Ok(new_project)
+    }
+
+    /// Gets or creates an LspDatabase for the given path.
+    ///
+    /// This is used when the `salsa-lsp` feature flag is enabled.
+    /// Returns None if no baml_src directory could be found for the path.
+    pub fn get_or_create_lsp_database(
+        &self,
+        path: impl AsRef<Path> + std::fmt::Debug,
+    ) -> Result<Arc<Mutex<LspDatabase>>, NotInBamlSrc> {
+        let baml_src_root_path = find_top_level_parent(path.as_ref()).ok_or(NotInBamlSrc)?;
+
+        let mut databases = self.lsp_databases.lock();
+
+        if let Some(db) = databases.get(&baml_src_root_path) {
+            return Ok(db.clone());
+        }
+
+        tracing::info!(
+            "Creating new LspDatabase for baml_src: {:?}",
+            baml_src_root_path
+        );
+
+        let mut new_db = LspDatabase::new();
+        new_db.set_project_root(&baml_src_root_path);
+
+        let new_db = Arc::new(Mutex::new(new_db));
+        databases.insert(baml_src_root_path, new_db.clone());
+        Ok(new_db)
     }
 
     pub fn print_baml_projects(&self) {

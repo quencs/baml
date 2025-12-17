@@ -21,9 +21,26 @@ pub enum CompilerError<Ty> {
     NameError(NameError),
 }
 
-pub struct ErrorCode(u32);
+/// Error codes identify specific error types for documentation and tooling.
+/// Formatted as E0001, E0002, etc.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ErrorCode(pub u32);
 
-/// Error codes are formated like E0001, (E followed by a number padded to 4 digits).
+impl ErrorCode {
+    pub const TYPE_MISMATCH: ErrorCode = ErrorCode(1);
+    pub const UNKNOWN_TYPE: ErrorCode = ErrorCode(2);
+    pub const UNKNOWN_VARIABLE: ErrorCode = ErrorCode(3);
+    pub const INVALID_OPERATOR: ErrorCode = ErrorCode(4);
+    pub const ARGUMENT_COUNT_MISMATCH: ErrorCode = ErrorCode(5);
+    pub const NOT_CALLABLE: ErrorCode = ErrorCode(6);
+    pub const NO_SUCH_FIELD: ErrorCode = ErrorCode(7);
+    pub const NOT_INDEXABLE: ErrorCode = ErrorCode(8);
+    pub const UNEXPECTED_EOF: ErrorCode = ErrorCode(9);
+    pub const UNEXPECTED_TOKEN: ErrorCode = ErrorCode(10);
+    pub const DUPLICATE_NAME: ErrorCode = ErrorCode(11);
+}
+
+/// Error codes are formatted like E0001, (E followed by a number padded to 4 digits).
 impl std::fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "E{:04}", self.0)
