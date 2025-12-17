@@ -807,7 +807,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
 
                 // If all arms have the same type, use that; otherwise union
                 if arm_types.iter().all(|t| t == &arm_types[0]) {
-                    arm_types.into_iter().next().unwrap()
+                    arm_types.into_iter().next().unwrap_or(Ty::Unknown)
                 } else {
                     Ty::Union(arm_types)
                 }
