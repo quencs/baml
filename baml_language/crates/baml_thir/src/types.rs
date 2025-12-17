@@ -61,6 +61,34 @@ impl Ty<'_> {
         matches!(self, Ty::Unknown)
     }
 
+    /// Check if this type is uninhabited (has no possible values).
+    ///
+    /// An empty match on an uninhabited type is actually correct and exhaustive—there are
+    /// no cases to handle because there are no possible values.
+    ///
+    /// Currently handled cases:
+    /// - `Ty::Unknown` and `Ty::Error`: Treated as uninhabited for error recovery
+    ///   (we don't want to emit additional errors when type inference already failed)
+    /// - `Ty::Union(vec![])`: An empty union has no members, so no values
+    ///
+    /// Possible future cases to consider:
+    /// - Zero-variant enums: `Ty::Enum(id)` where the enum has no variants defined
+    ///   (would require access to the database to check variant count)
+    /// - Recursive uninhabited types: e.g., `List<Never>` is inhabited (by empty list),
+    ///   but some recursive structures could be uninhabited
+    /// - Intersection of incompatible types (if the type system supports intersections)
+    pub fn is_uninhabited(&self) -> bool {
+        match self {
+            // Error recovery: don't emit additional errors when type inference failed
+            Ty::Unknown | Ty::Error => true,
+            // Empty union has no members, therefore no possible values
+            Ty::Union(types) => types.is_empty(),
+            // All other types are inhabited
+            // TODO: Check for zero-variant enums (requires db access)
+            _ => false,
+        }
+    }
+
     /// Check if this type is a primitive type.
     pub fn is_primitive(&self) -> bool {
         matches!(self, Ty::Int | Ty::Float | Ty::String | Ty::Bool | Ty::Null)
@@ -256,5 +284,28 @@ mod tests {
             Ty::<'_>::Union(vec![Ty::Int, Ty::String]).to_string(),
             "int | string"
         );
+    }
+
+    #[test]
+    fn test_is_uninhabited() {
+        // Unknown and Error are treated as uninhabited for error recovery
+        assert!(Ty::<'_>::Unknown.is_uninhabited());
+        assert!(Ty::<'_>::Error.is_uninhabited());
+
+        // Empty union is uninhabited (no possible values)
+        assert!(Ty::<'_>::Union(vec![]).is_uninhabited());
+
+        // Non-empty union is inhabited
+        assert!(!Ty::<'_>::Union(vec![Ty::Int]).is_uninhabited());
+        assert!(!Ty::<'_>::Union(vec![Ty::Int, Ty::String]).is_uninhabited());
+
+        // Regular types are inhabited
+        assert!(!Ty::<'_>::Int.is_uninhabited());
+        assert!(!Ty::<'_>::String.is_uninhabited());
+        assert!(!Ty::<'_>::Bool.is_uninhabited());
+        assert!(!Ty::<'_>::Null.is_uninhabited());
+        assert!(!Ty::<'_>::Void.is_uninhabited());
+        assert!(!Ty::<'_>::List(Box::new(Ty::Int)).is_uninhabited());
+        assert!(!Ty::<'_>::Optional(Box::new(Ty::Int)).is_uninhabited());
     }
 }
