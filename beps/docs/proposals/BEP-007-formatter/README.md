@@ -87,6 +87,7 @@ Future versions may allow configuration through a `.bamlformat` file or similar.
 
 ### Integration
 The formatter will be accessible through:
+
 - A `baml fmt` (`format` will also work) CLI command for formatting files or directories
 - LSP integration for format-on-save in editors
 - A `--check` flag for CI/CD to verify code is formatted
