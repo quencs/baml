@@ -1,44 +1,6 @@
 ---
-source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
+source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
-  [type] Error: Expected int, found void
-   ╭─[ 0:1:1 ]
-   │
- 1 │ function Calculate() -> int {
-   │ │ 
-   │ ╰─ Expected int, found void
-   │ 
-   │ Note: Error code: E0001
-───╯
-
-  [type] Error: Expected string, found void
-   ╭─[ 0:1:1 ]
-   │
- 1 │ function Calculate() -> int {
-   │ │ 
-   │ ╰─ Expected string, found void
-   │ 
-   │ Note: Error code: E0001
-───╯
-
-  [type] Error: Expected string, found void
-   ╭─[ 0:1:1 ]
-   │
- 1 │ function Calculate() -> int {
-   │ │ 
-   │ ╰─ Expected string, found void
-   │ 
-   │ Note: Error code: E0001
-───╯
-
-  [type] Error: Expected bool, found void
-   ╭─[ 0:1:1 ]
-   │
- 1 │ function Calculate() -> int {
-   │ │ 
-   │ ╰─ Expected bool, found void
-   │ 
-   │ Note: Error code: E0001
-───╯
+No errors found.

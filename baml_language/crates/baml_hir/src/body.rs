@@ -176,21 +176,18 @@ pub enum Stmt {
     },
 
     /// While loop: `while (condition) { body }`
-    While { condition: ExprId, body: ExprId },
-
-    /// For loop (iterator-style): `for (let i in items) { body }`
-    ForIn {
-        pattern: PatId,
-        iterator: ExprId,
+    ///
+    /// The `origin` field tracks whether this loop was written directly
+    /// by the user or desugared from a for loop.
+    ///
+    /// The optional `after` statement runs after each iteration (including on `continue`).
+    /// This is used to desugar C-style for loops: `for (init; cond; update)`.
+    While {
+        condition: ExprId,
         body: ExprId,
-    },
-
-    /// For loop (C-style): `for (let i = 0; i < 10; i += 1) { body }`
-    ForCStyle {
-        initializer: Option<StmtId>,
-        condition: Option<ExprId>,
-        update: Option<StmtId>,
-        body: ExprId,
+        /// Optional statement to run after each iteration (for C-style for loops' update).
+        after: Option<StmtId>,
+        origin: LoopOrigin,
     },
 
     /// Return statement: `return "minor";`
@@ -214,6 +211,18 @@ pub enum Stmt {
 
     /// Missing/error statement
     Missing,
+}
+
+/// Indicates where a loop construct originated from.
+///
+/// This is used to provide better error messages for desugared constructs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LoopOrigin {
+    /// User wrote a `while` loop directly
+    #[default]
+    While,
+    /// Desugared from a `for-in` loop
+    ForLoop,
 }
 
 /// Compound assignment operators.
@@ -290,11 +299,24 @@ impl FunctionBody {
     ///
     /// The CST already tells us if it's LLM or Expr via node type!
     pub fn lower(func_node: &baml_syntax::ast::FunctionDef) -> Arc<FunctionBody> {
+        // Collect parameter names to add to scope
+        let param_names: Vec<String> = func_node
+            .param_list()
+            .map(|pl| {
+                pl.params()
+                    .filter_map(|p| p.name().map(|n| n.text().to_string()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
         // Check which body type we have
         if let Some(llm_body) = func_node.llm_body() {
             Arc::new(FunctionBody::Llm(Self::lower_llm_body(&llm_body)))
         } else if let Some(expr_body) = func_node.expr_body() {
-            Arc::new(FunctionBody::Expr(Self::lower_expr_body(&expr_body)))
+            Arc::new(FunctionBody::Expr(Self::lower_expr_body(
+                &expr_body,
+                &param_names,
+            )))
         } else {
             Arc::new(FunctionBody::Missing)
         }
@@ -377,8 +399,16 @@ impl FunctionBody {
         interpolations
     }
 
-    fn lower_expr_body(expr_body: &baml_syntax::ast::ExprFunctionBody) -> ExprBody {
+    fn lower_expr_body(
+        expr_body: &baml_syntax::ast::ExprFunctionBody,
+        param_names: &[String],
+    ) -> ExprBody {
         let mut ctx = LoweringContext::new();
+
+        // Add function parameters to scope so gensym avoids them
+        for name in param_names {
+            ctx.add_name_to_scope(name);
+        }
 
         // The EXPR_FUNCTION_BODY contains a BLOCK_EXPR as its child
         // which contains all the statements and expressions
@@ -396,6 +426,8 @@ struct LoweringContext {
     exprs: Arena<Expr>,
     stmts: Arena<Stmt>,
     patterns: Arena<Pattern>,
+    /// All names used in this function, for generating unique synthetic variable names.
+    names_in_scope: std::collections::HashSet<String>,
 
     // Span tracking
     expr_spans: FxHashMap<ExprId, TextRange>,
@@ -409,6 +441,7 @@ impl LoweringContext {
             exprs: Arena::new(),
             stmts: Arena::new(),
             patterns: Arena::new(),
+            names_in_scope: std::collections::HashSet::new(),
             expr_spans: FxHashMap::default(),
             stmt_spans: FxHashMap::default(),
             pattern_spans: FxHashMap::default(),
@@ -443,6 +476,38 @@ impl LoweringContext {
             stmt_spans: self.stmt_spans,
             pattern_spans: self.pattern_spans,
         }
+    }
+
+    /// Generate a unique variable name for desugaring.
+    ///
+    /// Tries readable names first, then adds numeric suffixes if needed:
+    /// - First tries `_iter`, then `_iter1`, `_iter2`, ...
+    /// - First tries `_len`, then `_len1`, `_len2`, ...
+    /// - First tries `_i`, then `_i1`, `_i2`, ...
+    fn gensym(&mut self, prefix: &str) -> Name {
+        let base = format!("_{prefix}");
+
+        // First try without a number
+        if !self.names_in_scope.contains(&base) {
+            self.names_in_scope.insert(base.clone());
+            return Name::new(&base);
+        }
+
+        // Then try with incrementing numbers
+        let mut counter = 1;
+        loop {
+            let name = format!("{base}{counter}");
+            if !self.names_in_scope.contains(&name) {
+                self.names_in_scope.insert(name.clone());
+                return Name::new(&name);
+            }
+            counter += 1;
+        }
+    }
+
+    /// Add a user-defined name to the set of known names.
+    fn add_name_to_scope(&mut self, name: &str) {
+        self.names_in_scope.insert(name.to_string());
     }
 
     fn lower_block_expr(&mut self, block: &baml_syntax::ast::BlockExpr) -> ExprId {
@@ -886,6 +951,7 @@ impl LoweringContext {
                                 | SyntaxKind::IF_EXPR
                                 | SyntaxKind::BLOCK_EXPR
                                 | SyntaxKind::PAREN_EXPR
+                                | SyntaxKind::ARRAY_LITERAL
                         ) {
                             args.push(self.lower_expr(&child));
                         }
@@ -974,6 +1040,7 @@ impl LoweringContext {
                                             | SyntaxKind::IF_EXPR
                                             | SyntaxKind::BLOCK_EXPR
                                             | SyntaxKind::PAREN_EXPR
+                                            | SyntaxKind::ARRAY_LITERAL
                                     ) {
                                         args.push(self.lower_expr(&child_node));
                                     }
@@ -1136,7 +1203,24 @@ impl LoweringContext {
     }
 
     fn lower_string_literal(&mut self, node: &baml_syntax::SyntaxNode) -> ExprId {
-        let text = node.text().to_string();
+        use baml_syntax::SyntaxKind;
+
+        // Find the actual STRING_LITERAL or RAW_STRING_LITERAL token inside the node.
+        // This avoids including trivia/whitespace that might be part of the node's text span.
+        let text = node
+            .children_with_tokens()
+            .filter_map(baml_syntax::NodeOrToken::into_token)
+            .find(|t| {
+                matches!(
+                    t.kind(),
+                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL
+                )
+            })
+            .map(|t| t.text().to_string())
+            .unwrap_or_else(|| {
+                // Fallback: trim the node text to remove surrounding trivia
+                node.text().to_string().trim().to_string()
+            });
 
         // Strip quotes
         let content = if text.starts_with("#\"") && text.ends_with("\"#") {
@@ -1378,8 +1462,10 @@ impl LoweringContext {
             .as_ref()
             .and_then(baml_syntax::LetStmt::name)
             .map(|token| {
-                let name = Name::new(token.text());
-                self.alloc_pattern(Pattern::Binding(name), token.text_range())
+                let name_str = token.text();
+                self.add_name_to_scope(name_str);
+                let name = Name::new(name_str);
+                self.patterns.alloc(Pattern::Binding(name))
             })
             .unwrap_or_else(|| {
                 self.alloc_pattern(
@@ -1533,7 +1619,12 @@ impl LoweringContext {
             .map(|block| self.lower_block_expr(&block))
             .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
 
-        self.alloc_stmt(Stmt::While { condition, body }, node.text_range())
+        self.stmts.alloc(Stmt::While {
+            condition,
+            body,
+            after: None,
+            origin: LoopOrigin::While,
+        })
     }
 
     fn lower_for_stmt(&mut self, node: &baml_syntax::SyntaxNode) -> StmtId {
@@ -1544,84 +1635,396 @@ impl LoweringContext {
             return self.alloc_stmt(Stmt::Missing, node.text_range());
         };
 
-        // Get the body (common to both styles)
-        let body = for_expr
-            .body()
-            .map(|block| self.lower_block_expr(&block))
-            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
-
+        // Note: We pass the body AST node to desugar functions, which will:
+        // 1. Generate their synthetic names FIRST (claiming _iter, _len, _i)
+        // 2. THEN lower the body (inner loops will get _iter1, etc.)
+        // This ensures outer loops get simpler names than inner loops.
         if for_expr.is_iterator_style() {
             // Iterator-style: for (let i in items) { ... }
-            let pattern = for_expr
-                .let_stmt()
-                .and_then(|let_stmt| let_stmt.name())
-                .map(|name| {
-                    let span = name.text_range();
-                    let name = crate::Name::new(name.text());
-                    self.alloc_pattern(Pattern::Binding(name), span)
-                })
-                .or_else(|| {
-                    // Fallback to simple loop variable without let
-                    for_expr.loop_var().map(|name| {
-                        let span = name.text_range();
-                        let name = crate::Name::new(name.text());
-                        self.alloc_pattern(Pattern::Binding(name), span)
-                    })
-                })
-                .unwrap_or_else(|| {
-                    self.alloc_pattern(Pattern::Binding(crate::Name::new("_")), node.text_range())
-                });
-
-            let iterator = for_expr
-                .iterator()
-                .map(|n| self.lower_expr(&n))
-                .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
-
-            self.alloc_stmt(
-                Stmt::ForIn {
-                    pattern,
-                    iterator,
-                    body,
-                },
-                node.text_range(),
-            )
+            // Desugar into a while loop
+            self.desugar_for_in(&for_expr)
         } else {
             // C-style: for (let i = 0; i < 10; i += 1) { ... }
-            let initializer = for_expr
-                .let_stmt()
-                .map(|let_stmt| self.lower_let_stmt(let_stmt.syntax()));
-
-            // Get condition as expression node, or fall back to bare token
-            let condition = for_expr
-                .condition()
-                .map(|n| self.lower_expr(&n))
-                .or_else(|| {
-                    for_expr.condition_token().map(|token| {
-                        // Lower bare token to expression
-                        self.lower_bare_token(&token)
-                    })
-                });
-
-            // The update may be an assignment (i += 1) or a plain expression (f()).
-            // Try to lower as assignment first, otherwise wrap as Stmt::Expr.
-            let update = for_expr.update().map(|n| {
-                if let Some(assign_stmt) = self.try_lower_assignment(&n) {
-                    assign_stmt
-                } else {
-                    let expr = self.lower_expr(&n);
-                    self.alloc_stmt(Stmt::Expr(expr), n.text_range())
-                }
-            });
-
-            self.alloc_stmt(
-                Stmt::ForCStyle {
-                    initializer,
-                    condition,
-                    update,
-                    body,
-                },
-                node.text_range(),
-            )
+            // Desugar into a while loop
+            self.desugar_c_style_for(&for_expr)
         }
+    }
+
+    /// Desugar a C-style `for (init; cond; update) { body }` loop into a while loop.
+    ///
+    /// The transformation is:
+    /// ```text
+    /// for (init; cond; update) { body }
+    /// ```
+    /// becomes:
+    /// ```text
+    /// {
+    ///     init;
+    ///     while (cond) {
+    ///         body
+    ///         // after: update (runs even on continue)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// If there's no condition, it becomes `while (true)` (infinite loop).
+    fn desugar_c_style_for(&mut self, for_expr: &baml_syntax::ast::ForExpr) -> StmtId {
+        // 1. Lower the initializer (if present)
+        let initializer = for_expr
+            .let_stmt()
+            .map(|let_stmt| self.lower_let_stmt(let_stmt.syntax()));
+
+        // 2. Lower the condition, or default to `true` for infinite loop
+        let condition = for_expr
+            .condition()
+            .map(|n| self.lower_expr(&n))
+            .or_else(|| {
+                for_expr
+                    .condition_token()
+                    .map(|token| self.lower_bare_token(&token))
+            })
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Literal(Literal::Bool(true))));
+
+        // 3. Get the update AST node (we'll lower it multiple times as needed)
+        let update_ast = for_expr.update();
+
+        // 4. Lower the body AFTER processing init/condition/update
+        // This ensures outer loops' synthetic names are claimed before inner loops
+        let user_body = for_expr
+            .body()
+            .map(|block| self.lower_block_expr(&block))
+            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, for_expr.syntax().text_range()));
+
+        // 5. Create the while loop body
+        // If there's an update, we need to:
+        // a) Transform all `continue` in the body to `{ update; continue; }`
+        // b) Add the update at the end of the body
+        let while_body = if let Some(ref update_node) = update_ast {
+            // Transform continues to include the update (re-lowers the AST each time)
+            let transformed_body =
+                self.transform_continues_in_expr_with_update(user_body, update_node);
+            // Lower the update for the end of body
+            let after_at_end = self.lower_update_stmt(update_node);
+            // If the body is already a block, flatten its statements into the new block
+            // to avoid unnecessary nesting like `{ { body }; update; }`
+            if let Expr::Block { stmts, tail_expr } = &self.exprs[transformed_body] {
+                let mut new_stmts = stmts.clone();
+                // If there's a tail expression, convert it to a statement first
+                if let Some(tail) = tail_expr {
+                    new_stmts.push(self.stmts.alloc(Stmt::Expr(*tail)));
+                }
+                new_stmts.push(after_at_end);
+                self.exprs.alloc(Expr::Block {
+                    stmts: new_stmts,
+                    tail_expr: None,
+                })
+            } else {
+                // Body is not a block, wrap it
+                let body_stmt = self.stmts.alloc(Stmt::Expr(transformed_body));
+                self.exprs.alloc(Expr::Block {
+                    stmts: vec![body_stmt, after_at_end],
+                    tail_expr: None,
+                })
+            }
+        } else {
+            // No update - just use the body as-is (it's typically already a block)
+            user_body
+        };
+
+        let while_stmt = self.stmts.alloc(Stmt::While {
+            condition,
+            body: while_body,
+            after: None,
+            origin: LoopOrigin::ForLoop,
+        });
+
+        // 5. Wrap in outer block with initializer
+        let mut outer_stmts = Vec::new();
+        if let Some(init) = initializer {
+            outer_stmts.push(init);
+        }
+        outer_stmts.push(while_stmt);
+
+        let outer_block = self.exprs.alloc(Expr::Block {
+            stmts: outer_stmts,
+            tail_expr: None,
+        });
+
+        self.stmts.alloc(Stmt::Expr(outer_block))
+    }
+
+    /// Lower an update expression AST node to a statement.
+    fn lower_update_stmt(&mut self, update_node: &baml_syntax::SyntaxNode) -> StmtId {
+        if let Some(assign_stmt) = self.try_lower_assignment(update_node) {
+            assign_stmt
+        } else {
+            let expr = self.lower_expr(update_node);
+            self.stmts.alloc(Stmt::Expr(expr))
+        }
+    }
+
+    /// Transform an expression, replacing all `continue` statements with
+    /// `{ update; continue; }` by re-lowering the update AST each time.
+    fn transform_continues_in_expr_with_update(
+        &mut self,
+        expr_id: ExprId,
+        update_ast: &baml_syntax::SyntaxNode,
+    ) -> ExprId {
+        let expr = self.exprs[expr_id].clone();
+        let new_expr = match expr {
+            Expr::Block { stmts, tail_expr } => {
+                let new_stmts = stmts
+                    .iter()
+                    .map(|s| self.transform_continues_in_stmt_with_update(*s, update_ast))
+                    .collect();
+                let new_tail =
+                    tail_expr.map(|e| self.transform_continues_in_expr_with_update(e, update_ast));
+                Expr::Block {
+                    stmts: new_stmts,
+                    tail_expr: new_tail,
+                }
+            }
+            Expr::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let new_then =
+                    self.transform_continues_in_expr_with_update(then_branch, update_ast);
+                let new_else = else_branch
+                    .map(|e| self.transform_continues_in_expr_with_update(e, update_ast));
+                Expr::If {
+                    condition,
+                    then_branch: new_then,
+                    else_branch: new_else,
+                }
+            }
+            // Other expressions don't contain statements
+            _ => return expr_id, // Return original, no transformation needed
+        };
+        self.exprs.alloc(new_expr)
+    }
+
+    /// Transform a statement, replacing `continue` with `{ update; continue; }`.
+    fn transform_continues_in_stmt_with_update(
+        &mut self,
+        stmt_id: StmtId,
+        update_ast: &baml_syntax::SyntaxNode,
+    ) -> StmtId {
+        // Clone the statement to avoid borrow checker issues when calling mutable methods
+        let stmt = self.stmts[stmt_id].clone();
+        match stmt {
+            Stmt::Continue => {
+                // Replace continue with { update; continue; }
+                let update_stmt = self.lower_update_stmt(update_ast);
+                let continue_stmt = self.stmts.alloc(Stmt::Continue);
+                let block = self.exprs.alloc(Expr::Block {
+                    stmts: vec![update_stmt, continue_stmt],
+                    tail_expr: None,
+                });
+                self.stmts.alloc(Stmt::Expr(block))
+            }
+            Stmt::Expr(expr_id) => {
+                let new_expr = self.transform_continues_in_expr_with_update(expr_id, update_ast);
+                if new_expr == expr_id {
+                    stmt_id // No change
+                } else {
+                    self.stmts.alloc(Stmt::Expr(new_expr))
+                }
+            }
+            Stmt::While { .. } => {
+                // Don't transform inside nested loops - their continues refer to the inner loop
+                stmt_id
+            }
+            // Other statements don't contain continues
+            _ => stmt_id,
+        }
+    }
+
+    /// Desugar a `for (let x in arr) { body }` loop into a while loop.
+    ///
+    /// The transformation is:
+    /// ```text
+    /// for (let x in arr) { body }
+    /// ```
+    /// becomes:
+    /// ```text
+    /// {
+    ///     let _arr_N = arr;
+    ///     let _len_N = _arr_N.length();
+    ///     let _i_N = 0;
+    ///     while (_i_N < _len_N) {
+    ///         let x = _arr_N[_i_N];
+    ///         _i_N += 1;
+    ///         body
+    ///     }
+    /// }
+    /// ```
+    fn desugar_for_in(&mut self, for_expr: &baml_syntax::ast::ForExpr) -> StmtId {
+        // Generate unique names for synthetic variables FIRST
+        // This ensures outer loops claim _iter, _len, _i before inner loops
+        let arr_name = self.gensym("iter");
+        let len_name = self.gensym("len");
+        let idx_name = self.gensym("i");
+
+        // Now lower the body - inner for-loops will get _iter1, _len1, _i1, etc.
+        let user_body = for_expr
+            .body()
+            .map(|block| self.lower_block_expr(&block))
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        // 1. let _arr_N = <iterator>
+        // First try to get iterator as a child node (for complex expressions like arrays, calls, etc.)
+        // If not found, look for a bare WORD token (simple identifier like `xs`)
+        let iterator_expr = for_expr
+            .iterator()
+            .map(|n| self.lower_expr(&n))
+            .or_else(|| {
+                // Look for a bare WORD token after 'in' keyword
+                // The iterator could be a simple identifier that wasn't wrapped in a node
+                use baml_syntax::SyntaxKind;
+                let mut seen_in = false;
+                for element in for_expr.syntax().children_with_tokens() {
+                    match element {
+                        baml_syntax::NodeOrToken::Token(token) => {
+                            if token.kind() == SyntaxKind::KW_IN {
+                                seen_in = true;
+                            } else if seen_in && token.kind() == SyntaxKind::WORD {
+                                // Found the iterator identifier
+                                return Some(
+                                    self.exprs.alloc(Expr::Path(vec![Name::new(token.text())])),
+                                );
+                            }
+                        }
+                        baml_syntax::NodeOrToken::Node(_) => {}
+                    }
+                }
+                None
+            })
+            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+
+        let arr_pat = self.patterns.alloc(Pattern::Binding(arr_name.clone()));
+        let arr_let = self.stmts.alloc(Stmt::Let {
+            pattern: arr_pat,
+            type_annotation: None,
+            type_span: None,
+            initializer: Some(iterator_expr),
+        });
+
+        // 2. let _len_N = _arr_N.length()
+        // This is a method call: FieldAccess followed by Call with no arguments.
+        // The typechecker will resolve `length` as a method on arrays.
+        let arr_ref = self.exprs.alloc(Expr::Path(vec![arr_name.clone()]));
+        let length_method = self.exprs.alloc(Expr::FieldAccess {
+            base: arr_ref,
+            field: Name::new("length"),
+        });
+        let length_call = self.exprs.alloc(Expr::Call {
+            callee: length_method,
+            args: vec![],
+        });
+        let len_pat = self.patterns.alloc(Pattern::Binding(len_name.clone()));
+        let len_let = self.stmts.alloc(Stmt::Let {
+            pattern: len_pat,
+            type_annotation: None,
+            type_span: None,
+            initializer: Some(length_call),
+        });
+
+        // 3. let _i_N = 0
+        let zero = self.exprs.alloc(Expr::Literal(Literal::Int(0)));
+        let idx_pat = self.patterns.alloc(Pattern::Binding(idx_name.clone()));
+        let idx_let = self.stmts.alloc(Stmt::Let {
+            pattern: idx_pat,
+            type_annotation: None,
+            type_span: None,
+            initializer: Some(zero),
+        });
+
+        // 4. Condition: _i_N < _len_N
+        let idx_ref = self.exprs.alloc(Expr::Path(vec![idx_name.clone()]));
+        let len_ref = self.exprs.alloc(Expr::Path(vec![len_name]));
+        let condition = self.exprs.alloc(Expr::Binary {
+            op: BinaryOp::Lt,
+            lhs: idx_ref,
+            rhs: len_ref,
+        });
+
+        // 5. Loop body: let x = _arr_N[_i_N]
+        let user_pattern = for_expr
+            .let_stmt()
+            .and_then(|ls| ls.name())
+            .map(|n| {
+                self.add_name_to_scope(n.text());
+                self.patterns.alloc(Pattern::Binding(Name::new(n.text())))
+            })
+            .or_else(|| {
+                for_expr.loop_var().map(|n| {
+                    self.add_name_to_scope(n.text());
+                    self.patterns.alloc(Pattern::Binding(Name::new(n.text())))
+                })
+            })
+            .unwrap_or_else(|| self.patterns.alloc(Pattern::Binding(Name::new("_"))));
+
+        let arr_ref2 = self.exprs.alloc(Expr::Path(vec![arr_name]));
+        let idx_ref2 = self.exprs.alloc(Expr::Path(vec![idx_name.clone()]));
+        let element_access = self.exprs.alloc(Expr::Index {
+            base: arr_ref2,
+            index: idx_ref2,
+        });
+        let elem_let = self.stmts.alloc(Stmt::Let {
+            pattern: user_pattern,
+            type_annotation: None,
+            type_span: None,
+            initializer: Some(element_access),
+        });
+
+        // 6. Increment: _i_N += 1
+        let idx_target = self.exprs.alloc(Expr::Path(vec![idx_name]));
+        let one = self.exprs.alloc(Expr::Literal(Literal::Int(1)));
+        let idx_assign = self.stmts.alloc(Stmt::AssignOp {
+            target: idx_target,
+            op: AssignOp::Add,
+            value: one,
+        });
+
+        // 7. Assemble while body: [elem_let, idx_assign, ...user_body_stmts]
+        // Note: increment after elem_let so `continue` works correctly
+        // Flatten the user body if it's already a block to avoid unnecessary nesting
+        let while_body = if let Expr::Block { stmts, tail_expr } = &self.exprs[user_body] {
+            let mut body_stmts = vec![elem_let, idx_assign];
+            body_stmts.extend(stmts.iter().copied());
+            // If there's a tail expression, convert it to a statement
+            if let Some(tail) = tail_expr {
+                body_stmts.push(self.stmts.alloc(Stmt::Expr(*tail)));
+            }
+            self.exprs.alloc(Expr::Block {
+                stmts: body_stmts,
+                tail_expr: None,
+            })
+        } else {
+            let body_stmt = self.stmts.alloc(Stmt::Expr(user_body));
+            self.exprs.alloc(Expr::Block {
+                stmts: vec![elem_let, idx_assign, body_stmt],
+                tail_expr: None,
+            })
+        };
+
+        // 8. While statement with ForLoop origin
+        // Note: idx_assign is in the body, so no separate after statement needed
+        let while_stmt = self.stmts.alloc(Stmt::While {
+            condition,
+            body: while_body,
+            after: None,
+            origin: LoopOrigin::ForLoop,
+        });
+
+        // 9. Wrap in outer block
+        let outer_block = self.exprs.alloc(Expr::Block {
+            stmts: vec![arr_let, len_let, idx_let, while_stmt],
+            tail_expr: None,
+        });
+
+        self.stmts.alloc(Stmt::Expr(outer_block))
     }
 }

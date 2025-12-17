@@ -1,21 +1,13 @@
 ---
-source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
+source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
 expression: output
 ---
 === TYPE INFERENCE ===
   Function Calculate:
-    Return: Void
-    Errors:
-      - Expected int. Found void
+    Return: Int
   Function FieldAccess:
-    Return: Void
-    Errors:
-      - Expected string. Found void
+    Return: String
   Function IndexAccess:
-    Return: Void
-    Errors:
-      - Expected string. Found void
+    Return: String
   Function TestPrecedence:
-    Return: Void
-    Errors:
-      - Expected bool. Found void
+    Return: Bool
