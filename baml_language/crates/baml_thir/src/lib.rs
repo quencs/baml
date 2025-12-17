@@ -751,12 +751,17 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
             }
         }
 
+        // Match expressions synthesize a type.
+        // TODO: we should support bidirectional type checking
         Expr::Match { scrutinee, arms } => {
             let scrutinee_ty = infer_expr(ctx, *scrutinee, body);
 
             if arms.is_empty() {
-                // Empty match is non-exhaustive (unless scrutinee is uninhabited)
-                if !scrutinee_ty.is_unknown() {
+                // Empty match is non-exhaustive (unless scrutinee is uninhabited).
+                // An uninhabited type has no possible values, so an empty match is
+                // actually exhaustive—there are no cases to handle.
+                // See `Ty::is_uninhabited()` for the full definition and rationale.
+                if !scrutinee_ty.is_uninhabited() {
                     ctx.push_error(TypeError::NonExhaustiveMatch {
                         scrutinee_type: scrutinee_ty.clone(),
                         missing_cases: vec!["all cases".to_string()],
