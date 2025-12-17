@@ -18,46 +18,56 @@ The BAML formatter provides a canonical and easy way to format BAML code for bet
 - There currently is not a working formatter, official or otherwise for BAML. Code must be formatted manually or with an LLM.
 
 ## Background
-There are two general categories of formatters that are commonly in use.
 
-### Wadler Documents
-[Popularized by Philip Wadler](https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf), this is an algebraic approach, where each line of code is translated into IR as the recursive **Document** type, which can either be printed on a single line in its "flattened" representation, or can be broken into multiple lines at predefined locations. These types of formatters are generally only able to operate on whitespace and do not change syntax.
+### Wadler Documents (Algebraic Approach)
+Code is translated into an IR of recursive **Document** types that can print in "flattened" (single-line) or "expanded" (multi-line) forms. A **solver** algorithm decides when to switch between these modes at `Group` markers. Solvers range from simple greedy algorithms to sophisticated graph search (dartfmt [1]). These formatters operate only on whitespace and cannot modify syntax.
 
-#### The **Document**
-The following is an example adapted from [an OCaml exercise](https://ocaml-sf.org/learn-ocaml-public/exercise.html#id=fpottier/pprint), showing generally how an algebraic formatter works.
+### AST-Based Formatters
+Formatters like rustfmt [2] and gofmt [3] operate directly on the AST, applying hand-written rules to reprint each node. This enables semantic-preserving transformations (import reordering, literal simplification) but requires verbose, construct-specific formatting logic. gofmt takes a minimalist approach with no line length limits, while rustfmt uses variable width limits per construct type.
 
-```ocaml
-type doc =
-  | Empty (* The empty document *)
-  | HardLine (* A line break followed by indent to match current indent level*)
-  | Text of string (* A plaintext string *)
-  | Cat of doc * doc (* A concatenation of two documents *)
-  | Nest of int * doc (* Nests the provided document at the provided indentation level *)
-  | Group of doc (* A marker for the choice of whether or not to print the document flat *)
-  | IfFlat of doc * doc () (* Prints the first document if flattening, the second if normal *)
-```
+## Approach Comparison
 
-The printer has two possible states, **normal** and **flattening**. It is offered the choice between these two states at `Group` documents, a **solver** algorithm dictates whether or not to switch. The simplest solver is one that breaks greedily if it determines that the document will not fit within a specified amount of columns if flattened. The most complicated solvers implement graph search with a utility function, as seen with [dartfmt](https://journal.stuffwithstuff.com/2015/09/08/the-hardest-program-ive-ever-written/). From here, the printing of a document will change based on the current state when it encounters `IfFlat` documents.
+| Aspect | Wadler/Algebraic | AST-Based (gofmt) | AST-Based (rustfmt) | Graph Search (dartfmt) |
+|--------|-----------------|-------------------|---------------------|----------------------|
+| **Complexity** | Low-Medium | Very Low | High | Very High |
+| **Line breaking** | Automatic | Manual (preserved) | Automatic (heuristic) | Optimal (search) |
+| **Syntax transforms** | No | Yes (simple) | Yes (extensive) | No |
+| **Maintainability** | Good | Excellent | Poor | Poor |
+| **Output quality** | Good | Variable | Good | Excellent |
+| **Performance** | Fast | Very Fast | Fast | Slower |
+| **Configuration** | Some | None | Extensive | Some |
 
-### Custom Rules
-Some formatters like [rustfmt](https://github.com/rust-lang/rustfmt/blob/main/Design.md) use a much less general approach, and operate on the AST level, re-printing the AST as code. This approach ends up being far more verbose in code, but can provide very good formatting for specific situations. These formatters are also able to modify syntax without altering semantics. This is advantageous for improving consistency in code, for example: reordering imports.
-
-## Comments
-Comments and other trivia cause problems for both of these systems. Because comments can be placed basically anywhere, decisions need to be made about whether to leave them where they are, move them, or even delete them in some cases.
-
-For example, rustfmt chooses to simply delete the comment in this case rather than attempt to re-place it:
-```rust
-fn /* why would you put a comment here */ main() {
-    println!("Hello, world!");
-}
-```
+Key insights:
+- **gofmt**: Prioritizes simplicity and developer trust over optimization
+- **rustfmt**: Trades complexity for fine-grained control and syntax transformations
+- **dartfmt**: Achieves optimal line breaking at the cost of extreme implementation complexity
+- **Pure Wadler**: Best balance of maintainability and output quality for most languages
 
 ## Suggested Implementation
 
 ### Approach
-With BAML's lossless CST, it seems that a Wadler-style algebraic formatter would be much easier and in the end more reliable. Formatters with custom rules like rustfmt that operate on the AST can produce better code in some situations, but are much harder to maintain due to their verbosity and many rules.
+BAML will use an **AST-based formatter** with **variable line length limits** per construct type, inspired by rustfmt.
 
-With this choice, a solver algorithm also needs to be written. For now, a simple greedy algorithm should suffice. dartfmt's implementation of graph search is admirable, but also comes with the cost of maintaining the utility function and increased complexity. The beauty of the Wadler approach is that the algebra is solver-agnostic and the solver can be changed in the future if graph search is desired.
+**Why AST-based:**
+- **Fine-grained control**: Different constructs (client blocks, function signatures, prompts) have different optimal formatting
+- **Syntax upgrades**: Like Go's `-s` flag, we can automatically migrate deprecated syntax (e.g., old type syntax → new, unquoted strings → quoted strings)
+- **Semantic awareness**: Can leverage construct meaning for better decisions (e.g., treat retry policies differently from classes)
+- **Comment handling**: BAML's AST nodes are newtype wrappers around CST nodes, making comment collection straightforward—comments remain attached to their CST nodes and can be extracted during formatting
+- **BAML-specific constructs**: Custom logic for unique features (prompt templates, client configurations, test blocks)
+
+**Variable line lengths:**
+- Global: 120 columns
+- Function signatures: 100 columns (encourages readable parameter lists)
+- Prompt templates: Unlimited (breaking templates is problematic)
+- Client/retry policy blocks: 80 columns (keeps config concise)
+
+**Syntax migrations** (via `--fix` or `-s` flag):
+- Normalize deprecated type syntax
+- Update old attribute forms to current standard
+- Simplify redundant constructs
+- Fix common patterns from older BAML versions
+
+This trades implementation simplicity for better output quality and forward compatibility. BAML's syntax is simpler than Rust's, keeping maintenance reasonable.
 
 ### Idempotency
 The formatter must be idempotent: running it multiple times on the same file should produce identical output after the first run. This property is critical for:
@@ -204,18 +214,12 @@ function myArray() -> int[] {
 }
 ```
 
-But, when required, they will print with each entry on a single line with trailing comma:
+When exceeding the line limit, arrays pack multiple elements per line (like rustfmt), breaking only when necessary:
 ```baml
 function myHugeArray() -> int[] {
     [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+        19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
     ]
 }
 ```
@@ -254,4 +258,16 @@ This formatter will not:
 ## Open Questions
 1. Should we support a `// baml-fmt: off` comment to disable formatting for specific sections?
 2. How should we handle files with syntax errors? Fail gracefully or attempt partial formatting?
-3. Should the formatter automatically fix certain deprecated syntax patterns if they exist?
+3. What specific deprecated syntax patterns should be automatically fixed with `--fix`?
+
+## References
+
+[1] Bob Nystrom, "The Hardest Program I've Ever Written" (2015). https://journal.stuffwithstuff.com/2015/09/08/the-hardest-program-ive-ever-written/
+
+[2] rustfmt Design. https://github.com/rust-lang/rustfmt/blob/main/Design.md
+
+[3] gofmt command documentation. https://pkg.go.dev/cmd/gofmt
+
+[4] Philip Wadler, "A prettier printer" (1998). https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
+
+[5] OCaml PPrint exercise. https://ocaml-sf.org/learn-ocaml-public/exercise.html#id=fpottier/pprint
