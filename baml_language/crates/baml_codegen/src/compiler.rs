@@ -588,6 +588,12 @@ impl<'db, 'ctx, 'obj> Compiler<'db, 'ctx, 'obj> {
                     Pattern::Binding(name) => {
                         self.track_local(name.as_ref());
                     }
+                    Pattern::TypedBinding { name, ty: _ } => {
+                        self.track_local(name.as_ref());
+                    }
+                    Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Union(_) => {
+                        // These patterns don't introduce bindings in let statements
+                    }
                 }
             }
 
@@ -685,6 +691,14 @@ impl<'db, 'ctx, 'obj> Compiler<'db, 'ctx, 'obj> {
                         match pat {
                             Pattern::Binding(name) => {
                                 ctx.track_local(name.as_ref());
+                            }
+                            Pattern::TypedBinding { name, ty: _ } => {
+                                ctx.track_local(name.as_ref());
+                            }
+                            Pattern::Literal(_)
+                            | Pattern::EnumVariant { .. }
+                            | Pattern::Union(_) => {
+                                // These patterns don't introduce bindings in for-in loops
                             }
                         }
 
