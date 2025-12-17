@@ -962,28 +962,6 @@ fn expand_type_to_cases<'db>(ty: &Ty<'db>) -> Vec<Ty<'db>> {
     }
 }
 
-/// Check if a type is covered by a pattern coverage.
-#[allow(dead_code)]
-fn is_type_covered_by<'db>(ty: &Ty<'db>, coverage: &PatternCoverage<'db>) -> bool {
-    match coverage {
-        PatternCoverage::CatchAll => true,
-        PatternCoverage::Guarded => false,
-        PatternCoverage::Type(covered_ty) => {
-            // Check if the type matches or is a subtype
-            ty == covered_ty || ty.is_subtype_of(covered_ty) || types_overlap(ty, covered_ty)
-        }
-        PatternCoverage::Literal(_) => {
-            // Literals provide value-level coverage, not type-level
-            // They can cover specific values but not entire types
-            false
-        }
-        PatternCoverage::Union(coverages) => {
-            // Covered if any sub-coverage covers it
-            coverages.iter().any(|c| is_type_covered_by(ty, c))
-        }
-    }
-}
-
 /// Check if two types overlap (have common values).
 ///
 /// This is used for exhaustiveness checking to determine if a pattern
