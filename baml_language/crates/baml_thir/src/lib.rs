@@ -821,6 +821,317 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
     ty
 }
 
+/// Extract binding name and narrowed type from a match pattern.
+///
+/// Returns `(Some(name), narrowed_type)` for binding patterns, or `(None, scrutinee_type)` for
+/// patterns that don't introduce bindings (literals, enum variants, unions).
+///
+/// # Type Narrowing Rules
+/// - `name: Type` binds `name` with type `Type` (from the type annotation)
+/// - `name` (without type) binds `name` with the scrutinee type (catch-all)
+/// - `_` is a special case of binding that's semantically discarded later
+/// - Literals, enum variants, and union patterns don't introduce bindings
+fn extract_pattern_binding<'db>(
+    ctx: &TypeContext<'db>,
+    pattern: &Pattern,
+    scrutinee_ty: &Ty<'db>,
+    _body: &ExprBody,
+) -> (Option<Name>, Ty<'db>) {
+    match pattern {
+        // Typed binding: `s: Success` -> s has type Success
+        Pattern::TypedBinding { name, ty } => {
+            let narrowed_ty = lower_type_ref(ctx.db(), ty);
+            (Some(name.clone()), narrowed_ty)
+        }
+
+        // Simple binding: `x` or `_` -> binds with scrutinee type (catch-all)
+        Pattern::Binding(name) => {
+            // `_` is semantically discarded but still creates a binding during type checking
+            // The "discard" behavior is handled in codegen, not here
+            (Some(name.clone()), scrutinee_ty.clone())
+        }
+
+        // Literal patterns don't introduce bindings
+        Pattern::Literal(_) => (None, scrutinee_ty.clone()),
+
+        // Enum variant patterns don't introduce bindings
+        // (they match by value equality, not type)
+        Pattern::EnumVariant { .. } => (None, scrutinee_ty.clone()),
+
+        // Union patterns don't introduce bindings
+        // (they're unions of literals or enum variants)
+        Pattern::Union(_) => (None, scrutinee_ty.clone()),
+    }
+}
+
+// ============================================================================
+// Match Exhaustiveness and Unreachability Checking
+// ============================================================================
+
+/// Represents the coverage of a match pattern.
+///
+/// Coverage is used to track which cases have been handled by match arms.
+/// This enables both exhaustiveness checking (ensuring all cases are covered)
+/// and unreachable arm detection (detecting arms that can never match).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum PatternCoverage<'db> {
+    /// Covers a specific named type (class, enum, or primitive).
+    Type(Ty<'db>),
+    /// Covers all remaining cases (catch-all binding like `_` or `other`).
+    CatchAll,
+    /// Covers nothing (patterns with guards don't guarantee coverage).
+    Guarded,
+    /// Covers a specific literal value.
+    Literal(baml_hir::Literal),
+    /// Covers multiple patterns (union of coverage).
+    Union(Vec<PatternCoverage<'db>>),
+}
+
+/// Extract the coverage of a pattern (what cases it handles).
+///
+/// # Arguments
+/// * `pattern` - The pattern to analyze
+/// * `has_guard` - Whether this arm has a guard expression
+/// * `body` - The expression body (for accessing nested patterns)
+/// * `db` - Database reference for type lowering
+///
+/// # Coverage Rules (per BEP-002)
+/// - Guards do NOT contribute to exhaustiveness (always return `Guarded`)
+/// - Untyped bindings (`x`, `_`) are catch-alls covering all remaining cases
+/// - Typed bindings (`s: Success`) cover that specific type
+/// - Literals cover nothing for type exhaustiveness (they're value-level)
+/// - Enum variants cover nothing for type exhaustiveness (they're value-level)
+fn extract_pattern_coverage<'db>(
+    pattern: &Pattern,
+    has_guard: bool,
+    body: &ExprBody,
+    db: &'db dyn Db,
+) -> PatternCoverage<'db> {
+    // Guards prevent a pattern from contributing to exhaustiveness
+    if has_guard {
+        return PatternCoverage::Guarded;
+    }
+
+    match pattern {
+        // Untyped binding (including `_`) is a catch-all
+        Pattern::Binding(_) => PatternCoverage::CatchAll,
+
+        // Typed binding covers the specified type
+        Pattern::TypedBinding { ty, .. } => {
+            let lowered_ty = lower_type_ref(db, ty);
+            PatternCoverage::Type(lowered_ty)
+        }
+
+        // Literals cover a specific value (not type-level coverage)
+        Pattern::Literal(lit) => PatternCoverage::Literal(lit.clone()),
+
+        // Enum variants are value-level, not type-level coverage
+        Pattern::EnumVariant { .. } => PatternCoverage::Literal(baml_hir::Literal::Null), // Placeholder
+
+        // Union patterns combine coverage of sub-patterns
+        Pattern::Union(sub_pats) => {
+            let coverages: Vec<_> = sub_pats
+                .iter()
+                .map(|pat_id| {
+                    let sub_pattern = &body.patterns[*pat_id];
+                    extract_pattern_coverage(sub_pattern, false, body, db)
+                })
+                .collect();
+            PatternCoverage::Union(coverages)
+        }
+    }
+}
+
+/// Expand a type into its constituent cases for exhaustiveness checking.
+///
+/// For union types, this returns each member of the union.
+/// For other types, returns a single-element set containing the type itself.
+fn expand_type_to_cases<'db>(ty: &Ty<'db>) -> Vec<Ty<'db>> {
+    match ty {
+        Ty::Union(members) => {
+            // Flatten nested unions and collect all cases
+            members.iter().flat_map(expand_type_to_cases).collect()
+        }
+        Ty::Optional(inner) => {
+            // Optional<T> is equivalent to T | null
+            let mut cases = expand_type_to_cases(inner);
+            cases.push(Ty::Null);
+            cases
+        }
+        _ => vec![ty.clone()],
+    }
+}
+
+/// Check if a type is covered by a pattern coverage.
+#[allow(dead_code)]
+fn is_type_covered_by<'db>(ty: &Ty<'db>, coverage: &PatternCoverage<'db>) -> bool {
+    match coverage {
+        PatternCoverage::CatchAll => true,
+        PatternCoverage::Guarded => false,
+        PatternCoverage::Type(covered_ty) => {
+            // Check if the type matches or is a subtype
+            ty == covered_ty || ty.is_subtype_of(covered_ty) || types_overlap(ty, covered_ty)
+        }
+        PatternCoverage::Literal(_) => {
+            // Literals provide value-level coverage, not type-level
+            // They can cover specific values but not entire types
+            false
+        }
+        PatternCoverage::Union(coverages) => {
+            // Covered if any sub-coverage covers it
+            coverages.iter().any(|c| is_type_covered_by(ty, c))
+        }
+    }
+}
+
+/// Check if two types overlap (have common values).
+///
+/// This is used for exhaustiveness checking to determine if a pattern
+/// covering one type could potentially match values of another type.
+fn types_overlap<'db>(ty1: &Ty<'db>, ty2: &Ty<'db>) -> bool {
+    // Same type always overlaps
+    if ty1 == ty2 {
+        return true;
+    }
+
+    // Handle union types
+    match (ty1, ty2) {
+        (Ty::Union(members1), _) => members1.iter().any(|m| types_overlap(m, ty2)),
+        (_, Ty::Union(members2)) => members2.iter().any(|m| types_overlap(ty1, m)),
+        (Ty::Named(n1), Ty::Named(n2)) => n1 == n2,
+        _ => false,
+    }
+}
+
+/// Check match exhaustiveness and detect unreachable arms.
+///
+/// This function implements the exhaustiveness checking rules from BEP-002:
+/// 1. All cases must be covered explicitly or via catch-all
+/// 2. Guards do NOT contribute to exhaustiveness
+/// 3. Catch-all (`_` or untyped binding) covers remaining cases
+/// 4. Arms after a catch-all are unreachable
+///
+/// # Errors
+/// - `TypeError::NonExhaustiveMatch` if not all cases are covered
+/// - `TypeError::UnreachableArm` if an arm can never match
+fn check_match_exhaustiveness<'db>(
+    ctx: &mut TypeContext<'db>,
+    scrutinee_ty: &Ty<'db>,
+    arms: &[baml_hir::MatchArm],
+    body: &ExprBody,
+    span: Span,
+) {
+    // Skip exhaustiveness checking for unknown/error types
+    if scrutinee_ty.is_unknown() || scrutinee_ty.is_error() {
+        return;
+    }
+
+    // Expand the scrutinee type into its constituent cases
+    let all_cases = expand_type_to_cases(scrutinee_ty);
+
+    // Track which cases have been covered (without guards)
+    let mut covered_cases: Vec<Ty<'db>> = Vec::new();
+    let mut has_catch_all = false;
+
+    for (_arm_idx, arm) in arms.iter().enumerate() {
+        let pattern = &body.patterns[arm.pattern];
+        let has_guard = arm.guard.is_some();
+        let coverage = extract_pattern_coverage(pattern, has_guard, body, ctx.db());
+
+        // Check for unreachable arm
+        // An arm is unreachable if:
+        // 1. A previous catch-all (without guard) already covered all cases
+        // 2. All types this pattern could match are already covered
+        if has_catch_all {
+            // After a catch-all, all subsequent arms are unreachable
+            // We need a span for this arm, but we don't have one in MatchArm
+            // For now, use the match expression span
+            ctx.push_error(TypeError::UnreachableArm { span });
+            continue;
+        }
+
+        // Check if this arm is unreachable due to type coverage
+        if !has_guard {
+            match &coverage {
+                PatternCoverage::Type(arm_ty) => {
+                    // Check if all cases this arm could match are already covered
+                    let arm_cases = expand_type_to_cases(arm_ty);
+                    let all_arm_cases_covered = arm_cases.iter().all(|case| {
+                        covered_cases.iter().any(|covered| {
+                            case == covered
+                                || case.is_subtype_of(covered)
+                                || types_overlap(case, covered)
+                        })
+                    });
+
+                    if all_arm_cases_covered && !arm_cases.is_empty() {
+                        ctx.push_error(TypeError::UnreachableArm { span });
+                    }
+                }
+                PatternCoverage::CatchAll => {
+                    // This arm is a catch-all - mark it
+                    has_catch_all = true;
+                }
+                _ => {}
+            }
+        }
+
+        // Update covered cases (only for non-guarded patterns)
+        if !has_guard {
+            match coverage {
+                PatternCoverage::CatchAll => {
+                    // Catch-all covers everything
+                    covered_cases = all_cases.clone();
+                }
+                PatternCoverage::Type(ty) => {
+                    // Add the covered type(s)
+                    for case in expand_type_to_cases(&ty) {
+                        if !covered_cases.contains(&case) {
+                            covered_cases.push(case);
+                        }
+                    }
+                }
+                PatternCoverage::Union(coverages) => {
+                    // Add all types from the union
+                    for cov in coverages {
+                        if let PatternCoverage::Type(ty) = cov {
+                            for case in expand_type_to_cases(&ty) {
+                                if !covered_cases.contains(&case) {
+                                    covered_cases.push(case);
+                                }
+                            }
+                        }
+                    }
+                }
+                PatternCoverage::Literal(_) | PatternCoverage::Guarded => {
+                    // Literals and guarded patterns don't contribute to type-level coverage
+                }
+            }
+        }
+    }
+
+    // Check exhaustiveness: all cases must be covered
+    if !has_catch_all {
+        let missing_cases: Vec<String> = all_cases
+            .iter()
+            .filter(|case| {
+                !covered_cases.iter().any(|covered| {
+                    *case == covered || case.is_subtype_of(covered) || types_overlap(case, covered)
+                })
+            })
+            .map(|ty| ty.to_string())
+            .collect();
+
+        if !missing_cases.is_empty() {
+            ctx.push_error(TypeError::NonExhaustiveMatch {
+                scrutinee_type: scrutinee_ty.clone(),
+                missing_cases,
+                span,
+            });
+        }
+    }
+}
+
 /// Infer the type of a literal.
 fn infer_literal(lit: &baml_hir::Literal) -> Ty<'static> {
     match lit {
@@ -1119,6 +1430,14 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
                 Pattern::Binding(name) => {
                     ctx.define(name.clone(), ty);
                 }
+                Pattern::TypedBinding { name, ty: _ } => {
+                    // TODO: Check declared type matches inferred type
+                    ctx.define(name.clone(), ty);
+                }
+                Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Union(_) => {
+                    // Literals/enum variants/unions don't introduce bindings in let statements
+                    // This would be a semantic error, but we'll handle it elsewhere
+                }
             }
         }
 
@@ -1172,6 +1491,13 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
             match pat {
                 Pattern::Binding(name) => {
                     ctx.define(name.clone(), elem_ty);
+                }
+                Pattern::TypedBinding { name, ty: _ } => {
+                    // TODO: Check declared type matches element type
+                    ctx.define(name.clone(), elem_ty);
+                }
+                Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Union(_) => {
+                    // These patterns don't make sense in for-in loops
                 }
             }
 
