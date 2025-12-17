@@ -484,6 +484,78 @@ impl<'db, 'ctx, 'obj> Compiler<'db, 'ctx, 'obj> {
                 self.emit(Instruction::LoadArrayElement);
             }
 
+            Expr::Match { scrutinee, arms } => {
+                // Desugar match to if-else chain with instanceof checks
+                // Per BEP-002, the codegen should produce:
+                //   let $scrut = scrutinee
+                //   if ($scrut instanceof Type1) { let binding = $scrut; body1 }
+                //   else if ($scrut instanceof Type2) { ... }
+                //   else { ... }
+
+                // Evaluate scrutinee once - the value stays on stack as the temp variable
+                self.compile_expr(*scrutinee, body);
+                let scrut_name = self.gensym("match_scrut");
+                // track_local records the position; the value is already on the stack
+                let scrut_var = self.track_local(&scrut_name);
+
+                // Track jump targets for end of match
+                let mut end_jumps = Vec::new();
+
+                for (i, arm) in arms.iter().enumerate() {
+                    let is_last = i == arms.len() - 1;
+                    let pattern = &body.patterns[arm.pattern];
+
+                    // Generate pattern matching code based on pattern type
+                    let skip_arm = self.compile_match_pattern(pattern, scrut_var, body, is_last);
+
+                    // Enter scope for pattern binding (if any)
+                    self.enter_scope();
+
+                    // Bind pattern variable if it's a binding pattern
+                    self.bind_pattern_variable(pattern, scrut_var);
+
+                    // Handle guard if present
+                    if let Some(guard_expr) = arm.guard {
+                        self.compile_expr(guard_expr, body);
+                        let skip_due_to_guard = self.emit(Instruction::JumpIfFalse(0));
+                        self.emit(Instruction::Pop(1)); // Pop guard result (true case)
+                        self.compile_expr(arm.body, body);
+                        self.exit_scope(true);
+                        end_jumps.push(self.emit(Instruction::Jump(0)));
+
+                        // Guard failed - jump here
+                        self.patch_jump(skip_due_to_guard);
+                        self.emit(Instruction::Pop(1)); // Pop guard result (false case)
+
+                        // If pattern check also needs patching, patch it to continue to next arm
+                        if let Some(skip) = skip_arm {
+                            self.patch_jump(skip);
+                            // Pop the pattern check result (false path)
+                            self.emit(Instruction::Pop(1));
+                        }
+                    } else {
+                        // No guard - compile arm body directly
+                        self.compile_expr(arm.body, body);
+                        self.exit_scope(true);
+                        if !is_last {
+                            end_jumps.push(self.emit(Instruction::Jump(0)));
+                        }
+
+                        // Patch pattern check to continue to next arm
+                        if let Some(skip) = skip_arm {
+                            self.patch_jump(skip);
+                            // Pop the pattern check result (false path)
+                            self.emit(Instruction::Pop(1));
+                        }
+                    }
+                }
+
+                // Patch all end jumps to point here
+                for jump in end_jumps {
+                    self.patch_jump(jump);
+                }
+            }
+
             Expr::Missing => {
                 // TODO: cannot compile missing expression - skip
             }
