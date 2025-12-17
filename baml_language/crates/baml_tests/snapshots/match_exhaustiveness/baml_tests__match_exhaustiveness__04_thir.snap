@@ -1,0 +1,24 @@
+---
+source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
+expression: output
+---
+=== TYPE INFERENCE ===
+  Function UnreachableMultiple:
+    Return: String
+    Errors:
+      - Unreachable match arm
+      - Unreachable match arm
+  Function GuardedOnlyNonExhaustive:
+    Return: Int
+    Errors:
+      - Non-exhaustive match on int: missing int
+  Function ExhaustiveWithNamedCatchAll:
+    Return: Int
+  Function GuardedWithFallback:
+    Return: Int
+  Function UnreachableAfterCatchAll:
+    Return: String
+    Errors:
+      - Unreachable match arm
+  Function ExhaustiveWithUnderscore:
+    Return: Int

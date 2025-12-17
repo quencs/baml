@@ -1,0 +1,115 @@
+---
+source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
+expression: output
+---
+=== HIR ITEMS ===
+function UnreachableMultiple {
+  params: [x: Int]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path(["x"])
+      Idx::<Expr>(1): Literal(String("catch all"))
+      Idx::<Expr>(2): Literal(String("unreachable 1"))
+      Idx::<Expr>(3): Literal(String("unreachable 2"))
+      Idx::<Expr>(4): Match { scrutinee: Idx::<Expr>(0), arms: [MatchArm { pattern: Idx::<Pattern>(0), guard: None, body: Idx::<Expr>(1) }, MatchArm { pattern: Idx::<Pattern>(1), guard: None, body: Idx::<Expr>(2) }, MatchArm { pattern: Idx::<Pattern>(2), guard: None, body: Idx::<Expr>(3) }] }
+      Idx::<Expr>(5): Block { stmts: [], tail_expr: Some(Idx::<Expr>(4)) }
+    ]
+    root: Idx::<Expr>(5)
+  }
+}
+function GuardedOnlyNonExhaustive {
+  params: [x: Int]
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path(["x"])
+      Idx::<Expr>(1): Path(["n"])
+      Idx::<Expr>(2): Literal(Int(0))
+      Idx::<Expr>(3): Binary { op: Gt, lhs: Idx::<Expr>(1), rhs: Idx::<Expr>(2) }
+      Idx::<Expr>(4): Path(["n"])
+      Idx::<Expr>(5): Literal(Int(2))
+      Idx::<Expr>(6): Binary { op: Mul, lhs: Idx::<Expr>(4), rhs: Idx::<Expr>(5) }
+      Idx::<Expr>(7): Path(["n"])
+      Idx::<Expr>(8): Literal(Int(0))
+      Idx::<Expr>(9): Binary { op: Lt, lhs: Idx::<Expr>(7), rhs: Idx::<Expr>(8) }
+      Idx::<Expr>(10): Path(["n"])
+      Idx::<Expr>(11): Missing
+      Idx::<Expr>(12): Unary { op: Neg, expr: Idx::<Expr>(11) }
+      Idx::<Expr>(13): Binary { op: Mul, lhs: Idx::<Expr>(10), rhs: Idx::<Expr>(12) }
+      Idx::<Expr>(14): Match { scrutinee: Idx::<Expr>(0), arms: [MatchArm { pattern: Idx::<Pattern>(0), guard: Some(Idx::<Expr>(3)), body: Idx::<Expr>(6) }, MatchArm { pattern: Idx::<Pattern>(1), guard: Some(Idx::<Expr>(9)), body: Idx::<Expr>(13) }] }
+      Idx::<Expr>(15): Block { stmts: [], tail_expr: Some(Idx::<Expr>(14)) }
+    ]
+    root: Idx::<Expr>(15)
+  }
+}
+function ExhaustiveWithNamedCatchAll {
+  params: [x: Int]
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path(["x"])
+      Idx::<Expr>(1): Literal(Int(100))
+      Idx::<Expr>(2): Path(["other"])
+      Idx::<Expr>(3): Literal(Int(1))
+      Idx::<Expr>(4): Binary { op: Add, lhs: Idx::<Expr>(2), rhs: Idx::<Expr>(3) }
+      Idx::<Expr>(5): Match { scrutinee: Idx::<Expr>(0), arms: [MatchArm { pattern: Idx::<Pattern>(0), guard: None, body: Idx::<Expr>(1) }, MatchArm { pattern: Idx::<Pattern>(1), guard: None, body: Idx::<Expr>(4) }] }
+      Idx::<Expr>(6): Block { stmts: [], tail_expr: Some(Idx::<Expr>(5)) }
+    ]
+    root: Idx::<Expr>(6)
+  }
+}
+function GuardedWithFallback {
+  params: [x: Int]
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path(["x"])
+      Idx::<Expr>(1): Path(["n"])
+      Idx::<Expr>(2): Literal(Int(0))
+      Idx::<Expr>(3): Binary { op: Gt, lhs: Idx::<Expr>(1), rhs: Idx::<Expr>(2) }
+      Idx::<Expr>(4): Path(["n"])
+      Idx::<Expr>(5): Literal(Int(2))
+      Idx::<Expr>(6): Binary { op: Mul, lhs: Idx::<Expr>(4), rhs: Idx::<Expr>(5) }
+      Idx::<Expr>(7): Literal(Int(0))
+      Idx::<Expr>(8): Match { scrutinee: Idx::<Expr>(0), arms: [MatchArm { pattern: Idx::<Pattern>(0), guard: Some(Idx::<Expr>(3)), body: Idx::<Expr>(6) }, MatchArm { pattern: Idx::<Pattern>(1), guard: None, body: Idx::<Expr>(7) }] }
+      Idx::<Expr>(9): Block { stmts: [], tail_expr: Some(Idx::<Expr>(8)) }
+    ]
+    root: Idx::<Expr>(9)
+  }
+}
+function UnreachableAfterCatchAll {
+  params: [x: Int]
+  return: String
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path(["x"])
+      Idx::<Expr>(1): Literal(String("catch all"))
+      Idx::<Expr>(2): Literal(String("never reached"))
+      Idx::<Expr>(3): Match { scrutinee: Idx::<Expr>(0), arms: [MatchArm { pattern: Idx::<Pattern>(0), guard: None, body: Idx::<Expr>(1) }, MatchArm { pattern: Idx::<Pattern>(1), guard: None, body: Idx::<Expr>(2) }] }
+      Idx::<Expr>(4): Block { stmts: [], tail_expr: Some(Idx::<Expr>(3)) }
+    ]
+    root: Idx::<Expr>(4)
+  }
+}
+function ExhaustiveWithUnderscore {
+  params: [x: Int]
+  return: Int
+  body: Expr {
+    exprs: [
+      Idx::<Expr>(0): Path(["x"])
+      Idx::<Expr>(1): Literal(Int(100))
+      Idx::<Expr>(2): Literal(Int(200))
+      Idx::<Expr>(3): Literal(Int(0))
+      Idx::<Expr>(4): Match { scrutinee: Idx::<Expr>(0), arms: [MatchArm { pattern: Idx::<Pattern>(0), guard: None, body: Idx::<Expr>(1) }, MatchArm { pattern: Idx::<Pattern>(1), guard: None, body: Idx::<Expr>(2) }, MatchArm { pattern: Idx::<Pattern>(2), guard: None, body: Idx::<Expr>(3) }] }
+      Idx::<Expr>(5): Block { stmts: [], tail_expr: Some(Idx::<Expr>(4)) }
+    ]
+    root: Idx::<Expr>(5)
+  }
+}
+class Success {
+  data: String
+}
+class Failure {
+  reason: String
+}

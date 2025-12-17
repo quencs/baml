@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
+source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
@@ -397,14 +397,14 @@ function ConditionalLogic {
       Idx::<Expr>(0): Path(["age"])
       Idx::<Expr>(1): Literal(Int(18))
       Idx::<Expr>(2): Binary { op: Lt, lhs: Idx::<Expr>(0), rhs: Idx::<Expr>(1) }
-      Idx::<Expr>(3): Literal(String(" \"minor\""))
+      Idx::<Expr>(3): Literal(String("minor"))
       Idx::<Expr>(4): Block { stmts: [Idx::<Stmt>(0)], tail_expr: None }
       Idx::<Expr>(5): Path(["age"])
       Idx::<Expr>(6): Literal(Int(65))
       Idx::<Expr>(7): Binary { op: Lt, lhs: Idx::<Expr>(5), rhs: Idx::<Expr>(6) }
-      Idx::<Expr>(8): Literal(String(" \"adult\""))
+      Idx::<Expr>(8): Literal(String("adult"))
       Idx::<Expr>(9): Block { stmts: [Idx::<Stmt>(1)], tail_expr: None }
-      Idx::<Expr>(10): Literal(String(" \"senior\""))
+      Idx::<Expr>(10): Literal(String("senior"))
       Idx::<Expr>(11): Block { stmts: [Idx::<Stmt>(2)], tail_expr: None }
       Idx::<Expr>(12): If { condition: Idx::<Expr>(7), then_branch: Idx::<Expr>(9), else_branch: Some(Idx::<Expr>(11)) }
       Idx::<Expr>(13): If { condition: Idx::<Expr>(2), then_branch: Idx::<Expr>(4), else_branch: Some(Idx::<Expr>(12)) }

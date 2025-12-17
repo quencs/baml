@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-0fbde5d1c173768c/out/generated_tests.rs
+source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
@@ -21,8 +21,8 @@ function stringArray {
   body: Expr {
     exprs: [
       Idx::<Expr>(0): Literal(String("hello"))
-      Idx::<Expr>(1): Literal(String(" \"world\""))
-      Idx::<Expr>(2): Literal(String(" \"test\""))
+      Idx::<Expr>(1): Literal(String("world"))
+      Idx::<Expr>(2): Literal(String("test"))
       Idx::<Expr>(3): Array { elements: [Idx::<Expr>(0), Idx::<Expr>(1), Idx::<Expr>(2)] }
       Idx::<Expr>(4): Block { stmts: [], tail_expr: Some(Idx::<Expr>(3)) }
     ]

@@ -1,0 +1,333 @@
+---
+source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
+expression: output
+---
+=== SYNTAX TREE ===
+SOURCE_FILE
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "Success"
+    L_BRACE "{"
+    FIELD
+      WORD "data"
+      TYPE_EXPR " string"
+        WORD "string"
+    R_BRACE "}"
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "Failure"
+    L_BRACE "{"
+    FIELD
+      WORD "reason"
+      TYPE_EXPR " string"
+        WORD "string"
+    R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "UnreachableAfterCatchAll"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "x"
+        COLON ":"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " string"
+      WORD "string"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "x"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN "
+        _"
+              WORD "_"
+            FAT_ARROW "=>"
+            STRING_LITERAL " "catch all""
+              QUOTE """
+              WORD "catch"
+              WORD "all"
+              QUOTE """
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "n"
+              COLON ":"
+              TYPE_EXPR " int"
+                WORD "int"
+            FAT_ARROW "=>"
+            STRING_LITERAL " "never reached""
+              QUOTE """
+              WORD "never"
+              WORD "reached"
+              QUOTE """
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "UnreachableMultiple"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "x"
+        COLON ":"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " string"
+      WORD "string"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "x"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN "
+        _"
+              WORD "_"
+            FAT_ARROW "=>"
+            STRING_LITERAL " "catch all""
+              QUOTE """
+              WORD "catch"
+              WORD "all"
+              QUOTE """
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "n"
+              COLON ":"
+              TYPE_EXPR " int"
+                WORD "int"
+            FAT_ARROW "=>"
+            STRING_LITERAL " "unreachable 1""
+              QUOTE """
+              WORD "unreachable"
+              INTEGER_LITERAL "1"
+              QUOTE """
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "m"
+              COLON ":"
+              TYPE_EXPR " int"
+                WORD "int"
+            FAT_ARROW "=>"
+            STRING_LITERAL " "unreachable 2""
+              QUOTE """
+              WORD "unreachable"
+              INTEGER_LITERAL "2"
+              QUOTE """
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "ExhaustiveWithUnderscore"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "x"
+        COLON ":"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " int"
+      WORD "int"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "x"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN "
+        1"
+              INTEGER_LITERAL "1"
+            FAT_ARROW "=>"
+            INTEGER_LITERAL "100"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN "
+        2"
+              INTEGER_LITERAL "2"
+            FAT_ARROW "=>"
+            INTEGER_LITERAL "200"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN "
+        _"
+              WORD "_"
+            FAT_ARROW "=>"
+            INTEGER_LITERAL "0"
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "ExhaustiveWithNamedCatchAll"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "x"
+        COLON ":"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " int"
+      WORD "int"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "x"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN "
+        1"
+              INTEGER_LITERAL "1"
+            FAT_ARROW "=>"
+            INTEGER_LITERAL "100"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN "
+        other"
+              WORD "other"
+            FAT_ARROW "=>"
+            BINARY_EXPR "other + 1"
+              WORD "other"
+              PLUS "+"
+              INTEGER_LITERAL "1"
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "GuardedOnlyNonExhaustive"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "x"
+        COLON ":"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " int"
+      WORD "int"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "x"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "n"
+              COLON ":"
+              TYPE_EXPR " int"
+                WORD "int"
+            MATCH_GUARD
+              KW_IF "if"
+              BINARY_EXPR "n > 0"
+                WORD "n"
+                GREATER ">"
+                INTEGER_LITERAL "0"
+            FAT_ARROW "=>"
+            BINARY_EXPR "n * 2"
+              WORD "n"
+              STAR "*"
+              INTEGER_LITERAL "2"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "n"
+              COLON ":"
+              TYPE_EXPR " int"
+                WORD "int"
+            MATCH_GUARD
+              KW_IF "if"
+              BINARY_EXPR "n < 0"
+                WORD "n"
+                LESS "<"
+                INTEGER_LITERAL "0"
+            FAT_ARROW "=>"
+            BINARY_EXPR
+              WORD "n"
+              STAR "*"
+              UNARY_EXPR " -1"
+                MINUS "-"
+                INTEGER_LITERAL "1"
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "GuardedWithFallback"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "x"
+        COLON ":"
+        TYPE_EXPR " int"
+          WORD "int"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR " int"
+      WORD "int"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "x"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "n"
+              COLON ":"
+              TYPE_EXPR " int"
+                WORD "int"
+            MATCH_GUARD
+              KW_IF "if"
+              BINARY_EXPR "n > 0"
+                WORD "n"
+                GREATER ">"
+                INTEGER_LITERAL "0"
+            FAT_ARROW "=>"
+            BINARY_EXPR "n * 2"
+              WORD "n"
+              STAR "*"
+              INTEGER_LITERAL "2"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN "
+        _"
+              WORD "_"
+            FAT_ARROW "=>"
+            INTEGER_LITERAL "0"
+          R_BRACE "}"
+        R_BRACE "}"
+
+=== ERRORS ===
+None

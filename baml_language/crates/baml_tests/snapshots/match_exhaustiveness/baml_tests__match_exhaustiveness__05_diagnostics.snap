@@ -1,0 +1,44 @@
+---
+source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
+expression: output
+---
+=== DIAGNOSTICS ===
+  [type] Error: Unreachable match arm: previous arms already cover all cases
+   ╭─[ 0:1:1 ]
+   │
+ 1 │ // Test: Match expression exhaustiveness and unreachable arm detection
+   │ │ 
+   │ ╰─ Unreachable match arm: previous arms already cover all cases
+   │ 
+   │ Note: Error code: E0013
+───╯
+
+  [type] Error: Unreachable match arm: previous arms already cover all cases
+   ╭─[ 0:1:1 ]
+   │
+ 1 │ // Test: Match expression exhaustiveness and unreachable arm detection
+   │ │ 
+   │ ╰─ Unreachable match arm: previous arms already cover all cases
+   │ 
+   │ Note: Error code: E0013
+───╯
+
+  [type] Error: Non-exhaustive match: type int not fully covered. Missing: int
+   ╭─[ 0:1:1 ]
+   │
+ 1 │ // Test: Match expression exhaustiveness and unreachable arm detection
+   │ │ 
+   │ ╰─ Non-exhaustive match: type int not fully covered. Missing: int
+   │ 
+   │ Note: Error code: E0012
+───╯
+
+  [type] Error: Unreachable match arm: previous arms already cover all cases
+   ╭─[ 0:1:1 ]
+   │
+ 1 │ // Test: Match expression exhaustiveness and unreachable arm detection
+   │ │ 
+   │ ╰─ Unreachable match arm: previous arms already cover all cases
+   │ 
+   │ Note: Error code: E0013
+───╯
