@@ -899,6 +899,202 @@ impl<'db, 'ctx, 'obj> Compiler<'db, 'ctx, 'obj> {
         }
     }
 
+    /// Compile pattern matching code for a match arm.
+    ///
+    /// Returns `Some(jump_location)` if the pattern needs a jump to skip to the next arm,
+    /// or `None` if this is a catch-all pattern that always matches.
+    ///
+    /// # Pattern Types
+    /// - `TypedBinding { name, ty }` - emit instanceof check against the type
+    /// - `Binding(_)` - catch-all, always matches (no check needed)
+    /// - `Literal(lit)` - emit equality check against the literal value
+    /// - `EnumVariant { .. }` - emit equality check against enum variant (TODO)
+    /// - `Union(patterns)` - emit OR of sub-pattern checks (TODO)
+    fn compile_match_pattern(
+        &mut self,
+        pattern: &Pattern,
+        scrut_var: usize,
+        body: &ExprBody,
+        is_last: bool,
+    ) -> Option<usize> {
+        match pattern {
+            Pattern::TypedBinding { name: _, ty } => {
+                // Get the type name from the pattern
+                let type_name = Self::extract_type_name_from_type_ref(ty);
+
+                if let Some(class_name) = type_name {
+                    // Look up the Class object index
+                    if let Some(&class_obj_idx) = self.class_object_indices.get(&class_name) {
+                        // Load scrutinee
+                        self.emit(Instruction::LoadVar(scrut_var));
+
+                        // Load Class object for instanceof comparison
+                        let class_idx =
+                            self.add_constant(Value::Object(ObjectIndex::from_raw(class_obj_idx)));
+                        self.emit(Instruction::LoadConst(class_idx));
+
+                        // Emit instanceof check
+                        self.emit(Instruction::CmpOp(CmpOp::InstanceOf));
+
+                        // Jump to next arm if instanceof returns false
+                        if !is_last {
+                            let skip_arm = self.emit(Instruction::JumpIfFalse(0));
+                            self.emit(Instruction::Pop(1)); // Pop instanceof result (true case)
+                            return Some(skip_arm);
+                        } else {
+                            // Last arm - pop the result and continue
+                            self.emit(Instruction::Pop(1));
+                        }
+                    }
+                }
+                None
+            }
+
+            Pattern::Binding(_) => {
+                // Catch-all pattern - always matches, no check needed
+                None
+            }
+
+            Pattern::Literal(lit) => {
+                // Load scrutinee
+                self.emit(Instruction::LoadVar(scrut_var));
+
+                // Load literal value for comparison
+                self.compile_literal(lit);
+
+                // Emit equality check
+                self.emit(Instruction::CmpOp(CmpOp::Eq));
+
+                // Jump to next arm if not equal
+                if !is_last {
+                    let skip_arm = self.emit(Instruction::JumpIfFalse(0));
+                    self.emit(Instruction::Pop(1)); // Pop comparison result (true case)
+                    return Some(skip_arm);
+                } else {
+                    self.emit(Instruction::Pop(1));
+                }
+                None
+            }
+
+            Pattern::EnumVariant {
+                enum_name: _,
+                variant: _,
+            } => {
+                // TODO: Implement enum variant matching
+                // For now, treat as catch-all
+                None
+            }
+
+            Pattern::Union(sub_patterns) => {
+                // Union pattern: match if ANY sub-pattern matches
+                // For now, implement simple OR logic for literals/enum variants
+                if sub_patterns.is_empty() {
+                    return None;
+                }
+
+                let mut success_jumps = Vec::new();
+
+                for (j, &sub_pat_id) in sub_patterns.iter().enumerate() {
+                    let is_last_subpat = j == sub_patterns.len() - 1;
+                    let sub_pattern = &body.patterns[sub_pat_id];
+
+                    // For each sub-pattern, check if it matches
+                    if let Pattern::Literal(lit) = sub_pattern {
+                        self.emit(Instruction::LoadVar(scrut_var));
+                        self.compile_literal(lit);
+                        self.emit(Instruction::CmpOp(CmpOp::Eq));
+
+                        if !is_last_subpat {
+                            // If matched, jump to success
+                            let success = self.emit(Instruction::JumpIfFalse(0));
+                            // True case - we matched, jump to arm body
+                            self.emit(Instruction::Pop(1));
+                            success_jumps.push(self.emit(Instruction::Jump(0)));
+                            // False case - try next sub-pattern
+                            self.patch_jump(success);
+                            self.emit(Instruction::Pop(1));
+                        } else {
+                            // Last sub-pattern - if this fails, the whole union fails
+                            if !is_last {
+                                let skip_arm = self.emit(Instruction::JumpIfFalse(0));
+                                self.emit(Instruction::Pop(1));
+                                // Patch all success jumps to here
+                                for jump in success_jumps {
+                                    self.patch_jump(jump);
+                                }
+                                return Some(skip_arm);
+                            } else {
+                                self.emit(Instruction::Pop(1));
+                            }
+                        }
+                    }
+                    // TODO: Handle enum variant sub-patterns
+                }
+
+                // Patch success jumps to continue here
+                for jump in success_jumps {
+                    self.patch_jump(jump);
+                }
+                None
+            }
+        }
+    }
+
+    /// Bind a pattern variable to the scrutinee value.
+    ///
+    /// For binding patterns (`name` or `name: Type`), creates a local variable
+    /// that aliases the scrutinee. For other pattern types, this is a no-op.
+    fn bind_pattern_variable(&mut self, pattern: &Pattern, scrut_var: usize) {
+        match pattern {
+            Pattern::TypedBinding { name, ty: _ } | Pattern::Binding(name) => {
+                // Skip binding for wildcard `_` - it's semantically discarded
+                // but we still need to track it for scope management
+                if name.as_str() != "_" {
+                    // Load scrutinee and create a local binding
+                    self.emit(Instruction::LoadVar(scrut_var));
+                    self.track_local(name.as_ref());
+                }
+            }
+            // Other patterns don't introduce bindings
+            Pattern::Literal(_) | Pattern::EnumVariant { .. } | Pattern::Union(_) => {}
+        }
+    }
+
+    /// Extract the type name from a TypeRef for instanceof checking.
+    ///
+    /// Returns `Some(class_name)` for named types (classes), `None` for primitives
+    /// or types that don't support instanceof.
+    fn extract_type_name_from_type_ref(ty: &baml_hir::TypeRef) -> Option<String> {
+        match ty {
+            baml_hir::TypeRef::Path(path) => {
+                // For simple paths, return the type name
+                if path.segments.len() == 1 {
+                    let name = path.segments[0].as_ref();
+                    // Filter out primitive types which don't use instanceof
+                    match name {
+                        "int" | "float" | "string" | "bool" | "null" | "image" | "audio"
+                        | "video" | "pdf" => None,
+                        _ => Some(name.to_string()),
+                    }
+                } else {
+                    // Qualified path - join segments
+                    Some(
+                        path.segments
+                            .iter()
+                            .map(|s| s.as_ref())
+                            .collect::<Vec<&str>>()
+                            .join("."),
+                    )
+                }
+            }
+            // Union types - would need to handle each variant separately
+            // For now, return None
+            baml_hir::TypeRef::Union(_) => None,
+            // Other types don't use instanceof
+            _ => None,
+        }
+    }
+
     /// Convert HIR binary op to bytecode instruction.
     fn binary_op_instruction(op: BinaryOp) -> Instruction {
         match op {
