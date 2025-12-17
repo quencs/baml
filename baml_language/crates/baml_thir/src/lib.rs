@@ -751,6 +751,69 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
             }
         }
 
+        Expr::Match { scrutinee, arms } => {
+            let scrutinee_ty = infer_expr(ctx, *scrutinee, body);
+
+            if arms.is_empty() {
+                // Empty match is non-exhaustive (unless scrutinee is uninhabited)
+                if !scrutinee_ty.is_unknown() {
+                    ctx.push_error(TypeError::NonExhaustiveMatch {
+                        scrutinee_type: scrutinee_ty.clone(),
+                        missing_cases: vec!["all cases".to_string()],
+                        span,
+                    });
+                }
+                Ty::Unknown
+            } else {
+                // Perform exhaustiveness checking and unreachable arm detection
+                check_match_exhaustiveness(ctx, &scrutinee_ty, arms, body, span);
+
+                // Collect result types from all arms
+                let arm_types: Vec<Ty> = arms
+                    .iter()
+                    .map(|arm| {
+                        // Push a scope for the arm's pattern bindings
+                        ctx.push_scope();
+
+                        // Extract pattern and determine the narrowed type
+                        let pattern = &body.patterns[arm.pattern];
+                        let (binding_name, narrowed_ty) =
+                            extract_pattern_binding(ctx, pattern, &scrutinee_ty, body);
+
+                        // Bind the pattern variable with the narrowed type
+                        if let Some(name) = binding_name {
+                            ctx.define(name, narrowed_ty);
+                        }
+
+                        // Type-check the guard (if present)
+                        if let Some(guard) = arm.guard {
+                            let guard_ty = infer_expr(ctx, guard, body);
+                            if !guard_ty.is_subtype_of(&Ty::Bool) && !guard_ty.is_unknown() {
+                                ctx.push_error(TypeError::TypeMismatch {
+                                    expected: Ty::Bool,
+                                    found: guard_ty,
+                                    span,
+                                });
+                            }
+                        }
+
+                        // Type-check the arm body
+                        let body_ty = infer_expr(ctx, arm.body, body);
+
+                        ctx.pop_scope();
+                        body_ty
+                    })
+                    .collect();
+
+                // If all arms have the same type, use that; otherwise union
+                if arm_types.iter().all(|t| t == &arm_types[0]) {
+                    arm_types.into_iter().next().unwrap()
+                } else {
+                    Ty::Union(arm_types)
+                }
+            }
+        }
+
         Expr::Missing => Ty::Unknown,
     };
 
