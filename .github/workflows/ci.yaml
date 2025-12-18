@@ -40,6 +40,8 @@ jobs:
       thir: ${{ steps.check_thir.outputs.changed }}
       # Flag for codegen changes
       codegen: ${{ steps.check_codegen.outputs.changed }}
+      # Flag for benchmark changes
+      benchmarks: ${{ steps.check_benchmarks.outputs.changed }}
       # Flag for BEP changes
       beps: ${{ steps.check_beps.outputs.changed }}
       # Flag for docs/frontend changes
@@ -151,6 +153,20 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check if benchmarks changed
+        id: check_benchmarks
+        env:
+          MERGE_BASE: ${{ steps.merge_base.outputs.sha }}
+        run: |
+          if git diff --quiet "${MERGE_BASE}...HEAD" -- \
+            ':baml_language/crates/baml_tests/**' \
+            ':integ-tests/baml_src/**' \
+          ; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check if BEPs changed
         id: check_beps
         env:
@@ -229,7 +245,8 @@ jobs:
         needs.determine_changes.outputs.parser == 'true' ||
         needs.determine_changes.outputs.hir == 'true' ||
         needs.determine_changes.outputs.thir == 'true' ||
-        needs.determine_changes.outputs.codegen == 'true'
+        needs.determine_changes.outputs.codegen == 'true' ||
+        needs.determine_changes.outputs.benchmarks == 'true'
       )
     timeout-minutes: 20
     steps:
