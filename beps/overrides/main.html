@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block announce %}
+<style>
+  .md-banner {
+    background-color: #7c4dff;
+    color: white;
+  }
+  .md-banner__inner {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0;
+  }
+  .md-banner__inner code {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: var(--md-code-font-family);
+    font-size: 0.85em;
+  }
+  .branch-icon {
+    margin-right: 0.3rem;
+  }
+</style>
+<div class="md-banner">
+  <div class="md-banner__inner md-grid md-typeset">
+    <span class="branch-icon">🌿</span>
+    Branch: <code id="branch-name">{{ config.extra.git_branch | default('unknown') }}</code>
+  </div>
+</div>
+{% endblock %}

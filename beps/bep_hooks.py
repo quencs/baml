@@ -11,6 +11,37 @@ DOCS_DIR = Path(__file__).resolve().parent / "docs"
 _DIFF_CACHE = {}
 
 
+def _get_current_branch() -> str:
+    """Get the current git branch name."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
+
+
+def on_config(config, **kwargs):
+    """
+    MkDocs hook: runs when config is loaded.
+    - Injects current git branch name into config.extra for the permabanner.
+    """
+    if "extra" not in config:
+        config["extra"] = {}
+    
+    branch = _get_current_branch()
+    config["extra"]["git_branch"] = branch
+    
+    return config
+
+
 def _generate_toc(markdown: str) -> str:
     """
     Replace <!-- TOC_PLACEHOLDER --> placeholder with auto-generated table of contents.

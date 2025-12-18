@@ -4,6 +4,7 @@ site_description: BAML Language Proposals
 
 theme:
   name: material
+  custom_dir: overrides
   features:
     - navigation.instant
     - navigation.tracking
