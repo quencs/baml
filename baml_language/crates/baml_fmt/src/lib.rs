@@ -1,12 +1,9 @@
-use std::{collections::HashMap, iter::Peekable};
-
 use baml_base::SourceFile;
 use baml_lexer::lex_file;
 use baml_parser::parse_file;
 use baml_syntax::{
     SyntaxKind, SyntaxNode, ast::ClassDef as AstClassDef, ast::EnumDef as AstEnumDef,
-    ast::EnumVariant as AstEnumVariant, ast::Field as AstField, ast::Item as AstItem,
-    ast::SourceFile as AstSourceFile,
+    ast::Item as AstItem, ast::SourceFile as AstSourceFile,
 };
 use rowan::{TextRange, TextSize, ast::AstNode};
 
@@ -53,10 +50,9 @@ impl Formatter {
         self.last_pos = range.end();
     }
 
+    // The same as push_format, but also prepends a newline and an indent.
     fn push_format_indent(&mut self, range: TextRange, text: String) {
-        self.format_missing(range.start());
-        self.push_text(format!("\n{}{}", self.gen_indent(), text));
-        self.last_pos = range.end();
+        self.push_format(range, format!("\n{}{}", self.gen_indent(), text));
     }
 
     /// Push a text to be added to the output.
@@ -119,10 +115,8 @@ impl Formatter {
     /// Format the provided syntax tree. Consumes the formatter.
     fn format(mut self) -> Option<String> {
         let file = AstSourceFile::cast(self.root.clone())?;
-        let mut first_item = true;
         for item in file.items() {
-            self.format_item(item, first_item);
-            first_item = false;
+            self.format_item(item);
         }
 
         // TODO: do cleanup and grab hanging trivia here
@@ -131,16 +125,16 @@ impl Formatter {
     }
 
     /// Format an AST item.
-    fn format_item(&mut self, item: AstItem, first_item: bool) {
+    fn format_item(&mut self, item: AstItem) {
         match item {
-            AstItem::Enum(enum_def) => self.format_enum_def(enum_def, first_item),
+            AstItem::Enum(enum_def) => self.format_enum_def(enum_def),
+            AstItem::Class(class_def) => self.format_class_def(class_def),
             _ => todo!(),
         }
     }
 
     /// Format an AST enum definition.
-    fn format_enum_def(&mut self, enum_def: AstEnumDef, first_item: bool) {
-        // make sure to add a double newline between items if we're not the first item
+    fn format_enum_def(&mut self, enum_def: AstEnumDef) {
         let keyword = enum_def.keyword().unwrap();
         self.push_format_indent(
             keyword.text_range(),
@@ -151,10 +145,34 @@ impl Formatter {
             for variant in enum_def.variants() {
                 let variant_name = variant.name().unwrap();
                 f.push_format_indent(variant_name.text_range(), variant_name.text().to_string());
+
+                for attribute in variant.attributes() {
+                    let at = attribute.at().unwrap();
+
+                    // TODO: handle attributes with arguments, this will require updating the AST
+                    f.push_format(
+                        at.text_range(),
+                        format!(" @{}", attribute.name().unwrap().text()),
+                    );
+                }
+            }
+
+            for attribute in enum_def.block_attributes() {
+                let at_at = attribute.at_at().unwrap();
+
+                // TODO: handle block attributes with arguments, this will require updating the AST
+                f.push_format_indent(
+                    at_at.text_range(),
+                    format!("@@{}", attribute.name().unwrap().text()),
+                );
             }
         });
 
         let r_brace = enum_def.r_brace().unwrap();
         self.push_format_indent(r_brace.text_range(), "}".to_string());
+    }
+
+    fn format_class_def(&mut self, class_def: AstClassDef) {
+        todo!()
     }
 }

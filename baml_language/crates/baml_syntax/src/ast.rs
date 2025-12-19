@@ -171,6 +171,14 @@ impl ClassDef {
             .nth(0) // Get the first WORD (class keyword is KW_CLASS, not WORD)
     }
 
+    /// Get the class keyword.
+    pub fn keyword(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_CLASS)
+    }
+
     /// Get all fields.
     pub fn fields(&self) -> impl Iterator<Item = Field> {
         self.syntax.children().filter_map(Field::cast)
@@ -388,6 +396,14 @@ impl BlockAttribute {
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| matches!(token.kind(), SyntaxKind::WORD | SyntaxKind::KW_DYNAMIC))
     }
+
+    /// Get the @@ token.
+    pub fn at_at(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::AT_AT)
+    }
 }
 
 impl Attribute {
@@ -397,6 +413,14 @@ impl Attribute {
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::WORD)
+    }
+
+    /// Get the @ token.
+    pub fn at(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::AT)
     }
 }
 
