@@ -2,10 +2,12 @@ use baml_base::SourceFile;
 use baml_lexer::lex_file;
 use baml_parser::parse_file;
 use baml_syntax::{
-    SyntaxKind, SyntaxNode, ast::ClassDef as AstClassDef, ast::EnumDef as AstEnumDef,
-    ast::FunctionDef as AstFunctionDef, ast::Item as AstItem, ast::Parameter as AstParameter,
-    ast::ParameterList as AstParameterList, ast::SourceFile as AstSourceFile,
-    ast::TypeExpr as AstTypeExpr,
+    SyntaxKind, SyntaxNode, ast::BlockElement as AstBlockElement, ast::ClassDef as AstClassDef,
+    ast::EnumDef as AstEnumDef, ast::ExprFunctionBody as AstExprFunctionBody,
+    ast::FunctionDef as AstFunctionDef, ast::IfExpr as AstIfExpr, ast::Item as AstItem,
+    ast::LetStmt as AstLetStmt, ast::LlmFunctionBody as AstLlmFunctionBody,
+    ast::Parameter as AstParameter, ast::ParameterList as AstParameterList,
+    ast::SourceFile as AstSourceFile, ast::TypeExpr as AstTypeExpr,
 };
 use rowan::{TextRange, TextSize, ast::AstNode};
 
@@ -46,15 +48,13 @@ impl Formatter {
     }
 
     /// Push a formatted range to be added to the output, also prepends text from ranges missing in the AST if necessary.
-    fn push_format(&mut self, range: TextRange, text: String) {
+    fn push_format(&mut self, range: TextRange, text: String, indent: bool) {
         self.format_missing(range.start());
+        if indent {
+            self.push_text(format!("\n{}", self.gen_indent()));
+        }
         self.push_text(text);
         self.last_pos = range.end();
-    }
-
-    // The same as push_format, but also prepends a newline and an indent.
-    fn push_format_indent(&mut self, range: TextRange, text: String) {
-        self.push_format(range, format!("\n{}{}", self.gen_indent(), text));
     }
 
     /// Push a text to be added to the output.
@@ -108,11 +108,11 @@ impl Formatter {
 
     /// Generates a string of the provided type expression.
     fn gen_type_expr(&self, type_expr: AstTypeExpr) -> String {
-        self.gen_type_expr_inner(type_expr.syntax())
+        self.gen_type_expr_inner(SyntaxNode::clone(&type_expr.syntax()))
     }
 
     /// Inner recursive function for generating a string of the provided type expression.
-    fn gen_type_expr_inner(&self, node: &SyntaxNode) -> String {
+    fn gen_type_expr_inner(&self, node: SyntaxNode) -> String {
         node.children_with_tokens()
             .filter_map(|n| match n.kind() {
                 // allow these tokens to be included in the output
@@ -135,7 +135,7 @@ impl Formatter {
                     Some(format!("<{}>", self.gen_type_args(n.into_node().unwrap())))
                 }
                 // recurse for nesting in parentheses
-                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(&n.into_node().unwrap())),
+                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(n.into_node().unwrap())),
                 // ignore everything else - comments, whitespace, etc.
                 _ => None,
             })
@@ -143,17 +143,19 @@ impl Formatter {
             .join("")
     }
 
+    /// Generates a string of the provided type arguments, not including any bracketing
     fn gen_type_args(&self, type_args: SyntaxNode) -> String {
         type_args
             .children_with_tokens()
             .filter_map(|n| match n.kind() {
-                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(&n.into_node().unwrap())),
+                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(n.into_node().unwrap())),
                 _ => None,
             })
             .collect::<Vec<_>>()
             .join(", ")
     }
 
+    /// Generates a string of the provided parameter list, including the parentheses. e.g. "(x: int, y: string)"
     fn gen_parameter_list(&self, parameter_list: AstParameterList) -> String {
         format!(
             "({})",
@@ -165,6 +167,7 @@ impl Formatter {
         )
     }
 
+    // Generates a string of the provided parameter. eg. "x: int"
     fn gen_parameter(&self, parameter: AstParameter) -> String {
         let name = parameter.name().unwrap();
         let ty = self.gen_type_expr(parameter.ty().unwrap());
@@ -206,15 +209,20 @@ impl Formatter {
     /// Format an AST enum definition.
     fn format_enum_def(&mut self, enum_def: AstEnumDef) {
         let keyword = enum_def.keyword_tok().unwrap();
-        self.push_format_indent(
+        self.push_format(
             keyword.text_range(),
             format!("enum {} {{", enum_def.name().unwrap().text()),
+            true,
         );
 
         self.nest(|f| {
             for variant in enum_def.variants() {
                 let variant_name = variant.name().unwrap();
-                f.push_format_indent(variant_name.text_range(), variant_name.text().to_string());
+                f.push_format(
+                    variant_name.text_range(),
+                    variant_name.text().to_string(),
+                    true,
+                );
 
                 for attribute in variant.attributes() {
                     let at = attribute.at_tok().unwrap();
@@ -223,6 +231,7 @@ impl Formatter {
                     f.push_format(
                         at.text_range(),
                         format!(" @{}", attribute.name().unwrap().text()),
+                        false,
                     );
                 }
             }
@@ -231,23 +240,25 @@ impl Formatter {
                 let at_at = attribute.at_at_tok().unwrap();
 
                 // TODO: handle block attributes with arguments, this will require updating the AST
-                f.push_format_indent(
+                f.push_format(
                     at_at.text_range(),
                     format!("@@{}", attribute.name().unwrap().text()),
+                    true,
                 );
             }
         });
 
         let r_brace = enum_def.r_brace_tok().unwrap();
-        self.push_format_indent(r_brace.text_range(), "}".to_string());
+        self.push_format(r_brace.text_range(), "}".to_string(), true);
     }
 
     /// Format an AST class definition.
     fn format_class_def(&mut self, class_def: AstClassDef) {
         let keyword = class_def.keyword_tok().unwrap();
-        self.push_format_indent(
+        self.push_format(
             keyword.text_range(),
             format!("class {} {{", class_def.name().unwrap().text()),
+            true,
         );
 
         self.nest(|f| {
@@ -255,7 +266,7 @@ impl Formatter {
                 let name = field.name().unwrap();
                 let ty = f.gen_type_expr(field.ty().unwrap());
 
-                f.push_format_indent(name.text_range(), format!("{} {}", name.text(), ty));
+                f.push_format(name.text_range(), format!("{} {}", name.text(), ty), true);
 
                 for attribute in field.attributes() {
                     let at = attribute.at_tok().unwrap();
@@ -264,6 +275,7 @@ impl Formatter {
                     f.push_format(
                         at.text_range(),
                         format!(" @{}", attribute.name().unwrap().text()),
+                        false,
                     );
                 }
             }
@@ -272,15 +284,16 @@ impl Formatter {
                 let at_at = attribute.at_at_tok().unwrap();
 
                 // TODO: handle block attributes with arguments, this will require updating the AST
-                f.push_format_indent(
+                f.push_format(
                     at_at.text_range(),
                     format!("@@{}", attribute.name().unwrap().text()),
+                    true,
                 );
             }
         });
 
         let r_brace = class_def.r_brace_tok().unwrap();
-        self.push_format_indent(r_brace.text_range(), "}".to_string());
+        self.push_format(r_brace.text_range(), "}".to_string(), true);
     }
 
     fn format_function_def(&mut self, function_def: AstFunctionDef) {
@@ -288,7 +301,7 @@ impl Formatter {
 
         let parameters = self.gen_parameter_list(function_def.param_list().unwrap());
         let return_type = self.gen_type_expr(function_def.return_type().unwrap());
-        self.push_format_indent(
+        self.push_format(
             keyword.text_range(),
             format!(
                 "function {} {} -> {} {{",
@@ -296,6 +309,133 @@ impl Formatter {
                 parameters,
                 return_type
             ),
+            true,
         );
+
+        match (function_def.expr_body(), function_def.llm_body()) {
+            (Some(expr_body), None) => self.format_expr_function_body(expr_body),
+            (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
+            (Some(_), Some(_)) => unreachable!(),
+            (None, None) => todo!(), // TODO: is this even possible?
+        }
+    }
+
+    fn format_expr_function_body(&mut self, expr_body: AstExprFunctionBody) {
+        self.nest(|f| {
+            let block_expr = expr_body.block_expr().unwrap();
+            for element in block_expr.elements() {
+                match element {
+                    AstBlockElement::Stmt(stmt) => f.format_stmt(stmt),
+                    AstBlockElement::ExprNode(expr) => {
+                        f.format_expr(expr, true);
+                    }
+                    AstBlockElement::ExprToken(expr_token) => todo!(),
+                }
+            }
+        });
+    }
+
+    fn format_expr(&mut self, expr: SyntaxNode, indent: bool) {
+        match expr.kind() {
+            SyntaxKind::BINARY_EXPR => self.format_binary_expr(expr, indent),
+            SyntaxKind::IF_EXPR => {
+                self.format_if_expr(AstIfExpr::cast(SyntaxNode::clone(&expr)).unwrap(), indent)
+            }
+            SyntaxKind::PAREN_EXPR => self.format_paren_expr(expr, indent),
+            SyntaxKind::EXPR
+            | SyntaxKind::UNARY_EXPR
+            | SyntaxKind::CALL_EXPR
+            | SyntaxKind::BLOCK_EXPR
+            | SyntaxKind::PATH_EXPR
+            | SyntaxKind::FIELD_ACCESS_EXPR
+            | SyntaxKind::INDEX_EXPR
+            | SyntaxKind::ARRAY_LITERAL
+            | SyntaxKind::OBJECT_LITERAL => todo!(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn format_paren_expr(&mut self, expr: SyntaxNode, indent: bool) {}
+
+    fn format_if_expr(&mut self, expr: AstIfExpr, indent: bool) {
+        let condition = expr.condition().unwrap();
+        let then_branch = expr.then_branch().unwrap();
+    }
+
+    fn format_binary_expr(&mut self, expr: SyntaxNode, indent: bool) {
+        expr.children_with_tokens()
+            .filter_map(|child| {
+                let range = child.text_range();
+                let text = child.clone().into_token().unwrap().text().to_string();
+                match child.kind() {
+                    // all permitted operators get added with a space around them
+                    SyntaxKind::EQUALS
+                    | SyntaxKind::PLUS_EQUALS
+                    | SyntaxKind::MINUS_EQUALS
+                    | SyntaxKind::STAR_EQUALS
+                    | SyntaxKind::SLASH_EQUALS
+                    | SyntaxKind::PERCENT_EQUALS
+                    | SyntaxKind::AND_EQUALS
+                    | SyntaxKind::PIPE_EQUALS
+                    | SyntaxKind::CARET_EQUALS
+                    | SyntaxKind::LESS_LESS_EQUALS
+                    | SyntaxKind::GREATER_GREATER_EQUALS
+                    | SyntaxKind::OR_OR
+                    | SyntaxKind::AND_AND
+                    | SyntaxKind::PIPE
+                    | SyntaxKind::CARET
+                    | SyntaxKind::AND
+                    | SyntaxKind::EQUALS_EQUALS
+                    | SyntaxKind::NOT_EQUALS
+                    | SyntaxKind::LESS
+                    | SyntaxKind::GREATER
+                    | SyntaxKind::LESS_EQUALS
+                    | SyntaxKind::GREATER_EQUALS
+                    | SyntaxKind::LESS_LESS
+                    | SyntaxKind::GREATER_GREATER
+                    | SyntaxKind::PLUS
+                    | SyntaxKind::MINUS
+                    | SyntaxKind::STAR
+                    | SyntaxKind::SLASH
+                    | SyntaxKind::PERCENT => Some((range, format!(" {} ", text))),
+                    // add literals as-is
+                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                        Some((range, text.trim().to_string()))
+                    }
+                    SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
+                        Some((range, text.to_string()))
+                    }
+                    // add words as-is
+                    SyntaxKind::WORD => Some((range, text.to_string())),
+                    _ => None,
+                }
+            })
+            .fold(indent, |indent, (range, text)| {
+                self.push_format(range, text, indent);
+
+                false
+            });
+    }
+
+    fn format_stmt(&mut self, stmt: SyntaxNode) {
+        match stmt.kind() {
+            SyntaxKind::LET_STMT => self.format_let_stmt(AstLetStmt::cast(stmt).unwrap()),
+            SyntaxKind::RETURN_STMT
+            | SyntaxKind::WHILE_STMT
+            | SyntaxKind::FOR_EXPR
+            | SyntaxKind::BREAK_STMT
+            | SyntaxKind::CONTINUE_STMT => (),
+            _ => unreachable!(),
+        }
+    }
+
+    fn format_let_stmt(&mut self, stmt: AstLetStmt) {
+        let name = stmt.name().unwrap();
+        let ty = stmt.ty().map(|t| self.gen_type_expr(t));
+        // let initializer = stmt.initializer().map(|t| self.gen_expr(t));
+    }
+
+    fn format_llm_function_body(&mut self, llm_body: AstLlmFunctionBody) {
+        todo!()
     }
 }

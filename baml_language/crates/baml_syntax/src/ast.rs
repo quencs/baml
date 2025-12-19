@@ -219,6 +219,13 @@ impl ClassDef {
     }
 }
 
+impl ExprFunctionBody {
+    // Get the block expression.
+    pub fn block_expr(&self) -> Option<BlockExpr> {
+        self.syntax.children().find_map(BlockExpr::cast)
+    }
+}
+
 impl Field {
     /// Get the field name.
     pub fn name(&self) -> Option<SyntaxToken> {
