@@ -132,10 +132,7 @@ impl WithStreamChat for VertexClient {
             self,
             either::Either::Right(prompt),
             Some(self.properties.model.clone()),
-            match self.properties.anthropic_version {
-                Some(ref anthropic_version) => ResponseType::Anthropic,
-                None => ResponseType::Vertex,
-            },
+            self.get_response_type(),
             ctx,
         )
         .await
@@ -230,6 +227,21 @@ impl VertexClient {
             client: create_http_client(&properties.http_config)?,
             properties,
         })
+    }
+
+    /// Determines the response type to use for parsing the LLM response.
+    /// Priority:
+    /// 1. Explicit client_response_type if set
+    /// 2. Anthropic if anthropic_version is set (Claude models on Vertex)
+    /// 3. Default to Vertex
+    fn get_response_type(&self) -> ResponseType {
+        if let Some(ref crt) = self.properties.client_response_type {
+            return crt.clone();
+        }
+        if self.properties.anthropic_version.is_some() {
+            return ResponseType::Anthropic;
+        }
+        ResponseType::Vertex
     }
 }
 
@@ -421,10 +433,7 @@ impl WithChat for VertexClient {
             Some(model_name),
             either::Either::Right(prompt),
             false,
-            match self.properties.anthropic_version {
-                Some(ref anthropic_version) => ResponseType::Anthropic,
-                None => ResponseType::Vertex,
-            },
+            self.get_response_type(),
             ctx,
         )
         .await

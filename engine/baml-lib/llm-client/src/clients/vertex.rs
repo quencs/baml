@@ -8,9 +8,9 @@ use indexmap::IndexMap;
 
 use super::helpers::{Error, PropertyHandler, UnresolvedUrl};
 use crate::{
-    AllowedRoleMetadata, FinishReasonFilter, MediaUrlHandler, RolesSelection,
+    AllowedRoleMetadata, FinishReasonFilter, MediaUrlHandler, ResponseType, RolesSelection,
     SupportedRequestModes, UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter,
-    UnresolvedMediaUrlHandler, UnresolvedRolesSelection,
+    UnresolvedMediaUrlHandler, UnresolvedResponseType, UnresolvedRolesSelection,
 };
 
 #[derive(Debug, Clone, BamlHash)]
@@ -158,6 +158,7 @@ pub struct UnresolvedVertex<Meta> {
     anthropic_version: Option<StringOr>,
     media_url_handler: UnresolvedMediaUrlHandler,
     http_config: super::helpers::HttpConfig,
+    client_response_type: Option<UnresolvedResponseType>,
 }
 
 pub enum BaseUrlOrLocation {
@@ -182,6 +183,7 @@ pub struct ResolvedVertex {
     pub anthropic_version: Option<String>,
     pub media_url_handler: MediaUrlHandler,
     pub http_config: super::helpers::HttpConfig,
+    pub client_response_type: Option<ResponseType>,
 }
 
 impl ResolvedVertex {
@@ -264,6 +266,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
             anthropic_version: self.anthropic_version.clone(),
             media_url_handler: self.media_url_handler.clone(),
             http_config: self.http_config.clone(),
+            client_response_type: self.client_response_type.clone(),
         }
     }
 
@@ -326,6 +329,10 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
             },
             media_url_handler: self.media_url_handler.resolve(ctx)?,
             http_config: self.http_config.clone(),
+            client_response_type: match self.client_response_type {
+                Some(ref crt) => Some(crt.resolve(ctx)?),
+                None => None,
+            },
         })
     }
 
@@ -413,6 +420,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
 
         let media_url_handler = properties.ensure_media_url_handler();
         let http_config = properties.ensure_http_config("vertex");
+        let client_response_type = properties.ensure_client_response_type();
 
         let (properties, errors) = properties.finalize();
         if !errors.is_empty() {
@@ -438,6 +446,7 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
             anthropic_version,
             media_url_handler,
             http_config,
+            client_response_type,
         })
     }
 }
