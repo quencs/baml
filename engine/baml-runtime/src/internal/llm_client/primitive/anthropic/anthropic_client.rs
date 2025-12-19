@@ -106,7 +106,7 @@ impl WithClient for AnthropicClient {
 
 impl WithNoCompletion for AnthropicClient {}
 
-// handles streamign chat interactions, when sending prompt to API and processing response stream
+// handles streaming chat interactions, when sending prompt to API and processing response stream
 impl WithStreamChat for AnthropicClient {
     async fn stream_chat(
         &self,
@@ -122,7 +122,7 @@ impl WithStreamChat for AnthropicClient {
             self,
             either::Either::Right(prompt),
             model_name,
-            ResponseType::Anthropic,
+            self.get_response_type(),
             ctx,
         )
         .await
@@ -249,6 +249,15 @@ impl AnthropicClient {
             properties: ResolvedAnthropic::synthetic_for_vertex_anthropic(role_selection),
         })
     }
+
+    /// Determines the response type to use for parsing the LLM response.
+    /// Allows overriding via client_response_type option for custom endpoints.
+    fn get_response_type(&self) -> ResponseType {
+        self.properties
+            .client_response_type
+            .clone()
+            .unwrap_or(ResponseType::Anthropic)
+    }
 }
 
 // how to build the HTTP request for requests
@@ -338,7 +347,7 @@ impl WithChat for AnthropicClient {
             model_name,
             either::Either::Right(prompt),
             false,
-            ResponseType::Anthropic,
+            self.get_response_type(),
             ctx,
         )
         .await

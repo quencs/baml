@@ -111,7 +111,7 @@ impl WithStreamChat for GoogleAIClient {
             self,
             either::Either::Right(prompt),
             Some(model_name),
-            ResponseType::Google,
+            self.get_response_type(),
             ctx,
         )
         .await
@@ -207,6 +207,15 @@ impl GoogleAIClient {
             properties,
         })
     }
+
+    /// Determines the response type to use for parsing the LLM response.
+    /// Allows overriding via client_response_type option for custom endpoints.
+    fn get_response_type(&self) -> ResponseType {
+        self.properties
+            .client_response_type
+            .clone()
+            .unwrap_or(ResponseType::Google)
+    }
 }
 
 impl RequestBuilder for GoogleAIClient {
@@ -291,7 +300,7 @@ impl WithChat for GoogleAIClient {
             Some(model_name),
             either::Either::Right(prompt),
             false,
-            ResponseType::Google,
+            self.get_response_type(),
             ctx,
         )
         .await

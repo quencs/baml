@@ -8,9 +8,9 @@ use secrecy::SecretString;
 
 use super::helpers::{Error, HttpConfig, PropertyHandler, UnresolvedUrl};
 use crate::{
-    AllowedRoleMetadata, FinishReasonFilter, MediaUrlHandler, RolesSelection,
+    AllowedRoleMetadata, FinishReasonFilter, MediaUrlHandler, ResponseType, RolesSelection,
     SupportedRequestModes, UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter,
-    UnresolvedMediaUrlHandler, UnresolvedRolesSelection,
+    UnresolvedMediaUrlHandler, UnresolvedResponseType, UnresolvedRolesSelection,
 };
 
 pub const DEFAULT_ANTHROPIC_VERSION: &str = "2023-06-01";
@@ -30,6 +30,7 @@ pub struct UnresolvedAnthropic<Meta> {
     finish_reason_filter: UnresolvedFinishReasonFilter,
     media_url_handler: UnresolvedMediaUrlHandler,
     http_config: HttpConfig,
+    client_response_type: Option<UnresolvedResponseType>,
 }
 
 impl<Meta> UnresolvedAnthropic<Meta> {
@@ -53,6 +54,7 @@ impl<Meta> UnresolvedAnthropic<Meta> {
             finish_reason_filter: self.finish_reason_filter.clone(),
             media_url_handler: self.media_url_handler.clone(),
             http_config: self.http_config.clone(),
+            client_response_type: self.client_response_type.clone(),
         }
     }
 }
@@ -69,6 +71,7 @@ pub struct ResolvedAnthropic {
     pub finish_reason_filter: FinishReasonFilter,
     pub media_url_handler: MediaUrlHandler,
     pub http_config: HttpConfig,
+    pub client_response_type: Option<ResponseType>,
 }
 
 impl ResolvedAnthropic {
@@ -118,6 +121,7 @@ impl ResolvedAnthropic {
             supported_request_modes: SupportedRequestModes { stream: Some(true) },
             media_url_handler: MediaUrlHandler::default(),
             http_config: HttpConfig::default(),
+            client_response_type: None,
         }
     }
 }
@@ -180,6 +184,10 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
             finish_reason_filter: self.finish_reason_filter.resolve(ctx)?,
             media_url_handler: self.media_url_handler.resolve(ctx)?,
             http_config: self.http_config.clone(),
+            client_response_type: match self.client_response_type {
+                Some(ref crt) => Some(crt.resolve(ctx)?),
+                None => None,
+            },
         })
     }
 
@@ -199,9 +207,7 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
         let headers = properties.ensure_headers().unwrap_or_default();
         let finish_reason_filter = properties.ensure_finish_reason_filter();
         let media_url_handler = properties.ensure_media_url_handler();
-        // Consume client_response_type to prevent it from being sent to the API
-        // (Anthropic always returns Anthropic-format responses, so we don't use this value)
-        let _ = properties.ensure_client_response_type();
+        let client_response_type = properties.ensure_client_response_type();
         let (properties, errors) = properties.finalize();
         if !errors.is_empty() {
             return Err(errors);
@@ -218,6 +224,7 @@ impl<Meta: Clone> UnresolvedAnthropic<Meta> {
             finish_reason_filter,
             media_url_handler,
             http_config,
+            client_response_type,
         })
     }
 }

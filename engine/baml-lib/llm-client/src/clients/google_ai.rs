@@ -7,9 +7,9 @@ use indexmap::IndexMap;
 
 use super::helpers::{Error, HttpConfig, PropertyHandler, UnresolvedUrl};
 use crate::{
-    AllowedRoleMetadata, FinishReasonFilter, MediaUrlHandler, RolesSelection,
+    AllowedRoleMetadata, FinishReasonFilter, MediaUrlHandler, ResponseType, RolesSelection,
     SupportedRequestModes, UnresolvedAllowedRoleMetadata, UnresolvedFinishReasonFilter,
-    UnresolvedMediaUrlHandler, UnresolvedRolesSelection,
+    UnresolvedMediaUrlHandler, UnresolvedResponseType, UnresolvedRolesSelection,
 };
 
 #[derive(Debug, Clone, BamlHash)]
@@ -27,6 +27,7 @@ pub struct UnresolvedGoogleAI<Meta> {
     properties: IndexMap<String, (Meta, UnresolvedValue<Meta>)>,
     media_url_handler: UnresolvedMediaUrlHandler,
     http_config: HttpConfig,
+    client_response_type: Option<UnresolvedResponseType>,
 }
 
 impl<Meta> UnresolvedGoogleAI<Meta> {
@@ -51,6 +52,7 @@ impl<Meta> UnresolvedGoogleAI<Meta> {
             finish_reason_filter: self.finish_reason_filter.clone(),
             media_url_handler: self.media_url_handler.clone(),
             http_config: self.http_config.clone(),
+            client_response_type: self.client_response_type.clone(),
         }
     }
 }
@@ -68,6 +70,7 @@ pub struct ResolvedGoogleAI {
     pub finish_reason_filter: FinishReasonFilter,
     pub media_url_handler: MediaUrlHandler,
     pub http_config: HttpConfig,
+    pub client_response_type: Option<ResponseType>,
 }
 
 impl ResolvedGoogleAI {
@@ -165,6 +168,10 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
             finish_reason_filter: self.finish_reason_filter.resolve(ctx)?,
             media_url_handler: self.media_url_handler.resolve(ctx)?,
             http_config: self.http_config.clone(),
+            client_response_type: match self.client_response_type {
+                Some(ref crt) => Some(crt.resolve(ctx)?),
+                None => None,
+            },
         })
     }
 
@@ -189,9 +196,7 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
         let headers = properties.ensure_headers().unwrap_or_default();
         let finish_reason_filter = properties.ensure_finish_reason_filter();
         let media_url_handler = properties.ensure_media_url_handler();
-        // Consume client_response_type to prevent it from being sent to the API
-        // (Google AI always returns Google-format responses, so we don't use this value)
-        let _ = properties.ensure_client_response_type();
+        let client_response_type = properties.ensure_client_response_type();
         let (properties, errors) = properties.finalize();
 
         if !errors.is_empty() {
@@ -210,6 +215,7 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
             finish_reason_filter,
             media_url_handler,
             http_config,
+            client_response_type,
         })
     }
 }
