@@ -53,6 +53,12 @@ impl Formatter {
         self.last_pos = range.end();
     }
 
+    fn push_format_indent(&mut self, range: TextRange, text: String) {
+        self.format_missing(range.start());
+        self.push_text(format!("\n{}{}", self.gen_indent(), text));
+        self.last_pos = range.end();
+    }
+
     /// Push a text to be added to the output.
     fn push_text(&mut self, text: String) {
         self.output.push_str(&text);
@@ -64,7 +70,7 @@ impl Formatter {
             let mut current_pos = self.last_pos;
 
             // iterate through all tokens in the missing range
-            let mut on_same_line = true;
+            let mut on_same_line = self.last_pos != TextSize::new(0); // first line of file is always a separate line comment
             while current_pos < start {
                 let token = self.root.token_at_offset(current_pos).right_biased();
 
@@ -80,7 +86,7 @@ impl Formatter {
                                     self.push_text(" ".to_string());
                                 }
 
-                                self.push_text(format!("{}", token.text()));
+                                self.push_text(token.text().to_string());
                             }
                             _ => (), // throw away all other tokens
                         }
@@ -136,32 +142,19 @@ impl Formatter {
     fn format_enum_def(&mut self, enum_def: AstEnumDef, first_item: bool) {
         // make sure to add a double newline between items if we're not the first item
         let keyword = enum_def.keyword().unwrap();
-        self.push_format(
+        self.push_format_indent(
             keyword.text_range(),
-            format!(
-                "{}{}enum ",
-                self.gen_indent(),
-                if first_item { "" } else { "\n\n" }
-            ), // double newline between items
+            format!("enum {} {{", enum_def.name().unwrap().text()),
         );
-
-        let name = enum_def.name().unwrap();
-        self.push_format(name.text_range(), format!("{} ", name.text()));
-
-        let l_brace = enum_def.l_brace().unwrap();
-        self.push_format(l_brace.text_range(), "{".to_string());
 
         self.nest(|f| {
             for variant in enum_def.variants() {
                 let variant_name = variant.name().unwrap();
-                f.push_format(
-                    variant_name.text_range(),
-                    format!("\n{}{}", f.gen_indent(), variant_name.text()),
-                );
+                f.push_format_indent(variant_name.text_range(), variant_name.text().to_string());
             }
         });
 
         let r_brace = enum_def.r_brace().unwrap();
-        self.push_format(r_brace.text_range(), format!("\n{}}}", self.gen_indent()));
+        self.push_format_indent(r_brace.text_range(), "}".to_string());
     }
 }
