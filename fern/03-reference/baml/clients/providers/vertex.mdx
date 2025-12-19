@@ -543,7 +543,50 @@ client<llm> VertexClaudeSonnet {
   options {
     model "claude-sonnet-4"
     anthropic_version "${ANTHROPIC_VERSION}"
-    base_url "https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/anthropic/models"
+    base_url "https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${LOCATION}/publishers/anthropic/models"
   }
 }
 ```
+
+### OpenAI-Compatible Models (GPT-OSS, etc.)
+
+Some models in Google's Model Garden return responses in OpenAI format rather than the native Vertex format. 
+For these models (like `gpt-oss-120b-maas`), you need to use the `client_response_type` option to tell BAML 
+how to parse the response.
+
+```baml
+client<llm> GptOss {
+  provider vertex-ai
+  options {
+    model "gpt-oss-120b-maas"
+    project_id env.GOOGLE_CLOUD_PROJECT
+    base_url "https://aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/openai/models"
+    // Tell BAML to parse responses as OpenAI format
+    client_response_type "openai"
+    generation_config {
+      temperature 0.0
+    }
+  }
+}
+```
+
+<ParamField path="client_response_type" type="string">
+  Specifies the response format to expect from the model. Use this when the model returns 
+  responses in a different format than the provider's default.
+  
+  **Valid values:**
+  - `"openai"` - For models returning OpenAI Chat Completions format
+  - `"openai-responses"` - For models using OpenAI's Responses API format
+  - `"anthropic"` - For Anthropic-format responses
+  - `"google"` - For Google AI format responses
+  - `"vertex"` - For native Vertex AI format (default)
+  
+  **Default**: `"vertex"` (or `"anthropic"` if `anthropic_version` is set)
+</ParamField>
+
+<Info>
+  The `client_response_type` option is useful when accessing models through:
+  - Vertex AI Model Garden with non-Google publishers
+  - Custom endpoints or proxies that transform response formats
+  - Any scenario where the response format differs from the provider's default
+</Info>
