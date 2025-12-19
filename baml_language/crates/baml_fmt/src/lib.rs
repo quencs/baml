@@ -124,6 +124,16 @@ impl Formatter {
                 | SyntaxKind::R_PAREN => Some(n.to_string()),
                 // also allow union pipe, but give it spaces around it
                 SyntaxKind::PIPE => Some(" | ".to_string()),
+                // allow comma for generics/tuples, but give a space after it
+                SyntaxKind::COMMA => Some(", ".to_string()),
+                // allow these for TypeScript-style types
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                    Some(n.to_string().trim().to_string())
+                }
+                SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => Some(n.to_string()),
+                SyntaxKind::TYPE_ARGS => {
+                    Some(format!("<{}>", self.gen_type_args(n.into_node().unwrap())))
+                }
                 // recurse for nesting in parentheses
                 SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(&n.into_node().unwrap())),
                 // ignore everything else - comments, whitespace, etc.
@@ -131,6 +141,17 @@ impl Formatter {
             })
             .collect::<Vec<_>>()
             .join("")
+    }
+
+    fn gen_type_args(&self, type_args: SyntaxNode) -> String {
+        type_args
+            .children_with_tokens()
+            .filter_map(|n| match n.kind() {
+                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(&n.into_node().unwrap())),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     fn gen_parameter_list(&self, parameter_list: AstParameterList) -> String {
