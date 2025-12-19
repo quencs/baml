@@ -189,6 +189,9 @@ impl<Meta: Clone> UnresolvedGoogleAI<Meta> {
         let headers = properties.ensure_headers().unwrap_or_default();
         let finish_reason_filter = properties.ensure_finish_reason_filter();
         let media_url_handler = properties.ensure_media_url_handler();
+        // Consume client_response_type to prevent it from being sent to the API
+        // (Google AI always returns Google-format responses, so we don't use this value)
+        let _ = properties.ensure_client_response_type();
         let (properties, errors) = properties.finalize();
 
         if !errors.is_empty() {
