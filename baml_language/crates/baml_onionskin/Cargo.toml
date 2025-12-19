@@ -18,6 +18,7 @@ path = "src/main.rs"
 ariadne = { workspace = true }
 baml_base = { workspace = true }
 baml_db = { workspace = true }
+baml_fmt = { workspace = true }
 baml_lexer = { workspace = true }
 baml_parser = { workspace = true }
 baml_hir = { workspace = true }

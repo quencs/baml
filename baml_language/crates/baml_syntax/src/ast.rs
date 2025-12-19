@@ -219,6 +219,29 @@ impl EnumDef {
             .nth(0) // Get the first WORD (enum keyword is KW_ENUM, not WORD)
     }
 
+    pub fn keyword(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_ENUM)
+    }
+
+    /// Get the enum opening brace.
+    pub fn l_brace(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::L_BRACE)
+    }
+
+    /// Get the enum closing brace.
+    pub fn r_brace(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::R_BRACE)
+    }
+
     /// Check if this enum has a body (braces).
     /// Malformed enums from error recovery may not have braces.
     pub fn has_body(&self) -> bool {
@@ -344,6 +367,16 @@ impl TypeAliasDef {
     /// Get the aliased type expression.
     pub fn ty(&self) -> Option<TypeExpr> {
         self.syntax.children().find_map(TypeExpr::cast)
+    }
+}
+
+impl TypeExpr {
+    /// Get the type name (e.g., "int" from " int").
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::WORD)
     }
 }
 

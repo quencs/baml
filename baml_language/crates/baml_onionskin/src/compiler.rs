@@ -30,6 +30,7 @@ pub(crate) enum CompilerPhase {
     Lexer,
     Parser,
     Ast,
+    Formatted,
     Hir,
     Thir,
     Mir,
@@ -44,6 +45,7 @@ impl CompilerPhase {
         CompilerPhase::Lexer,
         CompilerPhase::Parser,
         CompilerPhase::Ast,
+        CompilerPhase::Formatted,
         CompilerPhase::Hir,
         CompilerPhase::Thir,
         CompilerPhase::Mir,
@@ -58,6 +60,7 @@ impl CompilerPhase {
             CompilerPhase::Lexer => "Lexer (Tokens)",
             CompilerPhase::Parser => "Parser (CST)",
             CompilerPhase::Ast => "AST (Typed Nodes)",
+            CompilerPhase::Formatted => "Formatted Output",
             CompilerPhase::Hir => "HIR (High-level IR)",
             CompilerPhase::Thir => "THIR (Typed IR)",
             CompilerPhase::Mir => "MIR (CFG)",
@@ -72,7 +75,8 @@ impl CompilerPhase {
         match self {
             CompilerPhase::Lexer => CompilerPhase::Parser,
             CompilerPhase::Parser => CompilerPhase::Ast,
-            CompilerPhase::Ast => CompilerPhase::Hir,
+            CompilerPhase::Ast => CompilerPhase::Formatted,
+            CompilerPhase::Formatted => CompilerPhase::Hir,
             CompilerPhase::Hir => CompilerPhase::Thir,
             CompilerPhase::Thir => CompilerPhase::Mir,
             CompilerPhase::Mir => CompilerPhase::Diagnostics,
@@ -88,7 +92,8 @@ impl CompilerPhase {
             CompilerPhase::Lexer => CompilerPhase::Metrics,
             CompilerPhase::Parser => CompilerPhase::Lexer,
             CompilerPhase::Ast => CompilerPhase::Parser,
-            CompilerPhase::Hir => CompilerPhase::Ast,
+            CompilerPhase::Formatted => CompilerPhase::Ast,
+            CompilerPhase::Hir => CompilerPhase::Formatted,
             CompilerPhase::Thir => CompilerPhase::Hir,
             CompilerPhase::Mir => CompilerPhase::Thir,
             CompilerPhase::Diagnostics => CompilerPhase::Mir,
@@ -372,6 +377,7 @@ impl CompilerRunner {
             CompilerPhase::Lexer,
             CompilerPhase::Parser,
             CompilerPhase::Ast,
+            CompilerPhase::Formatted,
             CompilerPhase::Hir,
             CompilerPhase::Thir,
             CompilerPhase::Mir,
@@ -390,6 +396,7 @@ impl CompilerRunner {
             CompilerPhase::Lexer => self.run_lexer(),
             CompilerPhase::Parser => self.run_parser(),
             CompilerPhase::Ast => self.run_ast(),
+            CompilerPhase::Formatted => self.run_formatted(),
             CompilerPhase::Hir => self.run_hir(),
             CompilerPhase::Thir => self.run_thir(),
             CompilerPhase::Mir => self.run_mir(),
@@ -563,6 +570,65 @@ impl CompilerRunner {
         self.phase_outputs.insert(CompilerPhase::Ast, output);
         self.phase_outputs_annotated
             .insert(CompilerPhase::Ast, output_annotated);
+    }
+
+    fn run_formatted(&mut self) {
+        let mut output = String::new();
+        let mut output_annotated = Vec::new();
+
+        // Sort files alphabetically by path
+        let mut sorted_files: Vec<_> = self.source_files.iter().collect();
+        sorted_files.sort_by_key(|(path, _)| path.as_path());
+
+        for (path, source_file) in sorted_files {
+            let file_path = path.display().to_string();
+            let file_recomputed = self.modified_files.contains(path);
+
+            writeln!(output, "File: {file_path}").ok();
+            output_annotated.push((
+                format!("File: {file_path}"),
+                if file_recomputed {
+                    LineStatus::Recomputed
+                } else {
+                    LineStatus::Unknown
+                },
+            ));
+
+            // Get the source text and format it
+            let formatted = baml_fmt::format_file(&self.db, *source_file);
+
+            if let Some(formatted) = formatted {
+                for line in formatted.lines() {
+                    writeln!(output, "{line}").ok();
+                    output_annotated.push((
+                        line.to_string(),
+                        if file_recomputed {
+                            LineStatus::Recomputed
+                        } else {
+                            LineStatus::Cached
+                        },
+                    ));
+                }
+            } else {
+                let no_items = "  (unable to format file with parse errors)".to_string();
+                writeln!(output, "{no_items}").ok();
+                output_annotated.push((
+                    no_items,
+                    if file_recomputed {
+                        LineStatus::Recomputed
+                    } else {
+                        LineStatus::Cached
+                    },
+                ));
+            }
+
+            writeln!(output).ok();
+            output_annotated.push((String::new(), LineStatus::Unknown));
+        }
+
+        self.phase_outputs.insert(CompilerPhase::Formatted, output);
+        self.phase_outputs_annotated
+            .insert(CompilerPhase::Formatted, output_annotated);
     }
 
     fn run_hir(&mut self) {
