@@ -3,7 +3,7 @@ use baml_lexer::lex_file;
 use baml_parser::parse_file;
 use baml_syntax::{
     SyntaxKind, SyntaxNode, ast::ClassDef as AstClassDef, ast::EnumDef as AstEnumDef,
-    ast::Item as AstItem, ast::SourceFile as AstSourceFile,
+    ast::Item as AstItem, ast::SourceFile as AstSourceFile, ast::TypeExpr as AstTypeExpr,
 };
 use rowan::{TextRange, TextSize, ast::AstNode};
 
@@ -99,8 +99,25 @@ impl Formatter {
         self.last_pos = start;
     }
 
+    /// Generates a string of the current indent level.
     fn gen_indent(&self) -> String {
         "    ".repeat(self.indent_level)
+    }
+
+    /// Generates a string of the provided type expression.
+    fn gen_type_expr(&self, type_expr: AstTypeExpr) -> String {
+        type_expr
+            .syntax()
+            .children_with_tokens()
+            .filter_map(|n| match n.kind() {
+                SyntaxKind::WORD
+                | SyntaxKind::QUESTION
+                | SyntaxKind::L_BRACKET
+                | SyntaxKind::R_BRACKET => Some(n.to_string()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("")
     }
 
     fn nest<F>(&mut self, f: F)
@@ -119,7 +136,8 @@ impl Formatter {
             self.format_item(item);
         }
 
-        // TODO: do cleanup and grab hanging trivia here
+        // grab hanging trivia at the end of the file
+        self.format_missing(self.root.text_range().end());
 
         Some(self.output.clone())
     }
@@ -173,6 +191,42 @@ impl Formatter {
     }
 
     fn format_class_def(&mut self, class_def: AstClassDef) {
-        todo!()
+        let keyword = class_def.keyword().unwrap();
+        self.push_format_indent(
+            keyword.text_range(),
+            format!("class {} {{", class_def.name().unwrap().text()),
+        );
+
+        self.nest(|f| {
+            for field in class_def.fields() {
+                let name = field.name().unwrap();
+                let ty = f.gen_type_expr(field.ty().unwrap());
+
+                f.push_format_indent(name.text_range(), format!("{} {}", name.text(), ty));
+
+                for attribute in field.attributes() {
+                    let at = attribute.at().unwrap();
+
+                    // TODO: handle attributes with arguments, this will require updating the AST
+                    f.push_format(
+                        at.text_range(),
+                        format!(" @{}", attribute.name().unwrap().text()),
+                    );
+                }
+            }
+
+            for attribute in class_def.block_attributes() {
+                let at_at = attribute.at_at().unwrap();
+
+                // TODO: handle block attributes with arguments, this will require updating the AST
+                f.push_format_indent(
+                    at_at.text_range(),
+                    format!("@@{}", attribute.name().unwrap().text()),
+                );
+            }
+        });
+
+        let r_brace = class_def.r_brace().unwrap();
+        self.push_format_indent(r_brace.text_range(), "}".to_string());
     }
 }

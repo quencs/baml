@@ -179,6 +179,22 @@ impl ClassDef {
             .find(|token| token.kind() == SyntaxKind::KW_CLASS)
     }
 
+    /// Get the class opening brace.
+    pub fn l_brace(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::L_BRACE)
+    }
+
+    /// Get the class closing brace.
+    pub fn r_brace(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::R_BRACE)
+    }
+
     /// Get all fields.
     pub fn fields(&self) -> impl Iterator<Item = Field> {
         self.syntax.children().filter_map(Field::cast)
@@ -379,7 +395,7 @@ impl TypeAliasDef {
 }
 
 impl TypeExpr {
-    /// Get the type name (e.g., "int" from " int").
+    /// Get the type name.
     pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
