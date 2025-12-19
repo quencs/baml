@@ -3,7 +3,9 @@ use baml_lexer::lex_file;
 use baml_parser::parse_file;
 use baml_syntax::{
     SyntaxKind, SyntaxNode, ast::ClassDef as AstClassDef, ast::EnumDef as AstEnumDef,
-    ast::Item as AstItem, ast::SourceFile as AstSourceFile, ast::TypeExpr as AstTypeExpr,
+    ast::FunctionDef as AstFunctionDef, ast::Item as AstItem, ast::Parameter as AstParameter,
+    ast::ParameterList as AstParameterList, ast::SourceFile as AstSourceFile,
+    ast::TypeExpr as AstTypeExpr,
 };
 use rowan::{TextRange, TextSize, ast::AstNode};
 
@@ -14,7 +16,7 @@ pub fn format_file(db: &dyn salsa::Database, file: SourceFile) -> Option<String>
     let tokens = lex_file(db, file);
     let (green, errors) = parse_file(&tokens);
 
-    // Only format files with valid CST
+    // only format files with valid CST
     if !errors.is_empty() {
         return None;
     }
@@ -106,18 +108,46 @@ impl Formatter {
 
     /// Generates a string of the provided type expression.
     fn gen_type_expr(&self, type_expr: AstTypeExpr) -> String {
-        type_expr
-            .syntax()
-            .children_with_tokens()
+        self.gen_type_expr_inner(type_expr.syntax())
+    }
+
+    /// Inner recursive function for generating a string of the provided type expression.
+    fn gen_type_expr_inner(&self, node: &SyntaxNode) -> String {
+        node.children_with_tokens()
             .filter_map(|n| match n.kind() {
+                // allow these tokens to be included in the output
                 SyntaxKind::WORD
                 | SyntaxKind::QUESTION
                 | SyntaxKind::L_BRACKET
-                | SyntaxKind::R_BRACKET => Some(n.to_string()),
+                | SyntaxKind::R_BRACKET
+                | SyntaxKind::L_PAREN
+                | SyntaxKind::R_PAREN => Some(n.to_string()),
+                // also allow union pipe, but give it spaces around it
+                SyntaxKind::PIPE => Some(" | ".to_string()),
+                // recurse for nesting in parentheses
+                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(&n.into_node().unwrap())),
+                // ignore everything else - comments, whitespace, etc.
                 _ => None,
             })
             .collect::<Vec<_>>()
             .join("")
+    }
+
+    fn gen_parameter_list(&self, parameter_list: AstParameterList) -> String {
+        format!(
+            "({})",
+            parameter_list
+                .params()
+                .map(|p| self.gen_parameter(p))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+
+    fn gen_parameter(&self, parameter: AstParameter) -> String {
+        let name = parameter.name().unwrap();
+        let ty = self.gen_type_expr(parameter.ty().unwrap());
+        format!("{}: {}", name.text(), ty)
     }
 
     fn nest<F>(&mut self, f: F)
@@ -147,13 +177,14 @@ impl Formatter {
         match item {
             AstItem::Enum(enum_def) => self.format_enum_def(enum_def),
             AstItem::Class(class_def) => self.format_class_def(class_def),
-            _ => todo!(),
+            AstItem::Function(function_def) => self.format_function_def(function_def),
+            _ => (),
         }
     }
 
     /// Format an AST enum definition.
     fn format_enum_def(&mut self, enum_def: AstEnumDef) {
-        let keyword = enum_def.keyword().unwrap();
+        let keyword = enum_def.keyword_tok().unwrap();
         self.push_format_indent(
             keyword.text_range(),
             format!("enum {} {{", enum_def.name().unwrap().text()),
@@ -165,7 +196,7 @@ impl Formatter {
                 f.push_format_indent(variant_name.text_range(), variant_name.text().to_string());
 
                 for attribute in variant.attributes() {
-                    let at = attribute.at().unwrap();
+                    let at = attribute.at_tok().unwrap();
 
                     // TODO: handle attributes with arguments, this will require updating the AST
                     f.push_format(
@@ -176,7 +207,7 @@ impl Formatter {
             }
 
             for attribute in enum_def.block_attributes() {
-                let at_at = attribute.at_at().unwrap();
+                let at_at = attribute.at_at_tok().unwrap();
 
                 // TODO: handle block attributes with arguments, this will require updating the AST
                 f.push_format_indent(
@@ -186,12 +217,13 @@ impl Formatter {
             }
         });
 
-        let r_brace = enum_def.r_brace().unwrap();
+        let r_brace = enum_def.r_brace_tok().unwrap();
         self.push_format_indent(r_brace.text_range(), "}".to_string());
     }
 
+    /// Format an AST class definition.
     fn format_class_def(&mut self, class_def: AstClassDef) {
-        let keyword = class_def.keyword().unwrap();
+        let keyword = class_def.keyword_tok().unwrap();
         self.push_format_indent(
             keyword.text_range(),
             format!("class {} {{", class_def.name().unwrap().text()),
@@ -205,7 +237,7 @@ impl Formatter {
                 f.push_format_indent(name.text_range(), format!("{} {}", name.text(), ty));
 
                 for attribute in field.attributes() {
-                    let at = attribute.at().unwrap();
+                    let at = attribute.at_tok().unwrap();
 
                     // TODO: handle attributes with arguments, this will require updating the AST
                     f.push_format(
@@ -216,7 +248,7 @@ impl Formatter {
             }
 
             for attribute in class_def.block_attributes() {
-                let at_at = attribute.at_at().unwrap();
+                let at_at = attribute.at_at_tok().unwrap();
 
                 // TODO: handle block attributes with arguments, this will require updating the AST
                 f.push_format_indent(
@@ -226,7 +258,23 @@ impl Formatter {
             }
         });
 
-        let r_brace = class_def.r_brace().unwrap();
+        let r_brace = class_def.r_brace_tok().unwrap();
         self.push_format_indent(r_brace.text_range(), "}".to_string());
+    }
+
+    fn format_function_def(&mut self, function_def: AstFunctionDef) {
+        let keyword = function_def.keyword_tok().unwrap();
+
+        let parameters = self.gen_parameter_list(function_def.param_list().unwrap());
+        let return_type = self.gen_type_expr(function_def.return_type().unwrap());
+        self.push_format_indent(
+            keyword.text_range(),
+            format!(
+                "function {} {} -> {} {{",
+                function_def.name().unwrap().text(),
+                parameters,
+                return_type
+            ),
+        );
     }
 }

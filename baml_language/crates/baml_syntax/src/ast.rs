@@ -101,6 +101,14 @@ impl FunctionDef {
             .nth(0) // Get the first WORD (function keyword is KW_FUNCTION, not WORD)
     }
 
+    /// Get the function keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_FUNCTION)
+    }
+
     /// Get the parameter list.
     pub fn param_list(&self) -> Option<ParameterList> {
         self.syntax.children().find_map(ParameterList::cast)
@@ -171,24 +179,24 @@ impl ClassDef {
             .nth(0) // Get the first WORD (class keyword is KW_CLASS, not WORD)
     }
 
-    /// Get the class keyword.
-    pub fn keyword(&self) -> Option<SyntaxToken> {
+    /// Get the class keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::KW_CLASS)
     }
 
-    /// Get the class opening brace.
-    pub fn l_brace(&self) -> Option<SyntaxToken> {
+    /// Get the class opening brace token.
+    pub fn l_brace_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::L_BRACE)
     }
 
-    /// Get the class closing brace.
-    pub fn r_brace(&self) -> Option<SyntaxToken> {
+    /// Get the class closing brace token.
+    pub fn r_brace_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
@@ -243,23 +251,24 @@ impl EnumDef {
             .nth(0) // Get the first WORD (enum keyword is KW_ENUM, not WORD)
     }
 
-    pub fn keyword(&self) -> Option<SyntaxToken> {
+    /// Get the enum keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::KW_ENUM)
     }
 
-    /// Get the enum opening brace.
-    pub fn l_brace(&self) -> Option<SyntaxToken> {
+    /// Get the enum opening brace token.
+    pub fn l_brace_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::L_BRACE)
     }
 
-    /// Get the enum closing brace.
-    pub fn r_brace(&self) -> Option<SyntaxToken> {
+    /// Get the enum closing brace token.
+    pub fn r_brace_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
@@ -414,7 +423,7 @@ impl BlockAttribute {
     }
 
     /// Get the @@ token.
-    pub fn at_at(&self) -> Option<SyntaxToken> {
+    pub fn at_at_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
@@ -432,7 +441,7 @@ impl Attribute {
     }
 
     /// Get the @ token.
-    pub fn at(&self) -> Option<SyntaxToken> {
+    pub fn at_tok(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
