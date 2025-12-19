@@ -56,24 +56,9 @@ pub fn generate_sdk(
             baml_log::warn!("No on_generate commands were provided for OpenAPI generator - skipping OpenAPI client generation");
         }
         for cmd in gen.on_generate.iter() {
-            use anyhow::Context;
-
             baml_log::info!("Running {:?} in {}", cmd, gen.output_dir().display());
 
-            let output_result = std::process::Command::new("sh")
-                .arg("-c")
-                .arg(cmd)
-                .current_dir(gen.output_dir())
-                .output()
-                .context(format!("Failed to run on_generate command: {cmd}"));
-
-            let output = match output_result {
-                Ok(output) => output,
-                Err(e) => {
-                    baml_log::error!("Failed to execute on_generate command: {}", e);
-                    return Err(e);
-                }
-            };
+            let output = run_shell_command(cmd, &gen.output_dir())?;
 
             // log::info!("on_generate command finished");
             if !output.status.success() {
@@ -99,5 +84,71 @@ pub fn generate_sdk(
     #[cfg(target_arch = "wasm32")]
     {
         Ok(res)
+    }
+}
+
+/// Runs a shell command in a cross-platform manner.
+///
+/// On Unix/macOS: Uses `sh -c` directly.
+/// On Windows: Tries `sh -c` first (for Git Bash/WSL users), then falls back to `cmd.exe /C`.
+#[cfg(not(target_arch = "wasm32"))]
+fn run_shell_command(
+    cmd: &str,
+    working_dir: &std::path::Path,
+) -> Result<std::process::Output, anyhow::Error> {
+    use anyhow::Context;
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .current_dir(working_dir)
+            .output()
+            .context(format!("Failed to run on_generate command: {cmd}"))
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, try `sh` first (available via Git Bash, WSL, MSYS2, etc.)
+        let sh_result = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .current_dir(working_dir)
+            .output();
+
+        match sh_result {
+            Ok(output) => Ok(output),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                // `sh` not found, try `cmd.exe /C` as fallback
+                baml_log::info!(
+                    "'sh' not found on Windows, falling back to 'cmd.exe /C' for on_generate command"
+                );
+
+                let cmd_result = std::process::Command::new("cmd.exe")
+                    .arg("/C")
+                    .arg(cmd)
+                    .current_dir(working_dir)
+                    .output();
+
+                match cmd_result {
+                    Ok(output) => Ok(output),
+                    Err(cmd_err) => {
+                        Err(anyhow::anyhow!(
+                            "Failed to run on_generate command: {cmd}\n\n\
+                            Could not find 'sh' (tried sh -c): {e}\n\
+                            Fallback to 'cmd.exe /C' also failed: {cmd_err}\n\n\
+                            To fix this on Windows, you can:\n\
+                            1. Install Git for Windows (includes Git Bash with sh): https://git-scm.com/downloads\n\
+                            2. Install WSL (Windows Subsystem for Linux): https://learn.microsoft.com/en-us/windows/wsl/install\n\
+                            3. Rewrite your on_generate command to use Windows-native syntax (cmd.exe compatible)"
+                        ))
+                    }
+                }
+            }
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to run on_generate command with sh: {cmd}\nError: {e}"
+            )),
+        }
     }
 }

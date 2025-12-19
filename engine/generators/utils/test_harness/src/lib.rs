@@ -202,10 +202,8 @@ impl<L: TestLanguageFeatures> TestStructure<L> {
         self.generator.generate_sdk(self.ir.clone(), &args)?;
 
         for cmd_str in args.on_generate {
-            let mut cmd = Command::new("sh");
-            cmd.args(["-c", &cmd_str]);
-            cmd.current_dir(&self.src_dir);
-            let output = cmd.output().expect("failed to run command");
+            let output = run_shell_command(&cmd_str, &self.src_dir)
+                .expect("failed to run on_generate command");
             assert!(
                 output.status.success(),
                 "Failed to run command: {} (exit code: {}):\n{}\n{}",
@@ -302,6 +300,63 @@ impl TestHarness {
 // Include the generated macro from build.rs
 // this gives us: create_code_gen_test_suites!(LanguageFeatures)
 include!(concat!(env!("OUT_DIR"), "/generated_macro.rs"));
+
+/// Runs a shell command in a cross-platform manner.
+///
+/// On Unix/macOS: Uses `sh -c` directly.
+/// On Windows: Tries `sh -c` first (for Git Bash/WSL users), then falls back to `cmd.exe /C`.
+fn run_shell_command(
+    cmd: &str,
+    working_dir: &std::path::Path,
+) -> Result<std::process::Output, anyhow::Error> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .current_dir(working_dir)
+            .output()
+            .map_err(|e| anyhow::anyhow!("Failed to run command: {cmd}\nError: {e}"))
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, try `sh` first (available via Git Bash, WSL, MSYS2, etc.)
+        let sh_result = Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .current_dir(working_dir)
+            .output();
+
+        match sh_result {
+            Ok(output) => Ok(output),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                // `sh` not found, try `cmd.exe /C` as fallback
+                eprintln!(
+                    "'sh' not found on Windows, falling back to 'cmd.exe /C' for command: {cmd}"
+                );
+
+                Command::new("cmd.exe")
+                    .arg("/C")
+                    .arg(cmd)
+                    .current_dir(working_dir)
+                    .output()
+                    .map_err(|cmd_err| {
+                        anyhow::anyhow!(
+                            "Failed to run command: {cmd}\n\n\
+                            Could not find 'sh' (tried sh -c): {e}\n\
+                            Fallback to 'cmd.exe /C' also failed: {cmd_err}\n\n\
+                            To fix this on Windows, install Git for Windows (includes Git Bash with sh): \
+                            https://git-scm.com/downloads"
+                        )
+                    })
+            }
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to run command with sh: {cmd}\nError: {e}"
+            )),
+        }
+    }
+}
 
 mod utils {
     // util.rs (put near the top of the same file or in a new private module)

@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"semantic_streaming/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"semantic_streaming/baml_client/types"
 )
 
 func MakeClassWithBlockDone(ctx context.Context, opts ...CallOptionFunc) (types.ClassWithBlockDone, error) {

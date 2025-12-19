@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"media_types/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"media_types/baml_client/types"
 )
 
 func TestMediaArrayInputs(ctx context.Context, imageArray []types.Image, textInput string, opts ...CallOptionFunc) (types.MediaArrayAnalysisResult, error) {

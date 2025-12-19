@@ -15,12 +15,10 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"primitive_types/baml_client/stream_types"
-	"primitive_types/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"primitive_types/baml_client/stream_types"
+	"primitive_types/baml_client/types"
 )
 
 type stream struct{}

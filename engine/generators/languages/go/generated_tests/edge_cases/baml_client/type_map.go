@@ -16,7 +16,8 @@ package baml_client
 import (
 	"edge_cases/baml_client/stream_types"
 	"edge_cases/baml_client/types"
-	"reflect"
+
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
 var typeMap = map[string]reflect.Type{

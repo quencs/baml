@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"nested_structures/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"nested_structures/baml_client/types"
 )
 
 func TestComplexNested(ctx context.Context, input string, opts ...CallOptionFunc) (types.ComplexNested, error) {

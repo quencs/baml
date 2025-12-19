@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"sample/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"sample/baml_client/types"
 )
 
 func Bar(ctx context.Context, x int64, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {

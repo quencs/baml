@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"unions/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"unions/baml_client/types"
 )
 
 func JsonInput(ctx context.Context, x []types.ExistingSystemComponent, opts ...CallOptionFunc) ([]string, error) {

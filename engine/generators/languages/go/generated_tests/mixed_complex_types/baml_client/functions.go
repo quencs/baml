@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"mixed_complex_types/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"mixed_complex_types/baml_client/types"
 )
 
 func TestKitchenSink(ctx context.Context, input string, opts ...CallOptionFunc) (types.KitchenSink, error) {

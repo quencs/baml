@@ -15,9 +15,10 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"unions/baml_client/stream_types"
+	"unions/baml_client/types"
 )
 
 type parse_stream struct{}

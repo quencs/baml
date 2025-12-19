@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"recursive_types/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"recursive_types/baml_client/types"
 )
 
 func Foo(ctx context.Context, x int64, opts ...CallOptionFunc) (types.JSON, error) {

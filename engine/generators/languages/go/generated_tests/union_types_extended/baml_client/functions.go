@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"union_types_extended/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"union_types_extended/baml_client/types"
 )
 
 func TestComplexUnions(ctx context.Context, input string, opts ...CallOptionFunc) (types.ComplexUnions, error) {

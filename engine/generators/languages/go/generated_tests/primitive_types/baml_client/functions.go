@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"primitive_types/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"primitive_types/baml_client/types"
 )
 
 func TestEmptyCollections(ctx context.Context, input string, opts ...CallOptionFunc) (types.PrimitiveArrays, error) {

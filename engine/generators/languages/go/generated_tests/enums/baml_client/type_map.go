@@ -14,8 +14,10 @@
 package baml_client
 
 import (
+	"enums/baml_client/stream_types"
 	"enums/baml_client/types"
-	"reflect"
+
+	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 
 var typeMap = map[string]reflect.Type{

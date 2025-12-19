@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
 
 	"edge_cases/baml_client/stream_types"
 	"edge_cases/baml_client/types"
-
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )
 

@@ -15,11 +15,9 @@ package baml_client
 
 import (
 	"context"
-	"fmt"
-
-	"literal_types/baml_client/types"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
+	"literal_types/baml_client/types"
 )
 
 func TestBooleanLiterals(ctx context.Context, input string, opts ...CallOptionFunc) (types.BooleanLiterals, error) {

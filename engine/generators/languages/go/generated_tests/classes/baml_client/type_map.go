@@ -16,7 +16,6 @@ package baml_client
 import (
 	"classes/baml_client/stream_types"
 	"classes/baml_client/types"
-	"reflect"
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 )

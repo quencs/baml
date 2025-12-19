@@ -19,6 +19,8 @@ import (
 
 	baml "github.com/boundaryml/baml/engine/language_client_go/pkg"
 	"github.com/boundaryml/baml/engine/language_client_go/pkg/cffi"
+
+	"sample/baml_client/types"
 )
 
 type Union2ExampleOrExample2 struct {
