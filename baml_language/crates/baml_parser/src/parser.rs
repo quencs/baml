@@ -2458,13 +2458,6 @@ fn parse_impl(tokens: &[Token], cache: Option<&mut NodeCache>) -> (GreenNode, Ve
     }
 
     while parser.current < parser.tokens.len() {
-        // let token = &parser.tokens[parser.current];
-        // let kind = token_kind_to_syntax_kind(token.kind);
-        // parser.events.push(Event::Token {
-        //     kind,
-        //     text: token.text.clone(),
-        // });
-        // parser.current += 1;
         parser.bump();
     }
 

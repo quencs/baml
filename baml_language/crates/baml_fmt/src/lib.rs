@@ -2,14 +2,16 @@ use baml_base::SourceFile;
 use baml_lexer::lex_file;
 use baml_parser::parse_file;
 use baml_syntax::{
-    SyntaxKind, SyntaxNode, ast::BlockElement as AstBlockElement, ast::ClassDef as AstClassDef,
-    ast::EnumDef as AstEnumDef, ast::ExprFunctionBody as AstExprFunctionBody,
-    ast::FunctionDef as AstFunctionDef, ast::IfExpr as AstIfExpr, ast::Item as AstItem,
-    ast::LetStmt as AstLetStmt, ast::LlmFunctionBody as AstLlmFunctionBody,
-    ast::Parameter as AstParameter, ast::ParameterList as AstParameterList,
-    ast::SourceFile as AstSourceFile, ast::TypeExpr as AstTypeExpr,
+    SyntaxKind, SyntaxNode, SyntaxToken,
+    ast::{
+        BlockElement as AstBlockElement, ClassDef as AstClassDef, EnumDef as AstEnumDef,
+        ExprFunctionBody as AstExprFunctionBody, FunctionDef as AstFunctionDef,
+        IfExpr as AstIfExpr, Item as AstItem, LetStmt as AstLetStmt,
+        LlmFunctionBody as AstLlmFunctionBody, Parameter as AstParameter,
+        ParameterList as AstParameterList, SourceFile as AstSourceFile, TypeExpr as AstTypeExpr,
+    },
 };
-use rowan::{TextRange, TextSize, ast::AstNode};
+use rowan::{NodeOrToken, TextRange, TextSize, ast::AstNode};
 
 /// Entry point for formatting a BAML source file.
 /// Returns None if the file has parse errors.
@@ -72,29 +74,31 @@ impl Formatter {
             while current_pos < start {
                 let token = self.root.token_at_offset(current_pos).right_biased();
 
-                if let Some(token) = token {
-                    // check if token is within our target range and fix trivia if necessary
-                    if token.text_range().start() < start {
-                        match token.kind() {
-                            SyntaxKind::NEWLINE => on_same_line = false,
-                            SyntaxKind::LINE_COMMENT | SyntaxKind::BLOCK_COMMENT => {
-                                if !on_same_line {
-                                    self.push_text(format!("\n{}", self.gen_indent()));
-                                } else {
-                                    self.push_text(" ".to_string());
-                                }
+                let Some(token) = token else {
+                    break;
+                };
 
-                                self.push_text(token.text().to_string());
-                            }
-                            _ => (), // throw away all other tokens
-                        }
-                        current_pos = token.text_range().end();
-                    } else {
-                        break;
-                    }
-                } else {
+                // check if token is within our target range
+                if token.text_range().start() >= start {
                     break;
                 }
+
+                // fix trivia if necessary
+                match token.kind() {
+                    SyntaxKind::NEWLINE => on_same_line = false,
+                    SyntaxKind::LINE_COMMENT | SyntaxKind::BLOCK_COMMENT => {
+                        if !on_same_line {
+                            self.push_text(format!("\n{}", self.gen_indent()));
+                        } else {
+                            self.push_text(" ".to_string());
+                        }
+
+                        self.push_text(token.text().to_string());
+                    }
+                    _ => (), // throw away all other tokens
+                }
+
+                current_pos = token.text_range().end();
             }
         }
 
@@ -106,72 +110,140 @@ impl Formatter {
         "    ".repeat(self.indent_level)
     }
 
-    /// Generates a string of the provided type expression.
-    fn gen_type_expr(&self, type_expr: AstTypeExpr) -> String {
-        self.gen_type_expr_inner(SyntaxNode::clone(&type_expr.syntax()))
+    /// Formats a type expression.
+    fn format_type_expr(&mut self, type_expr: AstTypeExpr, indent: bool) {
+        self.format_type_expr_inner(SyntaxNode::clone(&type_expr.syntax()), indent)
     }
 
-    /// Inner recursive function for generating a string of the provided type expression.
-    fn gen_type_expr_inner(&self, node: SyntaxNode) -> String {
+    /// Inner recursive function for formatting a type expression.
+    fn format_type_expr_inner(&mut self, node: SyntaxNode, indent: bool) {
         node.children_with_tokens()
-            .filter_map(|n| match n.kind() {
-                // allow these tokens to be included in the output
-                SyntaxKind::WORD
-                | SyntaxKind::QUESTION
-                | SyntaxKind::L_BRACKET
-                | SyntaxKind::R_BRACKET
-                | SyntaxKind::L_PAREN
-                | SyntaxKind::R_PAREN => Some(n.to_string()),
-                // also allow union pipe, but give it spaces around it
-                SyntaxKind::PIPE => Some(" | ".to_string()),
-                // allow comma for generics/tuples, but give a space after it
-                SyntaxKind::COMMA => Some(", ".to_string()),
-                // allow these for TypeScript-style types
-                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                    Some(n.to_string().trim().to_string())
+            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
+                match child.kind() {
+                    // allow these tokens to be included in the output
+                    SyntaxKind::WORD
+                    | SyntaxKind::QUESTION
+                    | SyntaxKind::L_BRACKET
+                    | SyntaxKind::R_BRACKET
+                    | SyntaxKind::L_PAREN
+                    | SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), child.to_string(), i)
+                    })),
+                    // also allow union pipe, but give it spaces around it
+                    SyntaxKind::PIPE => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), " | ".to_string(), i)
+                    })),
+                    // allow comma for generics/tuples, but give a space after it
+                    SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), ", ".to_string(), i)
+                    })),
+                    // allow these for TypeScript-style types
+                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                        Some(Box::new(move |f: &mut Formatter, i| {
+                            f.format_string_literal(child.into_node().unwrap(), i)
+                        }))
+                    }
+                    SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
+                        Some(Box::new(move |f: &mut Formatter, i| {
+                            f.format_number_literal(child.into_token().unwrap(), i)
+                        }))
+                    }
+                    SyntaxKind::TYPE_ARGS => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.format_type_args(child.into_node().unwrap(), i)
+                    })),
+                    // recurse for nesting in parentheses
+                    SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.format_type_expr_inner(child.into_node().unwrap(), i)
+                    })),
+                    // ignore everything else - comments, whitespace, etc.
+                    _ => None,
                 }
-                SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => Some(n.to_string()),
-                SyntaxKind::TYPE_ARGS => {
-                    Some(format!("<{}>", self.gen_type_args(n.into_node().unwrap())))
-                }
-                // recurse for nesting in parentheses
-                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(n.into_node().unwrap())),
-                // ignore everything else - comments, whitespace, etc.
-                _ => None,
             })
-            .collect::<Vec<_>>()
-            .join("")
+            .fold(indent, |indent, f| {
+                f(self, indent);
+
+                false
+            });
     }
 
-    /// Generates a string of the provided type arguments, not including any bracketing
-    fn gen_type_args(&self, type_args: SyntaxNode) -> String {
+    /// Formats type arguments.
+    fn format_type_args(&mut self, type_args: SyntaxNode, indent: bool) {
         type_args
             .children_with_tokens()
-            .filter_map(|n| match n.kind() {
-                SyntaxKind::TYPE_EXPR => Some(self.gen_type_expr_inner(n.into_node().unwrap())),
-                _ => None,
+            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
+                match child.kind() {
+                    SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), ", ".to_string(), i)
+                    })),
+                    SyntaxKind::LESS => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), "<".to_string(), i)
+                    })),
+                    SyntaxKind::GREATER => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), ">".to_string(), i)
+                    })),
+                    SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.format_type_expr_inner(child.into_node().unwrap(), i)
+                    })),
+                    _ => None,
+                }
             })
-            .collect::<Vec<_>>()
-            .join(", ")
+            .fold(indent, |indent, f| {
+                f(self, indent);
+                false
+            });
     }
 
-    /// Generates a string of the provided parameter list, including the parentheses. e.g. "(x: int, y: string)"
-    fn gen_parameter_list(&self, parameter_list: AstParameterList) -> String {
-        format!(
-            "({})",
-            parameter_list
-                .params()
-                .map(|p| self.gen_parameter(p))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
+    /// Formats a parameter list, including the parentheses. e.g. "(x: int, y: string)"
+    fn format_parameter_list(&mut self, parameter_list: AstParameterList, indent: bool) {
+        parameter_list
+            .syntax()
+            .children_with_tokens()
+            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
+                match child.kind() {
+                    SyntaxKind::L_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), "(".to_string(), i)
+                    })),
+                    SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), ")".to_string(), i)
+                    })),
+                    SyntaxKind::PARAMETER => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.format_parameter(child.into_node().unwrap(), i)
+                    })),
+                    _ => None,
+                }
+            })
+            .fold(indent, |indent, f| {
+                f(self, indent);
+                false
+            });
     }
 
-    // Generates a string of the provided parameter. eg. "x: int"
-    fn gen_parameter(&self, parameter: AstParameter) -> String {
-        let name = parameter.name().unwrap();
-        let ty = self.gen_type_expr(parameter.ty().unwrap());
-        format!("{}: {}", name.text(), ty)
+    // Formats a parameter. eg. "x: int"
+    fn format_parameter(&mut self, parameter: SyntaxNode, indent: bool) {
+        parameter
+            .children_with_tokens()
+            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
+                match child.kind() {
+                    SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(
+                            child.text_range(),
+                            child.into_token().unwrap().text().to_string(),
+                            i,
+                        )
+                    })),
+                    SyntaxKind::COLON => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(child.text_range(), ": ".to_string(), i)
+                    })),
+                    SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.format_type_expr_inner(child.into_node().unwrap(), i)
+                    })),
+                    _ => None,
+                }
+            })
+            .fold(indent, |indent, f| {
+                f(self, indent);
+                false
+            });
     }
 
     fn nest<F>(&mut self, f: F)
@@ -264,9 +336,9 @@ impl Formatter {
         self.nest(|f| {
             for field in class_def.fields() {
                 let name = field.name().unwrap();
-                let ty = f.gen_type_expr(field.ty().unwrap());
 
-                f.push_format(name.text_range(), format!("{} {}", name.text(), ty), true);
+                f.push_format(name.text_range(), format!("{}: ", name.text()), true);
+                f.format_type_expr(field.ty().unwrap(), false);
 
                 for attribute in field.attributes() {
                     let at = attribute.at_tok().unwrap();
@@ -297,27 +369,27 @@ impl Formatter {
     }
 
     fn format_function_def(&mut self, function_def: AstFunctionDef) {
-        let keyword = function_def.keyword_tok().unwrap();
+        // let keyword = function_def.keyword_tok().unwrap();
 
-        let parameters = self.gen_parameter_list(function_def.param_list().unwrap());
-        let return_type = self.gen_type_expr(function_def.return_type().unwrap());
-        self.push_format(
-            keyword.text_range(),
-            format!(
-                "function {} {} -> {} {{",
-                function_def.name().unwrap().text(),
-                parameters,
-                return_type
-            ),
-            true,
-        );
+        // let parameters = self.gen_parameter_list(function_def.param_list().unwrap());
+        // let return_type = self.gen_type_expr(function_def.return_type().unwrap());
+        // self.push_format(
+        //     keyword.text_range(),
+        //     format!(
+        //         "function {} {} -> {} {{",
+        //         function_def.name().unwrap().text(),
+        //         parameters,
+        //         return_type
+        //     ),
+        //     true,
+        // );
 
-        match (function_def.expr_body(), function_def.llm_body()) {
-            (Some(expr_body), None) => self.format_expr_function_body(expr_body),
-            (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
-            (Some(_), Some(_)) => unreachable!(),
-            (None, None) => todo!(), // TODO: is this even possible?
-        }
+        // match (function_def.expr_body(), function_def.llm_body()) {
+        //     (Some(expr_body), None) => self.format_expr_function_body(expr_body),
+        //     (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
+        //     (Some(_), Some(_)) => unreachable!(),
+        //     (None, None) => todo!(), // TODO: is this even possible?
+        // }
     }
 
     fn format_expr_function_body(&mut self, expr_body: AstExprFunctionBody) {
@@ -355,7 +427,32 @@ impl Formatter {
         }
     }
 
-    fn format_paren_expr(&mut self, expr: SyntaxNode, indent: bool) {}
+    fn format_paren_expr(&mut self, expr: SyntaxNode, indent: bool) {
+        for child in expr.children_with_tokens() {
+            let range = child.text_range();
+            match child.kind() {
+                // parentheses added as-is, possible indent for left parenthesis
+                SyntaxKind::L_PAREN => self.push_format(range, "(".to_string(), indent),
+                SyntaxKind::R_PAREN => self.push_format(range, ")".to_string(), false),
+                // expressions and literals added
+                SyntaxKind::BINARY_EXPR
+                | SyntaxKind::IF_EXPR
+                | SyntaxKind::PAREN_EXPR
+                | SyntaxKind::EXPR
+                | SyntaxKind::UNARY_EXPR
+                | SyntaxKind::CALL_EXPR
+                | SyntaxKind::BLOCK_EXPR
+                | SyntaxKind::PATH_EXPR
+                | SyntaxKind::FIELD_ACCESS_EXPR
+                | SyntaxKind::INDEX_EXPR
+                | SyntaxKind::ARRAY_LITERAL
+                | SyntaxKind::OBJECT_LITERAL => self.format_expr(child.into_node().unwrap(), false),
+                // allow literals as well
+                kind if kind.is_literal() => self.format_literal(child, false),
+                _ => (), // ignore everything else
+            }
+        }
+    }
 
     fn format_if_expr(&mut self, expr: AstIfExpr, indent: bool) {
         let condition = expr.condition().unwrap();
@@ -364,57 +461,76 @@ impl Formatter {
 
     fn format_binary_expr(&mut self, expr: SyntaxNode, indent: bool) {
         expr.children_with_tokens()
-            .filter_map(|child| {
+            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 let range = child.text_range();
-                let text = child.clone().into_token().unwrap().text().to_string();
                 match child.kind() {
                     // all permitted operators get added with a space around them
-                    SyntaxKind::EQUALS
-                    | SyntaxKind::PLUS_EQUALS
-                    | SyntaxKind::MINUS_EQUALS
-                    | SyntaxKind::STAR_EQUALS
-                    | SyntaxKind::SLASH_EQUALS
-                    | SyntaxKind::PERCENT_EQUALS
-                    | SyntaxKind::AND_EQUALS
-                    | SyntaxKind::PIPE_EQUALS
-                    | SyntaxKind::CARET_EQUALS
-                    | SyntaxKind::LESS_LESS_EQUALS
-                    | SyntaxKind::GREATER_GREATER_EQUALS
-                    | SyntaxKind::OR_OR
-                    | SyntaxKind::AND_AND
-                    | SyntaxKind::PIPE
-                    | SyntaxKind::CARET
-                    | SyntaxKind::AND
-                    | SyntaxKind::EQUALS_EQUALS
-                    | SyntaxKind::NOT_EQUALS
-                    | SyntaxKind::LESS
-                    | SyntaxKind::GREATER
-                    | SyntaxKind::LESS_EQUALS
-                    | SyntaxKind::GREATER_EQUALS
-                    | SyntaxKind::LESS_LESS
-                    | SyntaxKind::GREATER_GREATER
-                    | SyntaxKind::PLUS
-                    | SyntaxKind::MINUS
-                    | SyntaxKind::STAR
-                    | SyntaxKind::SLASH
-                    | SyntaxKind::PERCENT => Some((range, format!(" {} ", text))),
+                    kind if kind.is_operator() => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(
+                            range,
+                            format!(" {} ", child.into_token().unwrap().text()),
+                            i,
+                        )
+                    })),
                     // add literals as-is
                     SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                        Some((range, text.trim().to_string()))
+                        Some(Box::new(move |f: &mut Formatter, i| {
+                            f.format_string_literal(child.into_node().unwrap(), i)
+                        }))
                     }
                     SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                        Some((range, text.to_string()))
+                        Some(Box::new(move |f: &mut Formatter, i| {
+                            f.format_number_literal(child.into_token().unwrap(), i)
+                        }))
                     }
                     // add words as-is
-                    SyntaxKind::WORD => Some((range, text.to_string())),
+                    SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.push_format(range, child.into_token().unwrap().text().to_string(), i)
+                    })),
+                    _ => None,
+                }
+            })
+            .fold(indent, |indent, f| {
+                f(self, indent);
+
+                false
+            });
+    }
+
+    fn format_number_literal(&mut self, literal: SyntaxToken, indent: bool) {
+        self.push_format(literal.text_range(), literal.text().to_string(), indent)
+    }
+
+    fn format_string_literal(&mut self, literal: SyntaxNode, indent: bool) {
+        literal
+            .children_with_tokens()
+            .filter_map(|child| {
+                let range = child.text_range();
+                match child.kind() {
+                    SyntaxKind::QUOTE => Some((range, "\"".to_string())),
+                    SyntaxKind::HASH => Some((range, "#".to_string())),
+                    SyntaxKind::WORD => {
+                        Some((range, child.into_token().unwrap().text().to_string()))
+                    }
                     _ => None,
                 }
             })
             .fold(indent, |indent, (range, text)| {
                 self.push_format(range, text, indent);
-
                 false
             });
+    }
+
+    fn format_literal(&mut self, literal: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {
+        match literal.kind() {
+            SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                self.format_string_literal(literal.into_node().unwrap(), indent)
+            }
+            SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
+                self.format_number_literal(literal.into_token().unwrap(), indent)
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn format_stmt(&mut self, stmt: SyntaxNode) {
@@ -431,7 +547,7 @@ impl Formatter {
 
     fn format_let_stmt(&mut self, stmt: AstLetStmt) {
         let name = stmt.name().unwrap();
-        let ty = stmt.ty().map(|t| self.gen_type_expr(t));
+        //let ty = stmt.ty().map(|t| self.gen_type_expr(t));
         // let initializer = stmt.initializer().map(|t| self.gen_expr(t));
     }
 
