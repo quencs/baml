@@ -369,27 +369,27 @@ impl Formatter {
     }
 
     fn format_function_def(&mut self, function_def: AstFunctionDef) {
-        // let keyword = function_def.keyword_tok().unwrap();
+        let keyword = function_def.keyword_tok().unwrap();
+        self.push_format(keyword.text_range(), "function ".to_string(), true);
 
-        // let parameters = self.gen_parameter_list(function_def.param_list().unwrap());
-        // let return_type = self.gen_type_expr(function_def.return_type().unwrap());
-        // self.push_format(
-        //     keyword.text_range(),
-        //     format!(
-        //         "function {} {} -> {} {{",
-        //         function_def.name().unwrap().text(),
-        //         parameters,
-        //         return_type
-        //     ),
-        //     true,
-        // );
+        let name = function_def.name().unwrap();
+        self.push_format(name.text_range(), format!("{} ", name.text()), false);
 
-        // match (function_def.expr_body(), function_def.llm_body()) {
-        //     (Some(expr_body), None) => self.format_expr_function_body(expr_body),
-        //     (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
-        //     (Some(_), Some(_)) => unreachable!(),
-        //     (None, None) => todo!(), // TODO: is this even possible?
-        // }
+        let parameters = function_def.param_list().unwrap();
+        self.format_parameter_list(parameters, false);
+
+        let arrow = function_def.arrow_tok().unwrap();
+        self.push_format(arrow.text_range(), " -> ".to_string(), false);
+
+        let return_type = function_def.return_type().unwrap();
+        self.format_type_expr(return_type, false);
+
+        match (function_def.expr_body(), function_def.llm_body()) {
+            (Some(expr_body), None) => self.format_expr_function_body(expr_body),
+            (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
+            (Some(_), Some(_)) => unreachable!(),
+            (None, None) => todo!(), // TODO: is this even possible?
+        }
     }
 
     fn format_expr_function_body(&mut self, expr_body: AstExprFunctionBody) {
@@ -502,23 +502,34 @@ impl Formatter {
     }
 
     fn format_string_literal(&mut self, literal: SyntaxNode, indent: bool) {
-        literal
-            .children_with_tokens()
-            .filter_map(|child| {
-                let range = child.text_range();
-                match child.kind() {
-                    SyntaxKind::QUOTE => Some((range, "\"".to_string())),
-                    SyntaxKind::HASH => Some((range, "#".to_string())),
-                    SyntaxKind::WORD => {
-                        Some((range, child.into_token().unwrap().text().to_string()))
-                    }
-                    _ => None,
+        let mut within_quotes = false;
+        for child in literal.children_with_tokens() {
+            let range = child.text_range();
+            match child.kind() {
+                SyntaxKind::QUOTE => {
+                    self.push_format(range, "\"".to_string(), !within_quotes && indent);
+                    within_quotes = true;
                 }
-            })
-            .fold(indent, |indent, (range, text)| {
-                self.push_format(range, text, indent);
-                false
-            });
+                SyntaxKind::HASH => {
+                    self.push_format(range, "#".to_string(), !within_quotes && indent);
+                    within_quotes = true;
+                }
+                SyntaxKind::WHITESPACE => {
+                    if within_quotes {
+                        self.push_format(range, " ".to_string(), false);
+                    }
+                }
+                SyntaxKind::NEWLINE => {
+                    if within_quotes {
+                        self.push_format(range, "\n".to_string(), false); // TODO: do we want to accept this for normal strings?
+                    }
+                }
+                SyntaxKind::WORD => {
+                    self.push_format(range, child.into_token().unwrap().text().to_string(), false)
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_literal(&mut self, literal: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {

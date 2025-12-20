@@ -109,6 +109,14 @@ impl FunctionDef {
             .find(|token| token.kind() == SyntaxKind::KW_FUNCTION)
     }
 
+    /// Get the arrow token.
+    pub fn arrow_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::ARROW)
+    }
+
     /// Get the parameter list.
     pub fn param_list(&self) -> Option<ParameterList> {
         self.syntax.children().find_map(ParameterList::cast)
