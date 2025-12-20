@@ -50,18 +50,18 @@ impl Formatter {
     }
 
     /// Push a formatted range to be added to the output, also prepends text from ranges missing in the AST if necessary.
-    fn push_format(&mut self, range: TextRange, text: String, indent: bool) {
+    fn push_format(&mut self, range: TextRange, text: &str, indent: bool) {
         self.format_missing(range.start());
         if indent {
-            self.push_text(format!("\n{}", self.gen_indent()));
+            self.push_text(&format!("\n{}", self.gen_indent()));
         }
         self.push_text(text);
         self.last_pos = range.end();
     }
 
     /// Push a text to be added to the output.
-    fn push_text(&mut self, text: String) {
-        self.output.push_str(&text);
+    fn push_text(&mut self, text: &str) {
+        self.output.push_str(text);
     }
 
     /// Prepends text from ranges missing in the AST if necessary.
@@ -89,17 +89,17 @@ impl Formatter {
                     SyntaxKind::NEWLINE => on_same_line = false,
                     SyntaxKind::LINE_COMMENT | SyntaxKind::BLOCK_COMMENT => {
                         if !on_same_line {
-                            self.push_text(format!("\n{}", self.gen_indent()));
+                            self.push_text(&format!("\n{}", self.gen_indent()));
                         } else {
-                            self.push_text(" ".to_string());
+                            self.push_text(" ");
                         }
 
-                        self.push_text(token.text().to_string());
+                        self.push_text(token.text());
                     }
                     // get rid of duplicate semicolons
                     SyntaxKind::SEMICOLON => {
                         if !already_pushed_semicolon {
-                            self.push_text(";".to_string());
+                            self.push_text(";");
                             already_pushed_semicolon = true;
                         }
                     }
@@ -135,15 +135,15 @@ impl Formatter {
                     | SyntaxKind::R_BRACKET
                     | SyntaxKind::L_PAREN
                     | SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), child.to_string(), i);
+                        f.push_format(child.text_range(), child.into_token().unwrap().text(), i);
                     })),
                     // also allow union pipe, but give it spaces around it
                     SyntaxKind::PIPE => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), " | ".to_string(), i);
+                        f.push_format(child.text_range(), " | ", i);
                     })),
                     // allow comma for generics/tuples, but give a space after it
                     SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ".to_string(), i);
+                        f.push_format(child.text_range(), ", ", i);
                     })),
                     // allow these for TypeScript-style types
                     SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
@@ -181,13 +181,13 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ".to_string(), i);
+                        f.push_format(child.text_range(), ", ", i);
                     })),
                     SyntaxKind::LESS => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "<".to_string(), i);
+                        f.push_format(child.text_range(), "<", i);
                     })),
                     SyntaxKind::GREATER => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ">".to_string(), i);
+                        f.push_format(child.text_range(), ">", i);
                     })),
                     SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
                         f.format_type_expr_inner(child.into_node().unwrap(), i);
@@ -209,10 +209,10 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::L_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "(".to_string(), i);
+                        f.push_format(child.text_range(), "(", i);
                     })),
                     SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ")".to_string(), i);
+                        f.push_format(child.text_range(), ")", i);
                     })),
                     SyntaxKind::PARAMETER => Some(Box::new(move |f: &mut Formatter, i| {
                         f.format_parameter(child.into_node().unwrap(), i);
@@ -233,14 +233,10 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(
-                            child.text_range(),
-                            child.into_token().unwrap().text().to_string(),
-                            i,
-                        );
+                        f.push_format(child.text_range(), child.into_token().unwrap().text(), i);
                     })),
                     SyntaxKind::COLON => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ": ".to_string(), i);
+                        f.push_format(child.text_range(), ": ", i);
                     })),
                     SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
                         f.format_type_expr_inner(child.into_node().unwrap(), i);
@@ -291,18 +287,14 @@ impl Formatter {
         let keyword = enum_def.keyword_tok().unwrap();
         self.push_format(
             keyword.text_range(),
-            format!("enum {} {{", enum_def.name().unwrap().text()),
+            &format!("enum {} {{", enum_def.name().unwrap().text()),
             true,
         );
 
         self.nest(|f| {
             for variant in enum_def.variants() {
                 let variant_name = variant.name().unwrap();
-                f.push_format(
-                    variant_name.text_range(),
-                    variant_name.text().to_string(),
-                    true,
-                );
+                f.push_format(variant_name.text_range(), variant_name.text(), true);
 
                 for attribute in variant.attributes() {
                     let at = attribute.at_tok().unwrap();
@@ -310,7 +302,7 @@ impl Formatter {
                     // TODO: handle attributes with arguments, this will require updating the AST
                     f.push_format(
                         at.text_range(),
-                        format!(" @{}", attribute.name().unwrap().text()),
+                        &format!(" @{}", attribute.name().unwrap().text()),
                         false,
                     );
                 }
@@ -322,14 +314,14 @@ impl Formatter {
                 // TODO: handle block attributes with arguments, this will require updating the AST
                 f.push_format(
                     at_at.text_range(),
-                    format!("@@{}", attribute.name().unwrap().text()),
+                    &format!("@@{}", attribute.name().unwrap().text()),
                     true,
                 );
             }
         });
 
         let r_brace = enum_def.r_brace_tok().unwrap();
-        self.push_format(r_brace.text_range(), "}".to_string(), true);
+        self.push_format(r_brace.text_range(), "}", true);
     }
 
     /// Format an AST class definition.
@@ -337,7 +329,7 @@ impl Formatter {
         let keyword = class_def.keyword_tok().unwrap();
         self.push_format(
             keyword.text_range(),
-            format!("class {} {{", class_def.name().unwrap().text()),
+            &format!("class {} {{", class_def.name().unwrap().text()),
             true,
         );
 
@@ -345,7 +337,7 @@ impl Formatter {
             for field in class_def.fields() {
                 let name = field.name().unwrap();
 
-                f.push_format(name.text_range(), format!("{}: ", name.text()), true);
+                f.push_format(name.text_range(), &format!("{}: ", name.text()), true);
                 f.format_type_expr(field.ty().unwrap(), false);
 
                 for attribute in field.attributes() {
@@ -354,7 +346,7 @@ impl Formatter {
                     // TODO: handle attributes with arguments, this will require updating the AST
                     f.push_format(
                         at.text_range(),
-                        format!(" @{}", attribute.name().unwrap().text()),
+                        &format!(" @{}", attribute.name().unwrap().text()),
                         false,
                     );
                 }
@@ -366,28 +358,28 @@ impl Formatter {
                 // TODO: handle block attributes with arguments, this will require updating the AST
                 f.push_format(
                     at_at.text_range(),
-                    format!("@@{}", attribute.name().unwrap().text()),
+                    &format!("@@{}", attribute.name().unwrap().text()),
                     true,
                 );
             }
         });
 
         let r_brace = class_def.r_brace_tok().unwrap();
-        self.push_format(r_brace.text_range(), "}".to_string(), true);
+        self.push_format(r_brace.text_range(), "}", true);
     }
 
     fn format_function_def(&mut self, function_def: AstFunctionDef) {
         let keyword = function_def.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "function".to_string(), true);
+        self.push_format(keyword.text_range(), "function", true);
 
         let name = function_def.name().unwrap();
-        self.push_format(name.text_range(), format!(" {}", name.text()), false);
+        self.push_format(name.text_range(), &format!(" {}", name.text()), false);
 
         let parameters = function_def.param_list().unwrap();
         self.format_parameter_list(parameters, false);
 
         let arrow = function_def.arrow_tok().unwrap();
-        self.push_format(arrow.text_range(), " -> ".to_string(), false);
+        self.push_format(arrow.text_range(), " -> ", false);
 
         let return_type = function_def.return_type().unwrap();
         self.format_type_expr(return_type, false);
@@ -404,7 +396,7 @@ impl Formatter {
 
     fn format_block_expr(&mut self, block_expr: AstBlockExpr, indent: bool) {
         let l_brace = block_expr.l_brace_tok().unwrap();
-        self.push_format(l_brace.text_range(), " {".to_string(), indent);
+        self.push_format(l_brace.text_range(), " {", indent);
 
         self.nest(|f| {
             for element in block_expr.elements() {
@@ -421,7 +413,7 @@ impl Formatter {
         });
 
         let r_brace = block_expr.r_brace_tok().unwrap();
-        self.push_format(r_brace.text_range(), "}".to_string(), true);
+        self.push_format(r_brace.text_range(), "}", true);
     }
 
     /// Formats an expression, (or a raw literal)
@@ -434,11 +426,9 @@ impl Formatter {
             SyntaxKind::PAREN_EXPR => self.format_paren_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::UNARY_EXPR => self.format_unary_expr(expr.into_node().unwrap(), indent),
             // words are added as-is, usually an identifier or bool literal
-            SyntaxKind::WORD => self.push_format(
-                expr.text_range(),
-                expr.into_token().unwrap().text().to_string(),
-                indent,
-            ),
+            SyntaxKind::WORD => {
+                self.push_format(expr.text_range(), expr.into_token().unwrap().text(), indent)
+            }
             SyntaxKind::BLOCK_EXPR => self.format_block_expr(
                 AstBlockExpr::cast(expr.into_node().unwrap()).unwrap(),
                 indent,
@@ -475,10 +465,10 @@ impl Formatter {
                         }))
                     }
                     SyntaxKind::L_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "[".to_string(), i);
+                        f.push_format(child.text_range(), "[", i);
                     })),
                     SyntaxKind::R_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "]".to_string(), i);
+                        f.push_format(child.text_range(), "]", i);
                     })),
                     _ => None,
                 }
@@ -503,10 +493,10 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::L_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "[".to_string(), i);
+                        f.push_format(child.text_range(), "[", i);
                     })),
                     SyntaxKind::R_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "]".to_string(), i);
+                        f.push_format(child.text_range(), "]", i);
                     })),
                     kind if kind.is_valid_rhs_expr() => {
                         Some(Box::new(move |f: &mut Formatter, i| {
@@ -514,7 +504,7 @@ impl Formatter {
                         }))
                     }
                     SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ".to_string(), i);
+                        f.push_format(child.text_range(), ", ", i);
                     })),
                     _ => None,
                 }
@@ -535,7 +525,7 @@ impl Formatter {
                         }))
                     }
                     SyntaxKind::DOT => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ".".to_string(), i);
+                        f.push_format(child.text_range(), ".", i);
                     })),
                     _ => None,
                 }
@@ -570,14 +560,10 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(
-                            child.text_range(),
-                            child.into_token().unwrap().text().to_string(),
-                            i,
-                        );
+                        f.push_format(child.text_range(), child.into_token().unwrap().text(), i);
                     })),
                     SyntaxKind::DOT => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ".".to_string(), i);
+                        f.push_format(child.text_range(), ".", i);
                     })),
                     _ => None,
                 }
@@ -593,10 +579,10 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::L_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "(".to_string(), i);
+                        f.push_format(child.text_range(), "(", i);
                     })),
                     SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ")".to_string(), i);
+                        f.push_format(child.text_range(), ")", i);
                     })),
                     kind if kind.is_valid_rhs_expr() => {
                         Some(Box::new(move |f: &mut Formatter, i| {
@@ -604,7 +590,7 @@ impl Formatter {
                         }))
                     }
                     SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ".to_string(), i);
+                        f.push_format(child.text_range(), ", ", i);
                     })),
                     _ => None,
                 }
@@ -619,11 +605,9 @@ impl Formatter {
         for child in expr.children_with_tokens() {
             let range = child.text_range();
             match child.kind() {
-                kind if kind.is_operator() => self.push_format(
-                    range,
-                    child.into_token().unwrap().text().to_string(),
-                    indent,
-                ),
+                kind if kind.is_operator() => {
+                    self.push_format(range, child.into_token().unwrap().text(), indent)
+                }
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
                 _ => (),
             }
@@ -635,8 +619,8 @@ impl Formatter {
             let range = child.text_range();
             match child.kind() {
                 // parentheses added as-is, possible indent for left parenthesis
-                SyntaxKind::L_PAREN => self.push_format(range, "(".to_string(), indent),
-                SyntaxKind::R_PAREN => self.push_format(range, ")".to_string(), false),
+                SyntaxKind::L_PAREN => self.push_format(range, "(", indent),
+                SyntaxKind::R_PAREN => self.push_format(range, ")", false),
                 // expressions and literals added
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
                 // allow literals as well
@@ -648,7 +632,7 @@ impl Formatter {
 
     fn format_if_expr(&mut self, expr: AstIfExpr, indent: bool) {
         let keyword = expr.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "if ".to_string(), indent);
+        self.push_format(keyword.text_range(), "if ", indent);
 
         let condition = expr.condition().unwrap();
         self.format_rhs_expr(condition.into(), false);
@@ -658,7 +642,7 @@ impl Formatter {
 
         if let Some(else_branch) = expr.else_branch() {
             let else_keyword = expr.else_keyword_tok().unwrap();
-            self.push_format(else_keyword.text_range(), " else".to_string(), false);
+            self.push_format(else_keyword.text_range(), " else", false);
 
             match else_branch.kind() {
                 // normal else block
@@ -683,7 +667,7 @@ impl Formatter {
                     kind if kind.is_operator() => Some(Box::new(move |f: &mut Formatter, i| {
                         f.push_format(
                             range,
-                            format!(" {} ", child.into_token().unwrap().text()),
+                            &format!(" {} ", child.into_token().unwrap().text()),
                             i,
                         );
                     })),
@@ -703,7 +687,7 @@ impl Formatter {
     }
 
     fn format_number_literal(&mut self, literal: SyntaxToken, indent: bool) {
-        self.push_format(literal.text_range(), literal.text().to_string(), indent);
+        self.push_format(literal.text_range(), literal.text(), indent);
     }
 
     fn format_string_literal(&mut self, literal: SyntaxNode, indent: bool) {
@@ -712,25 +696,25 @@ impl Formatter {
             let range = child.text_range();
             match child.kind() {
                 SyntaxKind::QUOTE => {
-                    self.push_format(range, "\"".to_string(), !within_quotes && indent);
+                    self.push_format(range, "\"", !within_quotes && indent);
                     within_quotes = true;
                 }
                 SyntaxKind::HASH => {
-                    self.push_format(range, "#".to_string(), !within_quotes && indent);
+                    self.push_format(range, "#", !within_quotes && indent);
                     within_quotes = true;
                 }
                 SyntaxKind::WHITESPACE => {
                     if within_quotes {
-                        self.push_format(range, " ".to_string(), false);
+                        self.push_format(range, " ", false);
                     }
                 }
                 SyntaxKind::NEWLINE => {
                     if within_quotes {
-                        self.push_format(range, "\n".to_string(), false); // TODO: do we want to accept this for normal strings?
+                        self.push_format(range, "\n", false); // TODO: do we want to accept this for normal strings?
                     }
                 }
                 SyntaxKind::WORD => {
-                    self.push_format(range, child.into_token().unwrap().text().to_string(), false);
+                    self.push_format(range, child.into_token().unwrap().text(), false);
                 }
                 _ => (),
             }
@@ -765,7 +749,7 @@ impl Formatter {
 
     fn format_while_stmt(&mut self, stmt: AstWhileStmt, indent: bool) {
         let keyword = stmt.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "while ".to_string(), indent);
+        self.push_format(keyword.text_range(), "while ", indent);
 
         let condition = stmt.condition().unwrap();
         self.format_rhs_expr(condition.into(), false);
@@ -776,7 +760,7 @@ impl Formatter {
 
     fn format_return_stmt(&mut self, stmt: AstReturnStmt, indent: bool) {
         let keyword = stmt.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "return ".to_string(), indent);
+        self.push_format(keyword.text_range(), "return ", indent);
 
         let value = stmt.value().unwrap();
         self.format_rhs_expr(value.into(), false);
@@ -784,22 +768,18 @@ impl Formatter {
 
     fn format_let_stmt(&mut self, stmt: AstLetStmt, indent: bool) {
         let keyword = stmt.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "let ".to_string(), indent);
+        self.push_format(keyword.text_range(), "let ", indent);
 
         let name = stmt.name().unwrap();
-        self.push_format(name.text_range(), name.text().to_string(), false);
+        self.push_format(name.text_range(), name.text(), false);
 
         if let Some(type_annotation) = stmt.ty() {
-            self.push_format(
-                type_annotation.syntax().text_range(),
-                ": ".to_string(),
-                false,
-            );
+            self.push_format(type_annotation.syntax().text_range(), ": ", false);
             self.format_type_expr(type_annotation.into(), false);
         }
 
         let equals = stmt.equals_tok().unwrap();
-        self.push_format(equals.text_range(), " = ".to_string(), false);
+        self.push_format(equals.text_range(), " = ", false);
 
         let expr = stmt.initializer().unwrap();
         self.format_rhs_expr(expr, false);
