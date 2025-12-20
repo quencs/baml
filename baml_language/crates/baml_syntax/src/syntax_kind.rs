@@ -326,6 +326,7 @@ impl SyntaxKind {
                 | SyntaxKind::FLOAT_LITERAL
                 | SyntaxKind::STRING_LITERAL
                 | SyntaxKind::RAW_STRING_LITERAL
+                | SyntaxKind::WORD // identifier (or bool literal)
         )
     }
 }

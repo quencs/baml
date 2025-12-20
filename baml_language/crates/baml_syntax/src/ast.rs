@@ -465,6 +465,14 @@ impl Attribute {
 }
 
 impl WhileStmt {
+    /// Get the keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_WHILE)
+    }
+
     /// Get the condition expression.
     /// The condition is the first child expression of the while statement.
     pub fn condition(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
@@ -742,9 +750,16 @@ impl LetStmt {
     /// Get the initializer expression as a node.
     /// This finds the first child node that is an expression (not `TYPE_EXPR`).
     pub fn initializer(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
-        self.syntax
-            .children_with_tokens()
-            .find(|n| n.kind().is_valid_rhs_expr())
+        let mut seen_name = false; // we need to skip the name of the variable
+        for child in self.syntax().children_with_tokens() {
+            if !seen_name && child.kind() == SyntaxKind::WORD {
+                seen_name = true;
+            } else if seen_name && child.kind().is_valid_rhs_expr() {
+                return Some(child);
+            }
+        }
+
+        None
     }
 
     /// Get the initializer as a token (for direct literals like integers).
