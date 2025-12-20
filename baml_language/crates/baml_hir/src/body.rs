@@ -1612,6 +1612,7 @@ impl LoweringContext {
         let condition = while_stmt
             .as_ref()
             .and_then(baml_syntax::WhileStmt::condition)
+            .and_then(NodeOrToken::into_node)
             .map(|n| self.lower_expr(&n))
             .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
 

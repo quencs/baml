@@ -467,8 +467,10 @@ impl Attribute {
 impl WhileStmt {
     /// Get the condition expression.
     /// The condition is the first child expression of the while statement.
-    pub fn condition(&self) -> Option<SyntaxNode> {
-        self.syntax.children().next()
+    pub fn condition(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
+        self.syntax
+            .children_with_tokens()
+            .find(|n| n.kind().is_valid_rhs_expr())
     }
 
     /// Get the body block expression.
@@ -481,8 +483,10 @@ impl WhileStmt {
 impl IfExpr {
     /// Get the condition expression.
     /// The condition is the first child expression of the if expression.
-    pub fn condition(&self) -> Option<SyntaxNode> {
-        self.syntax.children().next()
+    pub fn condition(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
+        self.syntax
+            .children_with_tokens()
+            .find(|n| n.kind().is_valid_rhs_expr())
     }
 
     /// Get the keyword token.
@@ -738,27 +742,9 @@ impl LetStmt {
     /// Get the initializer expression as a node.
     /// This finds the first child node that is an expression (not `TYPE_EXPR`).
     pub fn initializer(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
-        self.syntax.children_with_tokens().find(|n| {
-            matches!(
-                n.kind(),
-                SyntaxKind::EXPR
-                    | SyntaxKind::BINARY_EXPR
-                    | SyntaxKind::UNARY_EXPR
-                    | SyntaxKind::CALL_EXPR
-                    | SyntaxKind::PATH_EXPR
-                    | SyntaxKind::FIELD_ACCESS_EXPR
-                    | SyntaxKind::INDEX_EXPR
-                    | SyntaxKind::IF_EXPR
-                    | SyntaxKind::BLOCK_EXPR
-                    | SyntaxKind::PAREN_EXPR
-                    | SyntaxKind::ARRAY_LITERAL
-                    | SyntaxKind::OBJECT_LITERAL
-                    | SyntaxKind::STRING_LITERAL
-                    | SyntaxKind::RAW_STRING_LITERAL
-                    | SyntaxKind::INTEGER_LITERAL
-                    | SyntaxKind::FLOAT_LITERAL
-            )
-        })
+        self.syntax
+            .children_with_tokens()
+            .find(|n| n.kind().is_valid_rhs_expr())
     }
 
     /// Get the initializer as a token (for direct literals like integers).
@@ -781,8 +767,18 @@ impl LetStmt {
 
 impl ReturnStmt {
     /// Get the return value expression, if present.
-    pub fn value(&self) -> Option<SyntaxNode> {
-        self.syntax.children().next()
+    pub fn value(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
+        self.syntax
+            .children_with_tokens()
+            .find(|n| n.kind().is_valid_rhs_expr())
+    }
+
+    /// Get the keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_RETURN)
     }
 }
 

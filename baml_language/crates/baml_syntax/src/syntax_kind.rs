@@ -305,6 +305,29 @@ impl SyntaxKind {
                 | GREATER_GREATER
         )
     }
+
+    pub fn is_valid_rhs_expr(self) -> bool {
+        matches!(
+            self,
+            SyntaxKind::BINARY_EXPR
+                | SyntaxKind::IF_EXPR
+                | SyntaxKind::PAREN_EXPR
+                | SyntaxKind::EXPR
+                | SyntaxKind::UNARY_EXPR
+                | SyntaxKind::CALL_EXPR
+                | SyntaxKind::BLOCK_EXPR
+                | SyntaxKind::PATH_EXPR
+                | SyntaxKind::FIELD_ACCESS_EXPR
+                | SyntaxKind::INDEX_EXPR
+                | SyntaxKind::ARRAY_LITERAL
+                | SyntaxKind::MAP_LITERAL
+                | SyntaxKind::OBJECT_LITERAL
+                | SyntaxKind::INTEGER_LITERAL
+                | SyntaxKind::FLOAT_LITERAL
+                | SyntaxKind::STRING_LITERAL
+                | SyntaxKind::RAW_STRING_LITERAL
+        )
+    }
 }
 
 // Conversion for Rowan
