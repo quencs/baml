@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use baml_syntax::TypeExpr;
 use la_arena::{Arena, Idx};
-use rowan::{TextRange, ast::AstNode};
+use rowan::{NodeOrToken, TextRange, ast::AstNode};
 use rustc_hash::FxHashMap;
 
 use crate::{Name, type_ref::TypeRef};
@@ -1485,6 +1485,7 @@ impl LoweringContext {
         let initializer = let_stmt
             .as_ref()
             .and_then(baml_syntax::LetStmt::initializer)
+            .and_then(NodeOrToken::into_node)
             .map(|n| self.lower_expr(&n))
             .or_else(|| {
                 // Try to get initializer as a direct token (for simple literals)

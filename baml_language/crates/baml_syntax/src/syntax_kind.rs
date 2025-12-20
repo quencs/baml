@@ -272,7 +272,7 @@ impl SyntaxKind {
         use SyntaxKind::{
             AND, AND_AND, CARET, EQUALS, EQUALS_EQUALS, GREATER, GREATER_EQUALS, GREATER_GREATER,
             LESS, LESS_EQUALS, LESS_LESS, MINUS, MINUS_EQUALS, NOT, NOT_EQUALS, OR_OR, PERCENT,
-            PIPE, PLUS, PLUS_EQUALS, SLASH, SLASH_EQUALS, STAR, STAR_EQUALS, TILDE,
+            PIPE, PIPE_EQUALS, PLUS, PLUS_EQUALS, SLASH, SLASH_EQUALS, STAR, STAR_EQUALS, TILDE,
         };
         matches!(
             self,
@@ -296,6 +296,7 @@ impl SyntaxKind {
                 | NOT
                 | AND
                 | PIPE
+                | PIPE_EQUALS
                 | CARET
                 | TILDE
                 | LESS_LESS

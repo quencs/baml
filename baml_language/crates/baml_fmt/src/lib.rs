@@ -4,11 +4,11 @@ use baml_parser::parse_file;
 use baml_syntax::{
     SyntaxKind, SyntaxNode, SyntaxToken,
     ast::{
-        BlockElement as AstBlockElement, ClassDef as AstClassDef, EnumDef as AstEnumDef,
-        ExprFunctionBody as AstExprFunctionBody, FunctionDef as AstFunctionDef,
-        IfExpr as AstIfExpr, Item as AstItem, LetStmt as AstLetStmt,
-        LlmFunctionBody as AstLlmFunctionBody, Parameter as AstParameter,
-        ParameterList as AstParameterList, SourceFile as AstSourceFile, TypeExpr as AstTypeExpr,
+        BlockElement as AstBlockElement, BlockExpr as AstBlockExpr, ClassDef as AstClassDef,
+        EnumDef as AstEnumDef, ExprFunctionBody as AstExprFunctionBody,
+        FunctionDef as AstFunctionDef, IfExpr as AstIfExpr, Item as AstItem, LetStmt as AstLetStmt,
+        LlmFunctionBody as AstLlmFunctionBody, ParameterList as AstParameterList,
+        SourceFile as AstSourceFile, TypeExpr as AstTypeExpr,
     },
 };
 use rowan::{NodeOrToken, TextRange, TextSize, ast::AstNode};
@@ -25,7 +25,7 @@ pub fn format_file(db: &dyn salsa::Database, file: SourceFile) -> Option<String>
         return None;
     }
 
-    let syntax_tree = SyntaxNode::new_root(green.clone());
+    let syntax_tree = SyntaxNode::new_root(green);
     let formatter = Formatter::new(syntax_tree);
 
     formatter.format()
@@ -71,6 +71,7 @@ impl Formatter {
 
             // iterate through all tokens in the missing range
             let mut on_same_line = self.last_pos != TextSize::new(0); // first line of file is always a separate line comment
+            let mut already_pushed_semicolon = false;
             while current_pos < start {
                 let token = self.root.token_at_offset(current_pos).right_biased();
 
@@ -95,6 +96,13 @@ impl Formatter {
 
                         self.push_text(token.text().to_string());
                     }
+                    // get rid of duplicate semicolons
+                    SyntaxKind::SEMICOLON => {
+                        if !already_pushed_semicolon {
+                            self.push_text(";".to_string());
+                            already_pushed_semicolon = true;
+                        }
+                    }
                     _ => (), // throw away all other tokens
                 }
 
@@ -112,7 +120,7 @@ impl Formatter {
 
     /// Formats a type expression.
     fn format_type_expr(&mut self, type_expr: AstTypeExpr, indent: bool) {
-        self.format_type_expr_inner(SyntaxNode::clone(&type_expr.syntax()), indent)
+        self.format_type_expr_inner(SyntaxNode::clone(&type_expr.syntax()), indent);
     }
 
     /// Inner recursive function for formatting a type expression.
@@ -127,33 +135,33 @@ impl Formatter {
                     | SyntaxKind::R_BRACKET
                     | SyntaxKind::L_PAREN
                     | SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), child.to_string(), i)
+                        f.push_format(child.text_range(), child.to_string(), i);
                     })),
                     // also allow union pipe, but give it spaces around it
                     SyntaxKind::PIPE => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), " | ".to_string(), i)
+                        f.push_format(child.text_range(), " | ".to_string(), i);
                     })),
                     // allow comma for generics/tuples, but give a space after it
                     SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ".to_string(), i)
+                        f.push_format(child.text_range(), ", ".to_string(), i);
                     })),
                     // allow these for TypeScript-style types
                     SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
                         Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_string_literal(child.into_node().unwrap(), i)
+                            f.format_string_literal(child.into_node().unwrap(), i);
                         }))
                     }
                     SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
                         Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_number_literal(child.into_token().unwrap(), i)
+                            f.format_number_literal(child.into_token().unwrap(), i);
                         }))
                     }
                     SyntaxKind::TYPE_ARGS => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_args(child.into_node().unwrap(), i)
+                        f.format_type_args(child.into_node().unwrap(), i);
                     })),
                     // recurse for nesting in parentheses
                     SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_expr_inner(child.into_node().unwrap(), i)
+                        f.format_type_expr_inner(child.into_node().unwrap(), i);
                     })),
                     // ignore everything else - comments, whitespace, etc.
                     _ => None,
@@ -173,16 +181,16 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ".to_string(), i)
+                        f.push_format(child.text_range(), ", ".to_string(), i);
                     })),
                     SyntaxKind::LESS => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "<".to_string(), i)
+                        f.push_format(child.text_range(), "<".to_string(), i);
                     })),
                     SyntaxKind::GREATER => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ">".to_string(), i)
+                        f.push_format(child.text_range(), ">".to_string(), i);
                     })),
                     SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_expr_inner(child.into_node().unwrap(), i)
+                        f.format_type_expr_inner(child.into_node().unwrap(), i);
                     })),
                     _ => None,
                 }
@@ -201,13 +209,13 @@ impl Formatter {
             .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
                 match child.kind() {
                     SyntaxKind::L_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "(".to_string(), i)
+                        f.push_format(child.text_range(), "(".to_string(), i);
                     })),
                     SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ")".to_string(), i)
+                        f.push_format(child.text_range(), ")".to_string(), i);
                     })),
                     SyntaxKind::PARAMETER => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_parameter(child.into_node().unwrap(), i)
+                        f.format_parameter(child.into_node().unwrap(), i);
                     })),
                     _ => None,
                 }
@@ -229,13 +237,13 @@ impl Formatter {
                             child.text_range(),
                             child.into_token().unwrap().text().to_string(),
                             i,
-                        )
+                        );
                     })),
                     SyntaxKind::COLON => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ": ".to_string(), i)
+                        f.push_format(child.text_range(), ": ".to_string(), i);
                     })),
                     SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_expr_inner(child.into_node().unwrap(), i)
+                        f.format_type_expr_inner(child.into_node().unwrap(), i);
                     })),
                     _ => None,
                 }
@@ -370,10 +378,10 @@ impl Formatter {
 
     fn format_function_def(&mut self, function_def: AstFunctionDef) {
         let keyword = function_def.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "function ".to_string(), true);
+        self.push_format(keyword.text_range(), "function".to_string(), true);
 
         let name = function_def.name().unwrap();
-        self.push_format(name.text_range(), format!("{} ", name.text()), false);
+        self.push_format(name.text_range(), format!(" {}", name.text()), false);
 
         let parameters = function_def.param_list().unwrap();
         self.format_parameter_list(parameters, false);
@@ -385,35 +393,47 @@ impl Formatter {
         self.format_type_expr(return_type, false);
 
         match (function_def.expr_body(), function_def.llm_body()) {
-            (Some(expr_body), None) => self.format_expr_function_body(expr_body),
+            (Some(expr_body), None) => {
+                self.format_block_expr(expr_body.block_expr().unwrap(), true);
+            }
             (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
             (Some(_), Some(_)) => unreachable!(),
             (None, None) => todo!(), // TODO: is this even possible?
         }
     }
 
-    fn format_expr_function_body(&mut self, expr_body: AstExprFunctionBody) {
+    fn format_block_expr(&mut self, block_expr: AstBlockExpr, indent: bool) {
         self.nest(|f| {
-            let block_expr = expr_body.block_expr().unwrap();
+            let l_brace = block_expr.l_brace_tok().unwrap();
+            f.push_format(l_brace.text_range(), " {".to_string(), false);
+
             for element in block_expr.elements() {
                 match element {
                     AstBlockElement::Stmt(stmt) => f.format_stmt(stmt),
                     AstBlockElement::ExprNode(expr) => {
-                        f.format_expr(expr, true);
+                        f.format_expr(expr.into(), true);
                     }
                     AstBlockElement::ExprToken(expr_token) => todo!(),
                 }
             }
         });
+
+        let r_brace = block_expr.r_brace_tok().unwrap();
+        self.push_format(r_brace.text_range(), "}".to_string(), true);
     }
 
-    fn format_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    /// Formats an expression, (or a raw literal)
+    fn format_expr(&mut self, expr: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {
         match expr.kind() {
-            SyntaxKind::BINARY_EXPR => self.format_binary_expr(expr, indent),
+            SyntaxKind::BINARY_EXPR => self.format_binary_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::IF_EXPR => {
-                self.format_if_expr(AstIfExpr::cast(SyntaxNode::clone(&expr)).unwrap(), indent)
+                self.format_if_expr(AstIfExpr::cast(expr.into_node().unwrap()).unwrap(), indent);
             }
-            SyntaxKind::PAREN_EXPR => self.format_paren_expr(expr, indent),
+            SyntaxKind::PAREN_EXPR => self.format_paren_expr(expr.into_node().unwrap(), indent),
+            SyntaxKind::INTEGER_LITERAL
+            | SyntaxKind::FLOAT_LITERAL
+            | SyntaxKind::STRING_LITERAL
+            | SyntaxKind::RAW_STRING_LITERAL => self.format_literal(expr, indent),
             SyntaxKind::EXPR
             | SyntaxKind::UNARY_EXPR
             | SyntaxKind::CALL_EXPR
@@ -446,7 +466,7 @@ impl Formatter {
                 | SyntaxKind::FIELD_ACCESS_EXPR
                 | SyntaxKind::INDEX_EXPR
                 | SyntaxKind::ARRAY_LITERAL
-                | SyntaxKind::OBJECT_LITERAL => self.format_expr(child.into_node().unwrap(), false),
+                | SyntaxKind::OBJECT_LITERAL => self.format_expr(child, false),
                 // allow literals as well
                 kind if kind.is_literal() => self.format_literal(child, false),
                 _ => (), // ignore everything else
@@ -455,8 +475,31 @@ impl Formatter {
     }
 
     fn format_if_expr(&mut self, expr: AstIfExpr, indent: bool) {
+        let keyword = expr.keyword_tok().unwrap();
+        self.push_format(keyword.text_range(), "if ".to_string(), indent);
+
         let condition = expr.condition().unwrap();
+        self.format_expr(condition.into(), false);
+
         let then_branch = expr.then_branch().unwrap();
+        self.format_block_expr(then_branch, false);
+
+        if let Some(else_branch) = expr.else_branch() {
+            let else_keyword = expr.else_keyword_tok().unwrap();
+            self.push_format(else_keyword.text_range(), " else".to_string(), false);
+
+            match else_branch.kind() {
+                // normal else block
+                SyntaxKind::BLOCK_EXPR => {
+                    self.format_block_expr(AstBlockExpr::cast(else_branch).unwrap(), false);
+                }
+                // else if block, recurse
+                SyntaxKind::IF_EXPR => {
+                    self.format_if_expr(AstIfExpr::cast(else_branch).unwrap(), false);
+                }
+                _ => unreachable!(),
+            }
+        }
     }
 
     fn format_binary_expr(&mut self, expr: SyntaxNode, indent: bool) {
@@ -470,22 +513,36 @@ impl Formatter {
                             range,
                             format!(" {} ", child.into_token().unwrap().text()),
                             i,
-                        )
+                        );
                     })),
                     // add literals as-is
                     SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
                         Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_string_literal(child.into_node().unwrap(), i)
+                            f.format_string_literal(child.into_node().unwrap(), i);
                         }))
                     }
                     SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
                         Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_number_literal(child.into_token().unwrap(), i)
+                            f.format_number_literal(child.into_token().unwrap(), i);
                         }))
                     }
                     // add words as-is
                     SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(range, child.into_token().unwrap().text().to_string(), i)
+                        f.push_format(range, child.into_token().unwrap().text().to_string(), i);
+                    })),
+                    SyntaxKind::BINARY_EXPR
+                    | SyntaxKind::IF_EXPR
+                    | SyntaxKind::PAREN_EXPR
+                    | SyntaxKind::EXPR
+                    | SyntaxKind::UNARY_EXPR
+                    | SyntaxKind::CALL_EXPR
+                    | SyntaxKind::BLOCK_EXPR
+                    | SyntaxKind::PATH_EXPR
+                    | SyntaxKind::FIELD_ACCESS_EXPR
+                    | SyntaxKind::INDEX_EXPR
+                    | SyntaxKind::ARRAY_LITERAL
+                    | SyntaxKind::OBJECT_LITERAL => Some(Box::new(move |f: &mut Formatter, i| {
+                        f.format_expr(child, i);
                     })),
                     _ => None,
                 }
@@ -498,7 +555,7 @@ impl Formatter {
     }
 
     fn format_number_literal(&mut self, literal: SyntaxToken, indent: bool) {
-        self.push_format(literal.text_range(), literal.text().to_string(), indent)
+        self.push_format(literal.text_range(), literal.text().to_string(), indent);
     }
 
     fn format_string_literal(&mut self, literal: SyntaxNode, indent: bool) {
@@ -525,7 +582,7 @@ impl Formatter {
                     }
                 }
                 SyntaxKind::WORD => {
-                    self.push_format(range, child.into_token().unwrap().text().to_string(), false)
+                    self.push_format(range, child.into_token().unwrap().text().to_string(), false);
                 }
                 _ => (),
             }
@@ -535,10 +592,10 @@ impl Formatter {
     fn format_literal(&mut self, literal: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {
         match literal.kind() {
             SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                self.format_string_literal(literal.into_node().unwrap(), indent)
+                self.format_string_literal(literal.into_node().unwrap(), indent);
             }
             SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                self.format_number_literal(literal.into_token().unwrap(), indent)
+                self.format_number_literal(literal.into_token().unwrap(), indent);
             }
             _ => unreachable!(),
         }
@@ -546,7 +603,7 @@ impl Formatter {
 
     fn format_stmt(&mut self, stmt: SyntaxNode) {
         match stmt.kind() {
-            SyntaxKind::LET_STMT => self.format_let_stmt(AstLetStmt::cast(stmt).unwrap()),
+            SyntaxKind::LET_STMT => self.format_let_stmt(AstLetStmt::cast(stmt).unwrap(), true),
             SyntaxKind::RETURN_STMT
             | SyntaxKind::WHILE_STMT
             | SyntaxKind::FOR_EXPR
@@ -556,10 +613,18 @@ impl Formatter {
         }
     }
 
-    fn format_let_stmt(&mut self, stmt: AstLetStmt) {
+    fn format_let_stmt(&mut self, stmt: AstLetStmt, indent: bool) {
+        let keyword = stmt.keyword_tok().unwrap();
+        self.push_format(keyword.text_range(), "let ".to_string(), indent);
+
         let name = stmt.name().unwrap();
-        //let ty = stmt.ty().map(|t| self.gen_type_expr(t));
-        // let initializer = stmt.initializer().map(|t| self.gen_expr(t));
+        self.push_format(name.text_range(), name.text().to_string(), false);
+
+        let equals = stmt.equals_tok().unwrap();
+        self.push_format(equals.text_range(), " = ".to_string(), false);
+
+        let expr = stmt.initializer().unwrap();
+        self.format_expr(expr, false);
     }
 
     fn format_llm_function_body(&mut self, llm_body: AstLlmFunctionBody) {

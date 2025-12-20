@@ -1,6 +1,6 @@
 //! Typed AST node wrappers for ergonomic tree access.
 
-use rowan::ast::AstNode;
+use rowan::{NodeOrToken, ast::AstNode};
 
 use crate::{SyntaxKind, SyntaxNode, SyntaxToken};
 
@@ -485,6 +485,22 @@ impl IfExpr {
         self.syntax.children().next()
     }
 
+    /// Get the keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_IF)
+    }
+
+    /// Get the else keyword token, if it exists.
+    pub fn else_keyword_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_ELSE)
+    }
+
     /// Get the then branch block expression.
     /// The then branch is the first `BLOCK_EXPR` child.
     pub fn then_branch(&self) -> Option<BlockExpr> {
@@ -698,6 +714,22 @@ impl LetStmt {
             .find(|token| token.kind() == SyntaxKind::WORD)
     }
 
+    /// Get the keyword token.
+    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::KW_LET)
+    }
+
+    /// Get the equals token.
+    pub fn equals_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::EQUALS)
+    }
+
     /// Get the type annotation, if present.
     pub fn ty(&self) -> Option<TypeExpr> {
         self.syntax.children().find_map(TypeExpr::cast)
@@ -705,8 +737,8 @@ impl LetStmt {
 
     /// Get the initializer expression as a node.
     /// This finds the first child node that is an expression (not `TYPE_EXPR`).
-    pub fn initializer(&self) -> Option<SyntaxNode> {
-        self.syntax.children().find(|n| {
+    pub fn initializer(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
+        self.syntax.children_with_tokens().find(|n| {
             matches!(
                 n.kind(),
                 SyntaxKind::EXPR
@@ -723,6 +755,8 @@ impl LetStmt {
                     | SyntaxKind::OBJECT_LITERAL
                     | SyntaxKind::STRING_LITERAL
                     | SyntaxKind::RAW_STRING_LITERAL
+                    | SyntaxKind::INTEGER_LITERAL
+                    | SyntaxKind::FLOAT_LITERAL
             )
         })
     }
@@ -859,6 +893,22 @@ impl BlockExpr {
                 }
             }
         })
+    }
+
+    /// Get the opening brace token.
+    pub fn l_brace_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::L_BRACE)
+    }
+
+    /// Get the closing brace token.
+    pub fn r_brace_tok(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == SyntaxKind::R_BRACE)
     }
 }
 
