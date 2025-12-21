@@ -66,6 +66,7 @@ impl Formatter {
             let mut on_same_line = self.last_pos != TextSize::new(0); // first line of file is always a separate line comment
             let mut already_pushed_semicolon = false;
             let mut consecutive_newlines = 0;
+            let mut newline_comment_buffer = Vec::new();
             while current_pos < start {
                 let token = self.root.token_at_offset(current_pos).right_biased();
 
@@ -87,13 +88,14 @@ impl Formatter {
                         consecutive_newlines += 1;
                     }
                     SyntaxKind::LINE_COMMENT | SyntaxKind::BLOCK_COMMENT => {
+                        let text = token.text().to_string();
                         if !on_same_line {
-                            self.push_text(&format!("\n{}", self.gen_indent()));
+                            newline_comment_buffer.push(text);
+                            consecutive_newlines -= 1; // we're not actually adding a newline, so we need to subtract one from the count
                         } else {
                             self.push_text(" ");
+                            self.push_text(&text);
                         }
-
-                        self.push_text(token.text());
                     }
                     // get rid of duplicate semicolons
                     SyntaxKind::SEMICOLON => {
@@ -105,8 +107,12 @@ impl Formatter {
                     _ => (), // throw away all other tokens
                 }
 
-                // if it's not a blank line, reset the consecutive newlines count
-                if kind != SyntaxKind::NEWLINE && kind != SyntaxKind::WHITESPACE {
+                // if it's not a blank line, or a comment, push the newline and reset the consecutive newlines count
+                if kind != SyntaxKind::NEWLINE
+                    && kind != SyntaxKind::WHITESPACE
+                    && kind != SyntaxKind::LINE_COMMENT
+                    && kind != SyntaxKind::BLOCK_COMMENT
+                {
                     if consecutive_newlines > 1 {
                         self.push_text("\n");
                     }
@@ -120,6 +126,12 @@ impl Formatter {
             // clean up any remaining consecutive newlines
             if consecutive_newlines > 1 {
                 self.push_text("\n");
+            }
+
+            // add any remaining newline comments
+            // we buffer these so that they're added after the newline, but before the next node
+            for text in newline_comment_buffer {
+                self.push_text(&format!("\n{}{}", self.gen_indent(), text));
             }
         }
 
