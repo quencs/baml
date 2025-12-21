@@ -595,7 +595,7 @@ impl CompilerRunner {
             ));
 
             // Get the source text and format it
-            let formatted = baml_fmt::format_file(&self.db, *source_file);
+            let formatted = baml_format::format_file(&self.db, *source_file);
 
             if let Some(formatted) = formatted {
                 for line in formatted.lines() {
