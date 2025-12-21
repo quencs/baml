@@ -108,7 +108,7 @@ impl Formatter {
 
     /// Generates a string of the current indent level.
     fn gen_indent(&self) -> String {
-        "    ".repeat(self.indent_level)
+        "  ".repeat(self.indent_level)
     }
 
     /// Scan until we reach the specified kind, and call the provided function with the node.
@@ -330,6 +330,11 @@ impl Formatter {
                 SyntaxKind::ENUM_DEF => self.format_enum_def(child, true),
                 SyntaxKind::CLASS_DEF => self.format_class_def(child, true),
                 SyntaxKind::FUNCTION_DEF => self.format_function_def(child, true),
+                SyntaxKind::CLIENT_DEF => self.format_client_def(child, true),
+                SyntaxKind::TEST_DEF => self.format_test_def(child, true),
+                SyntaxKind::RETRY_POLICY_DEF => self.format_retry_policy_def(child, true),
+                SyntaxKind::TEMPLATE_STRING_DEF => self.format_template_string_def(child, true),
+                SyntaxKind::TYPE_ALIAS_DEF => self.format_type_alias_def(child, true),
                 _ => (),
             }
         }
@@ -340,8 +345,280 @@ impl Formatter {
         Some(self.output.clone())
     }
 
+    fn format_type_alias_def(&mut self, type_alias_def: SyntaxNode, indent: bool) {
+        let ref mut children = type_alias_def.children_with_tokens().peekable();
+
+        // format type alias keyword, which is not actually a keyword
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        // format type alias name
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::EQUALS,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::TYPE_EXPR,
+            false,
+            Self::format_type_expr,
+        );
+    }
+
+    fn format_template_string_def(&mut self, template_string_def: SyntaxNode, indent: bool) {
+        let ref mut children = template_string_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_TEMPLATE_STRING,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+
+        self.format_node(
+            children,
+            SyntaxKind::PARAMETER_LIST,
+            false,
+            Self::format_parameter_list,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::RAW_STRING_LITERAL,
+            false,
+            Self::format_string_literal,
+        );
+    }
+
+    fn format_retry_policy_def(&mut self, retry_policy_def: SyntaxNode, indent: bool) {
+        let ref mut children = retry_policy_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_RETRY_POLICY,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::CONFIG_BLOCK,
+            false,
+            Self::format_config_block,
+        );
+    }
+
+    fn format_test_def(&mut self, test_def: SyntaxNode, indent: bool) {
+        let ref mut children = test_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_TEST,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::CONFIG_BLOCK,
+            false,
+            Self::format_config_block,
+        );
+    }
+
     fn format_token_plaintext(&mut self, token: SyntaxToken, indent: bool) {
         self.push_format(token.text_range(), &token.text().to_string(), indent);
+    }
+
+    fn format_client_def(&mut self, client_def: SyntaxNode, indent: bool) {
+        let ref mut children = client_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_CLIENT,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        self.format_node(
+            children,
+            SyntaxKind::CLIENT_TYPE,
+            false,
+            Self::format_client_type,
+        );
+        self.push_text(" ");
+
+        // format client name
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::CONFIG_BLOCK,
+            false,
+            Self::format_config_block,
+        );
+    }
+
+    fn format_config_block(&mut self, config_block: SyntaxNode, indent: bool) {
+        let ref mut children = config_block.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        self.nest(|f| {
+            while f.format_node_stop(
+                children,
+                SyntaxKind::CONFIG_ITEM,
+                true,
+                Self::format_config_item,
+                SyntaxKind::R_BRACE,
+            ) {}
+
+            f.format_missing(config_block.text_range().end()); // handle hanging trivia at the end of the config block
+        });
+
+        self.format_token(
+            children,
+            SyntaxKind::R_BRACE,
+            true,
+            Self::format_token_plaintext,
+        );
+    }
+
+    fn format_config_item(&mut self, config_item: SyntaxNode, indent: bool) {
+        let ref mut children = config_item.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        // TODO: known issue: unquoted strings get an extra space here
+
+        self.format_node_stop(
+            children,
+            SyntaxKind::CONFIG_BLOCK,
+            false,
+            Self::format_config_block,
+            SyntaxKind::CONFIG_VALUE,
+        );
+
+        self.format_node(
+            children,
+            SyntaxKind::CONFIG_VALUE,
+            false,
+            Self::format_config_value,
+        );
+    }
+
+    fn format_config_value(&mut self, config_value: SyntaxNode, mut indent: bool) {
+        let ref mut children = config_value.children_with_tokens().peekable();
+
+        let mut seen_first_whitespace = false;
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::WHITESPACE => {
+                    if !seen_first_whitespace {
+                        self.push_format(child.text_range(), " ", indent); // collapse the first one to a single space
+                        seen_first_whitespace = true;
+                    } else {
+                        self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    }
+                }
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                    self.format_string_literal(child.into_node().unwrap(), indent)
+                }
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                }
+                SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
+                    self.format_literal(child, indent)
+                }
+                SyntaxKind::NEWLINE => {
+                    break;
+                }
+                _ => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                }
+            }
+
+            indent = false;
+        }
+    }
+
+    fn format_client_type(&mut self, client_type: SyntaxNode, indent: bool) {
+        let ref mut children = client_type.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::LESS,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+
+        self.format_token(
+            children,
+            SyntaxKind::GREATER,
+            false,
+            Self::format_token_plaintext,
+        );
     }
 
     /// Format an AST enum definition.
@@ -620,7 +897,85 @@ impl Formatter {
                 SyntaxKind::EXPR_FUNCTION_BODY => {
                     self.format_expr_function_body(child.into_node().unwrap(), false)
                 }
-                SyntaxKind::LLM_FUNCTION_BODY => todo!(),
+                SyntaxKind::LLM_FUNCTION_BODY => {
+                    self.format_llm_function_body(child.into_node().unwrap(), false)
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn format_llm_function_body(&mut self, llm_function_body: SyntaxNode, indent: bool) {
+        let ref mut children = llm_function_body.children_with_tokens().peekable();
+
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        let mut brace_child = None;
+        self.nest(|f| {
+            while let Some(child) = children.next() {
+                match child.kind() {
+                    SyntaxKind::CLIENT_FIELD => {
+                        f.format_client_field(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::PROMPT_FIELD => {
+                        f.format_prompt_field(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::R_BRACE => {
+                        brace_child = Some(child); // hack to get the closing brace child outside of the nest block
+                        break;
+                    }
+                    _ => (),
+                }
+            }
+
+            f.format_missing(llm_function_body.text_range().end()); // handle hanging trivia at the end of the llm function body
+        });
+
+        if let Some(brace_child) = brace_child {
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true);
+        }
+    }
+
+    fn format_client_field(&mut self, client_field: SyntaxNode, indent: bool) {
+        let ref mut children = client_field.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_CLIENT,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+    }
+
+    fn format_prompt_field(&mut self, prompt_field: SyntaxNode, indent: bool) {
+        let ref mut children = prompt_field.children_with_tokens().peekable();
+
+        // format prompt keyword, which for some reason is not actually a keyword
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                    self.format_string_literal(child.into_node().unwrap(), false)
+                }
                 _ => (),
             }
         }
@@ -1223,8 +1578,4 @@ impl Formatter {
             }
         }
     }
-
-    // fn format_llm_function_body(&mut self, llm_body: SyntaxNode) {
-    //     todo!()
-    // }
 }
