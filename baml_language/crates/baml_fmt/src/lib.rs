@@ -958,7 +958,6 @@ impl Formatter {
             false,
             Self::format_token_plaintext,
         );
-        self.push_text(" ");
 
         self.format_node(
             children,
@@ -983,6 +982,7 @@ impl Formatter {
             false,
             Self::format_type_expr,
         );
+        self.push_text(" ");
 
         while let Some(child) = children.next() {
             match child.kind() {
@@ -1418,18 +1418,20 @@ impl Formatter {
 
     fn format_call_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
-        self.format_node(
-            children,
-            SyntaxKind::PATH_EXPR,
-            prepend_newline_and_indent,
-            Self::format_path_expr,
-        );
-        self.format_node(
-            children,
-            SyntaxKind::CALL_ARGS,
-            false,
-            Self::format_call_args,
-        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::PATH_EXPR => {
+                    self.format_path_expr(child.into_node().unwrap(), prepend_newline_and_indent)
+                }
+                SyntaxKind::WORD => self.format_token_plaintext(
+                    child.into_token().unwrap(),
+                    prepend_newline_and_indent,
+                ),
+                SyntaxKind::CALL_ARGS => self.format_call_args(child.into_node().unwrap(), false),
+                _ => (),
+            }
+        }
     }
 
     fn format_path_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
