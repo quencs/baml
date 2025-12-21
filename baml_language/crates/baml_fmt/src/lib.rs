@@ -1,17 +1,10 @@
+use std::iter::Peekable;
+
 use baml_base::SourceFile;
 use baml_lexer::lex_file;
 use baml_parser::parse_file;
-use baml_syntax::{
-    SyntaxKind, SyntaxNode, SyntaxToken,
-    ast::{
-        BlockElement as AstBlockElement, BlockExpr as AstBlockExpr, ClassDef as AstClassDef,
-        EnumDef as AstEnumDef, FunctionDef as AstFunctionDef, IfExpr as AstIfExpr, Item as AstItem,
-        LetStmt as AstLetStmt, LlmFunctionBody as AstLlmFunctionBody,
-        ParameterList as AstParameterList, ReturnStmt as AstReturnStmt,
-        SourceFile as AstSourceFile, TypeExpr as AstTypeExpr, WhileStmt as AstWhileStmt,
-    },
-};
-use rowan::{NodeOrToken, TextRange, TextSize, ast::AstNode};
+use baml_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
+use rowan::{NodeOrToken, TextRange, TextSize};
 
 /// Entry point for formatting a BAML source file.
 /// Returns None if the file has parse errors.
@@ -118,136 +111,207 @@ impl Formatter {
         "    ".repeat(self.indent_level)
     }
 
-    /// Formats a type expression.
-    fn format_type_expr(&mut self, type_expr: AstTypeExpr, indent: bool) {
-        self.format_type_expr_inner(SyntaxNode::clone(&type_expr.syntax()), indent);
+    /// Scan until we reach the specified kind, and call the provided function with the node.
+    /// Returns true if the node was found, false if it was not found.
+    fn format_node(
+        &mut self,
+        children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
+        kind: SyntaxKind,
+        indent: bool,
+        f: impl FnOnce(&mut Formatter, SyntaxNode, bool),
+    ) -> bool {
+        let Some(node) = children.by_ref().find(|child| child.kind() == kind) else {
+            return false;
+        };
+
+        f(self, node.into_node().unwrap(), indent);
+        true
     }
 
-    /// Inner recursive function for formatting a type expression.
-    fn format_type_expr_inner(&mut self, node: SyntaxNode, indent: bool) {
-        node.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    // allow these tokens to be included in the output
-                    SyntaxKind::WORD
-                    | SyntaxKind::QUESTION
-                    | SyntaxKind::L_BRACKET
-                    | SyntaxKind::R_BRACKET
-                    | SyntaxKind::L_PAREN
-                    | SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), child.into_token().unwrap().text(), i);
-                    })),
-                    // also allow union pipe, but give it spaces around it
-                    SyntaxKind::PIPE => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), " | ", i);
-                    })),
-                    // allow comma for generics/tuples, but give a space after it
-                    SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ", i);
-                    })),
-                    // allow these for TypeScript-style types
-                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_string_literal(child.into_node().unwrap(), i);
-                        }))
-                    }
-                    SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_number_literal(child.into_token().unwrap(), i);
-                        }))
-                    }
-                    SyntaxKind::TYPE_ARGS => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_args(child.into_node().unwrap(), i);
-                    })),
-                    // recurse for nesting in parentheses
-                    SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_expr_inner(child.into_node().unwrap(), i);
-                    })),
-                    // ignore everything else - comments, whitespace, etc.
-                    _ => None,
-                }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
+    /// Scan until we reach the specified kind, and call the provided function with the node.
+    /// Also will halt early if the stop kind is reached, not consuming the stop kind token.
+    /// Returns true if the node was found, false if it was not found or the stop kind was reached.
+    fn format_node_stop(
+        &mut self,
+        children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
+        kind: SyntaxKind,
+        indent: bool,
+        f: impl FnOnce(&mut Formatter, SyntaxNode, bool),
+        stop_kind: SyntaxKind,
+    ) -> bool {
+        while let Some(child) = children.peek() {
+            if child.kind() == stop_kind {
+                break;
+            } else if child.kind() == kind {
+                f(self, children.next().unwrap().into_node().unwrap(), indent);
+                return true;
+            } else {
+                children.next();
+            }
+        }
 
-                false
-            });
+        false
+    }
+
+    /// Scan until we reach the specified kind, and call the provided function with the token.
+    /// Returns true if the token was found, false if it was not found.
+    fn format_token(
+        &mut self,
+        children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
+        kind: SyntaxKind,
+        indent: bool,
+        f: impl FnOnce(&mut Formatter, SyntaxToken, bool),
+    ) -> bool {
+        let Some(token) = children.by_ref().find(|child| child.kind() == kind) else {
+            return false;
+        };
+
+        f(self, token.into_token().unwrap(), indent);
+        true
+    }
+
+    /// Scan until we reach the specified kind, and call the provided function with the token.
+    /// Also will halt early if the stop kind is reached, not consuming the stop kind token.
+    /// Returns true if the token was found, false if it was not found or the stop kind was reached.
+    fn format_token_stop(
+        &mut self,
+        children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
+        kind: SyntaxKind,
+        indent: bool,
+        f: impl FnOnce(&mut Formatter, SyntaxToken, bool),
+        stop_kind: SyntaxKind,
+    ) -> bool {
+        while let Some(child) = children.peek() {
+            if child.kind() == stop_kind {
+                break;
+            } else if child.kind() == kind {
+                f(self, children.next().unwrap().into_token().unwrap(), indent);
+                return true;
+            } else {
+                children.next();
+            }
+        }
+
+        false
+    }
+
+    /// Formats a type expression.
+    fn format_type_expr(&mut self, node: SyntaxNode, mut indent: bool) {
+        let ref mut children = node.children_with_tokens().peekable();
+
+        // loop through and format the rest of the children
+        while let Some(child) = children.next() {
+            match child.kind() {
+                // allow these tokens to be included in the output
+                SyntaxKind::WORD
+                | SyntaxKind::QUESTION
+                | SyntaxKind::L_BRACKET
+                | SyntaxKind::R_BRACKET
+                | SyntaxKind::L_PAREN
+                | SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent)
+                }
+                // also allow union pipe, but give it spaces around it
+                SyntaxKind::PIPE => {
+                    self.push_text(" ");
+                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.push_text(" ");
+                }
+                // allow comma for generics/tuples, but give a space after it
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.push_text(" ");
+                }
+                // allow these for TypeScript-style types
+                SyntaxKind::STRING_LITERAL
+                | SyntaxKind::RAW_STRING_LITERAL
+                | SyntaxKind::INTEGER_LITERAL
+                | SyntaxKind::FLOAT_LITERAL => self.format_literal(child, indent),
+                SyntaxKind::TYPE_ARGS => self.format_type_args(child.into_node().unwrap(), indent),
+                // recurse for nesting in parentheses
+                SyntaxKind::TYPE_EXPR => self.format_type_expr(child.into_node().unwrap(), indent),
+                // ignore everything else - comments, whitespace, etc.
+                _ => (),
+            }
+
+            indent = false; // i think this breaks for whitespace, TODO: fix? there may not be a case in which a type expr should be newlined...
+        }
     }
 
     /// Formats type arguments.
     fn format_type_args(&mut self, type_args: SyntaxNode, indent: bool) {
-        type_args
-            .children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ", i);
-                    })),
-                    SyntaxKind::LESS => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "<", i);
-                    })),
-                    SyntaxKind::GREATER => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ">", i);
-                    })),
-                    SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_expr_inner(child.into_node().unwrap(), i);
-                    })),
-                    _ => None,
+        let ref mut children = type_args.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::LESS,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::GREATER => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent)
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.push_text(" ");
+                }
+                SyntaxKind::TYPE_EXPR => self.format_type_expr(child.into_node().unwrap(), indent),
+                _ => (),
+            }
+        }
     }
 
     /// Formats a parameter list, including the parentheses. e.g. "(x: int, y: string)"
-    fn format_parameter_list(&mut self, parameter_list: AstParameterList, indent: bool) {
-        parameter_list
-            .syntax()
-            .children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::L_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "(", i);
-                    })),
-                    SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ")", i);
-                    })),
-                    SyntaxKind::PARAMETER => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_parameter(child.into_node().unwrap(), i);
-                    })),
-                    _ => None,
+    fn format_parameter_list(&mut self, parameter_list: SyntaxNode, indent: bool) {
+        let ref mut children = parameter_list.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_PAREN,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                SyntaxKind::PARAMETER => self.format_parameter(child.into_node().unwrap(), false),
+                _ => (),
+            }
+        }
     }
 
-    // Formats a parameter. eg. "x: int"
+    /// Formats a parameter. eg. "x: int"
     fn format_parameter(&mut self, parameter: SyntaxNode, indent: bool) {
-        parameter
-            .children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), child.into_token().unwrap().text(), i);
-                    })),
-                    SyntaxKind::COLON => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ": ", i);
-                    })),
-                    SyntaxKind::TYPE_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_type_expr_inner(child.into_node().unwrap(), i);
-                    })),
-                    _ => None,
-                }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+        let ref mut children = parameter.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        self.format_token(
+            children,
+            SyntaxKind::COLON,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::TYPE_EXPR,
+            false,
+            Self::format_type_expr,
+        );
     }
 
     fn nest<F>(&mut self, f: F)
@@ -261,9 +325,13 @@ impl Formatter {
 
     /// Format the provided syntax tree. Consumes the formatter.
     fn format(mut self) -> Option<String> {
-        let file = AstSourceFile::cast(self.root.clone())?;
-        for item in file.items() {
-            self.format_item(item);
+        for child in self.root.children() {
+            match child.kind() {
+                SyntaxKind::ENUM_DEF => self.format_enum_def(child, true),
+                SyntaxKind::CLASS_DEF => self.format_class_def(child, true),
+                SyntaxKind::FUNCTION_DEF => self.format_function_def(child, true),
+                _ => (),
+            }
         }
 
         // grab hanging trivia at the end of the file
@@ -272,167 +340,415 @@ impl Formatter {
         Some(self.output.clone())
     }
 
-    /// Format an AST item.
-    fn format_item(&mut self, item: AstItem) {
-        match item {
-            AstItem::Enum(enum_def) => self.format_enum_def(enum_def),
-            AstItem::Class(class_def) => self.format_class_def(class_def),
-            AstItem::Function(function_def) => self.format_function_def(function_def),
-            _ => (),
-        }
+    fn format_token_plaintext(&mut self, token: SyntaxToken, indent: bool) {
+        self.push_format(token.text_range(), &token.text().to_string(), indent);
     }
 
     /// Format an AST enum definition.
-    fn format_enum_def(&mut self, enum_def: AstEnumDef) {
-        let keyword = enum_def.keyword_tok().unwrap();
-        self.push_format(
-            keyword.text_range(),
-            &format!("enum {} {{", enum_def.name().unwrap().text()),
+    fn format_enum_def(&mut self, enum_def: SyntaxNode, indent: bool) {
+        let ref mut children = enum_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_ENUM,
             true,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            false,
+            Self::format_token_plaintext,
         );
 
         self.nest(|f| {
-            for variant in enum_def.variants() {
-                let variant_name = variant.name().unwrap();
-                f.push_format(variant_name.text_range(), variant_name.text(), true);
+            while f.format_node_stop(
+                children,
+                SyntaxKind::ENUM_VARIANT,
+                true,
+                Self::format_enum_variant,
+                SyntaxKind::BLOCK_ATTRIBUTE,
+            ) {}
 
-                for attribute in variant.attributes() {
-                    let at = attribute.at_tok().unwrap();
+            while f.format_node_stop(
+                children,
+                SyntaxKind::BLOCK_ATTRIBUTE,
+                true,
+                Self::format_block_attribute,
+                SyntaxKind::R_BRACE,
+            ) {}
 
-                    // TODO: handle attributes with arguments, this will require updating the AST
-                    f.push_format(
-                        at.text_range(),
-                        &format!(" @{}", attribute.name().unwrap().text()),
-                        false,
-                    );
-                }
-            }
-
-            for attribute in enum_def.block_attributes() {
-                let at_at = attribute.at_at_tok().unwrap();
-
-                // TODO: handle block attributes with arguments, this will require updating the AST
-                f.push_format(
-                    at_at.text_range(),
-                    &format!("@@{}", attribute.name().unwrap().text()),
-                    true,
-                );
-            }
+            f.format_missing(enum_def.text_range().end()); // handle hanging trivia at the end of the enum
         });
 
-        let r_brace = enum_def.r_brace_tok().unwrap();
-        self.push_format(r_brace.text_range(), "}", true);
+        self.format_token(
+            children,
+            SyntaxKind::R_BRACE,
+            true,
+            Self::format_token_plaintext,
+        );
     }
 
-    /// Format an AST class definition.
-    fn format_class_def(&mut self, class_def: AstClassDef) {
-        let keyword = class_def.keyword_tok().unwrap();
-        self.push_format(
-            keyword.text_range(),
-            &format!("class {} {{", class_def.name().unwrap().text()),
-            true,
+    fn format_block_attribute(&mut self, block_attribute: SyntaxNode, indent: bool) {
+        let ref mut children = block_attribute.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::AT_AT,
+            indent,
+            Self::format_token_plaintext,
         );
 
-        self.nest(|f| {
-            for field in class_def.fields() {
-                let name = field.name().unwrap();
+        // this is the only keyword allowed here
+        self.format_token_stop(
+            children,
+            SyntaxKind::KW_DYNAMIC,
+            false,
+            Self::format_token_plaintext,
+            SyntaxKind::WORD,
+        );
 
-                f.push_format(name.text_range(), &format!("{}: ", name.text()), true);
-                f.format_type_expr(field.ty().unwrap(), false);
+        self.format_token_stop(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+            SyntaxKind::ATTRIBUTE_ARGS,
+        );
 
-                for attribute in field.attributes() {
-                    let at = attribute.at_tok().unwrap();
-
-                    // TODO: handle attributes with arguments, this will require updating the AST
-                    f.push_format(
-                        at.text_range(),
-                        &format!(" @{}", attribute.name().unwrap().text()),
-                        false,
-                    );
-                }
-            }
-
-            for attribute in class_def.block_attributes() {
-                let at_at = attribute.at_at_tok().unwrap();
-
-                // TODO: handle block attributes with arguments, this will require updating the AST
-                f.push_format(
-                    at_at.text_range(),
-                    &format!("@@{}", attribute.name().unwrap().text()),
-                    true,
-                );
-            }
-        });
-
-        let r_brace = class_def.r_brace_tok().unwrap();
-        self.push_format(r_brace.text_range(), "}", true);
+        self.format_node(
+            children,
+            SyntaxKind::ATTRIBUTE_ARGS,
+            false,
+            Self::format_attribute_args,
+        );
     }
 
-    fn format_function_def(&mut self, function_def: AstFunctionDef) {
-        let keyword = function_def.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "function", true);
+    fn format_attribute_args(&mut self, attribute_args: SyntaxNode, indent: bool) {
+        let ref mut children = attribute_args.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_PAREN,
+            indent,
+            Self::format_token_plaintext,
+        );
 
-        let name = function_def.name().unwrap();
-        self.push_format(name.text_range(), &format!(" {}", name.text()), false);
-
-        let parameters = function_def.param_list().unwrap();
-        self.format_parameter_list(parameters, false);
-
-        let arrow = function_def.arrow_tok().unwrap();
-        self.push_format(arrow.text_range(), " -> ", false);
-
-        let return_type = function_def.return_type().unwrap();
-        self.format_type_expr(return_type, false);
-
-        match (function_def.expr_body(), function_def.llm_body()) {
-            (Some(expr_body), None) => {
-                self.format_block_expr(expr_body.block_expr().unwrap(), false);
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent)
+                }
+                SyntaxKind::COMMA => self.push_format(child.text_range(), ", ", indent),
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                _ => (),
             }
-            (None, Some(llm_body)) => self.format_llm_function_body(llm_body),
-            (Some(_), Some(_)) => unreachable!(),
-            (None, None) => todo!(), // TODO: is this even possible?
         }
     }
 
-    fn format_block_expr(&mut self, block_expr: AstBlockExpr, indent: bool) {
-        let l_brace = block_expr.l_brace_tok().unwrap();
-        self.push_format(l_brace.text_range(), " {", indent);
+    fn format_enum_variant(&mut self, enum_variant: SyntaxNode, indent: bool) {
+        let ref mut children = enum_variant.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
 
-        self.nest(|f| {
-            for element in block_expr.elements() {
-                match element {
-                    AstBlockElement::Stmt(stmt) => f.format_stmt(stmt),
-                    AstBlockElement::ExprNode(expr) => {
-                        f.format_rhs_expr(expr.into(), true);
-                    }
-                    AstBlockElement::ExprToken(expr_token) => {
-                        f.format_rhs_expr(expr_token.into(), true);
-                    }
-                }
-            }
-        });
-
-        let r_brace = block_expr.r_brace_tok().unwrap();
-        self.push_format(r_brace.text_range(), "}", true);
+        self.format_node(
+            children,
+            SyntaxKind::ATTRIBUTE,
+            true,
+            Self::format_attribute,
+        );
     }
 
-    /// Formats an expression, (or a raw literal)
+    /// Format an AST class definition.
+    fn format_class_def(&mut self, class_def: SyntaxNode, indent: bool) {
+        let ref mut children = class_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_CLASS,
+            true,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            false,
+            Self::format_token_plaintext,
+        );
+
+        self.nest(|f| {
+            while f.format_node_stop(
+                children,
+                SyntaxKind::FIELD,
+                true,
+                Self::format_class_field,
+                SyntaxKind::BLOCK_ATTRIBUTE,
+            ) {}
+
+            while f.format_node_stop(
+                children,
+                SyntaxKind::BLOCK_ATTRIBUTE,
+                true,
+                Self::format_block_attribute,
+                SyntaxKind::R_BRACE,
+            ) {}
+
+            f.format_missing(class_def.text_range().end()); // handle hanging trivia at the end of the class
+        });
+
+        self.format_token(
+            children,
+            SyntaxKind::R_BRACE,
+            true,
+            Self::format_token_plaintext,
+        );
+    }
+
+    fn format_class_field(&mut self, class_field: SyntaxNode, indent: bool) {
+        let ref mut children = class_field.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::TYPE_EXPR,
+            false,
+            Self::format_type_expr,
+        );
+
+        self.format_node(
+            children,
+            SyntaxKind::ATTRIBUTE,
+            true,
+            Self::format_attribute,
+        );
+    }
+
+    fn format_attribute(&mut self, attribute: SyntaxNode, indent: bool) {
+        let ref mut children = attribute.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::AT,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+
+        self.format_node(
+            children,
+            SyntaxKind::ATTRIBUTE_ARGS,
+            false,
+            Self::format_attribute_args,
+        );
+    }
+
+    fn format_function_def(&mut self, function_def: SyntaxNode, indent: bool) {
+        let ref mut children = function_def.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_FUNCTION,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        // format the function name
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        self.format_node(
+            children,
+            SyntaxKind::PARAMETER_LIST,
+            false,
+            Self::format_parameter_list,
+        );
+        self.push_text(" ");
+
+        self.format_token(
+            children,
+            SyntaxKind::ARROW,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        // format the return type
+        self.format_node(
+            children,
+            SyntaxKind::TYPE_EXPR,
+            false,
+            Self::format_type_expr,
+        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::EXPR_FUNCTION_BODY => {
+                    self.format_expr_function_body(child.into_node().unwrap(), false)
+                }
+                SyntaxKind::LLM_FUNCTION_BODY => todo!(),
+                _ => (),
+            }
+        }
+    }
+
+    fn format_expr_function_body(&mut self, expr_function_body: SyntaxNode, indent: bool) {
+        let ref mut children = expr_function_body.children_with_tokens().peekable();
+        self.format_node(
+            children,
+            SyntaxKind::BLOCK_EXPR,
+            indent,
+            Self::format_block_expr,
+        );
+    }
+
+    fn format_block_expr(&mut self, block_expr: SyntaxNode, indent: bool) {
+        let ref mut children = block_expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        let mut brace_child = None;
+        self.nest(|f| {
+            while let Some(child) = children.next() {
+                match child.kind() {
+                    SyntaxKind::R_BRACE => {
+                        brace_child = Some(child); // hack to get the closing brace child outside of the nest block
+                        break;
+                    }
+                    kind if kind.is_valid_rhs_expr() => f.format_rhs_expr(child, true),
+                    SyntaxKind::LET_STMT => f.format_let_stmt(child.into_node().unwrap(), true),
+                    SyntaxKind::WHILE_STMT => f.format_while_stmt(child.into_node().unwrap(), true),
+                    SyntaxKind::RETURN_STMT => {
+                        f.format_return_stmt(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::BREAK_STMT => f.format_break_stmt(child.into_node().unwrap(), true),
+                    SyntaxKind::CONTINUE_STMT => {
+                        f.format_continue_stmt(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::FOR_EXPR => f.format_for_expr(child.into_node().unwrap(), true),
+                    _ => (),
+                }
+            }
+
+            f.format_missing(block_expr.text_range().end()); // handle hanging trivia at the end of the block expression
+        });
+
+        if let Some(brace_child) = brace_child {
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true);
+        }
+    }
+
+    fn format_for_expr(&mut self, for_expr: SyntaxNode, indent: bool) {
+        let ref mut children = for_expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_FOR,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        // format the initializer, condition, and update
+        // right now this basically just dumps the whole thing without whitespace
+        // and doesn't attempt to understand semantics, so it has some whitespace issues
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::L_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                }
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                }
+                SyntaxKind::KW_IN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                SyntaxKind::LET_STMT => {
+                    self.format_let_stmt(child.into_node().unwrap(), false);
+                }
+                SyntaxKind::SEMICOLON => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, false);
+                    self.push_text(" ");
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn format_break_stmt(&mut self, break_stmt: SyntaxNode, indent: bool) {
+        let ref mut children = break_stmt.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_BREAK,
+            indent,
+            Self::format_token_plaintext,
+        );
+    }
+
+    fn format_continue_stmt(&mut self, continue_stmt: SyntaxNode, indent: bool) {
+        let ref mut children = continue_stmt.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_CONTINUE,
+            indent,
+            Self::format_token_plaintext,
+        );
+    }
+
+    /// Formats a value expression, (or a raw literal)
     fn format_rhs_expr(&mut self, expr: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {
         match expr.kind() {
             SyntaxKind::BINARY_EXPR => self.format_binary_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::IF_EXPR => {
-                self.format_if_expr(AstIfExpr::cast(expr.into_node().unwrap()).unwrap(), indent);
+                self.format_if_expr(expr.into_node().unwrap(), indent);
             }
             SyntaxKind::PAREN_EXPR => self.format_paren_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::UNARY_EXPR => self.format_unary_expr(expr.into_node().unwrap(), indent),
-            // words are added as-is, usually an identifier or bool literal
-            SyntaxKind::WORD => {
-                self.push_format(expr.text_range(), expr.into_token().unwrap().text(), indent)
-            }
-            SyntaxKind::BLOCK_EXPR => self.format_block_expr(
-                AstBlockExpr::cast(expr.into_node().unwrap()).unwrap(),
-                indent,
-            ),
+            // // words are added as-is, usually an identifier or bool literal
+            SyntaxKind::WORD => self.format_token_plaintext(expr.into_token().unwrap(), indent),
+            SyntaxKind::BLOCK_EXPR => self.format_block_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::CALL_EXPR => self.format_call_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::PATH_EXPR => self.format_path_expr(expr.into_node().unwrap(), indent),
             SyntaxKind::FIELD_ACCESS_EXPR => {
@@ -456,238 +772,324 @@ impl Formatter {
     }
 
     fn format_index_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        expr.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    kind if kind.is_valid_rhs_expr() => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_rhs_expr(child, i);
-                        }))
-                    }
-                    SyntaxKind::L_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "[", i);
-                    })),
-                    SyntaxKind::R_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "]", i);
-                    })),
-                    _ => None,
+        let ref mut children = expr.children_with_tokens().peekable();
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                SyntaxKind::L_BRACKET => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    break;
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+                _ => (),
+            }
+        }
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                SyntaxKind::R_BRACKET => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_map_literal(&mut self, expr: SyntaxNode, indent: bool) {
-        // these are currently broken, will get to this later
-        todo!()
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                SyntaxKind::R_BRACE => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
+                }
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                // why does this not have its own kind?
+                SyntaxKind::OBJECT_FIELD => {
+                    self.format_object_field(child.into_node().unwrap(), false);
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_object_literal(&mut self, expr: SyntaxNode, indent: bool) {
-        todo!()
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            indent,
+            Self::format_token_plaintext,
+        );
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                SyntaxKind::R_BRACE => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
+                }
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                // why does this not have its own kind?
+                SyntaxKind::OBJECT_FIELD => {
+                    self.format_object_field(child.into_node().unwrap(), false);
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn format_object_field(&mut self, object_field: SyntaxNode, indent: bool) {
+        let ref mut children = object_field.children_with_tokens().peekable();
+
+        let mut seen_key = false;
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL if !seen_key => {
+                    self.format_string_literal(child.into_node().unwrap(), indent);
+                    seen_key = true;
+                }
+                SyntaxKind::WORD => {
+                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    seen_key = true;
+                }
+                SyntaxKind::COLON => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                _ => (),
+            }
+        }
     }
 
     fn format_array_literal(&mut self, expr: SyntaxNode, indent: bool) {
-        expr.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::L_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "[", i);
-                    })),
-                    SyntaxKind::R_BRACKET => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "]", i);
-                    })),
-                    kind if kind.is_valid_rhs_expr() => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_rhs_expr(child, i);
-                        }))
-                    }
-                    SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ", i);
-                    })),
-                    _ => None,
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACKET,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                SyntaxKind::R_BRACKET => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_field_access_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        expr.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    kind if kind.is_valid_rhs_expr() => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_rhs_expr(child, i);
-                        }))
-                    }
-                    SyntaxKind::DOT => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ".", i);
-                    })),
-                    _ => None,
+        let ref mut children = expr.children_with_tokens().peekable();
+
+        // format the base expression and dot
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                SyntaxKind::DOT => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    break;
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+                _ => (),
+            }
+        }
+
+        // format the field name
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
     }
 
     fn format_call_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        expr.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::PATH_EXPR => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_path_expr(child.into_node().unwrap(), i);
-                    })),
-                    SyntaxKind::CALL_ARGS => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.format_call_args(child.into_node().unwrap(), i);
-                    })),
-                    _ => None,
-                }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_node(
+            children,
+            SyntaxKind::PATH_EXPR,
+            indent,
+            Self::format_path_expr,
+        );
+        self.format_node(
+            children,
+            SyntaxKind::CALL_ARGS,
+            false,
+            Self::format_call_args,
+        );
     }
 
     fn format_path_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        expr.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::WORD => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), child.into_token().unwrap().text(), i);
-                    })),
-                    SyntaxKind::DOT => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ".", i);
-                    })),
-                    _ => None,
-                }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.format_token(
+            children,
+            SyntaxKind::DOT,
+            false,
+            Self::format_token_plaintext,
+        );
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
     }
 
     fn format_call_args(&mut self, args: SyntaxNode, indent: bool) {
-        args.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                match child.kind() {
-                    SyntaxKind::L_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), "(", i);
-                    })),
-                    SyntaxKind::R_PAREN => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ")", i);
-                    })),
-                    kind if kind.is_valid_rhs_expr() => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_rhs_expr(child, i);
-                        }))
-                    }
-                    SyntaxKind::COMMA => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(child.text_range(), ", ", i);
-                    })),
-                    _ => None,
+        let ref mut children = args.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_PAREN,
+            indent,
+            Self::format_token_plaintext,
+        );
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-                false
-            });
+                SyntaxKind::COMMA => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_unary_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        for child in expr.children_with_tokens() {
-            let range = child.text_range();
+        let ref mut children = expr.children_with_tokens().peekable();
+
+        while let Some(child) = children.next() {
             match child.kind() {
                 kind if kind.is_operator() => {
-                    self.push_format(range, child.into_token().unwrap().text(), indent)
+                    self.format_token_plaintext(child.into_token().unwrap(), indent)
                 }
-                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
                 _ => (),
             }
         }
     }
 
     fn format_paren_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        for child in expr.children_with_tokens() {
-            let range = child.text_range();
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_PAREN,
+            indent,
+            Self::format_token_plaintext,
+        );
+
+        while let Some(child) = children.next() {
             match child.kind() {
-                // parentheses added as-is, possible indent for left parenthesis
-                SyntaxKind::L_PAREN => self.push_format(range, "(", indent),
-                SyntaxKind::R_PAREN => self.push_format(range, ")", false),
-                // expressions and literals added
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
-                // allow literals as well
-                kind if kind.is_literal() => self.format_literal(child, false),
-                _ => (), // ignore everything else
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
+                }
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                _ => (),
             }
         }
     }
 
-    fn format_if_expr(&mut self, expr: AstIfExpr, indent: bool) {
-        let keyword = expr.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "if ", indent);
+    fn format_if_expr(&mut self, expr: SyntaxNode, indent: bool) {
+        let ref mut children = expr.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_IF,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
 
-        let condition = expr.condition().unwrap();
-        self.format_rhs_expr(condition.into(), false);
-
-        let then_branch = expr.then_branch().unwrap();
-        self.format_block_expr(then_branch, false);
-
-        if let Some(else_branch) = expr.else_branch() {
-            let else_keyword = expr.else_keyword_tok().unwrap();
-            self.push_format(else_keyword.text_range(), " else", false);
-
-            match else_branch.kind() {
-                // normal else block
-                SyntaxKind::BLOCK_EXPR => {
-                    self.format_block_expr(AstBlockExpr::cast(else_branch).unwrap(), false);
+        // format the condition
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, false);
+                    break;
                 }
-                // else if block, recurse
-                SyntaxKind::IF_EXPR => {
-                    self.format_if_expr(AstIfExpr::cast(else_branch).unwrap(), false);
+                _ => (),
+            }
+        }
+        self.push_text(" ");
+
+        // format the then branch
+        self.format_node(
+            children,
+            SyntaxKind::BLOCK_EXPR,
+            false,
+            Self::format_block_expr,
+        );
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::KW_ELSE => {
+                    self.push_text(" ");
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
+                    while let Some(child) = children.next() {
+                        match child.kind() {
+                            SyntaxKind::BLOCK_EXPR => {
+                                self.format_block_expr(child.into_node().unwrap(), false);
+                            }
+                            SyntaxKind::IF_EXPR => {
+                                self.format_if_expr(child.into_node().unwrap(), false);
+                            }
+                            _ => (),
+                        }
+                    }
                 }
-                _ => unreachable!(),
+                _ => (),
             }
         }
     }
 
     fn format_binary_expr(&mut self, expr: SyntaxNode, indent: bool) {
-        expr.children_with_tokens()
-            .filter_map(|child| -> Option<Box<dyn FnOnce(&mut Formatter, bool)>> {
-                let range = child.text_range();
-                match child.kind() {
-                    // all permitted operators get added with a space around them
-                    kind if kind.is_operator() => Some(Box::new(move |f: &mut Formatter, i| {
-                        f.push_format(
-                            range,
-                            &format!(" {} ", child.into_token().unwrap().text()),
-                            i,
-                        );
-                    })),
-                    kind if kind.is_valid_rhs_expr() => {
-                        Some(Box::new(move |f: &mut Formatter, i| {
-                            f.format_rhs_expr(child, i);
-                        }))
-                    }
-                    _ => None,
+        let ref mut children = expr.children_with_tokens().peekable();
+
+        let mut seen_expr = !indent; // track if we've seen an expression yet for newline purposes
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_operator() => {
+                    self.push_text(" ");
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                    self.push_text(" ");
                 }
-            })
-            .fold(indent, |indent, f| {
-                f(self, indent);
-
-                false
-            });
-    }
-
-    fn format_number_literal(&mut self, literal: SyntaxToken, indent: bool) {
-        self.push_format(literal.text_range(), literal.text(), indent);
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, !seen_expr);
+                    seen_expr = true;
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_string_literal(&mut self, literal: SyntaxNode, indent: bool) {
@@ -703,18 +1105,8 @@ impl Formatter {
                     self.push_format(range, "#", !within_quotes && indent);
                     within_quotes = true;
                 }
-                SyntaxKind::WHITESPACE => {
-                    if within_quotes {
-                        self.push_format(range, " ", false);
-                    }
-                }
-                SyntaxKind::NEWLINE => {
-                    if within_quotes {
-                        self.push_format(range, "\n", false); // TODO: do we want to accept this for normal strings?
-                    }
-                }
-                SyntaxKind::WORD => {
-                    self.push_format(range, child.into_token().unwrap().text(), false);
+                _ if within_quotes => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false)
                 }
                 _ => (),
             }
@@ -727,65 +1119,112 @@ impl Formatter {
                 self.format_string_literal(literal.into_node().unwrap(), indent);
             }
             SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                self.format_number_literal(literal.into_token().unwrap(), indent);
+                self.format_token_plaintext(literal.into_token().unwrap(), indent);
             }
             _ => unreachable!(),
         }
     }
 
-    fn format_stmt(&mut self, stmt: SyntaxNode) {
-        match stmt.kind() {
-            SyntaxKind::LET_STMT => self.format_let_stmt(AstLetStmt::cast(stmt).unwrap(), true),
-            SyntaxKind::RETURN_STMT => {
-                self.format_return_stmt(AstReturnStmt::cast(stmt).unwrap(), true)
+    fn format_while_stmt(&mut self, stmt: SyntaxNode, indent: bool) {
+        let ref mut children = stmt.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_WHILE,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        // format the condition
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, false);
+                    break;
+                }
+                _ => (),
             }
-            SyntaxKind::WHILE_STMT => {
-                self.format_while_stmt(AstWhileStmt::cast(stmt).unwrap(), true)
+        }
+        self.push_text(" ");
+
+        // format the body
+        self.format_node(
+            children,
+            SyntaxKind::BLOCK_EXPR,
+            false,
+            Self::format_block_expr,
+        );
+    }
+
+    fn format_return_stmt(&mut self, stmt: SyntaxNode, indent: bool) {
+        let ref mut children = stmt.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_RETURN,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
+
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                _ => (),
             }
-            SyntaxKind::FOR_EXPR | SyntaxKind::BREAK_STMT | SyntaxKind::CONTINUE_STMT => (),
-            _ => unreachable!(),
         }
     }
 
-    fn format_while_stmt(&mut self, stmt: AstWhileStmt, indent: bool) {
-        let keyword = stmt.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "while ", indent);
+    fn format_let_stmt(&mut self, stmt: SyntaxNode, indent: bool) {
+        let ref mut children = stmt.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::KW_LET,
+            indent,
+            Self::format_token_plaintext,
+        );
+        self.push_text(" ");
 
-        let condition = stmt.condition().unwrap();
-        self.format_rhs_expr(condition.into(), false);
+        self.format_token(
+            children,
+            SyntaxKind::WORD,
+            false,
+            Self::format_token_plaintext,
+        );
 
-        let body = stmt.body().unwrap();
-        self.format_block_expr(body, false);
-    }
-
-    fn format_return_stmt(&mut self, stmt: AstReturnStmt, indent: bool) {
-        let keyword = stmt.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "return ", indent);
-
-        let value = stmt.value().unwrap();
-        self.format_rhs_expr(value.into(), false);
-    }
-
-    fn format_let_stmt(&mut self, stmt: AstLetStmt, indent: bool) {
-        let keyword = stmt.keyword_tok().unwrap();
-        self.push_format(keyword.text_range(), "let ", indent);
-
-        let name = stmt.name().unwrap();
-        self.push_format(name.text_range(), name.text(), false);
-
-        if let Some(type_annotation) = stmt.ty() {
-            self.push_format(type_annotation.syntax().text_range(), ": ", false);
-            self.format_type_expr(type_annotation.into(), false);
+        if self.format_token_stop(
+            children,
+            SyntaxKind::COLON,
+            false,
+            Self::format_token_plaintext,
+            SyntaxKind::EQUALS,
+        ) {
+            self.push_text(" ");
+            self.format_node(
+                children,
+                SyntaxKind::TYPE_EXPR,
+                false,
+                Self::format_type_expr,
+            );
         }
 
-        let equals = stmt.equals_tok().unwrap();
-        self.push_format(equals.text_range(), " = ", false);
+        self.push_text(" ");
+        self.format_token(
+            children,
+            SyntaxKind::EQUALS,
+            false,
+            Self::format_token_plaintext,
+        );
 
-        let expr = stmt.initializer().unwrap();
-        self.format_rhs_expr(expr, false);
+        self.push_text(" ");
+        while let Some(child) = children.next() {
+            match child.kind() {
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
+                _ => (),
+            }
+        }
     }
 
-    fn format_llm_function_body(&mut self, llm_body: AstLlmFunctionBody) {
-        todo!()
-    }
+    // fn format_llm_function_body(&mut self, llm_body: SyntaxNode) {
+    //     todo!()
+    // }
 }
