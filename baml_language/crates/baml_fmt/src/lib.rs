@@ -43,9 +43,9 @@ impl Formatter {
     }
 
     /// Push a formatted range to be added to the output, also prepends text from ranges missing in the AST if necessary.
-    fn push_format(&mut self, range: TextRange, text: &str, indent: bool) {
+    fn push_format(&mut self, range: TextRange, text: &str, prepend_newline_and_indent: bool) {
         self.format_missing(range.start());
-        if indent {
+        if prepend_newline_and_indent {
             self.push_text(&format!("\n{}", self.gen_indent()));
         }
         self.push_text(text);
@@ -65,6 +65,7 @@ impl Formatter {
             // iterate through all tokens in the missing range
             let mut on_same_line = self.last_pos != TextSize::new(0); // first line of file is always a separate line comment
             let mut already_pushed_semicolon = false;
+            let mut consecutive_newlines = 0;
             while current_pos < start {
                 let token = self.root.token_at_offset(current_pos).right_biased();
 
@@ -77,9 +78,14 @@ impl Formatter {
                     break;
                 }
 
+                let kind = token.kind();
+
                 // fix trivia if necessary
-                match token.kind() {
-                    SyntaxKind::NEWLINE => on_same_line = false,
+                match kind {
+                    SyntaxKind::NEWLINE => {
+                        on_same_line = false;
+                        consecutive_newlines += 1;
+                    }
                     SyntaxKind::LINE_COMMENT | SyntaxKind::BLOCK_COMMENT => {
                         if !on_same_line {
                             self.push_text(&format!("\n{}", self.gen_indent()));
@@ -99,14 +105,28 @@ impl Formatter {
                     _ => (), // throw away all other tokens
                 }
 
+                // if it's not a blank line, reset the consecutive newlines count
+                if kind != SyntaxKind::NEWLINE && kind != SyntaxKind::WHITESPACE {
+                    if consecutive_newlines > 1 {
+                        self.push_text("\n");
+                    }
+
+                    consecutive_newlines = 0;
+                }
+
                 current_pos = token.text_range().end();
+            }
+
+            // clean up any remaining consecutive newlines
+            if consecutive_newlines > 1 {
+                self.push_text("\n");
             }
         }
 
         self.last_pos = start;
     }
 
-    /// Generates a string of the current indent level.
+    /// Generates a string of the current prepend_newline_and_indent level.
     fn gen_indent(&self) -> String {
         "  ".repeat(self.indent_level)
     }
@@ -117,14 +137,14 @@ impl Formatter {
         &mut self,
         children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
         kind: SyntaxKind,
-        indent: bool,
+        prepend_newline_and_indent: bool,
         f: impl FnOnce(&mut Formatter, SyntaxNode, bool),
     ) -> bool {
         let Some(node) = children.by_ref().find(|child| child.kind() == kind) else {
             return false;
         };
 
-        f(self, node.into_node().unwrap(), indent);
+        f(self, node.into_node().unwrap(), prepend_newline_and_indent);
         true
     }
 
@@ -135,7 +155,7 @@ impl Formatter {
         &mut self,
         children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
         kind: SyntaxKind,
-        indent: bool,
+        prepend_newline_and_indent: bool,
         f: impl FnOnce(&mut Formatter, SyntaxNode, bool),
         stop_kind: SyntaxKind,
     ) -> bool {
@@ -143,7 +163,11 @@ impl Formatter {
             if child.kind() == stop_kind {
                 break;
             } else if child.kind() == kind {
-                f(self, children.next().unwrap().into_node().unwrap(), indent);
+                f(
+                    self,
+                    children.next().unwrap().into_node().unwrap(),
+                    prepend_newline_and_indent,
+                );
                 return true;
             } else {
                 children.next();
@@ -159,14 +183,18 @@ impl Formatter {
         &mut self,
         children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
         kind: SyntaxKind,
-        indent: bool,
+        prepend_newline_and_indent: bool,
         f: impl FnOnce(&mut Formatter, SyntaxToken, bool),
     ) -> bool {
         let Some(token) = children.by_ref().find(|child| child.kind() == kind) else {
             return false;
         };
 
-        f(self, token.into_token().unwrap(), indent);
+        f(
+            self,
+            token.into_token().unwrap(),
+            prepend_newline_and_indent,
+        );
         true
     }
 
@@ -177,7 +205,7 @@ impl Formatter {
         &mut self,
         children: &mut Peekable<impl Iterator<Item = NodeOrToken<SyntaxNode, SyntaxToken>>>,
         kind: SyntaxKind,
-        indent: bool,
+        prepend_newline_and_indent: bool,
         f: impl FnOnce(&mut Formatter, SyntaxToken, bool),
         stop_kind: SyntaxKind,
     ) -> bool {
@@ -185,7 +213,11 @@ impl Formatter {
             if child.kind() == stop_kind {
                 break;
             } else if child.kind() == kind {
-                f(self, children.next().unwrap().into_token().unwrap(), indent);
+                f(
+                    self,
+                    children.next().unwrap().into_token().unwrap(),
+                    prepend_newline_and_indent,
+                );
                 return true;
             } else {
                 children.next();
@@ -196,7 +228,7 @@ impl Formatter {
     }
 
     /// Formats a type expression.
-    fn format_type_expr(&mut self, node: SyntaxNode, mut indent: bool) {
+    fn format_type_expr(&mut self, node: SyntaxNode, mut prepend_newline_and_indent: bool) {
         let ref mut children = node.children_with_tokens().peekable();
 
         // loop through and format the rest of the children
@@ -208,68 +240,91 @@ impl Formatter {
                 | SyntaxKind::L_BRACKET
                 | SyntaxKind::R_BRACKET
                 | SyntaxKind::L_PAREN
-                | SyntaxKind::R_PAREN => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent)
-                }
+                | SyntaxKind::R_PAREN => self.format_token_plaintext(
+                    child.into_token().unwrap(),
+                    prepend_newline_and_indent,
+                ),
                 // also allow union pipe, but give it spaces around it
                 SyntaxKind::PIPE => {
                     self.push_text(" ");
-                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                     self.push_text(" ");
                 }
                 // allow comma for generics/tuples, but give a space after it
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                     self.push_text(" ");
                 }
                 // allow these for TypeScript-style types
                 SyntaxKind::STRING_LITERAL
                 | SyntaxKind::RAW_STRING_LITERAL
                 | SyntaxKind::INTEGER_LITERAL
-                | SyntaxKind::FLOAT_LITERAL => self.format_literal(child, indent),
-                SyntaxKind::TYPE_ARGS => self.format_type_args(child.into_node().unwrap(), indent),
+                | SyntaxKind::FLOAT_LITERAL => {
+                    self.format_literal(child, prepend_newline_and_indent)
+                }
+                SyntaxKind::TYPE_ARGS => {
+                    self.format_type_args(child.into_node().unwrap(), prepend_newline_and_indent)
+                }
                 // recurse for nesting in parentheses
-                SyntaxKind::TYPE_EXPR => self.format_type_expr(child.into_node().unwrap(), indent),
+                SyntaxKind::TYPE_EXPR => {
+                    self.format_type_expr(child.into_node().unwrap(), prepend_newline_and_indent)
+                }
                 // ignore everything else - comments, whitespace, etc.
                 _ => (),
             }
 
-            indent = false; // i think this breaks for whitespace, TODO: fix? there may not be a case in which a type expr should be newlined...
+            prepend_newline_and_indent = false; // i think this breaks for whitespace, TODO: fix? there may not be a case in which a type expr should be newlined...
         }
     }
 
     /// Formats type arguments.
-    fn format_type_args(&mut self, type_args: SyntaxNode, indent: bool) {
+    fn format_type_args(&mut self, type_args: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = type_args.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::LESS,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
         while let Some(child) = children.next() {
             match child.kind() {
-                SyntaxKind::GREATER => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent)
-                }
+                SyntaxKind::GREATER => self.format_token_plaintext(
+                    child.into_token().unwrap(),
+                    prepend_newline_and_indent,
+                ),
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                     self.push_text(" ");
                 }
-                SyntaxKind::TYPE_EXPR => self.format_type_expr(child.into_node().unwrap(), indent),
+                SyntaxKind::TYPE_EXPR => {
+                    self.format_type_expr(child.into_node().unwrap(), prepend_newline_and_indent)
+                }
                 _ => (),
             }
         }
     }
 
     /// Formats a parameter list, including the parentheses. e.g. "(x: int, y: string)"
-    fn format_parameter_list(&mut self, parameter_list: SyntaxNode, indent: bool) {
+    fn format_parameter_list(
+        &mut self,
+        parameter_list: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = parameter_list.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -289,12 +344,12 @@ impl Formatter {
     }
 
     /// Formats a parameter. eg. "x: int"
-    fn format_parameter(&mut self, parameter: SyntaxNode, indent: bool) {
+    fn format_parameter(&mut self, parameter: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = parameter.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -345,14 +400,18 @@ impl Formatter {
         Some(self.output.clone())
     }
 
-    fn format_type_alias_def(&mut self, type_alias_def: SyntaxNode, indent: bool) {
+    fn format_type_alias_def(
+        &mut self,
+        type_alias_def: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = type_alias_def.children_with_tokens().peekable();
 
         // format type alias keyword, which is not actually a keyword
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -382,12 +441,16 @@ impl Formatter {
         );
     }
 
-    fn format_template_string_def(&mut self, template_string_def: SyntaxNode, indent: bool) {
+    fn format_template_string_def(
+        &mut self,
+        template_string_def: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = template_string_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_TEMPLATE_STRING,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -415,12 +478,16 @@ impl Formatter {
         );
     }
 
-    fn format_retry_policy_def(&mut self, retry_policy_def: SyntaxNode, indent: bool) {
+    fn format_retry_policy_def(
+        &mut self,
+        retry_policy_def: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = retry_policy_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_RETRY_POLICY,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -441,12 +508,12 @@ impl Formatter {
         );
     }
 
-    fn format_test_def(&mut self, test_def: SyntaxNode, indent: bool) {
+    fn format_test_def(&mut self, test_def: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = test_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_TEST,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -467,16 +534,20 @@ impl Formatter {
         );
     }
 
-    fn format_token_plaintext(&mut self, token: SyntaxToken, indent: bool) {
-        self.push_format(token.text_range(), &token.text().to_string(), indent);
+    fn format_token_plaintext(&mut self, token: SyntaxToken, prepend_newline_and_indent: bool) {
+        self.push_format(
+            token.text_range(),
+            &token.text().to_string(),
+            prepend_newline_and_indent,
+        );
     }
 
-    fn format_client_def(&mut self, client_def: SyntaxNode, indent: bool) {
+    fn format_client_def(&mut self, client_def: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = client_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CLIENT,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -505,12 +576,12 @@ impl Formatter {
         );
     }
 
-    fn format_config_block(&mut self, config_block: SyntaxNode, indent: bool) {
+    fn format_config_block(&mut self, config_block: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = config_block.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -534,12 +605,12 @@ impl Formatter {
         );
     }
 
-    fn format_config_item(&mut self, config_item: SyntaxNode, indent: bool) {
+    fn format_config_item(&mut self, config_item: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = config_item.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -562,7 +633,11 @@ impl Formatter {
         );
     }
 
-    fn format_config_value(&mut self, config_value: SyntaxNode, mut indent: bool) {
+    fn format_config_value(
+        &mut self,
+        config_value: SyntaxNode,
+        mut prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = config_value.children_with_tokens().peekable();
 
         let mut seen_first_whitespace = false;
@@ -570,39 +645,47 @@ impl Formatter {
             match child.kind() {
                 SyntaxKind::WHITESPACE => {
                     if !seen_first_whitespace {
-                        self.push_format(child.text_range(), " ", indent); // collapse the first one to a single space
+                        self.push_format(child.text_range(), " ", prepend_newline_and_indent); // collapse the first one to a single space
                         seen_first_whitespace = true;
                     } else {
-                        self.format_token_plaintext(child.into_token().unwrap(), indent);
+                        self.format_token_plaintext(
+                            child.into_token().unwrap(),
+                            prepend_newline_and_indent,
+                        );
                     }
                 }
-                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                    self.format_string_literal(child.into_node().unwrap(), indent)
-                }
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => self
+                    .format_string_literal(child.into_node().unwrap(), prepend_newline_and_indent),
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                 }
                 SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                    self.format_literal(child, indent)
+                    self.format_literal(child, prepend_newline_and_indent)
                 }
                 SyntaxKind::NEWLINE => {
                     break;
                 }
                 _ => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                 }
             }
 
-            indent = false;
+            prepend_newline_and_indent = false;
         }
     }
 
-    fn format_client_type(&mut self, client_type: SyntaxNode, indent: bool) {
+    fn format_client_type(&mut self, client_type: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = client_type.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::LESS,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -622,7 +705,7 @@ impl Formatter {
     }
 
     /// Format an AST enum definition.
-    fn format_enum_def(&mut self, enum_def: SyntaxNode, indent: bool) {
+    fn format_enum_def(&mut self, enum_def: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = enum_def.children_with_tokens().peekable();
         self.format_token(
             children,
@@ -675,12 +758,16 @@ impl Formatter {
         );
     }
 
-    fn format_block_attribute(&mut self, block_attribute: SyntaxNode, indent: bool) {
+    fn format_block_attribute(
+        &mut self,
+        block_attribute: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = block_attribute.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::AT_AT,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -709,33 +796,42 @@ impl Formatter {
         );
     }
 
-    fn format_attribute_args(&mut self, attribute_args: SyntaxNode, indent: bool) {
+    fn format_attribute_args(
+        &mut self,
+        attribute_args: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = attribute_args.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
         while let Some(child) = children.next() {
             match child.kind() {
-                SyntaxKind::R_PAREN => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent)
+                SyntaxKind::R_PAREN => self.format_token_plaintext(
+                    child.into_token().unwrap(),
+                    prepend_newline_and_indent,
+                ),
+                SyntaxKind::COMMA => {
+                    self.push_format(child.text_range(), ", ", prepend_newline_and_indent)
                 }
-                SyntaxKind::COMMA => self.push_format(child.text_range(), ", ", indent),
-                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, prepend_newline_and_indent)
+                }
                 _ => (),
             }
         }
     }
 
-    fn format_enum_variant(&mut self, enum_variant: SyntaxNode, indent: bool) {
+    fn format_enum_variant(&mut self, enum_variant: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = enum_variant.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -748,7 +844,7 @@ impl Formatter {
     }
 
     /// Format an AST class definition.
-    fn format_class_def(&mut self, class_def: SyntaxNode, indent: bool) {
+    fn format_class_def(&mut self, class_def: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = class_def.children_with_tokens().peekable();
         self.format_token(
             children,
@@ -801,12 +897,12 @@ impl Formatter {
         );
     }
 
-    fn format_class_field(&mut self, class_field: SyntaxNode, indent: bool) {
+    fn format_class_field(&mut self, class_field: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = class_field.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -826,12 +922,12 @@ impl Formatter {
         );
     }
 
-    fn format_attribute(&mut self, attribute: SyntaxNode, indent: bool) {
+    fn format_attribute(&mut self, attribute: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = attribute.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::AT,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.format_token(
@@ -849,12 +945,12 @@ impl Formatter {
         );
     }
 
-    fn format_function_def(&mut self, function_def: SyntaxNode, indent: bool) {
+    fn format_function_def(&mut self, function_def: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = function_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_FUNCTION,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -905,13 +1001,17 @@ impl Formatter {
         }
     }
 
-    fn format_llm_function_body(&mut self, llm_function_body: SyntaxNode, indent: bool) {
+    fn format_llm_function_body(
+        &mut self,
+        llm_function_body: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = llm_function_body.children_with_tokens().peekable();
 
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -941,12 +1041,12 @@ impl Formatter {
         }
     }
 
-    fn format_client_field(&mut self, client_field: SyntaxNode, indent: bool) {
+    fn format_client_field(&mut self, client_field: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = client_field.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CLIENT,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -959,14 +1059,14 @@ impl Formatter {
         );
     }
 
-    fn format_prompt_field(&mut self, prompt_field: SyntaxNode, indent: bool) {
+    fn format_prompt_field(&mut self, prompt_field: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = prompt_field.children_with_tokens().peekable();
 
         // format prompt keyword, which for some reason is not actually a keyword
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -981,22 +1081,26 @@ impl Formatter {
         }
     }
 
-    fn format_expr_function_body(&mut self, expr_function_body: SyntaxNode, indent: bool) {
+    fn format_expr_function_body(
+        &mut self,
+        expr_function_body: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = expr_function_body.children_with_tokens().peekable();
         self.format_node(
             children,
             SyntaxKind::BLOCK_EXPR,
-            indent,
+            prepend_newline_and_indent,
             Self::format_block_expr,
         );
     }
 
-    fn format_block_expr(&mut self, block_expr: SyntaxNode, indent: bool) {
+    fn format_block_expr(&mut self, block_expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = block_expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -1031,12 +1135,12 @@ impl Formatter {
         }
     }
 
-    fn format_for_expr(&mut self, for_expr: SyntaxNode, indent: bool) {
+    fn format_for_expr(&mut self, for_expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = for_expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_FOR,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -1072,66 +1176,96 @@ impl Formatter {
         }
     }
 
-    fn format_break_stmt(&mut self, break_stmt: SyntaxNode, indent: bool) {
+    fn format_break_stmt(&mut self, break_stmt: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = break_stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_BREAK,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
     }
 
-    fn format_continue_stmt(&mut self, continue_stmt: SyntaxNode, indent: bool) {
+    fn format_continue_stmt(
+        &mut self,
+        continue_stmt: SyntaxNode,
+        prepend_newline_and_indent: bool,
+    ) {
         let ref mut children = continue_stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CONTINUE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
     }
 
     /// Formats a value expression, (or a raw literal)
-    fn format_rhs_expr(&mut self, expr: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {
+    fn format_rhs_expr(
+        &mut self,
+        expr: NodeOrToken<SyntaxNode, SyntaxToken>,
+        prepend_newline_and_indent: bool,
+    ) {
         match expr.kind() {
-            SyntaxKind::BINARY_EXPR => self.format_binary_expr(expr.into_node().unwrap(), indent),
-            SyntaxKind::IF_EXPR => {
-                self.format_if_expr(expr.into_node().unwrap(), indent);
+            SyntaxKind::BINARY_EXPR => {
+                self.format_binary_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
             }
-            SyntaxKind::PAREN_EXPR => self.format_paren_expr(expr.into_node().unwrap(), indent),
-            SyntaxKind::UNARY_EXPR => self.format_unary_expr(expr.into_node().unwrap(), indent),
+            SyntaxKind::IF_EXPR => {
+                self.format_if_expr(expr.into_node().unwrap(), prepend_newline_and_indent);
+            }
+            SyntaxKind::PAREN_EXPR => {
+                self.format_paren_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
+            SyntaxKind::UNARY_EXPR => {
+                self.format_unary_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
             // // words are added as-is, usually an identifier or bool literal
-            SyntaxKind::WORD => self.format_token_plaintext(expr.into_token().unwrap(), indent),
-            SyntaxKind::BLOCK_EXPR => self.format_block_expr(expr.into_node().unwrap(), indent),
-            SyntaxKind::CALL_EXPR => self.format_call_expr(expr.into_node().unwrap(), indent),
-            SyntaxKind::PATH_EXPR => self.format_path_expr(expr.into_node().unwrap(), indent),
+            SyntaxKind::WORD => {
+                self.format_token_plaintext(expr.into_token().unwrap(), prepend_newline_and_indent)
+            }
+            SyntaxKind::BLOCK_EXPR => {
+                self.format_block_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
+            SyntaxKind::CALL_EXPR => {
+                self.format_call_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
+            SyntaxKind::PATH_EXPR => {
+                self.format_path_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
             SyntaxKind::FIELD_ACCESS_EXPR => {
-                self.format_field_access_expr(expr.into_node().unwrap(), indent)
+                self.format_field_access_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
             }
             SyntaxKind::ARRAY_LITERAL => {
-                self.format_array_literal(expr.into_node().unwrap(), indent)
+                self.format_array_literal(expr.into_node().unwrap(), prepend_newline_and_indent)
             }
-            SyntaxKind::MAP_LITERAL => self.format_map_literal(expr.into_node().unwrap(), indent),
+            SyntaxKind::MAP_LITERAL => {
+                self.format_map_literal(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
             SyntaxKind::OBJECT_LITERAL => {
-                self.format_object_literal(expr.into_node().unwrap(), indent)
+                self.format_object_literal(expr.into_node().unwrap(), prepend_newline_and_indent)
             }
-            SyntaxKind::INDEX_EXPR => self.format_index_expr(expr.into_node().unwrap(), indent),
+            SyntaxKind::INDEX_EXPR => {
+                self.format_index_expr(expr.into_node().unwrap(), prepend_newline_and_indent)
+            }
             SyntaxKind::INTEGER_LITERAL
             | SyntaxKind::FLOAT_LITERAL
             | SyntaxKind::STRING_LITERAL
-            | SyntaxKind::RAW_STRING_LITERAL => self.format_literal(expr, indent),
+            | SyntaxKind::RAW_STRING_LITERAL => {
+                self.format_literal(expr, prepend_newline_and_indent)
+            }
             SyntaxKind::EXPR => todo!(),
             _ => unreachable!(),
         }
     }
 
-    fn format_index_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_index_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, prepend_newline_and_indent)
+                }
                 SyntaxKind::L_BRACKET => {
                     self.format_token_plaintext(child.into_token().unwrap(), false);
                     break;
@@ -1151,12 +1285,12 @@ impl Formatter {
         }
     }
 
-    fn format_map_literal(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_map_literal(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -1179,12 +1313,12 @@ impl Formatter {
         }
     }
 
-    fn format_object_literal(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_object_literal(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         while let Some(child) = children.next() {
@@ -1206,18 +1340,24 @@ impl Formatter {
         }
     }
 
-    fn format_object_field(&mut self, object_field: SyntaxNode, indent: bool) {
+    fn format_object_field(&mut self, object_field: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = object_field.children_with_tokens().peekable();
 
         let mut seen_key = false;
         while let Some(child) = children.next() {
             match child.kind() {
                 SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL if !seen_key => {
-                    self.format_string_literal(child.into_node().unwrap(), indent);
+                    self.format_string_literal(
+                        child.into_node().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                     seen_key = true;
                 }
                 SyntaxKind::WORD => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent);
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                    );
                     seen_key = true;
                 }
                 SyntaxKind::COLON => {
@@ -1230,12 +1370,12 @@ impl Formatter {
         }
     }
 
-    fn format_array_literal(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_array_literal(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACKET,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -1254,13 +1394,15 @@ impl Formatter {
         }
     }
 
-    fn format_field_access_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_field_access_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
 
         // format the base expression and dot
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, indent),
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, prepend_newline_and_indent)
+                }
                 SyntaxKind::DOT => {
                     self.format_token_plaintext(child.into_token().unwrap(), false);
                     break;
@@ -1278,12 +1420,12 @@ impl Formatter {
         );
     }
 
-    fn format_call_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_call_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_node(
             children,
             SyntaxKind::PATH_EXPR,
-            indent,
+            prepend_newline_and_indent,
             Self::format_path_expr,
         );
         self.format_node(
@@ -1294,12 +1436,12 @@ impl Formatter {
         );
     }
 
-    fn format_path_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_path_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.format_token(
@@ -1316,12 +1458,12 @@ impl Formatter {
         );
     }
 
-    fn format_call_args(&mut self, args: SyntaxNode, indent: bool) {
+    fn format_call_args(&mut self, args: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = args.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         while let Some(child) = children.next() {
@@ -1339,26 +1481,27 @@ impl Formatter {
         }
     }
 
-    fn format_unary_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_unary_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_operator() => {
-                    self.format_token_plaintext(child.into_token().unwrap(), indent)
-                }
+                kind if kind.is_operator() => self.format_token_plaintext(
+                    child.into_token().unwrap(),
+                    prepend_newline_and_indent,
+                ),
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
                 _ => (),
             }
         }
     }
 
-    fn format_paren_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_paren_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
 
@@ -1374,12 +1517,12 @@ impl Formatter {
         }
     }
 
-    fn format_if_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_if_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_IF,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -1427,10 +1570,10 @@ impl Formatter {
         }
     }
 
-    fn format_binary_expr(&mut self, expr: SyntaxNode, indent: bool) {
+    fn format_binary_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
 
-        let mut seen_expr = !indent; // track if we've seen an expression yet for newline purposes
+        let mut seen_expr = !prepend_newline_and_indent; // track if we've seen an expression yet for newline purposes
         while let Some(child) = children.next() {
             match child.kind() {
                 kind if kind.is_operator() => {
@@ -1447,17 +1590,17 @@ impl Formatter {
         }
     }
 
-    fn format_string_literal(&mut self, literal: SyntaxNode, indent: bool) {
+    fn format_string_literal(&mut self, literal: SyntaxNode, prepend_newline_and_indent: bool) {
         let mut within_quotes = false;
         for child in literal.children_with_tokens() {
             let range = child.text_range();
             match child.kind() {
                 SyntaxKind::QUOTE => {
-                    self.push_format(range, "\"", !within_quotes && indent);
+                    self.push_format(range, "\"", !within_quotes && prepend_newline_and_indent);
                     within_quotes = true;
                 }
                 SyntaxKind::HASH => {
-                    self.push_format(range, "#", !within_quotes && indent);
+                    self.push_format(range, "#", !within_quotes && prepend_newline_and_indent);
                     within_quotes = true;
                 }
                 _ if within_quotes => {
@@ -1468,24 +1611,34 @@ impl Formatter {
         }
     }
 
-    fn format_literal(&mut self, literal: NodeOrToken<SyntaxNode, SyntaxToken>, indent: bool) {
+    fn format_literal(
+        &mut self,
+        literal: NodeOrToken<SyntaxNode, SyntaxToken>,
+        prepend_newline_and_indent: bool,
+    ) {
         match literal.kind() {
             SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                self.format_string_literal(literal.into_node().unwrap(), indent);
+                self.format_string_literal(
+                    literal.into_node().unwrap(),
+                    prepend_newline_and_indent,
+                );
             }
             SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                self.format_token_plaintext(literal.into_token().unwrap(), indent);
+                self.format_token_plaintext(
+                    literal.into_token().unwrap(),
+                    prepend_newline_and_indent,
+                );
             }
             _ => unreachable!(),
         }
     }
 
-    fn format_while_stmt(&mut self, stmt: SyntaxNode, indent: bool) {
+    fn format_while_stmt(&mut self, stmt: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_WHILE,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -1511,12 +1664,12 @@ impl Formatter {
         );
     }
 
-    fn format_return_stmt(&mut self, stmt: SyntaxNode, indent: bool) {
+    fn format_return_stmt(&mut self, stmt: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_RETURN,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -1529,12 +1682,12 @@ impl Formatter {
         }
     }
 
-    fn format_let_stmt(&mut self, stmt: SyntaxNode, indent: bool) {
+    fn format_let_stmt(&mut self, stmt: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_LET,
-            indent,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
