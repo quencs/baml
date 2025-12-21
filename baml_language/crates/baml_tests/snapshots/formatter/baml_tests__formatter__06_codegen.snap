@@ -1,0 +1,37 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== BYTECODE ===
+Functions: 1
+Objects: 20
+Globals: 19
+
+Function Foo (arity: 1, kind: Exec):
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_CONST 0   (null)
+     5    LOAD_VAR 1     (x)
+     6    LOAD_CONST 1   (1)
+     7    BIN_OP +       
+     8    STORE_VAR 2    (_2)
+     9    LOAD_VAR 1     (x)
+     10   LOAD_CONST 2   (2)
+     11   BIN_OP +       
+     12   STORE_VAR 3    (_5)
+     13   LOAD_VAR 1     (x)
+     14   LOAD_CONST 3   (3)
+     15   BIN_OP +       
+     16   STORE_VAR 4    (_8)
+     17   LOAD_CONST 0   (null)
+     18   LOAD_VAR 1     (x)
+     19   CALL 1         
+     20   STORE_VAR 5    (_11)
+     21   LOAD_VAR 1     (x)
+     22   LOAD_CONST 3   (3)
+     23   BIN_OP +       
+     24   STORE_VAR 6    (_14)
+     25   LOAD_CONST 0   (null)
+     26   RETURN

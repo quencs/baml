@@ -40,15 +40,15 @@ class FieldAttributes {
   @skip
   // Stream done attribute
   summary string
-  @stream
+  @stream.done
   // Stream not null attribute
   details string?
-  @stream
+  @stream.not_null
   // Stream with state attribute
   state string
-  @stream
-  // Multiple attributes
+  @stream.with_state
 
+  // Multiple attributes
   multiple string?
   @description("Multiple attributes")
 }

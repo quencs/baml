@@ -1,0 +1,15 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== HIR ITEMS ===
+function Foo(x: int) -> string {
+      x + 1;
+      x + 2;
+      x + 3;
+      console.log(x);
+      x + 3;
+}
+
+class Bar {
+}
