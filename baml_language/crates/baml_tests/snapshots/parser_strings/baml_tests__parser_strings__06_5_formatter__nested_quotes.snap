@@ -1,0 +1,26 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+// Test nested quote handling in strings
+class NestedQuotes {
+  single_in_double string @alias("He said 'hello'")
+  double_in_single string @alias('She said "hello"')
+  escaped_in_escaped string @alias("The \"quote\" is here")
+  complex_nesting string @description("It's \"really\" 'complex'")
+  json_like string @alias("{\"key\": \"value\"}")
+}
+
+// Test quotes in template strings
+function FormatMessage(name string) -> string {
+  client GPT4
+  prompt #"
+    Generate a message for "{{ name }}"
+    Include quotes like: "Welcome, '{{ name }}'!"
+  "#
+}
+
+
+=== FORMATTED ===
+(formatting failed - file has parse errors)

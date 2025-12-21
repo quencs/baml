@@ -1,0 +1,19 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+// Invalid BAML
+// Invariants:
+//   - Doesn't crash the parser
+//   - Doesn't break the StringTorture class above
+function BodyTorture() -> int {
+  let x = ¿;
+  
+  while \ {
+      x += 1;
+  }
+}
+
+=== FORMATTED ===
+(formatting failed - file has parse errors)

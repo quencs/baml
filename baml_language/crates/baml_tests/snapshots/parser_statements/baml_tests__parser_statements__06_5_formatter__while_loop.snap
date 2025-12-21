@@ -1,0 +1,47 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+function simple_while_loop() -> int {
+  let i = 0;
+  while (i < 10) {
+    i = i + 1;
+  }
+  return i;
+}
+
+function nested_while_loop() -> int {
+  let i = 0;
+  while (i < 10) {
+    let j = 0;
+    while (j < 10) {
+      j = j + 1;
+    }
+  }
+  return i;
+}
+
+=== FORMATTED ===
+
+function simple_while_loop() -> int {
+  let i = 0;
+  while (i < 10) {
+    i = i + 1;
+  }
+  return i;
+}
+
+function nested_while_loop() -> int {
+  let i = 0;
+  while (i < 10) {
+    let j = 0;
+    while (j < 10) {
+      j = j + 1;
+    }
+  }
+  return i;
+}
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

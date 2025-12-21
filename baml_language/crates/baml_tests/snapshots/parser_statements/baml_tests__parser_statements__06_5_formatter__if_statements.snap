@@ -1,0 +1,30 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+function ConditionalLogic(age int) -> string {
+  if (age < 18) {
+    return "minor";
+  } else if (age < 65) {
+    return "adult";
+  } else {
+    return "senior";
+  }
+}
+
+
+=== FORMATTED ===
+
+function ConditionalLogic(age: int) -> string {
+  if (age < 18) {
+    return "minor";
+  } else if (age < 65) {
+    return "adult";
+  } else {
+    return "senior";
+  }
+}
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

@@ -1,0 +1,53 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+function stringValues() -> map<string, string> {
+  {
+    "hello": "world",
+    "test": "test"
+  }
+}
+
+function intValues() -> map<string, int> {
+  {
+    "hello": 1,
+    "test": 2
+  }
+}
+
+function floatValues() -> map<string, float> {
+  {
+    "hello": 1.0,
+    "test": 2.0
+  }
+}
+
+function boolValues() -> map<string, bool> {
+  {
+    "hello": true,
+    "test": false
+  }
+}
+
+=== FORMATTED ===
+
+function stringValues() -> map<string, string> {
+  {"hello": "world", "test": "test"}
+}
+
+function intValues() -> map<string, int> {
+  {"hello": 1, "test": 2}
+}
+
+function floatValues() -> map<string, float> {
+  {"hello": 1.0, "test": 2.0}
+}
+
+function boolValues() -> map<string, bool> {
+  {"hello": true, "test": false}
+}
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

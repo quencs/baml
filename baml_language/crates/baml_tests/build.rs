@@ -185,8 +185,8 @@ fn generate_project_tests(project: &TestProject, manifest_dir: &str) -> TokenStr
     );
 
     let lexer_tests: TokenStream = project.files.iter().map(generate_lexer_test).collect();
-
     let parser_tests: TokenStream = project.files.iter().map(generate_parser_test).collect();
+    let formatter_tests: TokenStream = project.files.iter().map(generate_formatter_test).collect();
 
     let hir_test = generate_hir_test(project);
     let thir_test = generate_thir_test(project);
@@ -225,6 +225,7 @@ fn generate_project_tests(project: &TestProject, manifest_dir: &str) -> TokenStr
             use baml_db::baml_thir;
             use baml_db::baml_mir;
             use baml_db::baml_codegen;
+            use baml_format;
             use baml_hir::{function_body, function_signature};
             use baml_thir::{build_typing_context_from_files};
             use baml_thir::pretty::short_display;
@@ -244,6 +245,7 @@ fn generate_project_tests(project: &TestProject, manifest_dir: &str) -> TokenStr
             #mir_test
             #diagnostics_test
             #codegen_test
+            #formatter_tests
             #parser_specific_tests
         }
     }
@@ -678,6 +680,58 @@ fn generate_codegen_test(project: &TestProject) -> TokenStream {
 
             with_settings!({snapshot_path => SNAPSHOT_PATH}, {
                 assert_snapshot!("06_codegen", output);
+            });
+        }
+    }
+}
+
+fn generate_formatter_test(baml_file: &BamlFile) -> TokenStream {
+    let test_name = format_ident!("test_06_5_formatter_{}", baml_file.name);
+    let snapshot_name = format!("06_5_formatter__{}", baml_file.name);
+    let full_path = baml_file.full_path.display().to_string();
+    let relative_path = baml_file.relative_path.display().to_string();
+    let include_content = make_include_str(&full_path);
+
+    quote! {
+        #[test]
+        fn #test_name() {
+            let content = #include_content;
+            // Normalize line endings for cross-platform compatibility
+            let content = content.replace("\r\n", "\n");
+            let mut db = RootDatabase::new();
+            let source_file = db.add_file(#relative_path, &content);
+            let formatted = baml_format::format_file(&db, source_file);
+
+            let mut output = String::new();
+            writeln!(output, "=== ORIGINAL ===").unwrap();
+            writeln!(output, "{}", content).unwrap();
+            writeln!(output, "\n=== FORMATTED ===").unwrap();
+
+            if let Some(formatted_text) = formatted {
+                writeln!(output, "{}", formatted_text).unwrap();
+
+                // Test idempotency
+                writeln!(output, "\n=== IDEMPOTENCY CHECK ===").unwrap();
+                let mut db2 = RootDatabase::new();
+                let formatted_file = db2.add_file("formatted.baml", &formatted_text);
+                let reformatted = baml_format::format_file(&db2, formatted_file);
+
+                if let Some(reformatted_text) = reformatted {
+                    if reformatted_text == formatted_text {
+                        writeln!(output, "✓ Idempotent (formatting is stable)").unwrap();
+                    } else {
+                        writeln!(output, "✗ NOT idempotent - formatting again produces different output:").unwrap();
+                        writeln!(output, "{}", reformatted_text).unwrap();
+                    }
+                } else {
+                    writeln!(output, "✗ NOT idempotent - reformatting failed").unwrap();
+                }
+            } else {
+                writeln!(output, "(formatting failed - file has parse errors)").unwrap();
+            }
+
+            with_settings!({snapshot_path => SNAPSHOT_PATH}, {
+                assert_snapshot!(#snapshot_name, output);
             });
         }
     }

@@ -1,0 +1,54 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+function Bar() -> int {
+  let x = Foo(1);
+  x
+}
+
+function Foo(x: int) -> int {
+  x + 1
+}
+
+function GreetBaz(n: string) -> string {
+  let baz = Baz { name: n };
+  baz.Greeting()
+}
+
+class Baz {
+  name string
+
+  function Greeting(self) -> string {
+    "Hello, " + self.name + "!"
+  }
+}
+
+
+=== FORMATTED ===
+
+function Bar() -> int {
+  let x = Foo(1);
+  x
+}
+
+function Foo(x: int) -> int {
+  x + 1
+}
+
+function GreetBaz(n: string) -> string {
+  let baz = Baz {name: n};
+  baz.Greeting()
+}
+
+class Baz {
+  name string
+
+  function Greeting(self) -> string {
+    "Hello, " + self.name + "!"
+  }
+}
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

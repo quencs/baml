@@ -1,0 +1,36 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+class JsonData {
+  field1 int
+  field2 int
+}
+
+function ProcessData(data JsonData) -> string {
+  let result = data.field1 + data.field2;
+  if (result > 100) {
+    return "high";
+  }
+  return "low";
+}
+
+
+=== FORMATTED ===
+
+class JsonData {
+  field1 int
+  field2 int
+}
+
+function ProcessData(data: JsonData) -> string {
+  let result = data.field1 + data.field2;
+  if (result > 100) {
+    return "high";
+  }
+  return "low";
+}
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

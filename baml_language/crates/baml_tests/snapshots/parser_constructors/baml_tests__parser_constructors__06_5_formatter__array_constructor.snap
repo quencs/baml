@@ -1,0 +1,59 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+class Point {
+  x int
+  y int
+}
+
+function stringArray() -> string[] {
+  ["hello", "world", "test"]
+}
+
+function intArray() -> int[] {
+  [1, 2, 3]
+}
+
+function floatArray() -> float[] {
+  [1.0, 2.0, 3.0]
+}
+
+function boolArray() -> bool[] {
+  [true, false, true]
+}
+
+function pointArray() -> Point[] {
+  [Point { x: 1, y: 2 }, Point { x: 3, y: 4 }, Point { x: 5, y: 6 }]
+}
+
+=== FORMATTED ===
+
+class Point {
+  x int
+  y int
+}
+
+function stringArray() -> string[] {
+  ["hello", "world", "test"]
+}
+
+function intArray() -> int[] {
+  [1, 2, 3]
+}
+
+function floatArray() -> float[] {
+  [1.0, 2.0, 3.0]
+}
+
+function boolArray() -> bool[] {
+  [true, false, true]
+}
+
+function pointArray() -> Point[] {
+  [Point {x: 1, y: 2}, Point {x: 3, y: 4}, Point {x: 5, y: 6}]
+}
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

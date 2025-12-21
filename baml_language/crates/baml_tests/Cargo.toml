@@ -14,6 +14,7 @@ baml_base = { workspace = true }
 baml_codegen = { workspace = true }
 baml_db = { workspace = true }
 baml_diagnostics = { workspace = true }
+baml_format = { workspace = true }
 baml_hir = { workspace = true }
 baml_mir = { workspace = true }
 baml_thir = { workspace = true }
