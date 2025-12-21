@@ -730,32 +730,29 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
+        let mut brace_child = None;
         self.nest(|f| {
-            while f.format_node_stop(
-                children,
-                SyntaxKind::ENUM_VARIANT,
-                true,
-                Self::format_enum_variant,
-                SyntaxKind::BLOCK_ATTRIBUTE,
-            ) {}
-
-            while f.format_node_stop(
-                children,
-                SyntaxKind::BLOCK_ATTRIBUTE,
-                true,
-                Self::format_block_attribute,
-                SyntaxKind::R_BRACE,
-            ) {}
-
+            while let Some(child) = children.next() {
+                match child.kind() {
+                    SyntaxKind::ENUM_VARIANT => {
+                        f.format_enum_variant(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::BLOCK_ATTRIBUTE => {
+                        f.format_block_attribute(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::R_BRACE => {
+                        brace_child = Some(child); // hack to get the closing brace child outside of the nest block
+                        break;
+                    }
+                    _ => (),
+                }
+            }
             f.format_missing(enum_def.text_range().end()); // handle hanging trivia at the end of the enum
         });
 
-        self.format_token(
-            children,
-            SyntaxKind::R_BRACE,
-            true,
-            Self::format_token_plaintext,
-        );
+        if let Some(brace_child) = brace_child {
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true);
+        }
     }
 
     fn format_block_attribute(
@@ -849,7 +846,7 @@ impl Formatter {
         self.format_token(
             children,
             SyntaxKind::KW_CLASS,
-            true,
+            prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -869,32 +866,31 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
+        let mut brace_child = None;
         self.nest(|f| {
-            while f.format_node_stop(
-                children,
-                SyntaxKind::FIELD,
-                true,
-                Self::format_class_field,
-                SyntaxKind::BLOCK_ATTRIBUTE,
-            ) {}
-
-            while f.format_node_stop(
-                children,
-                SyntaxKind::BLOCK_ATTRIBUTE,
-                true,
-                Self::format_block_attribute,
-                SyntaxKind::R_BRACE,
-            ) {}
+            while let Some(child) = children.next() {
+                match child.kind() {
+                    SyntaxKind::FIELD => f.format_class_field(child.into_node().unwrap(), true),
+                    SyntaxKind::FUNCTION_DEF => {
+                        f.format_function_def(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::BLOCK_ATTRIBUTE => {
+                        f.format_block_attribute(child.into_node().unwrap(), true)
+                    }
+                    SyntaxKind::R_BRACE => {
+                        brace_child = Some(child); // hack to get the closing brace child outside of the nest block
+                        break;
+                    }
+                    _ => (),
+                }
+            }
 
             f.format_missing(class_def.text_range().end()); // handle hanging trivia at the end of the class
         });
 
-        self.format_token(
-            children,
-            SyntaxKind::R_BRACE,
-            true,
-            Self::format_token_plaintext,
-        );
+        if let Some(brace_child) = brace_child {
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true);
+        }
     }
 
     fn format_class_field(&mut self, class_field: SyntaxNode, prepend_newline_and_indent: bool) {
