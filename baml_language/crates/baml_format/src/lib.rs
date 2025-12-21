@@ -314,7 +314,7 @@ impl Formatter {
         }
     }
 
-    /// Formats a parameter list, including the parentheses. e.g. "(x: int, y: string)"
+    /// Formats a parameter list, including the parentheses. e.g. "(x: int, y: string)", or without the colon "(x int, y string)"
     fn format_parameter_list(
         &mut self,
         parameter_list: SyntaxNode,
@@ -343,7 +343,7 @@ impl Formatter {
         }
     }
 
-    /// Formats a parameter. eg. "x: int"
+    /// Formats a parameter. eg. "x: int", or without the colon "x int"
     fn format_parameter(&mut self, parameter: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = parameter.children_with_tokens().peekable();
         self.format_token(
@@ -353,12 +353,15 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        self.format_token(
+        if !self.format_token_stop(
             children,
             SyntaxKind::COLON,
             false,
             Self::format_token_plaintext,
-        );
+            SyntaxKind::TYPE_EXPR,
+        ) {
+            self.push_text(":");
+        }
         self.push_text(" ");
 
         self.format_node(
@@ -1309,14 +1312,28 @@ impl Formatter {
         }
     }
 
-    fn format_object_literal(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
+    fn format_object_literal(&mut self, expr: SyntaxNode, mut prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
+
+        // format the optional constructor name
+        if self.format_token_stop(
+            children,
+            SyntaxKind::WORD,
+            prepend_newline_and_indent,
+            Self::format_token_plaintext,
+            SyntaxKind::L_BRACE,
+        ) {
+            self.push_text(" ");
+            prepend_newline_and_indent = false;
+        }
+
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
             prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
+
         while let Some(child) = children.next() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false),
@@ -1436,24 +1453,25 @@ impl Formatter {
 
     fn format_path_expr(&mut self, expr: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = expr.children_with_tokens().peekable();
-        self.format_token(
-            children,
-            SyntaxKind::WORD,
-            prepend_newline_and_indent,
-            Self::format_token_plaintext,
-        );
-        self.format_token(
-            children,
-            SyntaxKind::DOT,
-            false,
-            Self::format_token_plaintext,
-        );
-        self.format_token(
-            children,
-            SyntaxKind::WORD,
-            false,
-            Self::format_token_plaintext,
-        );
+
+        let mut seen_word_or_path = !prepend_newline_and_indent;
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::WORD => {
+                    self.format_token_plaintext(child.into_token().unwrap(), !seen_word_or_path);
+                    seen_word_or_path = true;
+                }
+                SyntaxKind::PATH_EXPR => {
+                    self.format_path_expr(child.into_node().unwrap(), !seen_word_or_path);
+                    seen_word_or_path = true;
+                }
+                SyntaxKind::GENERIC_ARGS => {
+                    self.format_type_args(child.into_node().unwrap(), false)
+                }
+                SyntaxKind::DOT => self.format_token_plaintext(child.into_token().unwrap(), false),
+                _ => (),
+            }
+        }
     }
 
     fn format_call_args(&mut self, args: SyntaxNode, prepend_newline_and_indent: bool) {
