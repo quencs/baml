@@ -940,19 +940,21 @@ impl Formatter {
             prepend_newline_and_indent,
             Self::format_token_plaintext,
         );
-        self.format_token(
-            children,
-            SyntaxKind::WORD,
-            false,
-            Self::format_token_plaintext,
-        );
 
-        self.format_node(
-            children,
-            SyntaxKind::ATTRIBUTE_ARGS,
-            false,
-            Self::format_attribute_args,
-        );
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::WORD => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                }
+                SyntaxKind::DOT => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false);
+                }
+                SyntaxKind::ATTRIBUTE_ARGS => {
+                    self.format_attribute_args(child.into_node().unwrap(), false);
+                }
+                _ => (),
+            }
+        }
     }
 
     fn format_function_def(&mut self, function_def: SyntaxNode, prepend_newline_and_indent: bool) {
