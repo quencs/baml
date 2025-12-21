@@ -346,12 +346,23 @@ impl Formatter {
     /// Formats a parameter. eg. "x: int", or without the colon "x int"
     fn format_parameter(&mut self, parameter: SyntaxNode, prepend_newline_and_indent: bool) {
         let ref mut children = parameter.children_with_tokens().peekable();
-        self.format_token(
-            children,
-            SyntaxKind::WORD,
-            prepend_newline_and_indent,
-            Self::format_token_plaintext,
-        );
+
+        // format the parameter name
+        while let Some(child) = children.next() {
+            match child.kind() {
+                SyntaxKind::WORD => {
+                    let token = child.into_token().unwrap();
+                    let token_self = token.text() == "self";
+                    self.format_token_plaintext(token, prepend_newline_and_indent);
+                    if token_self {
+                        return; // self cannot have a type annotation
+                    }
+
+                    break;
+                }
+                _ => (),
+            }
+        }
 
         if !self.format_token_stop(
             children,
@@ -360,7 +371,7 @@ impl Formatter {
             Self::format_token_plaintext,
             SyntaxKind::TYPE_EXPR,
         ) {
-            self.push_text(":");
+            self.push_text(":"); // add the colon if they're using the legacy syntax
         }
         self.push_text(" ");
 
