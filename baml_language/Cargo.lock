@@ -357,6 +357,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml_format"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_diagnostics",
+ "baml_lexer",
+ "baml_parser",
+ "baml_syntax",
+ "rowan",
+ "salsa",
+ "text-size",
+]
+
+[[package]]
 name = "baml_hir"
 version = "0.0.0"
 dependencies = [
@@ -471,6 +485,7 @@ dependencies = [
  "baml_codegen",
  "baml_db",
  "baml_diagnostics",
+ "baml_format",
  "baml_hir",
  "baml_lexer",
  "baml_mir",
@@ -519,6 +534,7 @@ dependencies = [
  "baml_codegen",
  "baml_db",
  "baml_diagnostics",
+ "baml_format",
  "baml_hir",
  "baml_mir",
  "baml_thir",
