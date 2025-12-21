@@ -1,6 +1,6 @@
 //! Typed AST node wrappers for ergonomic tree access.
 
-use rowan::{NodeOrToken, ast::AstNode};
+use rowan::ast::AstNode;
 
 use crate::{SyntaxKind, SyntaxNode, SyntaxToken};
 
@@ -101,22 +101,6 @@ impl FunctionDef {
             .nth(0) // Get the first WORD (function keyword is KW_FUNCTION, not WORD)
     }
 
-    /// Get the function keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_FUNCTION)
-    }
-
-    /// Get the arrow token.
-    pub fn arrow_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::ARROW)
-    }
-
     /// Get the parameter list.
     pub fn param_list(&self) -> Option<ParameterList> {
         self.syntax.children().find_map(ParameterList::cast)
@@ -187,30 +171,6 @@ impl ClassDef {
             .nth(0) // Get the first WORD (class keyword is KW_CLASS, not WORD)
     }
 
-    /// Get the class keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_CLASS)
-    }
-
-    /// Get the class opening brace token.
-    pub fn l_brace_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::L_BRACE)
-    }
-
-    /// Get the class closing brace token.
-    pub fn r_brace_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::R_BRACE)
-    }
-
     /// Get all fields.
     pub fn fields(&self) -> impl Iterator<Item = Field> {
         self.syntax.children().filter_map(Field::cast)
@@ -224,13 +184,6 @@ impl ClassDef {
     /// Get block attributes (@@dynamic).
     pub fn block_attributes(&self) -> impl Iterator<Item = BlockAttribute> {
         self.syntax.children().filter_map(BlockAttribute::cast)
-    }
-}
-
-impl ExprFunctionBody {
-    // Get the block expression.
-    pub fn block_expr(&self) -> Option<BlockExpr> {
-        self.syntax.children().find_map(BlockExpr::cast)
     }
 }
 
@@ -264,30 +217,6 @@ impl EnumDef {
                 token.kind() == SyntaxKind::WORD && token.parent() == Some(self.syntax.clone())
             })
             .nth(0) // Get the first WORD (enum keyword is KW_ENUM, not WORD)
-    }
-
-    /// Get the enum keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_ENUM)
-    }
-
-    /// Get the enum opening brace token.
-    pub fn l_brace_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::L_BRACE)
-    }
-
-    /// Get the enum closing brace token.
-    pub fn r_brace_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::R_BRACE)
     }
 
     /// Check if this enum has a body (braces).
@@ -418,16 +347,6 @@ impl TypeAliasDef {
     }
 }
 
-impl TypeExpr {
-    /// Get the type name.
-    pub fn name(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::WORD)
-    }
-}
-
 impl BlockAttribute {
     /// Get the attribute name (e.g., "dynamic" from @@dynamic).
     pub fn name(&self) -> Option<SyntaxToken> {
@@ -435,14 +354,6 @@ impl BlockAttribute {
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| matches!(token.kind(), SyntaxKind::WORD | SyntaxKind::KW_DYNAMIC))
-    }
-
-    /// Get the @@ token.
-    pub fn at_at_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::AT_AT)
     }
 }
 
@@ -454,31 +365,13 @@ impl Attribute {
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::WORD)
     }
-
-    /// Get the @ token.
-    pub fn at_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::AT)
-    }
 }
 
 impl WhileStmt {
-    /// Get the keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_WHILE)
-    }
-
     /// Get the condition expression.
     /// The condition is the first child expression of the while statement.
-    pub fn condition(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
-        self.syntax
-            .children_with_tokens()
-            .find(|n| n.kind().is_valid_rhs_expr())
+    pub fn condition(&self) -> Option<SyntaxNode> {
+        self.syntax.children().next()
     }
 
     /// Get the body block expression.
@@ -491,26 +384,8 @@ impl WhileStmt {
 impl IfExpr {
     /// Get the condition expression.
     /// The condition is the first child expression of the if expression.
-    pub fn condition(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
-        self.syntax
-            .children_with_tokens()
-            .find(|n| n.kind().is_valid_rhs_expr())
-    }
-
-    /// Get the keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_IF)
-    }
-
-    /// Get the else keyword token, if it exists.
-    pub fn else_keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_ELSE)
+    pub fn condition(&self) -> Option<SyntaxNode> {
+        self.syntax.children().next()
     }
 
     /// Get the then branch block expression.
@@ -726,22 +601,6 @@ impl LetStmt {
             .find(|token| token.kind() == SyntaxKind::WORD)
     }
 
-    /// Get the keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_LET)
-    }
-
-    /// Get the equals token.
-    pub fn equals_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::EQUALS)
-    }
-
     /// Get the type annotation, if present.
     pub fn ty(&self) -> Option<TypeExpr> {
         self.syntax.children().find_map(TypeExpr::cast)
@@ -749,17 +608,26 @@ impl LetStmt {
 
     /// Get the initializer expression as a node.
     /// This finds the first child node that is an expression (not `TYPE_EXPR`).
-    pub fn initializer(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
-        let mut seen_name = false; // we need to skip the name of the variable
-        for child in self.syntax().children_with_tokens() {
-            if !seen_name && child.kind() == SyntaxKind::WORD {
-                seen_name = true;
-            } else if seen_name && child.kind().is_valid_rhs_expr() {
-                return Some(child);
-            }
-        }
-
-        None
+    pub fn initializer(&self) -> Option<SyntaxNode> {
+        self.syntax.children().find(|n| {
+            matches!(
+                n.kind(),
+                SyntaxKind::EXPR
+                    | SyntaxKind::BINARY_EXPR
+                    | SyntaxKind::UNARY_EXPR
+                    | SyntaxKind::CALL_EXPR
+                    | SyntaxKind::PATH_EXPR
+                    | SyntaxKind::FIELD_ACCESS_EXPR
+                    | SyntaxKind::INDEX_EXPR
+                    | SyntaxKind::IF_EXPR
+                    | SyntaxKind::BLOCK_EXPR
+                    | SyntaxKind::PAREN_EXPR
+                    | SyntaxKind::ARRAY_LITERAL
+                    | SyntaxKind::OBJECT_LITERAL
+                    | SyntaxKind::STRING_LITERAL
+                    | SyntaxKind::RAW_STRING_LITERAL
+            )
+        })
     }
 
     /// Get the initializer as a token (for direct literals like integers).
@@ -782,18 +650,8 @@ impl LetStmt {
 
 impl ReturnStmt {
     /// Get the return value expression, if present.
-    pub fn value(&self) -> Option<NodeOrToken<SyntaxNode, SyntaxToken>> {
-        self.syntax
-            .children_with_tokens()
-            .find(|n| n.kind().is_valid_rhs_expr())
-    }
-
-    /// Get the keyword token.
-    pub fn keyword_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::KW_RETURN)
+    pub fn value(&self) -> Option<SyntaxNode> {
+        self.syntax.children().next()
     }
 }
 
@@ -904,22 +762,6 @@ impl BlockExpr {
                 }
             }
         })
-    }
-
-    /// Get the opening brace token.
-    pub fn l_brace_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::L_BRACE)
-    }
-
-    /// Get the closing brace token.
-    pub fn r_brace_tok(&self) -> Option<SyntaxToken> {
-        self.syntax
-            .children_with_tokens()
-            .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::R_BRACE)
     }
 }
 
