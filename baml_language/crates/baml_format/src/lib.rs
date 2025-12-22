@@ -24,10 +24,18 @@ pub fn format_file(db: &dyn salsa::Database, file: SourceFile) -> Option<String>
     formatter.format()
 }
 
+/// Formatter for BAML source files.
+/// This is a recursive descent formatter that traverses the concrete syntax tree and formats the code.
+/// Before a formatted range is pushed, we look for trivia tokens in the gap between the start of the
+/// new range and the end of the last pushed range, and add them to the output to preserve comments.
 struct Formatter {
+    /// The current indent level.
     indent_level: usize,
+    /// The end position of the last pushed range.
     last_pos: TextSize,
+    /// The output string.
     output: String,
+    /// The root node of the syntax tree.
     root: SyntaxNode,
 }
 
@@ -73,7 +81,7 @@ impl Formatter {
             // iterate through all tokens in the missing range
             let mut on_same_line = self.last_pos != TextSize::new(0); // first line of file is always a separate line comment
             let mut already_pushed_semicolon = false;
-            let mut consecutive_newlines = 0;
+            let mut _consecutive_newlines = 0;
             let mut newline_comment_buffer = Vec::new();
             while current_pos < start {
                 let token = self.root.token_at_offset(current_pos).right_biased();
@@ -93,13 +101,13 @@ impl Formatter {
                 match kind {
                     SyntaxKind::NEWLINE => {
                         on_same_line = false;
-                        consecutive_newlines += 1;
+                        _consecutive_newlines += 1;
                     }
                     SyntaxKind::LINE_COMMENT | SyntaxKind::BLOCK_COMMENT => {
                         let text = token.text().to_string();
                         if !on_same_line {
                             newline_comment_buffer.push(text);
-                            consecutive_newlines -= 1; // we're not actually adding a newline, so we need to subtract one from the count
+                            _consecutive_newlines -= 1; // we're not actually adding a newline, so we need to subtract one from the count
                         } else {
                             self.push_text(" ");
                             self.push_text(&text);
@@ -125,7 +133,7 @@ impl Formatter {
                     //     self.push_text("\n");
                     // }
 
-                    consecutive_newlines = 0;
+                    _consecutive_newlines = 0;
                 }
 
                 current_pos = token.text_range().end();
@@ -151,7 +159,7 @@ impl Formatter {
         "  ".repeat(self.indent_level)
     }
 
-    /// Scan until we reach the specified kind, and call the provided function with the node.
+    /// Consumes until we reach the specified kind, and calls the provided function with the node.
     /// Returns true if the node was found, false if it was not found.
     fn format_node(
         &mut self,
@@ -161,9 +169,7 @@ impl Formatter {
         should_collect_preceding_trivia: bool,
         f: impl FnOnce(&mut Formatter, SyntaxNode, bool, bool),
     ) -> Option<SyntaxNode> {
-        let Some(node) = children.by_ref().find(|child| child.kind() == kind) else {
-            return None;
-        };
+        let node = children.by_ref().find(|child| child.kind() == kind)?;
 
         let node = node.into_node().unwrap();
 
@@ -177,7 +183,7 @@ impl Formatter {
         Some(node)
     }
 
-    /// Scan until we reach the specified kind, and call the provided function with the node.
+    /// Consumes until we reach the specified kind, and call the provided function with the node.
     /// Also will halt early if the stop kind is reached, not consuming the stop kind token.
     /// Returns true if the node was found, false if it was not found or the stop kind was reached.
     fn format_node_stop(
@@ -201,15 +207,15 @@ impl Formatter {
                     should_collect_preceding_trivia,
                 );
                 return Some(node);
-            } else {
-                children.next();
             }
+
+            children.next();
         }
 
         None
     }
 
-    /// Scan until we reach the specified kind, and call the provided function with the token.
+    /// Consumes until we reach the specified kind, and call the provided function with the token.
     /// Returns true if the token was found, false if it was not found.
     fn format_token(
         &mut self,
@@ -219,9 +225,7 @@ impl Formatter {
         should_collect_preceding_trivia: bool,
         f: impl FnOnce(&mut Formatter, SyntaxToken, bool, bool),
     ) -> Option<SyntaxToken> {
-        let Some(token) = children.by_ref().find(|child| child.kind() == kind) else {
-            return None;
-        };
+        let token = children.by_ref().find(|child| child.kind() == kind)?;
 
         let token = token.into_token().unwrap();
 
@@ -234,7 +238,7 @@ impl Formatter {
         Some(token)
     }
 
-    /// Scan until we reach the specified kind, and call the provided function with the token.
+    /// Consumes until we reach the specified kind, and calls the provided function with the token.
     /// Also will halt early if the stop kind is reached, not consuming the stop kind token.
     /// Returns true if the token was found, false if it was not found or the stop kind was reached.
     fn format_token_stop(
@@ -258,9 +262,9 @@ impl Formatter {
                     should_collect_preceding_trivia,
                 );
                 return Some(token);
-            } else {
-                children.next();
             }
+
+            children.next();
         }
 
         None
@@ -273,10 +277,10 @@ impl Formatter {
         mut prepend_newline_and_indent: bool,
         mut should_collect_preceding_trivia: bool, // set this to false after encountering the first token
     ) {
-        let ref mut children = node.children_with_tokens().peekable();
+        let children = &mut node.children_with_tokens().peekable();
 
         // loop through and format the rest of the children
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 // allow these tokens to be included in the output
                 SyntaxKind::WORD
@@ -352,7 +356,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = type_args.children_with_tokens().peekable();
+        let children = &mut type_args.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::LESS,
@@ -361,7 +365,7 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::GREATER => self.format_token_plaintext(
                     child.into_token().unwrap(),
@@ -393,7 +397,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = parameter_list.children_with_tokens().peekable();
+        let children = &mut parameter_list.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
@@ -402,7 +406,7 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::R_PAREN => {
                     self.format_token_plaintext(child.into_token().unwrap(), false, false)
@@ -426,26 +430,23 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = parameter.children_with_tokens().peekable();
+        let children = &mut parameter.children_with_tokens().peekable();
 
         // format the parameter name
-        while let Some(child) = children.next() {
-            match child.kind() {
-                SyntaxKind::WORD => {
-                    let token = child.into_token().unwrap();
-                    let token_self = token.text() == "self";
-                    self.format_token_plaintext(
-                        token,
-                        prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
-                    );
-                    if token_self {
-                        return; // self cannot have a type annotation
-                    }
-
-                    break;
+        for child in children.by_ref() {
+            if child.kind() == SyntaxKind::WORD {
+                let token = child.into_token().unwrap();
+                let token_self = token.text() == "self";
+                self.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+                if token_self {
+                    return; // self cannot have a type annotation
                 }
-                _ => (),
+
+                break;
             }
         }
 
@@ -494,7 +495,7 @@ impl Formatter {
                 SyntaxKind::TEST_DEF => self.format_test_def(child, true, true),
                 SyntaxKind::RETRY_POLICY_DEF => self.format_retry_policy_def(child, true, true),
                 SyntaxKind::TEMPLATE_STRING_DEF => {
-                    self.format_template_string_def(child, true, true)
+                    self.format_template_string_def(child, true, true);
                 }
                 SyntaxKind::TYPE_ALIAS_DEF => self.format_type_alias_def(child, true, true),
                 _ => (),
@@ -514,7 +515,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = type_alias_def.children_with_tokens().peekable();
+        let children = &mut type_alias_def.children_with_tokens().peekable();
 
         // format type alias keyword, which is not actually a keyword
         self.format_token(
@@ -572,7 +573,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = template_string_def.children_with_tokens().peekable();
+        let children = &mut template_string_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_TEMPLATE_STRING,
@@ -626,7 +627,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = retry_policy_def.children_with_tokens().peekable();
+        let children = &mut retry_policy_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_RETRY_POLICY,
@@ -672,7 +673,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = test_def.children_with_tokens().peekable();
+        let children = &mut test_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_TEST,
@@ -720,7 +721,7 @@ impl Formatter {
     ) {
         self.push_format(
             token.text_range(),
-            &token.text().to_string(),
+            token.text(),
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
         );
@@ -733,7 +734,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = client_def.children_with_tokens().peekable();
+        let children = &mut client_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CLIENT,
@@ -788,7 +789,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = config_block.children_with_tokens().peekable();
+        let children = &mut config_block.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
@@ -829,7 +830,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = config_item.children_with_tokens().peekable();
+        let children = &mut config_item.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
@@ -866,10 +867,10 @@ impl Formatter {
         mut prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = config_value.children_with_tokens().peekable();
+        let children = &mut config_value.children_with_tokens().peekable();
 
         let mut seen_first_whitespace = false;
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::WHITESPACE => {
                     if !seen_first_whitespace {
@@ -902,7 +903,7 @@ impl Formatter {
                     );
                 }
                 SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
-                    self.format_literal(child, prepend_newline_and_indent, false)
+                    self.format_literal(child, prepend_newline_and_indent, false);
                 }
                 SyntaxKind::NEWLINE => {
                     break;
@@ -927,7 +928,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = client_type.children_with_tokens().peekable();
+        let children = &mut client_type.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::LESS,
@@ -960,7 +961,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = enum_def.children_with_tokens().peekable();
+        let children = &mut enum_def.children_with_tokens().peekable();
 
         self.format_token(
             children,
@@ -1002,13 +1003,13 @@ impl Formatter {
 
         let mut brace_child = None;
         self.nest(|f| {
-            while let Some(child) = children.next() {
+            for child in children.by_ref() {
                 match child.kind() {
                     SyntaxKind::ENUM_VARIANT => {
-                        f.format_enum_variant(child.into_node().unwrap(), true, true)
+                        f.format_enum_variant(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::BLOCK_ATTRIBUTE => {
-                        f.format_block_attribute(child.into_node().unwrap(), true, true)
+                        f.format_block_attribute(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
@@ -1032,7 +1033,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = block_attribute.children_with_tokens().peekable();
+        let children = &mut block_attribute.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::AT_AT,
@@ -1076,7 +1077,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = attribute_args.children_with_tokens().peekable();
+        let children = &mut attribute_args.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
@@ -1085,7 +1086,7 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::R_PAREN => self.format_token_plaintext(
                     child.into_token().unwrap(),
@@ -1093,10 +1094,10 @@ impl Formatter {
                     false,
                 ),
                 SyntaxKind::COMMA => {
-                    self.push_format(child.text_range(), ", ", prepend_newline_and_indent, false)
+                    self.push_format(child.text_range(), ", ", prepend_newline_and_indent, false);
                 }
                 kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, prepend_newline_and_indent, false)
+                    self.format_rhs_expr(child, prepend_newline_and_indent, false);
                 }
                 _ => (),
             }
@@ -1110,7 +1111,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = enum_variant.children_with_tokens().peekable();
+        let children = &mut enum_variant.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
@@ -1135,7 +1136,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = class_def.children_with_tokens().peekable();
+        let children = &mut class_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CLASS,
@@ -1175,16 +1176,16 @@ impl Formatter {
 
         let mut brace_child = None;
         self.nest(|f| {
-            while let Some(child) = children.next() {
+            for child in children.by_ref() {
                 match child.kind() {
                     SyntaxKind::FIELD => {
-                        f.format_class_field(child.into_node().unwrap(), true, true)
+                        f.format_class_field(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::FUNCTION_DEF => {
-                        f.format_function_def(child.into_node().unwrap(), true, true)
+                        f.format_function_def(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::BLOCK_ATTRIBUTE => {
-                        f.format_block_attribute(child.into_node().unwrap(), true, true)
+                        f.format_block_attribute(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
@@ -1209,7 +1210,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = class_field.children_with_tokens().peekable();
+        let children = &mut class_field.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::WORD,
@@ -1243,7 +1244,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = attribute.children_with_tokens().peekable();
+        let children = &mut attribute.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::AT,
@@ -1252,7 +1253,7 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::WORD => {
                     self.format_token_plaintext(child.into_token().unwrap(), false, false);
@@ -1275,7 +1276,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = function_def.children_with_tokens().peekable();
+        let children = &mut function_def.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_FUNCTION,
@@ -1333,13 +1334,13 @@ impl Formatter {
         );
         self.push_text(" ");
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::EXPR_FUNCTION_BODY => {
-                    self.format_expr_function_body(child.into_node().unwrap(), false, false)
+                    self.format_expr_function_body(child.into_node().unwrap(), false, false);
                 }
                 SyntaxKind::LLM_FUNCTION_BODY => {
-                    self.format_llm_function_body(child.into_node().unwrap(), false, false)
+                    self.format_llm_function_body(child.into_node().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1353,7 +1354,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = llm_function_body.children_with_tokens().peekable();
+        let children = &mut llm_function_body.children_with_tokens().peekable();
 
         self.format_token(
             children,
@@ -1365,13 +1366,13 @@ impl Formatter {
 
         let mut brace_child = None;
         self.nest(|f| {
-            while let Some(child) = children.next() {
+            for child in children.by_ref() {
                 match child.kind() {
                     SyntaxKind::CLIENT_FIELD => {
-                        f.format_client_field(child.into_node().unwrap(), true, true)
+                        f.format_client_field(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::PROMPT_FIELD => {
-                        f.format_prompt_field(child.into_node().unwrap(), true, true)
+                        f.format_prompt_field(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
@@ -1396,7 +1397,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = client_field.children_with_tokens().peekable();
+        let children = &mut client_field.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CLIENT,
@@ -1422,7 +1423,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = prompt_field.children_with_tokens().peekable();
+        let children = &mut prompt_field.children_with_tokens().peekable();
 
         // format prompt keyword, which for some reason is not actually a keyword
         self.format_token(
@@ -1434,10 +1435,10 @@ impl Formatter {
         );
         self.push_text(" ");
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
-                    self.format_string_literal(child.into_node().unwrap(), false, false)
+                    self.format_string_literal(child.into_node().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1451,7 +1452,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr_function_body.children_with_tokens().peekable();
+        let children = &mut expr_function_body.children_with_tokens().peekable();
         self.format_node(
             children,
             SyntaxKind::BLOCK_EXPR,
@@ -1468,7 +1469,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = block_expr.children_with_tokens().peekable();
+        let children = &mut block_expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
@@ -1479,7 +1480,7 @@ impl Formatter {
 
         let mut brace_child = None;
         self.nest(|f| {
-            while let Some(child) = children.next() {
+            for child in children.by_ref() {
                 match child.kind() {
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
@@ -1487,22 +1488,22 @@ impl Formatter {
                     }
                     kind if kind.is_valid_rhs_expr() => f.format_rhs_expr(child, true, true),
                     SyntaxKind::LET_STMT => {
-                        f.format_let_stmt(child.into_node().unwrap(), true, true)
+                        f.format_let_stmt(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::WHILE_STMT => {
-                        f.format_while_stmt(child.into_node().unwrap(), true, true)
+                        f.format_while_stmt(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::RETURN_STMT => {
-                        f.format_return_stmt(child.into_node().unwrap(), true, true)
+                        f.format_return_stmt(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::BREAK_STMT => {
-                        f.format_break_stmt(child.into_node().unwrap(), true, true)
+                        f.format_break_stmt(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::CONTINUE_STMT => {
-                        f.format_continue_stmt(child.into_node().unwrap(), true, true)
+                        f.format_continue_stmt(child.into_node().unwrap(), true, true);
                     }
                     SyntaxKind::FOR_EXPR => {
-                        f.format_for_expr(child.into_node().unwrap(), true, true)
+                        f.format_for_expr(child.into_node().unwrap(), true, true);
                     }
                     _ => (),
                 }
@@ -1523,7 +1524,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = for_expr.children_with_tokens().peekable();
+        let children = &mut for_expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_FOR,
@@ -1536,7 +1537,7 @@ impl Formatter {
         // format the initializer, condition, and update
         // right now this basically just dumps the whole thing without whitespace
         // and doesn't attempt to understand semantics, so it has some whitespace issues
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::L_PAREN => {
                     self.format_token_plaintext(child.into_token().unwrap(), false, false);
@@ -1570,7 +1571,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = break_stmt.children_with_tokens().peekable();
+        let children = &mut break_stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_BREAK,
@@ -1586,7 +1587,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = continue_stmt.children_with_tokens().peekable();
+        let children = &mut continue_stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_CONTINUE,
@@ -1695,7 +1696,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expression_block.children_with_tokens().peekable();
+        let children = &mut expression_block.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
@@ -1714,7 +1715,7 @@ impl Formatter {
 
         // basically just print verbatim the contents of the expression block
         // this part of the parser isn't finished so this is just a bunch of tokens
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             if child.kind().is_trivia() {
                 continue;
             }
@@ -1730,9 +1731,9 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(
                     child,
@@ -1751,11 +1752,11 @@ impl Formatter {
             }
         }
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 SyntaxKind::R_BRACKET => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1769,7 +1770,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACE,
@@ -1778,7 +1779,7 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 SyntaxKind::R_BRACE => {
@@ -1804,7 +1805,7 @@ impl Formatter {
         mut prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
         // format the optional constructor name
         if self
@@ -1829,11 +1830,11 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 SyntaxKind::R_BRACE => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::COMMA => {
                     self.format_token_plaintext(child.into_token().unwrap(), false, false);
@@ -1854,10 +1855,10 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = object_field.children_with_tokens().peekable();
+        let children = &mut object_field.children_with_tokens().peekable();
 
         let mut seen_key = false;
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL if !seen_key => {
                     self.format_string_literal(
@@ -1891,7 +1892,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_BRACKET,
@@ -1900,11 +1901,11 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 SyntaxKind::R_BRACKET => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::COMMA => {
                     self.format_token_plaintext(child.into_token().unwrap(), false, false);
@@ -1921,10 +1922,10 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
         // format the base expression and dot
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(
                     child,
@@ -1955,9 +1956,9 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::PATH_EXPR => self.format_path_expr(
                     child.into_node().unwrap(),
@@ -1970,7 +1971,7 @@ impl Formatter {
                     should_collect_preceding_trivia,
                 ),
                 SyntaxKind::CALL_ARGS => {
-                    self.format_call_args(child.into_node().unwrap(), false, false)
+                    self.format_call_args(child.into_node().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1983,10 +1984,10 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
         let mut seen_word_or_path = false;
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 SyntaxKind::WORD => {
                     self.format_token_plaintext(
@@ -2005,10 +2006,10 @@ impl Formatter {
                     seen_word_or_path = true;
                 }
                 SyntaxKind::GENERIC_ARGS => {
-                    self.format_type_args(child.into_node().unwrap(), false, false)
+                    self.format_type_args(child.into_node().unwrap(), false, false);
                 }
                 SyntaxKind::DOT => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -2021,7 +2022,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = args.children_with_tokens().peekable();
+        let children = &mut args.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
@@ -2029,11 +2030,11 @@ impl Formatter {
             should_collect_preceding_trivia,
             Self::format_token_plaintext,
         );
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 SyntaxKind::R_PAREN => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::COMMA => {
                     self.format_token_plaintext(child.into_token().unwrap(), false, false);
@@ -2050,13 +2051,13 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
         let mut seen_expr = false;
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_operator() => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 kind if kind.is_valid_rhs_expr() => {
                     self.format_rhs_expr(
@@ -2077,7 +2078,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::L_PAREN,
@@ -2086,13 +2087,12 @@ impl Formatter {
             Self::format_token_plaintext,
         );
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 SyntaxKind::R_PAREN => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
-                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 _ => (),
             }
         }
@@ -2104,7 +2104,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_IF,
@@ -2115,7 +2115,7 @@ impl Formatter {
         self.push_text(" ");
 
         // format the condition
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => {
                     self.format_rhs_expr(child, false, false);
@@ -2136,24 +2136,21 @@ impl Formatter {
         );
 
         while let Some(child) = children.next() {
-            match child.kind() {
-                SyntaxKind::KW_ELSE => {
-                    self.push_text(" ");
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
-                    self.push_text(" ");
-                    while let Some(child) = children.next() {
-                        match child.kind() {
-                            SyntaxKind::BLOCK_EXPR => {
-                                self.format_block_expr(child.into_node().unwrap(), false, false);
-                            }
-                            SyntaxKind::IF_EXPR => {
-                                self.format_if_expr(child.into_node().unwrap(), false, false);
-                            }
-                            _ => (),
+            if child.kind() == SyntaxKind::KW_ELSE {
+                self.push_text(" ");
+                self.format_token_plaintext(child.into_token().unwrap(), false, false);
+                self.push_text(" ");
+                for child in children.by_ref() {
+                    match child.kind() {
+                        SyntaxKind::BLOCK_EXPR => {
+                            self.format_block_expr(child.into_node().unwrap(), false, false);
                         }
+                        SyntaxKind::IF_EXPR => {
+                            self.format_if_expr(child.into_node().unwrap(), false, false);
+                        }
+                        _ => (),
                     }
                 }
-                _ => (),
             }
         }
     }
@@ -2164,10 +2161,10 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = expr.children_with_tokens().peekable();
+        let children = &mut expr.children_with_tokens().peekable();
 
         let mut seen_expr = false; // track if we've seen an expression yet for newline purposes
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_operator() => {
                     self.push_text(" ");
@@ -2216,7 +2213,7 @@ impl Formatter {
                     within_quotes = true;
                 }
                 _ if within_quotes => {
-                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -2254,7 +2251,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = stmt.children_with_tokens().peekable();
+        let children = &mut stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_WHILE,
@@ -2265,7 +2262,7 @@ impl Formatter {
         self.push_text(" ");
 
         // format the condition
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => {
                     self.format_rhs_expr(child, false, false);
@@ -2292,7 +2289,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = stmt.children_with_tokens().peekable();
+        let children = &mut stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_RETURN,
@@ -2302,7 +2299,7 @@ impl Formatter {
         );
         self.push_text(" ");
 
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 _ => (),
@@ -2316,7 +2313,7 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
     ) {
-        let ref mut children = stmt.children_with_tokens().peekable();
+        let children = &mut stmt.children_with_tokens().peekable();
         self.format_token(
             children,
             SyntaxKind::KW_LET,
@@ -2365,7 +2362,7 @@ impl Formatter {
         );
 
         self.push_text(" ");
-        while let Some(child) = children.next() {
+        for child in children.by_ref() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 _ => (),
