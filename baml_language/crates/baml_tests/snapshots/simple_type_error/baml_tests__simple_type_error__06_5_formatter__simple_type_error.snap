@@ -9,10 +9,10 @@ function Foo() -> int {
 
 
 === FORMATTED ===
-
 function Foo() -> int {
   1 + "foo"
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

@@ -36,20 +36,15 @@ class Settings {
 
 
 === FORMATTED ===
-
 function FieldAccess(user: User) -> string {
   // Simple field access
   let name = user.name;
-
   // Nested field access
   let bio = user.profile.bio;
-
   // Deep nesting
   let theme = user.profile.settings.theme;
-
   // Field access then array index
   let firstTag = user.tags[0];
-
   return theme;
 }
 
@@ -67,6 +62,7 @@ class Profile {
 class Settings {
   theme string
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

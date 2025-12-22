@@ -3,8 +3,7 @@ source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === TYPE INFERENCE ===
-  Function Foo:
-    Return: Void
-    Errors:
-      - Unknown type console
-      - Expected string. Found void
+  Function Bar:
+    Return: Int
+  Function HelloWorld:
+    Return: String

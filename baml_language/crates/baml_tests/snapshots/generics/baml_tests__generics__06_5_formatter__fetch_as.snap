@@ -18,7 +18,6 @@ function GetTodo() -> Todo {
 }
 
 === FORMATTED ===
-
 class Todo {
   id int
   title string
@@ -29,6 +28,7 @@ class Todo {
 function GetTodo() -> Todo {
   baml.fetch_as<Todo>({method: baml.HttpMethod.Get, url: "dummyjson.com/todos/1", })
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

@@ -3,13 +3,22 @@ source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
-function Foo(x: int) -> string {
-      x + 1;
-      x + 2;
-      x + 3;
-      console.log(x);
-      x + 3;
+function Bar() -> int {
+      let x = 2;
+      return x;
 }
 
-class Bar {
+function HelloWorld(name: /*test*/ string) -> string {
+  client GPT4
+  prompt #"
+    
+                Say hello to {{name}}
+              
+  "#
+}
+
+class User {
+  name: /*test*/ string
+  age: int
+  val: (int/*test*/| /*test*/string/*test*/)
 }

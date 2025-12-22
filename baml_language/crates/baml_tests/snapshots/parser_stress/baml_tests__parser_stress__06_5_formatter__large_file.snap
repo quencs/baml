@@ -7105,7 +7105,6 @@ function Process100(input string) -> string {
 
 
 === FORMATTED ===
-
 class User1 {
   name string
   @alias("user_1_name")
@@ -16205,6 +16204,7 @@ function Process100(input: string) -> string {
   client GPT4
   prompt "Process input 100: {{ input }}"
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

@@ -13,7 +13,6 @@ function ExtractData(text string) -> JsonData {
 
 
 === FORMATTED ===
-
 function ExtractData(text: string) -> JsonData {
   client GPT4
   prompt #"
@@ -21,6 +20,7 @@ function ExtractData(text: string) -> JsonData {
     Return as JSON.
   "#
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

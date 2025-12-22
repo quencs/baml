@@ -49,8 +49,8 @@ function SimpleCalc(a int, b int) -> int {
 
 
 === FORMATTED ===
-
 // Mix of LLM and expression functions in one file
+
 function LLMAnalyze(text: string) -> Analysis {
   client GPT4
   prompt #"
@@ -93,6 +93,7 @@ function ChainedProcess(input: string) -> string {
 function SimpleCalc(a: int, b: int) -> int {
   return a + b * 2
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

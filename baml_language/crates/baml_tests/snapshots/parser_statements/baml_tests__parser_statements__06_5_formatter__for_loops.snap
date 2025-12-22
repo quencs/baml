@@ -30,10 +30,9 @@ function nested_for_loop() -> int {
 }
 
 === FORMATTED ===
-
 function c_style_for_loop() -> int {
   let result = 0;
-  for (let i = 0;i < 10 ; i += 1 ){
+  for (let i = 0i < 10 ; i += 1 ){
     result += i;
   } 
   return result;
@@ -56,6 +55,7 @@ function nested_for_loop() -> int {
   } 
   return result;
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

@@ -15,7 +15,6 @@ function ConditionalLogic(age int) -> string {
 
 
 === FORMATTED ===
-
 function ConditionalLogic(age: int) -> string {
   if (age < 18) {
     return "minor";
@@ -25,6 +24,7 @@ function ConditionalLogic(age: int) -> string {
     return "senior";
   }
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

@@ -27,8 +27,8 @@ function ProcessText(input string) -> string {
 
 
 === FORMATTED ===
-
 // Test raw string parsing in prompts and descriptions
+
 class RawStrings {
   simple string
   @description(#"raw string"#)
@@ -53,6 +53,7 @@ function ProcessText(input: string) -> string {
     Return the processed result.
   "#
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

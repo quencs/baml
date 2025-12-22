@@ -32,7 +32,6 @@ function boolValues() -> map<string, bool> {
 }
 
 === FORMATTED ===
-
 function stringValues() -> map<string, string> {
   {"hello": "world", "test": "test"}
 }
@@ -48,6 +47,7 @@ function floatValues() -> map<string, float> {
 function boolValues() -> map<string, bool> {
   {"hello": true, "test": false}
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

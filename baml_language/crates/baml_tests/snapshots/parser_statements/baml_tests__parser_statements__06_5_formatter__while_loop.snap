@@ -23,7 +23,6 @@ function nested_while_loop() -> int {
 }
 
 === FORMATTED ===
-
 function simple_while_loop() -> int {
   let i = 0;
   while (i < 10) {
@@ -42,6 +41,7 @@ function nested_while_loop() -> int {
   }
   return i;
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

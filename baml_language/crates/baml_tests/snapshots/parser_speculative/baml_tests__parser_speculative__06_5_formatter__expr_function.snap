@@ -18,7 +18,6 @@ function ProcessData(data JsonData) -> string {
 
 
 === FORMATTED ===
-
 class JsonData {
   field1 int
   field2 int
@@ -31,6 +30,7 @@ function ProcessData(data: JsonData) -> string {
   }
   return "low";
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

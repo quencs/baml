@@ -27,7 +27,6 @@ class Baz {
 
 
 === FORMATTED ===
-
 function Bar() -> int {
   let x = Foo(1);
   x
@@ -38,7 +37,7 @@ function Foo(x: int) -> int {
 }
 
 function GreetBaz(n: string) -> string {
-  let baz = Baz {name: n};
+  let baz = Baz{name: n};
   baz.Greeting()
 }
 
@@ -49,6 +48,7 @@ class Baz {
     "Hello, " + self.name + "!"
   }
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

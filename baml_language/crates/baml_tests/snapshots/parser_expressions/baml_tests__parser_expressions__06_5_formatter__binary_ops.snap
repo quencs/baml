@@ -13,7 +13,6 @@ function Calculate() -> int {
 
 
 === FORMATTED ===
-
 function Calculate() -> int {
   let a = 1 + 2;
   let b = a * 3;
@@ -21,6 +20,7 @@ function Calculate() -> int {
   let d = (a + b) * c;
   return d;
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

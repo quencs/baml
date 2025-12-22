@@ -18,7 +18,6 @@ class User {
 
 
 === FORMATTED ===
-
 function HelloWorld(name: string) -> string {
   client GPT4
   prompt #"
@@ -31,6 +30,7 @@ class User {
   age int
 } // Added comment
 // Test comment
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

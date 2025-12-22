@@ -3,39 +3,15 @@ source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === MIR ===
-fn Foo(x: Int) -> Void {
+fn Bar() -> Int {
     // Locals:
-    let _0: Void // return
-    let _1: Int // x // param
-    let _2: Int
-    let _3: Int
-    let _4: Int
-    let _5: Int
-    let _6: Int
-    let _7: Int
-    let _8: Int
-    let _9: Int
-    let _10: Int
-    let _11: Unknown
-    let _12: Unknown
-    let _13: Int
-    let _14: Int
-    let _15: Int
-    let _16: Int
+    let _0: Int // return
+    let _1: Int // x
 
     bb0: {
-        _3 = copy _1;
-        _4 = const 1_i64;
-        _2 = copy _3 + copy _4;
-        _6 = copy _1;
-        _7 = const 2_i64;
-        _5 = copy _6 + copy _7;
-        _9 = copy _1;
-        _10 = const 3_i64;
-        _8 = copy _9 + copy _10;
-        _12 = const null;
-        _13 = copy _1;
-        _11 = call copy _12(copy _13) -> [bb2];
+        _1 = const 2_i64;
+        _0 = copy _1;
+        goto -> bb2;
     }
 
     bb1: {
@@ -43,11 +19,27 @@ fn Foo(x: Int) -> Void {
     }
 
     bb2: {
-        _15 = copy _1;
-        _16 = const 3_i64;
-        _14 = copy _15 + copy _16;
-        _0 = const null;
-        goto -> bb1;
+        return;
+    }
+
+}
+
+fn HelloWorld(name: Named("/*test*/ string")) -> String {
+    // Locals:
+    let _0: String // return
+    let _1: Named("/*test*/ string") // name // param
+    let _2: Unknown
+
+    bb0: {
+        _2 = dispatch_future const fn HelloWorld(copy _1) -> bb1;
+    }
+
+    bb1: {
+        _0 = await _2 -> [bb2];
+    }
+
+    bb2: {
+        return;
     }
 
 }

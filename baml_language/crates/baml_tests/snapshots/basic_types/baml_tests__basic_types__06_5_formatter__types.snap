@@ -15,7 +15,6 @@ enum Status {
 }
 
 === FORMATTED ===
-
 class User {
   id int
   name string
@@ -26,6 +25,7 @@ enum Status {
   Active
   Inactive
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)

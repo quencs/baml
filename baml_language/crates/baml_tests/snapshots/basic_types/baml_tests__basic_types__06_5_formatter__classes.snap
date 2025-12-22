@@ -27,7 +27,6 @@ class ClassAttributes {
 }
 
 === FORMATTED ===
-
 class FieldAttributes {
   // Description attribute
   money int
@@ -47,7 +46,6 @@ class FieldAttributes {
   // Stream with state attribute
   state string
   @stream.with_state
-
   // Multiple attributes
   multiple string?
   @description("Multiple attributes")
@@ -57,6 +55,7 @@ class ClassAttributes {
   name string
   @@dynamic
 }
+
 
 === IDEMPOTENCY CHECK ===
 ✓ Idempotent (formatting is stable)
