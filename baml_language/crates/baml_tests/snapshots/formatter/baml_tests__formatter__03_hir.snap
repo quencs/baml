@@ -3,22 +3,101 @@ source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
-function Bar() -> int {
-      let x = 2;
-      return x;
+function Foo() -> int {
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
+      x + 1;
 }
 
-function HelloWorld(name: /*test*/ string) -> string {
+function Qux(x: int) -> int {
+      x + 1
+}
+
+function Bar(x: int) -> int {
+      x + 1
+}
+
+function Foo(x: int) -> int {
+      x + 1
+}
+
+function Baz(x: int) -> int {
+      x + 1
+}
+
+function HelloWorld(name: string) -> string {
   client GPT4
   prompt #"
     
-                Say hello to {{name}}
-              
+    Say hello to{{name}}
   "#
 }
 
-class User {
-  name: /*test*/ string
-  age: int
-  val: (int/*test*/| /*test*/string/*test*/)
+class Foo {
+  field: /*comment*/ string
+  field2: string
+  field3: /*comment*/string
+  field4: /*comment*/string
+  field5: /*comment*/ string
+  field6: string
+  field7: string
+  field8: string
+  field9: /*comment*/string
+  field10: string
+}
+
+enum Bar {
+  Value1
+  Value2
+}
+
+type UserId = /*comment*/ string
+
+client GPT4 {
+  provider: unknown
+}
+
+test TestUser {
+}
+
+function HelloWorld(name: string) -> string {
+  client GPT4
+  prompt #"
+    
+    Say hello to{{name}}
+  "#
+}
+
+class Foo {
+  field: string
+  field2: string
+  field3: string
+  field4: string
+  field5: string
+  field6: string
+  field7: string
+  field8: string
+  field9: string
+  field10: string
+}
+
+enum Bar {
+  Value1
+  Value2
+}
+
+type UserId = string
+
+client GPT4 {
+  provider: unknown
+}
+
+test TestUser {
 }

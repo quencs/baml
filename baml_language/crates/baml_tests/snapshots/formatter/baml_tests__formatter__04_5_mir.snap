@@ -3,19 +3,173 @@ source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === MIR ===
-fn Bar() -> Int {
+fn Foo() -> Void {
     // Locals:
-    let _0: Int // return
-    let _1: Int // x
+    let _0: Void // return
+    let _1: Error
+    let _2: Unknown
+    let _3: Int
+    let _4: Error
+    let _5: Unknown
+    let _6: Int
+    let _7: Error
+    let _8: Unknown
+    let _9: Int
+    let _10: Error
+    let _11: Unknown
+    let _12: Int
+    let _13: Error
+    let _14: Unknown
+    let _15: Int
+    let _16: Error
+    let _17: Unknown
+    let _18: Int
+    let _19: Error
+    let _20: Unknown
+    let _21: Int
+    let _22: Error
+    let _23: Unknown
+    let _24: Int
+    let _25: Error
+    let _26: Unknown
+    let _27: Int
+    let _28: Error
+    let _29: Unknown
+    let _30: Int
 
     bb0: {
-        _1 = const 2_i64;
-        _0 = copy _1;
-        goto -> bb2;
+        _2 = const fn x;
+        _3 = const 1_i64;
+        _1 = copy _2 + copy _3;
+        _5 = const fn x;
+        _6 = const 1_i64;
+        _4 = copy _5 + copy _6;
+        _8 = const fn x;
+        _9 = const 1_i64;
+        _7 = copy _8 + copy _9;
+        _11 = const fn x;
+        _12 = const 1_i64;
+        _10 = copy _11 + copy _12;
+        _14 = const fn x;
+        _15 = const 1_i64;
+        _13 = copy _14 + copy _15;
+        _17 = const fn x;
+        _18 = const 1_i64;
+        _16 = copy _17 + copy _18;
+        _20 = const fn x;
+        _21 = const 1_i64;
+        _19 = copy _20 + copy _21;
+        _23 = const fn x;
+        _24 = const 1_i64;
+        _22 = copy _23 + copy _24;
+        _26 = const fn x;
+        _27 = const 1_i64;
+        _25 = copy _26 + copy _27;
+        _29 = const fn x;
+        _30 = const 1_i64;
+        _28 = copy _29 + copy _30;
+        _0 = const null;
+        goto -> bb1;
     }
 
     bb1: {
         return;
+    }
+
+}
+
+fn Qux(x: Int) -> Int {
+    // Locals:
+    let _0: Int // return
+    let _1: Int // x // param
+    let _2: Int
+    let _3: Int
+
+    bb0: {
+        _2 = copy _1;
+        _3 = const 1_i64;
+        _0 = copy _2 + copy _3;
+        goto -> bb1;
+    }
+
+    bb1: {
+        return;
+    }
+
+}
+
+fn Bar(x: Int) -> Int {
+    // Locals:
+    let _0: Int // return
+    let _1: Int // x // param
+    let _2: Int
+    let _3: Int
+
+    bb0: {
+        _2 = copy _1;
+        _3 = const 1_i64;
+        _0 = copy _2 + copy _3;
+        goto -> bb1;
+    }
+
+    bb1: {
+        return;
+    }
+
+}
+
+fn Foo(x: Int) -> Int {
+    // Locals:
+    let _0: Int // return
+    let _1: Int // x // param
+    let _2: Int
+    let _3: Int
+
+    bb0: {
+        _2 = copy _1;
+        _3 = const 1_i64;
+        _0 = copy _2 + copy _3;
+        goto -> bb1;
+    }
+
+    bb1: {
+        return;
+    }
+
+}
+
+fn Baz(x: Int) -> Int {
+    // Locals:
+    let _0: Int // return
+    let _1: Int // x // param
+    let _2: Int
+    let _3: Int
+
+    bb0: {
+        _2 = copy _1;
+        _3 = const 1_i64;
+        _0 = copy _2 + copy _3;
+        goto -> bb1;
+    }
+
+    bb1: {
+        return;
+    }
+
+}
+
+fn HelloWorld(name: String) -> String {
+    // Locals:
+    let _0: String // return
+    let _1: String // name // param
+    let _2: Unknown
+
+    bb0: {
+        _2 = dispatch_future const fn HelloWorld(copy _1) -> bb1;
+    }
+
+    bb1: {
+        _0 = await _2 -> [bb2];
     }
 
     bb2: {
@@ -24,10 +178,10 @@ fn Bar() -> Int {
 
 }
 
-fn HelloWorld(name: Named("/*test*/ string")) -> String {
+fn HelloWorld(name: String) -> String {
     // Locals:
     let _0: String // return
-    let _1: Named("/*test*/ string") // name // param
+    let _1: String // name // param
     let _2: Unknown
 
     bb0: {

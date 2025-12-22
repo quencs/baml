@@ -10,7 +10,7 @@ SOURCE_FILE
     L_BRACE "{"
     FIELD
       WORD "field"
-      TYPE_EXPR "/*comment*/ string"
+      TYPE_EXPR "string"
         WORD "string"
       ATTRIBUTE "@skip"
         AT "@"
@@ -24,23 +24,23 @@ SOURCE_FILE
         WORD "skip"
     FIELD
       WORD "field3"
-      TYPE_EXPR "/*comment*/string"
+      TYPE_EXPR "string"
         WORD "string"
       ATTRIBUTE "@skip"
         AT "@"
         WORD "skip"
     FIELD
       WORD "field4"
-      TYPE_EXPR "/*comment*/string"
+      TYPE_EXPR "string"
         WORD "string"
       ATTRIBUTE "@skip"
         AT "@"
         WORD "skip"
     FIELD
       WORD "field5"
-      TYPE_EXPR "/*comment*/ string"
+      TYPE_EXPR "string"
         WORD "string"
-      ATTRIBUTE "/*comment*/@skip"
+      ATTRIBUTE "@skip"
         AT "@"
         WORD "skip"
     FIELD
@@ -66,7 +66,7 @@ SOURCE_FILE
         WORD "skip"
     FIELD
       WORD "field9"
-      TYPE_EXPR "/*comment*/string"
+      TYPE_EXPR "string"
         WORD "string"
       ATTRIBUTE "@skip"
         AT "@"
@@ -83,8 +83,7 @@ SOURCE_FILE
     KW_ENUM "enum"
     WORD "Bar"
     L_BRACE "{"
-    ENUM_VARIANT "// comment
-Value1"
+    ENUM_VARIANT "Value1"
       WORD "Value1"
     ENUM_VARIANT "Value2"
       WORD "Value2"
@@ -112,7 +111,7 @@ Value1"
           L_BRACE "{"
           CONFIG_ITEM
             WORD "temperature"
-            CONFIG_VALUE "/*comment*/ 0.7"
+            CONFIG_VALUE "0.7"
               FLOAT_LITERAL "0.7"
           R_BRACE "}"
       R_BRACE "}"
@@ -139,7 +138,7 @@ You are helpful
       L_BRACE "{"
       CONFIG_ITEM
         WORD "functions"
-        CONFIG_VALUE "/*comment*/ [ /*comment*/ GetUser /*comment*/ ]"
+        CONFIG_VALUE "[GetUser]"
           L_BRACKET "["
           WORD "GetUser"
           R_BRACKET "]"
@@ -150,7 +149,7 @@ You are helpful
           CONFIG_ITEM
             WORD "user_id"
             CONFIG_VALUE
-              STRING_LITERAL "/*comment*/"123""
+              STRING_LITERAL "123"
                 QUOTE """
                 INTEGER_LITERAL "123"
                 QUOTE """
@@ -160,7 +159,7 @@ You are helpful
     WORD "type"
     WORD "UserId"
     EQUALS "="
-    TYPE_EXPR "/*comment*/ string"
+    TYPE_EXPR "string"
       WORD "string"
   RETRY_POLICY_DEF
     KW_RETRY_POLICY "retry_policy"
@@ -169,11 +168,11 @@ You are helpful
       L_BRACE "{"
       CONFIG_ITEM
         WORD "max_retries"
-        CONFIG_VALUE "/*comment*/  /*comment*/ 3"
+        CONFIG_VALUE "3"
           INTEGER_LITERAL "3"
       CONFIG_ITEM
         WORD "delay_ms"
-        CONFIG_VALUE "/*comment*/  /*comment*/ 1000"
+        CONFIG_VALUE "1000"
           INTEGER_LITERAL "1000"
       R_BRACE "}"
   FUNCTION_DEF
@@ -192,8 +191,7 @@ You are helpful
       WORD "string"
     LLM_FUNCTION_BODY
       L_BRACE "{"
-      CLIENT_FIELD "/*comment*/  /*comment*/ 
-client GPT4"
+      CLIENT_FIELD "client GPT4"
         KW_CLIENT "client"
         WORD "GPT4"
       PROMPT_FIELD

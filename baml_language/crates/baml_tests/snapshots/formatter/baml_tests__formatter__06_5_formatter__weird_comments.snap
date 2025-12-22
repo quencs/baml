@@ -3,49 +3,126 @@ source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === ORIGINAL ===
-function Bar() -> int {
-  let x = 2; // comment
-  return x;
+class /*comment*/ Foo{ // comment
+field /*comment*/ string@skip // comment
+field2 string@skip
+field3 /*comment*/string@skip
+field4 /*comment*/string@skip
+field5/*comment*/ string/*comment*/@skip
+field6 string@skip
+field7 string@skip
+field8 string@skip
+field9 /*comment*/string@skip // comment
+
+//comment
+field10 string@skip
 }
 
-function HelloWorld /*test*/(name: /*test*/ string /*test*/) /*test*/ -> string /*test*/{
-  /*test*/
-  client /*test*/ GPT4 /*test*/
-  prompt #"
-            Say hello to {{name}}
-          "#
+enum /*comment*/ Bar{ // comment
+Value1
+Value2
+}  // comment
+
+client<llm> GPT4
+ // comment
+{
+provider openai
+model gpt-4
+options{
+temperature  /*comment*/ 0.7
+}
 }
 
-class User /*test*/{ // test
-  name /*test*/ string @assert({{ this > 0 }}) //test
-  age int @skip
-  val (int/*test*/| /*test*/string/*test*/)
-}// Added comment
-// Test comment
+template_string /*comment*/MyPrompt()#"
+You are helpful
+"# // comment
 
+test  /*comment*/ TestUser /*comment*/ {
+functions /*comment*/ [ /*comment*/ GetUser /*comment*/ ]
+args/*comment*/{
+user_id/*comment*/"123"
+}
+}
+ // comment
+type UserId /*comment*/ = /*comment*/ string
+ // comment
+retry_policy  /*comment*/ DefaultRetry{
+max_retries  /*comment*/  /*comment*/ 3
+delay_ms  /*comment*/  /*comment*/ 1000
+} // comment
+ // comment
+function HelloWorld(name:string)->string /*comment*/ { /*comment*/  /*comment*/ 
+client GPT4
+prompt #"
+Say hello to{{name}}
+"# /*comment*/ 
+} // comment
 
 === FORMATTED ===
-function Bar() -> int {
-  let x = 2; // comment
-  return x;
-}
-
-function HelloWorld(name: string) -> string {
-  /*test*/
-  client GPT4 /*test*/
-  prompt #"
-            Say hello to {{name}}
-          "#
-}
-
-class User { // test
-  name string
-  @assert({{this>0}}) //test
-  age int
+class Foo { // comment
+  field string
+  @skip // comment
+  field2 string
   @skip
-  val (int | string)
-} // Added comment
-// Test comment
+  field3 string
+  @skip
+  field4 string
+  @skip
+  field5 string
+  @skip
+  field6 string
+  @skip
+  field7 string
+  @skip
+  field8 string
+  @skip
+  field9 string
+  @skip // comment
+  //comment
+  field10 string
+  @skip
+}
+
+enum Bar { // comment
+  Value1
+  Value2
+} // comment
+
+client<llm> GPT4 {
+  provider  openai
+  model  gpt-4
+  options {
+    temperature  /*comment*/ 0.7
+  }
+}
+
+template_string MyPrompt() #"
+You are helpful
+"# // comment
+
+test TestUser {
+  functions  /*comment*/ [ /*comment*/ GetUser /*comment*/ ]
+  args {
+    user_id "123"
+  }
+}
+// comment
+
+type UserId = string
+// comment
+
+retry_policy DefaultRetry {
+  max_retries  /*comment*/  /*comment*/ 3
+  delay_ms  /*comment*/  /*comment*/ 1000
+} // comment
+// comment
+
+function HelloWorld(name: string) -> string { /*comment*/ /*comment*/
+  client GPT4
+  prompt #"
+Say hello to{{name}}
+"# /*comment*/
+} // comment
 
 
 === IDEMPOTENCY CHECK ===
