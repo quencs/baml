@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file. See [conven
 
 ## [0.215.1](https://github.com/boundaryml/baml/compare/0.215.0..0.215.1) - 2025-12-20
 
+WARNING: this release is incomplete. Release automation was broken for 0.215.1 and not all artifacts were correctly uploaded.
+
 ### Bug Fixes
 - Vertex ai model error (#2836) - ([8482c1d](https://github.com/boundaryml/baml/commit/8482c1d06135b35cbaf3715e7dec5e4a841c3d52)) - aaronvg
 
