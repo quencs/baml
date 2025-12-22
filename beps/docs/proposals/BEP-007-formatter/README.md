@@ -46,26 +46,23 @@ Key insights:
 ## Suggested Implementation
 
 ### Approach
-BAML will use an **AST-based formatter** that will eventually have **variable line length limits** per construct type, inspired by rustfmt.
+BAML will use a **CST-based formatter** approach, that will process in a similar way to an AST-based formatter, but with the added advantage of parsed tokens for spans that are missing in the AST. It will eventually have **variable line length limits** per construct type, inspired by rustfmt.
 
-**Why AST-based:**
+**Why CST-based:**
 - **Fine-grained control**: Different constructs (client blocks, function signatures, prompts) have different optimal formatting
 - **Syntax upgrades**: Like Go's `-s` flag, we can automatically migrate deprecated syntax (e.g., old type syntax → new, unquoted strings → quoted strings)
-- **Semantic awareness**: Can leverage construct meaning for better decisions (e.g., treat retry policies differently from classes)
-- **Comment handling**: BAML's AST nodes are newtype wrappers around CST nodes, making comment collection straightforward—comments remain attached to their CST nodes and can be extracted during formatting
 - **BAML-specific constructs**: Custom logic for unique features (prompt templates, client configurations, test blocks)
 
-**Variable line lengths (future feature):**
+**Proposed Variable line length values:**
 - Global: 120 columns
 - Function signatures: 100 columns (encourages readable parameter lists)
 - Prompt templates: Unlimited (breaking templates is problematic)
 - Client/retry policy blocks: 80 columns (keeps config concise)
 
 **Syntax migrations** (via `--fix` or `-s` flag):
-- Normalize deprecated type syntax
-- Update old attribute forms to current standard
+- Normalize legacy type syntax
 - Simplify redundant constructs
-- Fix common patterns from older BAML versions
+- Convert unidiomatic constructs to idiomatic ones
 
 This trades implementation simplicity for better output quality and forward compatibility. BAML's syntax is simpler than Rust's, keeping maintenance reasonable.
 
@@ -88,25 +85,25 @@ The formatter will preserve comments by:
 - Comments within expressions will be preserved in-place where possible, or moved to the nearest valid position if the formatter's line-breaking would make them syntactically invalid
 
 ### Configuration
-The initial implementation will use a canonical, non-configurable style. This will ensure that all BAML code looks the same.
+The formatter will have a canonical, non-configurable style. This will ensure that all BAML code looks the same.
 
 ### Integration
 The formatter will be accessible through:
 
 - A `baml format` (`fmt` will also work) CLI command for formatting files or directories
 - LSP integration for format-on-save in editors
-- A `--check` flag for CI/CD to verify code is formatted
 - A `baml_onionskin` layer displaying formatted code
 
 ### Scope
-The formatter will handle all BAML language constructs including:
+The formatter will handle all top-level BAML language constructs including:
 
-- Function definitions
+- Imperative function definitions
+- LLM function definitions
 - Class definitions
 - Enum definitions
 - Client and retry policy configurations
 - Type annotations
-- Comments and documentation
+- Comments
 
 ## Variable Line Width Rules
 
