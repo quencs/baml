@@ -392,6 +392,7 @@ dependencies = [
  "anyhow",
  "axum 0.8.7",
  "baml_db",
+ "baml_format",
  "baml_lsp_types",
  "colored",
  "console-subscriber",
