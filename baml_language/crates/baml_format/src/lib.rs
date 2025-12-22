@@ -507,6 +507,7 @@ impl Formatter {
         Some(format!("{}\n", self.output.trim())) // remove leading and trailing whitespace, and add a newline at the end
     }
 
+    /// Formats a type alias definition.
     fn format_type_alias_def(
         &mut self,
         type_alias_def: SyntaxNode,
@@ -564,6 +565,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a template string definition.
     fn format_template_string_def(
         &mut self,
         template_string_def: SyntaxNode,
@@ -617,6 +619,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a retry policy definition.
     fn format_retry_policy_def(
         &mut self,
         retry_policy_def: SyntaxNode,
@@ -662,6 +665,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a test definition.
     fn format_test_def(
         &mut self,
         test_def: SyntaxNode,
@@ -707,6 +711,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a token as plain text.
     fn format_token_plaintext(
         &mut self,
         token: SyntaxToken,
@@ -721,6 +726,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a client definition.
     fn format_client_def(
         &mut self,
         client_def: SyntaxNode,
@@ -775,6 +781,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a config block.
     fn format_config_block(
         &mut self,
         config_block: SyntaxNode,
@@ -815,6 +822,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a config item.
     fn format_config_item(
         &mut self,
         config_item: SyntaxNode,
@@ -851,6 +859,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a config value.
     fn format_config_value(
         &mut self,
         config_value: SyntaxNode,
@@ -911,6 +920,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a client type.
     fn format_client_type(
         &mut self,
         client_type: SyntaxNode,
@@ -1015,6 +1025,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a block attribute.
     fn format_block_attribute(
         &mut self,
         block_attribute: SyntaxNode,
@@ -1058,6 +1069,7 @@ impl Formatter {
         );
     }
 
+    /// Formats attribute arguments.
     fn format_attribute_args(
         &mut self,
         attribute_args: SyntaxNode,
@@ -1091,6 +1103,7 @@ impl Formatter {
         }
     }
 
+    /// Formats an enum variant.
     fn format_enum_variant(
         &mut self,
         enum_variant: SyntaxNode,
@@ -1189,6 +1202,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a class field.
     fn format_class_field(
         &mut self,
         class_field: SyntaxNode,
@@ -1222,6 +1236,7 @@ impl Formatter {
         );
     }
 
+    /// Formats an attribute.
     fn format_attribute(
         &mut self,
         attribute: SyntaxNode,
@@ -1253,6 +1268,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a function definition.
     fn format_function_def(
         &mut self,
         function_def: SyntaxNode,
@@ -1330,6 +1346,7 @@ impl Formatter {
         }
     }
 
+    /// Formats an LLM function body.
     fn format_llm_function_body(
         &mut self,
         llm_function_body: SyntaxNode,
@@ -1372,6 +1389,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a client field.
     fn format_client_field(
         &mut self,
         client_field: SyntaxNode,
@@ -1397,6 +1415,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a prompt field.
     fn format_prompt_field(
         &mut self,
         prompt_field: SyntaxNode,
@@ -1425,6 +1444,7 @@ impl Formatter {
         }
     }
 
+    /// Formats an expression function body.
     fn format_expr_function_body(
         &mut self,
         expr_function_body: SyntaxNode,
@@ -1441,6 +1461,7 @@ impl Formatter {
         );
     }
 
+    /// Formats a block expression.
     fn format_block_expr(
         &mut self,
         block_expr: SyntaxNode,
@@ -1495,6 +1516,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a for expression.
     fn format_for_expr(
         &mut self,
         for_expr: SyntaxNode,
@@ -1701,6 +1723,7 @@ impl Formatter {
         }
     }
 
+    /// Formats an index expression
     fn format_index_expr(
         &mut self,
         expr: SyntaxNode,
@@ -1739,6 +1762,7 @@ impl Formatter {
         }
     }
 
+    /// Formats a map literal
     fn format_map_literal(
         &mut self,
         expr: SyntaxNode,
@@ -1773,6 +1797,7 @@ impl Formatter {
         }
     }
 
+    /// Formats an object literal.
     fn format_object_literal(
         &mut self,
         expr: SyntaxNode,
