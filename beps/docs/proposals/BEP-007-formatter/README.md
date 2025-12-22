@@ -46,7 +46,7 @@ Key insights:
 ## Suggested Implementation
 
 ### Approach
-BAML will use an **AST-based formatter** with **variable line length limits** per construct type, inspired by rustfmt.
+BAML will use an **AST-based formatter** that will eventually have **variable line length limits** per construct type, inspired by rustfmt.
 
 **Why AST-based:**
 - **Fine-grained control**: Different constructs (client blocks, function signatures, prompts) have different optimal formatting
@@ -55,7 +55,7 @@ BAML will use an **AST-based formatter** with **variable line length limits** pe
 - **Comment handling**: BAML's AST nodes are newtype wrappers around CST nodes, making comment collection straightforward—comments remain attached to their CST nodes and can be extracted during formatting
 - **BAML-specific constructs**: Custom logic for unique features (prompt templates, client configurations, test blocks)
 
-**Variable line lengths:**
+**Variable line lengths (future feature):**
 - Global: 120 columns
 - Function signatures: 100 columns (encourages readable parameter lists)
 - Prompt templates: Unlimited (breaking templates is problematic)
@@ -88,17 +88,12 @@ The formatter will preserve comments by:
 - Comments within expressions will be preserved in-place where possible, or moved to the nearest valid position if the formatter's line-breaking would make them syntactically invalid
 
 ### Configuration
-The initial implementation will use a canonical, non-configurable style with these defaults:
-- **Indent**: 4 spaces
-- **Line width**: 120 columns
-- **Trailing commas**: Always included in multi-line lists
-
-Future versions may allow configuration through a `.bamlformat` file or similar.
+The initial implementation will use a canonical, non-configurable style. This will ensure that all BAML code looks the same.
 
 ### Integration
 The formatter will be accessible through:
 
-- A `baml fmt` (`format` will also work) CLI command for formatting files or directories
+- A `baml format` (`fmt` will also work) CLI command for formatting files or directories
 - LSP integration for format-on-save in editors
 - A `--check` flag for CI/CD to verify code is formatted
 - A `baml_onionskin` layer displaying formatted code
@@ -113,7 +108,7 @@ The formatter will handle all BAML language constructs including:
 - Type annotations
 - Comments and documentation
 
-## Formatting Rules
+## Variable Line Width Rules
 
 This section defines the specific formatting rules that the BAML formatter will apply to code. Each shows how code will normally look if fit on a single line, as well as how it will look with possible line breaks.
 
@@ -246,14 +241,6 @@ function myHugeMap() -> int[] {
     }
 }
 ```
-
-## Non-Goals
-This formatter will not:
-
-- Reorder declarations (imports, functions, etc.)
-- Perform syntax refactoring or code transformations
-- Enforce naming conventions
-- Validate correctness beyond syntax
 
 ## Open Questions
 1. Should we support a `// baml-fmt: off` comment to disable formatting for specific sections?
