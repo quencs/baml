@@ -160,19 +160,21 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
         f: impl FnOnce(&mut Formatter, SyntaxNode, bool, bool),
-    ) -> bool {
+    ) -> Option<SyntaxNode> {
         let Some(node) = children.by_ref().find(|child| child.kind() == kind) else {
-            return false;
+            return None;
         };
+
+        let node = node.into_node().unwrap();
 
         f(
             self,
-            node.into_node().unwrap(),
+            SyntaxNode::clone(&node),
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
         );
 
-        true
+        Some(node)
     }
 
     /// Scan until we reach the specified kind, and call the provided function with the node.
@@ -186,24 +188,25 @@ impl Formatter {
         should_collect_preceding_trivia: bool,
         f: impl FnOnce(&mut Formatter, SyntaxNode, bool, bool),
         stop_kind: SyntaxKind,
-    ) -> bool {
+    ) -> Option<SyntaxNode> {
         while let Some(child) = children.peek() {
             if child.kind() == stop_kind {
-                break;
+                return None;
             } else if child.kind() == kind {
+                let node = children.next().unwrap().into_node().unwrap();
                 f(
                     self,
-                    children.next().unwrap().into_node().unwrap(),
+                    SyntaxNode::clone(&node),
                     prepend_newline_and_indent,
                     should_collect_preceding_trivia,
                 );
-                return true;
+                return Some(node);
             } else {
                 children.next();
             }
         }
 
-        false
+        None
     }
 
     /// Scan until we reach the specified kind, and call the provided function with the token.
@@ -215,18 +218,20 @@ impl Formatter {
         prepend_newline_and_indent: bool,
         should_collect_preceding_trivia: bool,
         f: impl FnOnce(&mut Formatter, SyntaxToken, bool, bool),
-    ) -> bool {
+    ) -> Option<SyntaxToken> {
         let Some(token) = children.by_ref().find(|child| child.kind() == kind) else {
-            return false;
+            return None;
         };
+
+        let token = token.into_token().unwrap();
 
         f(
             self,
-            token.into_token().unwrap(),
+            SyntaxToken::clone(&token),
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
         );
-        true
+        Some(token)
     }
 
     /// Scan until we reach the specified kind, and call the provided function with the token.
@@ -240,24 +245,25 @@ impl Formatter {
         should_collect_preceding_trivia: bool,
         f: impl FnOnce(&mut Formatter, SyntaxToken, bool, bool),
         stop_kind: SyntaxKind,
-    ) -> bool {
+    ) -> Option<SyntaxToken> {
         while let Some(child) = children.peek() {
             if child.kind() == stop_kind {
-                break;
+                return None;
             } else if child.kind() == kind {
+                let token = children.next().unwrap().into_token().unwrap();
                 f(
                     self,
-                    children.next().unwrap().into_token().unwrap(),
+                    SyntaxToken::clone(&token),
                     prepend_newline_and_indent,
                     should_collect_preceding_trivia,
                 );
-                return true;
+                return Some(token);
             } else {
                 children.next();
             }
         }
 
-        false
+        None
     }
 
     /// Formats a type expression.
@@ -265,7 +271,7 @@ impl Formatter {
         &mut self,
         node: SyntaxNode,
         mut prepend_newline_and_indent: bool,
-        should_collect_preceding_trivia: bool,
+        mut should_collect_preceding_trivia: bool, // set this to false after encountering the first token
     ) {
         let ref mut children = node.children_with_tokens().peekable();
 
@@ -278,11 +284,14 @@ impl Formatter {
                 | SyntaxKind::L_BRACKET
                 | SyntaxKind::R_BRACKET
                 | SyntaxKind::L_PAREN
-                | SyntaxKind::R_PAREN => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
+                | SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(
+                        child.into_token().unwrap(),
+                        prepend_newline_and_indent,
+                        should_collect_preceding_trivia,
+                    );
+                    should_collect_preceding_trivia = false;
+                }
                 // also allow union pipe, but give it spaces around it
                 SyntaxKind::PIPE => {
                     self.push_text(" ");
@@ -306,22 +315,28 @@ impl Formatter {
                 SyntaxKind::STRING_LITERAL
                 | SyntaxKind::RAW_STRING_LITERAL
                 | SyntaxKind::INTEGER_LITERAL
-                | SyntaxKind::FLOAT_LITERAL => self.format_literal(
-                    child,
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
+                | SyntaxKind::FLOAT_LITERAL => {
+                    self.format_literal(
+                        child,
+                        prepend_newline_and_indent,
+                        should_collect_preceding_trivia,
+                    );
+                    should_collect_preceding_trivia = false;
+                }
                 SyntaxKind::TYPE_ARGS => self.format_type_args(
                     child.into_node().unwrap(),
                     prepend_newline_and_indent,
                     should_collect_preceding_trivia,
                 ),
                 // recurse for nesting in parentheses
-                SyntaxKind::TYPE_EXPR => self.format_type_expr(
-                    child.into_node().unwrap(),
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::TYPE_EXPR => {
+                    self.format_type_expr(
+                        child.into_node().unwrap(),
+                        prepend_newline_and_indent,
+                        should_collect_preceding_trivia,
+                    );
+                    should_collect_preceding_trivia = false;
+                }
                 // ignore everything else - comments, whitespace, etc.
                 _ => (),
             }
@@ -351,20 +366,20 @@ impl Formatter {
                 SyntaxKind::GREATER => self.format_token_plaintext(
                     child.into_token().unwrap(),
                     prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
+                    false,
                 ),
                 SyntaxKind::COMMA => {
                     self.format_token_plaintext(
                         child.into_token().unwrap(),
                         prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        false,
                     );
                     self.push_text(" ");
                 }
                 SyntaxKind::TYPE_EXPR => self.format_type_expr(
                     child.into_node().unwrap(),
                     prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
+                    false,
                 ),
                 _ => (),
             }
@@ -389,24 +404,16 @@ impl Formatter {
 
         while let Some(child) = children.next() {
             match child.kind() {
-                SyntaxKind::R_PAREN => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                }
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
-                SyntaxKind::PARAMETER => self.format_parameter(
-                    child.into_node().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::PARAMETER => {
+                    self.format_parameter(child.into_node().unwrap(), false, false)
+                }
                 _ => (),
             }
         }
@@ -442,14 +449,17 @@ impl Formatter {
             }
         }
 
-        if !self.format_token_stop(
-            children,
-            SyntaxKind::COLON,
-            false,
-            should_collect_preceding_trivia,
-            Self::format_token_plaintext,
-            SyntaxKind::TYPE_EXPR,
-        ) {
+        if self
+            .format_token_stop(
+                children,
+                SyntaxKind::COLON,
+                false,
+                false,
+                Self::format_token_plaintext,
+                SyntaxKind::TYPE_EXPR,
+            )
+            .is_none()
+        {
             self.push_text(":"); // add the colon if they're using the legacy syntax
         }
         self.push_text(" ");
@@ -458,11 +468,12 @@ impl Formatter {
             children,
             SyntaxKind::TYPE_EXPR,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_type_expr,
         );
     }
 
+    /// Nest the formatter by one level.
     fn nest<F>(&mut self, f: F)
     where
         F: FnOnce(&mut Self),
@@ -493,7 +504,7 @@ impl Formatter {
         // grab hanging trivia at the end of the file
         self.format_missing(self.root.text_range().end());
 
-        Some(self.output.clone())
+        Some(format!("{}\n", self.output.trim())) // remove leading and trailing whitespace, and add a newline at the end
     }
 
     fn format_type_alias_def(
@@ -510,7 +521,18 @@ impl Formatter {
             SyntaxKind::WORD,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
         self.push_text(" ");
 
@@ -519,7 +541,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -528,7 +550,7 @@ impl Formatter {
             children,
             SyntaxKind::EQUALS,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -537,7 +559,7 @@ impl Formatter {
             children,
             SyntaxKind::TYPE_EXPR,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_type_expr,
         );
     }
@@ -554,7 +576,18 @@ impl Formatter {
             SyntaxKind::KW_TEMPLATE_STRING,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
         self.push_text(" ");
 
@@ -562,7 +595,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
@@ -570,7 +603,7 @@ impl Formatter {
             children,
             SyntaxKind::PARAMETER_LIST,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_parameter_list,
         );
         self.push_text(" ");
@@ -579,7 +612,7 @@ impl Formatter {
             children,
             SyntaxKind::RAW_STRING_LITERAL,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_string_literal,
         );
     }
@@ -596,7 +629,18 @@ impl Formatter {
             SyntaxKind::KW_RETRY_POLICY,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
         self.push_text(" ");
 
@@ -604,7 +648,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -613,7 +657,7 @@ impl Formatter {
             children,
             SyntaxKind::CONFIG_BLOCK,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_config_block,
         );
     }
@@ -630,7 +674,18 @@ impl Formatter {
             SyntaxKind::KW_TEST,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
         self.push_text(" ");
 
@@ -638,7 +693,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -647,7 +702,7 @@ impl Formatter {
             children,
             SyntaxKind::CONFIG_BLOCK,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_config_block,
         );
     }
@@ -678,14 +733,25 @@ impl Formatter {
             SyntaxKind::KW_CLIENT,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
 
         self.format_node(
             children,
             SyntaxKind::CLIENT_TYPE,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_client_type,
         );
         self.push_text(" ");
@@ -695,7 +761,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -704,7 +770,7 @@ impl Formatter {
             children,
             SyntaxKind::CONFIG_BLOCK,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_config_block,
         );
     }
@@ -725,14 +791,17 @@ impl Formatter {
         );
 
         self.nest(|f| {
-            while f.format_node_stop(
-                children,
-                SyntaxKind::CONFIG_ITEM,
-                true,
-                should_collect_preceding_trivia,
-                Self::format_config_item,
-                SyntaxKind::R_BRACE,
-            ) {}
+            while f
+                .format_node_stop(
+                    children,
+                    SyntaxKind::CONFIG_ITEM,
+                    true,
+                    true,
+                    Self::format_config_item,
+                    SyntaxKind::R_BRACE,
+                )
+                .is_some()
+            {}
 
             f.format_missing(config_block.text_range().end()); // handle hanging trivia at the end of the config block
         });
@@ -741,7 +810,7 @@ impl Formatter {
             children,
             SyntaxKind::R_BRACE,
             true,
-            should_collect_preceding_trivia,
+            true,
             Self::format_token_plaintext,
         );
     }
@@ -768,7 +837,7 @@ impl Formatter {
             children,
             SyntaxKind::CONFIG_BLOCK,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_config_block,
             SyntaxKind::CONFIG_VALUE,
         );
@@ -777,7 +846,7 @@ impl Formatter {
             children,
             SyntaxKind::CONFIG_VALUE,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_config_value,
         );
     }
@@ -806,7 +875,7 @@ impl Formatter {
                         self.format_token_plaintext(
                             child.into_token().unwrap(),
                             prepend_newline_and_indent,
-                            should_collect_preceding_trivia,
+                            false,
                         );
                     }
                 }
@@ -814,20 +883,18 @@ impl Formatter {
                     .format_string_literal(
                         child.into_node().unwrap(),
                         prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        false,
                     ),
                 SyntaxKind::COMMA => {
                     self.format_token_plaintext(
                         child.into_token().unwrap(),
                         prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        false,
                     );
                 }
-                SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => self.format_literal(
-                    child,
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::INTEGER_LITERAL | SyntaxKind::FLOAT_LITERAL => {
+                    self.format_literal(child, prepend_newline_and_indent, false)
+                }
                 SyntaxKind::NEWLINE => {
                     break;
                 }
@@ -835,7 +902,7 @@ impl Formatter {
                     self.format_token_plaintext(
                         child.into_token().unwrap(),
                         prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        false,
                     );
                 }
             }
@@ -863,7 +930,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
@@ -871,7 +938,7 @@ impl Formatter {
             children,
             SyntaxKind::GREATER,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
     }
@@ -884,20 +951,33 @@ impl Formatter {
         should_collect_preceding_trivia: bool,
     ) {
         let ref mut children = enum_def.children_with_tokens().peekable();
+
         self.format_token(
             children,
             SyntaxKind::KW_ENUM,
-            true,
+            prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
+
         self.push_text(" ");
 
         self.format_token(
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -906,7 +986,7 @@ impl Formatter {
             children,
             SyntaxKind::L_BRACE,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
@@ -914,16 +994,12 @@ impl Formatter {
         self.nest(|f| {
             while let Some(child) = children.next() {
                 match child.kind() {
-                    SyntaxKind::ENUM_VARIANT => f.format_enum_variant(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
-                    SyntaxKind::BLOCK_ATTRIBUTE => f.format_block_attribute(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
+                    SyntaxKind::ENUM_VARIANT => {
+                        f.format_enum_variant(child.into_node().unwrap(), true, true)
+                    }
+                    SyntaxKind::BLOCK_ATTRIBUTE => {
+                        f.format_block_attribute(child.into_node().unwrap(), true, true)
+                    }
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
                         break;
@@ -935,11 +1011,7 @@ impl Formatter {
         });
 
         if let Some(brace_child) = brace_child {
-            self.format_token_plaintext(
-                brace_child.into_token().unwrap(),
-                true,
-                should_collect_preceding_trivia,
-            );
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true, true);
         }
     }
 
@@ -963,7 +1035,7 @@ impl Formatter {
             children,
             SyntaxKind::KW_DYNAMIC,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
             SyntaxKind::WORD,
         );
@@ -972,7 +1044,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
             SyntaxKind::ATTRIBUTE_ARGS,
         );
@@ -981,7 +1053,7 @@ impl Formatter {
             children,
             SyntaxKind::ATTRIBUTE_ARGS,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_attribute_args,
         );
     }
@@ -1006,19 +1078,14 @@ impl Formatter {
                 SyntaxKind::R_PAREN => self.format_token_plaintext(
                     child.into_token().unwrap(),
                     prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
+                    false,
                 ),
-                SyntaxKind::COMMA => self.push_format(
-                    child.text_range(),
-                    ", ",
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
-                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(
-                    child,
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::COMMA => {
+                    self.push_format(child.text_range(), ", ", prepend_newline_and_indent, false)
+                }
+                kind if kind.is_valid_rhs_expr() => {
+                    self.format_rhs_expr(child, prepend_newline_and_indent, false)
+                }
                 _ => (),
             }
         }
@@ -1043,7 +1110,7 @@ impl Formatter {
             children,
             SyntaxKind::ATTRIBUTE,
             true,
-            should_collect_preceding_trivia,
+            false,
             Self::format_attribute,
         );
     }
@@ -1061,7 +1128,18 @@ impl Formatter {
             SyntaxKind::KW_CLASS,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
         self.push_text(" ");
 
@@ -1131,15 +1209,15 @@ impl Formatter {
             children,
             SyntaxKind::TYPE_EXPR,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_type_expr,
         );
 
         self.format_node(
             children,
             SyntaxKind::ATTRIBUTE,
-            true,
-            should_collect_preceding_trivia,
+            true, // attributes on the next line
+            false,
             Self::format_attribute,
         );
     }
@@ -1162,25 +1240,13 @@ impl Formatter {
         while let Some(child) = children.next() {
             match child.kind() {
                 SyntaxKind::WORD => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::DOT => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::ATTRIBUTE_ARGS => {
-                    self.format_attribute_args(
-                        child.into_node().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_attribute_args(child.into_node().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1199,7 +1265,18 @@ impl Formatter {
             SyntaxKind::KW_FUNCTION,
             prepend_newline_and_indent,
             should_collect_preceding_trivia,
-            Self::format_token_plaintext,
+            |f, token, prepend_newline_and_indent, should_collect_preceding_trivia| {
+                if should_collect_preceding_trivia {
+                    f.format_missing(token.text_range().start());
+                }
+                f.push_text("\n");
+
+                f.format_token_plaintext(
+                    token,
+                    prepend_newline_and_indent,
+                    should_collect_preceding_trivia,
+                );
+            },
         );
         self.push_text(" ");
 
@@ -1273,16 +1350,12 @@ impl Formatter {
         self.nest(|f| {
             while let Some(child) = children.next() {
                 match child.kind() {
-                    SyntaxKind::CLIENT_FIELD => f.format_client_field(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
-                    SyntaxKind::PROMPT_FIELD => f.format_prompt_field(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
+                    SyntaxKind::CLIENT_FIELD => {
+                        f.format_client_field(child.into_node().unwrap(), true, true)
+                    }
+                    SyntaxKind::PROMPT_FIELD => {
+                        f.format_prompt_field(child.into_node().unwrap(), true, true)
+                    }
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
                         break;
@@ -1295,11 +1368,7 @@ impl Formatter {
         });
 
         if let Some(brace_child) = brace_child {
-            self.format_token_plaintext(
-                brace_child.into_token().unwrap(),
-                true,
-                should_collect_preceding_trivia,
-            );
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true, true);
         }
     }
 
@@ -1323,7 +1392,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
     }
@@ -1348,12 +1417,9 @@ impl Formatter {
 
         while let Some(child) = children.next() {
             match child.kind() {
-                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => self
-                    .format_string_literal(
-                        child.into_node().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    ),
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                    self.format_string_literal(child.into_node().unwrap(), false, false)
+                }
                 _ => (),
             }
         }
@@ -1451,44 +1517,24 @@ impl Formatter {
         while let Some(child) = children.next() {
             match child.kind() {
                 SyntaxKind::L_PAREN => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::R_PAREN => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
                 SyntaxKind::KW_IN => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
                 SyntaxKind::LET_STMT => {
-                    self.format_let_stmt(
-                        child.into_node().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_let_stmt(child.into_node().unwrap(), false, false);
                 }
                 SyntaxKind::SEMICOLON => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
                 kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia);
+                    self.format_rhs_expr(child, false, false);
                     self.push_text(" ");
                 }
                 _ => (),
@@ -1612,8 +1658,46 @@ impl Formatter {
                 prepend_newline_and_indent,
                 should_collect_preceding_trivia,
             ),
-            SyntaxKind::EXPR => todo!(),
+            SyntaxKind::EXPR => self.format_expression_block(
+                expr.into_node().unwrap(),
+                prepend_newline_and_indent,
+                should_collect_preceding_trivia,
+            ),
             _ => unreachable!(),
+        }
+    }
+
+    fn format_expression_block(
+        &mut self,
+        expression_block: SyntaxNode,
+        prepend_newline_and_indent: bool,
+        should_collect_preceding_trivia: bool,
+    ) {
+        let ref mut children = expression_block.children_with_tokens().peekable();
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            prepend_newline_and_indent,
+            should_collect_preceding_trivia,
+            Self::format_token_plaintext,
+        );
+
+        self.format_token(
+            children,
+            SyntaxKind::L_BRACE,
+            false,
+            false,
+            Self::format_token_plaintext,
+        );
+
+        // basically just print verbatim the contents of the expression block
+        // this part of the parser isn't finished so this is just a bunch of tokens
+        while let Some(child) = children.next() {
+            if child.kind().is_trivia() {
+                continue;
+            }
+
+            self.format_token_plaintext(child.into_token().unwrap(), false, false);
         }
     }
 
@@ -1646,14 +1730,10 @@ impl Formatter {
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
+                SyntaxKind::R_BRACKET => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
                 }
-                SyntaxKind::R_BRACKET => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
                 _ => (),
             }
         }
@@ -1676,29 +1756,17 @@ impl Formatter {
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
+                SyntaxKind::R_BRACE => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                 }
-                SyntaxKind::R_BRACE => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
                 // why does this not have its own kind?
                 SyntaxKind::OBJECT_FIELD => {
-                    self.format_object_field(
-                        child.into_node().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_object_field(child.into_node().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1714,15 +1782,17 @@ impl Formatter {
         let ref mut children = expr.children_with_tokens().peekable();
 
         // format the optional constructor name
-        if self.format_token_stop(
-            children,
-            SyntaxKind::WORD,
-            prepend_newline_and_indent,
-            should_collect_preceding_trivia,
-            Self::format_token_plaintext,
-            SyntaxKind::L_BRACE,
-        ) {
-            self.push_text(" ");
+        if self
+            .format_token_stop(
+                children,
+                SyntaxKind::WORD,
+                prepend_newline_and_indent,
+                should_collect_preceding_trivia,
+                Self::format_token_plaintext,
+                SyntaxKind::L_BRACE,
+            )
+            .is_some()
+        {
             prepend_newline_and_indent = false;
         }
 
@@ -1730,35 +1800,23 @@ impl Formatter {
             children,
             SyntaxKind::L_BRACE,
             prepend_newline_and_indent,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
+                SyntaxKind::R_BRACE => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
                 }
-                SyntaxKind::R_BRACE => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
                 // why does this not have its own kind?
                 SyntaxKind::OBJECT_FIELD => {
-                    self.format_object_field(
-                        child.into_node().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_object_field(child.into_node().unwrap(), false, false);
                 }
                 _ => (),
             }
@@ -1780,7 +1838,7 @@ impl Formatter {
                     self.format_string_literal(
                         child.into_node().unwrap(),
                         prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        should_collect_preceding_trivia && !seen_key,
                     );
                     seen_key = true;
                 }
@@ -1788,21 +1846,15 @@ impl Formatter {
                     self.format_token_plaintext(
                         child.into_token().unwrap(),
                         prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        should_collect_preceding_trivia && !seen_key,
                     );
                     seen_key = true;
                 }
                 SyntaxKind::COLON => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
-                }
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 _ => (),
             }
         }
@@ -1825,20 +1877,12 @@ impl Formatter {
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
+                SyntaxKind::R_BRACKET => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
                 }
-                SyntaxKind::R_BRACKET => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
                 _ => (),
@@ -1863,11 +1907,7 @@ impl Formatter {
                     should_collect_preceding_trivia,
                 ),
                 SyntaxKind::DOT => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     break;
                 }
                 _ => (),
@@ -1879,7 +1919,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
     }
@@ -1904,11 +1944,9 @@ impl Formatter {
                     prepend_newline_and_indent,
                     should_collect_preceding_trivia,
                 ),
-                SyntaxKind::CALL_ARGS => self.format_call_args(
-                    child.into_node().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::CALL_ARGS => {
+                    self.format_call_args(child.into_node().unwrap(), false, false)
+                }
                 _ => (),
             }
         }
@@ -1922,35 +1960,31 @@ impl Formatter {
     ) {
         let ref mut children = expr.children_with_tokens().peekable();
 
-        let mut seen_word_or_path = !prepend_newline_and_indent;
+        let mut seen_word_or_path = false;
         while let Some(child) = children.next() {
             match child.kind() {
                 SyntaxKind::WORD => {
                     self.format_token_plaintext(
                         child.into_token().unwrap(),
-                        !seen_word_or_path,
-                        should_collect_preceding_trivia,
+                        prepend_newline_and_indent && !seen_word_or_path,
+                        should_collect_preceding_trivia && !seen_word_or_path,
                     );
                     seen_word_or_path = true;
                 }
                 SyntaxKind::PATH_EXPR => {
                     self.format_path_expr(
                         child.into_node().unwrap(),
-                        !seen_word_or_path,
-                        should_collect_preceding_trivia,
+                        prepend_newline_and_indent && !seen_word_or_path,
+                        should_collect_preceding_trivia && !seen_word_or_path,
                     );
                     seen_word_or_path = true;
                 }
-                SyntaxKind::GENERIC_ARGS => self.format_type_args(
-                    child.into_node().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
-                SyntaxKind::DOT => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
+                SyntaxKind::GENERIC_ARGS => {
+                    self.format_type_args(child.into_node().unwrap(), false, false)
+                }
+                SyntaxKind::DOT => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                }
                 _ => (),
             }
         }
@@ -1972,20 +2006,12 @@ impl Formatter {
         );
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
                 }
-                SyntaxKind::R_PAREN => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
                 SyntaxKind::COMMA => {
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                 }
                 _ => (),
@@ -2001,15 +2027,19 @@ impl Formatter {
     ) {
         let ref mut children = expr.children_with_tokens().peekable();
 
+        let mut seen_expr = false;
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_operator() => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    prepend_newline_and_indent,
-                    should_collect_preceding_trivia,
-                ),
+                kind if kind.is_operator() => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                }
                 kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                    self.format_rhs_expr(
+                        child,
+                        !seen_expr && prepend_newline_and_indent,
+                        !seen_expr && should_collect_preceding_trivia,
+                    );
+                    seen_expr = true;
                 }
                 _ => (),
             }
@@ -2033,17 +2063,11 @@ impl Formatter {
 
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
+                SyntaxKind::R_PAREN => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
                 }
-                SyntaxKind::R_PAREN => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
-                }
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 _ => (),
             }
         }
@@ -2069,7 +2093,7 @@ impl Formatter {
         while let Some(child) = children.next() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia);
+                    self.format_rhs_expr(child, false, false);
                     break;
                 }
                 _ => (),
@@ -2082,7 +2106,7 @@ impl Formatter {
             children,
             SyntaxKind::BLOCK_EXPR,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_block_expr,
         );
 
@@ -2090,27 +2114,15 @@ impl Formatter {
             match child.kind() {
                 SyntaxKind::KW_ELSE => {
                     self.push_text(" ");
-                    self.format_token_plaintext(
-                        child.into_token().unwrap(),
-                        false,
-                        should_collect_preceding_trivia,
-                    );
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false);
                     self.push_text(" ");
                     while let Some(child) = children.next() {
                         match child.kind() {
                             SyntaxKind::BLOCK_EXPR => {
-                                self.format_block_expr(
-                                    child.into_node().unwrap(),
-                                    false,
-                                    should_collect_preceding_trivia,
-                                );
+                                self.format_block_expr(child.into_node().unwrap(), false, false);
                             }
                             SyntaxKind::IF_EXPR => {
-                                self.format_if_expr(
-                                    child.into_node().unwrap(),
-                                    false,
-                                    should_collect_preceding_trivia,
-                                );
+                                self.format_if_expr(child.into_node().unwrap(), false, false);
                             }
                             _ => (),
                         }
@@ -2129,7 +2141,7 @@ impl Formatter {
     ) {
         let ref mut children = expr.children_with_tokens().peekable();
 
-        let mut seen_expr = !prepend_newline_and_indent; // track if we've seen an expression yet for newline purposes
+        let mut seen_expr = false; // track if we've seen an expression yet for newline purposes
         while let Some(child) = children.next() {
             match child.kind() {
                 kind if kind.is_operator() => {
@@ -2140,7 +2152,7 @@ impl Formatter {
                 kind if kind.is_valid_rhs_expr() => {
                     self.format_rhs_expr(
                         child,
-                        !seen_expr,
+                        !seen_expr && prepend_newline_and_indent,
                         !seen_expr && should_collect_preceding_trivia,
                     );
                     seen_expr = true;
@@ -2165,7 +2177,7 @@ impl Formatter {
                         range,
                         "\"",
                         !within_quotes && prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        !within_quotes && should_collect_preceding_trivia,
                     );
                     within_quotes = true;
                 }
@@ -2174,15 +2186,13 @@ impl Formatter {
                         range,
                         "#",
                         !within_quotes && prepend_newline_and_indent,
-                        should_collect_preceding_trivia,
+                        !within_quotes && should_collect_preceding_trivia,
                     );
                     within_quotes = true;
                 }
-                _ if within_quotes => self.format_token_plaintext(
-                    child.into_token().unwrap(),
-                    false,
-                    should_collect_preceding_trivia,
-                ),
+                _ if within_quotes => {
+                    self.format_token_plaintext(child.into_token().unwrap(), false, false)
+                }
                 _ => (),
             }
         }
@@ -2233,7 +2243,7 @@ impl Formatter {
         while let Some(child) = children.next() {
             match child.kind() {
                 kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia);
+                    self.format_rhs_expr(child, false, false);
                     break;
                 }
                 _ => (),
@@ -2246,7 +2256,7 @@ impl Formatter {
             children,
             SyntaxKind::BLOCK_EXPR,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_block_expr,
         );
     }
@@ -2295,24 +2305,27 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
-        if self.format_token_stop(
-            children,
-            SyntaxKind::COLON,
-            false,
-            should_collect_preceding_trivia,
-            Self::format_token_plaintext,
-            SyntaxKind::EQUALS,
-        ) {
+        if self
+            .format_token_stop(
+                children,
+                SyntaxKind::COLON,
+                false,
+                false,
+                Self::format_token_plaintext,
+                SyntaxKind::EQUALS,
+            )
+            .is_some()
+        {
             self.push_text(" ");
             self.format_node(
                 children,
                 SyntaxKind::TYPE_EXPR,
                 false,
-                should_collect_preceding_trivia,
+                false,
                 Self::format_type_expr,
             );
         }
@@ -2322,16 +2335,14 @@ impl Formatter {
             children,
             SyntaxKind::EQUALS,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
         self.push_text(" ");
         while let Some(child) = children.next() {
             match child.kind() {
-                kind if kind.is_valid_rhs_expr() => {
-                    self.format_rhs_expr(child, false, should_collect_preceding_trivia)
-                }
+                kind if kind.is_valid_rhs_expr() => self.format_rhs_expr(child, false, false),
                 _ => (),
             }
         }
