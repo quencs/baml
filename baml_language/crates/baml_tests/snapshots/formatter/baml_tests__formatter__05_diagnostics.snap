@@ -4,7 +4,7 @@ expression: output
 ---
 === DIAGNOSTICS ===
   [name] Error: Duplicate function 'Foo'
-   ╭─[ 1:1:1 ]
+   ╭─[ 2:1:1 ]
    │
  1 │ function Foo(x int) -> int {
    │ │ 
@@ -20,7 +20,7 @@ expression: output
 ───╯
 
   [name] Error: Duplicate class 'Foo'
-   ╭─[ 2:1:1 ]
+   ╭─[ 3:1:1 ]
    │
  1 │ class /*comment*/ Foo{ // comment
    │ │ 
@@ -36,13 +36,13 @@ expression: output
 ───╯
 
   [name] Error: Duplicate enum 'Bar'
-   ╭─[ 2:1:1 ]
+   ╭─[ 3:1:1 ]
    │
  1 │ class /*comment*/ Foo{ // comment
    │ │ 
    │ ╰─ enum 'Bar' defined in weird_comments.baml
    │
-   ├─[ 1:1:1 ]
+   ├─[ 2:1:1 ]
    │
  1 │ function Foo(x int) -> int {
    │ │ 
@@ -52,13 +52,13 @@ expression: output
 ───╯
 
   [name] Error: Duplicate function 'HelloWorld'
-   ╭─[ 3:1:1 ]
+   ╭─[ 4:1:1 ]
    │
  1 │ class Foo{
    │ │ 
    │ ╰─ function 'HelloWorld' defined in weird_whitespace.baml
    │
-   ├─[ 2:1:1 ]
+   ├─[ 3:1:1 ]
    │
  1 │ class /*comment*/ Foo{ // comment
    │ │ 
@@ -68,7 +68,7 @@ expression: output
 ───╯
 
   [name] Error: Duplicate class 'Foo'
-   ╭─[ 3:1:1 ]
+   ╭─[ 4:1:1 ]
    │
  1 │ class Foo{
    │ │ 
@@ -84,13 +84,13 @@ expression: output
 ───╯
 
   [name] Error: Duplicate enum 'Bar'
-   ╭─[ 3:1:1 ]
+   ╭─[ 4:1:1 ]
    │
  1 │ class Foo{
    │ │ 
    │ ╰─ enum 'Bar' defined in weird_whitespace.baml
    │
-   ├─[ 1:1:1 ]
+   ├─[ 2:1:1 ]
    │
  1 │ function Foo(x int) -> int {
    │ │ 
@@ -100,13 +100,13 @@ expression: output
 ───╯
 
   [name] Error: Duplicate type alias 'UserId'
-   ╭─[ 3:1:1 ]
+   ╭─[ 4:1:1 ]
    │
  1 │ class Foo{
    │ │ 
    │ ╰─ type alias 'UserId' defined in weird_whitespace.baml
    │
-   ├─[ 2:1:1 ]
+   ├─[ 3:1:1 ]
    │
  1 │ class /*comment*/ Foo{ // comment
    │ │ 
@@ -116,13 +116,13 @@ expression: output
 ───╯
 
   [name] Error: Duplicate client 'GPT4'
-   ╭─[ 3:1:1 ]
+   ╭─[ 4:1:1 ]
    │
  1 │ class Foo{
    │ │ 
    │ ╰─ client 'GPT4' defined in weird_whitespace.baml
    │
-   ├─[ 2:1:1 ]
+   ├─[ 3:1:1 ]
    │
  1 │ class /*comment*/ Foo{ // comment
    │ │ 
@@ -132,13 +132,13 @@ expression: output
 ───╯
 
   [name] Error: Duplicate test 'TestUser'
-   ╭─[ 3:1:1 ]
+   ╭─[ 4:1:1 ]
    │
  1 │ class Foo{
    │ │ 
    │ ╰─ test 'TestUser' defined in weird_whitespace.baml
    │
-   ├─[ 2:1:1 ]
+   ├─[ 3:1:1 ]
    │
  1 │ class /*comment*/ Foo{ // comment
    │ │ 
@@ -356,3 +356,25 @@ expression: output
    │ 
    │ Note: Error code: E0001
 ───╯
+
+  [type] Error: Unknown variable z
+    ╭─[ 1:16:5 ]
+    │
+ 16 │     z;
+    │     ┬  
+    │     ╰── Unknown variable z
+    │ 
+    │ Note: Error code: E0003
+────╯
+
+  [type] Error: Cannot apply operator 'Add' to types int and unknown
+    ╭─[ 1:9:8 ]
+    │
+  9 │ ╭─▶     w = x
+    ┆ ┆   
+ 16 │ ├─▶     z;
+    │ │            
+    │ ╰──────────── Cannot apply operator 'Add' to types int and unknown
+    │     
+    │     Note: Error code: E0004
+────╯

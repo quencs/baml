@@ -1,0 +1,42 @@
+---
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
+expression: output
+---
+=== ORIGINAL ===
+function foo() -> int {
+    let x = 1;
+    let y 
+    
+= 2;
+
+
+    let 
+    w = x 
+    
+    
+    + y + 
+    
+    
+    y +   
+    z;
+    let z = x 
+    
+    
+    + y;
+    return 
+    
+    z;
+}
+
+=== FORMATTED ===
+function foo() -> int {
+  let x = 1;
+  let y = 2;
+  let w = x + y + y + z;
+  let z = x + y;
+  return z;
+}
+
+
+=== IDEMPOTENCY CHECK ===
+✓ Idempotent (formatting is stable)

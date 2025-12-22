@@ -27,6 +27,11 @@ expression: output
       - Unknown type x
       - Invalid op Add for unknown and int
       - Expected int. Found void
+  Function foo:
+    Return: Int
+    Errors:
+      - Unknown type z
+      - Invalid op Add for int and unknown
   Function Qux:
     Return: Int
   Function Bar:

@@ -78,6 +78,49 @@ fn Foo() -> Void {
 
 }
 
+fn foo() -> Int {
+    // Locals:
+    let _0: Int // return
+    let _1: Int // x
+    let _2: Int // y
+    let _3: Error // w
+    let _4: Int
+    let _5: Int
+    let _6: Int
+    let _7: Int
+    let _8: Int
+    let _9: Unknown
+    let _10: Int // z
+    let _11: Int
+    let _12: Int
+
+    bb0: {
+        _1 = const 1_i64;
+        _2 = const 2_i64;
+        _6 = copy _1;
+        _7 = copy _2;
+        _5 = copy _6 + copy _7;
+        _8 = copy _2;
+        _4 = copy _5 + copy _8;
+        _9 = const fn z;
+        _3 = copy _4 + copy _9;
+        _11 = copy _1;
+        _12 = copy _2;
+        _10 = copy _11 + copy _12;
+        _0 = copy _10;
+        goto -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        return;
+    }
+
+}
+
 fn Qux(x: Int) -> Int {
     // Locals:
     let _0: Int // return
