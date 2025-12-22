@@ -1069,7 +1069,7 @@ impl Formatter {
             children,
             SyntaxKind::WORD,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
         self.push_text(" ");
@@ -1078,7 +1078,7 @@ impl Formatter {
             children,
             SyntaxKind::L_BRACE,
             false,
-            should_collect_preceding_trivia,
+            false,
             Self::format_token_plaintext,
         );
 
@@ -1086,21 +1086,15 @@ impl Formatter {
         self.nest(|f| {
             while let Some(child) = children.next() {
                 match child.kind() {
-                    SyntaxKind::FIELD => f.format_class_field(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
-                    SyntaxKind::FUNCTION_DEF => f.format_function_def(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
-                    SyntaxKind::BLOCK_ATTRIBUTE => f.format_block_attribute(
-                        child.into_node().unwrap(),
-                        true,
-                        should_collect_preceding_trivia,
-                    ),
+                    SyntaxKind::FIELD => {
+                        f.format_class_field(child.into_node().unwrap(), true, true)
+                    }
+                    SyntaxKind::FUNCTION_DEF => {
+                        f.format_function_def(child.into_node().unwrap(), true, true)
+                    }
+                    SyntaxKind::BLOCK_ATTRIBUTE => {
+                        f.format_block_attribute(child.into_node().unwrap(), true, true)
+                    }
                     SyntaxKind::R_BRACE => {
                         brace_child = Some(child); // hack to get the closing brace child outside of the nest block
                         break;
@@ -1113,11 +1107,7 @@ impl Formatter {
         });
 
         if let Some(brace_child) = brace_child {
-            self.format_token_plaintext(
-                brace_child.into_token().unwrap(),
-                true,
-                should_collect_preceding_trivia,
-            );
+            self.format_token_plaintext(brace_child.into_token().unwrap(), true, true);
         }
     }
 
