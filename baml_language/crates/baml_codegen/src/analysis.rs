@@ -358,6 +358,9 @@ fn collect_uses_in_rvalue<'db>(
         Rvalue::Discriminant(place) | Rvalue::Len(place) => {
             collect_uses_in_place(place, block, stmt_idx, def_use);
         }
+        Rvalue::IsType { operand, .. } => {
+            collect_uses_in_operand(operand, block, stmt_idx, def_use);
+        }
     }
 }
 
@@ -742,6 +745,9 @@ fn collect_rvalue_reads(rvalue: &Rvalue<'_>, locals: &mut Vec<Local>) {
         }
         Rvalue::Discriminant(place) | Rvalue::Len(place) => {
             collect_place_reads(place, locals);
+        }
+        Rvalue::IsType { operand, .. } => {
+            collect_operand_reads(operand, locals);
         }
     }
 }

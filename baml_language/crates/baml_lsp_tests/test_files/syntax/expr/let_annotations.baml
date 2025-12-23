@@ -105,15 +105,6 @@ function Ok() -> int {
 //    │ 
 //    │ Note: Error code: E0010
 // ───╯
-// Error: Expected int | float, found float
-//    ╭─[ 0:4:9 ]
-//    │
-//  4 │   let x: int | float = 10.0;
-//    │         ──────┬─────  
-//    │               ╰─────── Expected int | float, found float
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
 // Error: Expected int, found float
 //    ╭─[ 0:5:10 ]
 //    │

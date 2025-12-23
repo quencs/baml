@@ -762,6 +762,9 @@ impl CompilerRunner {
         let file_list: Vec<_> = self.source_files.values().copied().collect();
         let globals = build_typing_context_from_files(&self.db, &file_list);
         let class_fields = build_class_fields_from_files(&self.db, self.project_root);
+        let type_aliases = baml_thir::build_type_aliases_from_project(&self.db, self.project_root);
+        let enum_variants =
+            baml_thir::build_enum_variants_from_project(&self.db, self.project_root);
 
         // Sort files alphabetically
         let mut sorted_files: Vec<_> = self.source_files.iter().collect();
@@ -799,6 +802,8 @@ impl CompilerRunner {
                         &body,
                         Some(globals.clone()),
                         Some(class_fields.clone()),
+                        Some(type_aliases.clone()),
+                        Some(enum_variants.clone()),
                         *func_id,
                     );
 
@@ -907,6 +912,8 @@ impl CompilerRunner {
                         &body,
                         Some(globals.clone()),
                         Some(class_field_types.clone()),
+                        None, // type_aliases
+                        None, // enum_variants
                         *func_id,
                     );
 
@@ -2063,6 +2070,8 @@ fn get_error_file_id(error: &StoredCompilerError) -> FileId {
             TypeError::NotCallable { span, .. } => span.file_id,
             TypeError::NoSuchField { span, .. } => span.file_id,
             TypeError::NotIndexable { span, .. } => span.file_id,
+            TypeError::NonExhaustiveMatch { span, .. } => span.file_id,
+            TypeError::UnreachableArm { span, .. } => span.file_id,
         },
         CompilerError::NameError(e) => match e {
             baml_diagnostics::NameError::DuplicateName { second, .. } => second.file_id,

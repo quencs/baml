@@ -83,6 +83,8 @@ pub fn run_test(parsed: &ParsedTestFile) -> TestResult {
                     &body,
                     Some(globals.clone()),
                     Some(class_fields.clone()),
+                    None, // type_aliases
+                    None, // enum_variants
                     *func_id,
                 );
                 for error in &result.errors {

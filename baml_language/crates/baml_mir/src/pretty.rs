@@ -267,6 +267,11 @@ fn write_rvalue(f: &mut impl Write, rvalue: &Rvalue<'_>) -> fmt::Result {
         Rvalue::Len(place) => {
             write!(f, "len({place})")
         }
+        Rvalue::IsType { operand, ty } => {
+            write!(f, "is_type(")?;
+            write_operand(f, operand)?;
+            write!(f, ", {ty:?})")
+        }
     }
 }
 

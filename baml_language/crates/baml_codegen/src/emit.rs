@@ -10,6 +10,7 @@ use baml_mir::{
     AggregateKind, BasicBlock, BinOp, BlockId, Constant, Local, MirFunction, Operand, Place,
     Rvalue, StatementKind, Terminator, UnaryOp,
 };
+use baml_thir::Ty;
 use baml_vm::{
     BinOp as VmBinOp, Bytecode, CmpOp, Function, FunctionKind, GlobalIndex, Instruction, Object,
     ObjectIndex, ObjectPool, UnaryOp as VmUnaryOp, Value,
@@ -355,6 +356,31 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                 if let Some(&global_idx) = self.globals.get("baml.Array.length") {
                     self.emit(Instruction::LoadGlobal(GlobalIndex::from_raw(global_idx)));
                     // Stack ordering issue - same as original codegen
+                }
+            }
+
+            Rvalue::IsType { operand, ty } => {
+                self.emit_operand_pull(operand, mir);
+                // Emit instanceof check using CmpOp::InstanceOf
+                // The type should be a class name - look up the class object
+                if let Ty::Named(class_name) = ty {
+                    let class_name_str = class_name.as_str();
+                    if let Some(&class_obj_idx) = self.class_object_indices.get(class_name_str) {
+                        // Load the Class object for the type check
+                        let class_const =
+                            self.add_constant(Value::Object(ObjectIndex::from_raw(class_obj_idx)));
+                        self.emit(Instruction::LoadConst(class_const));
+                        // Emit instanceof comparison
+                        self.emit(Instruction::CmpOp(CmpOp::InstanceOf));
+                    } else {
+                        // Unknown class - treat as always false
+                        let idx = self.add_constant(Value::Bool(false));
+                        self.emit(Instruction::LoadConst(idx));
+                    }
+                } else {
+                    // Non-class type - not supported yet, return false
+                    let idx = self.add_constant(Value::Bool(false));
+                    self.emit(Instruction::LoadConst(idx));
                 }
             }
         }
