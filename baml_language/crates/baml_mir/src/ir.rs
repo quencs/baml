@@ -432,6 +432,11 @@ pub enum Constant<'db> {
     Null,
     /// A function reference.
     Function(Name),
+    /// An enum variant value.
+    EnumVariant {
+        enum_name: Name,
+        variant: Name,
+    },
     /// Placeholder for type info when needed.
     #[allow(dead_code)]
     Ty(Ty<'db>),

@@ -1,21 +1,37 @@
 ---
-source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
+source: target/debug/build/baml_tests-17af2d4231950a65/out/generated_tests.rs
 expression: output
 ---
 === BYTECODE ===
 Functions: 80
-Objects: 256
+Objects: 227
 Globals: 98
 
 Function BoolLiteralAfterTypedBool (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (b)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (any bool)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (b)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +10           (to 18)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 2       (true)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +8            (to 22)
+     15   LOAD_CONST 3       (unreachable)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +5            (to 22)
+     18   LOAD_VAR 3         (_2)
+     19   STORE_VAR 4        (x)
+     20   LOAD_CONST 4       (any bool)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function BoolUnionPattern (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -26,30 +42,38 @@ Function BoolUnionPattern (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (true)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +5            (to 13)
+     8    JUMP +7            (to 15)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (false)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +3   (to 15)
-     13   LOAD_CONST 3       (covered)
-     14   STORE_VAR 2        (_0)
-     15   LOAD_VAR 2         (_0)
-     16   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +3            (to 17)
+     15   LOAD_CONST 3       (covered)
+     16   STORE_VAR 2        (_0)
+     17   LOAD_VAR 2         (_0)
+     18   RETURN             
 
 Function BoolWithCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
-     1    LOAD_VAR 1         (b)
-     2    LOAD_CONST 1       (true)
-     3    CMP_OP ==          
-     4    JUMP_IF_FALSE +2   (to 6)
-     5    JUMP +4            (to 9)
-     6    LOAD_CONST 2       (no)
-     7    STORE_VAR 2        (_0)
-     8    JUMP +3            (to 11)
-     9    LOAD_CONST 3       (yes)
-     10   STORE_VAR 2        (_0)
-     11   LOAD_VAR 2         (_0)
-     12   RETURN             
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (b)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (true)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +6            (to 15)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (_)
+     12   LOAD_CONST 2       (no)
+     13   STORE_VAR 2        (_0)
+     14   JUMP +3            (to 17)
+     15   LOAD_CONST 3       (yes)
+     16   STORE_VAR 2        (_0)
+     17   LOAD_VAR 2         (_0)
+     18   RETURN             
 
 Function DeeplyNestedLiterals (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -60,20 +84,22 @@ Function DeeplyNestedLiterals (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (200)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +10           (to 18)
+     8    JUMP +12           (to 20)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (201)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +5            (to 18)
+     13   JUMP +7            (to 20)
      14   LOAD_VAR 3         (_2)
      15   LOAD_CONST 3       (204)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +3   (to 20)
-     18   LOAD_CONST 4       (all success codes)
-     19   STORE_VAR 2        (_0)
-     20   LOAD_VAR 2         (_0)
-     21   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +3            (to 22)
+     20   LOAD_CONST 4       (all success codes)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function DuplicateBoolLiteral (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -84,121 +110,139 @@ Function DuplicateBoolLiteral (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (true)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +16           (to 24)
+     8    JUMP +18           (to 26)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 1       (true)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
      15   LOAD_CONST 2       (false)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +9   (to 26)
-     18   LOAD_CONST 3       (false)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +6            (to 26)
-     21   LOAD_CONST 4       (second true)
-     22   STORE_VAR 2        (_0)
-     23   JUMP +3            (to 26)
-     24   LOAD_CONST 5       (first true)
-     25   STORE_VAR 2        (_0)
-     26   LOAD_VAR 2         (_0)
-     27   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +9            (to 28)
+     20   LOAD_CONST 3       (false)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +6            (to 28)
+     23   LOAD_CONST 4       (second true)
+     24   STORE_VAR 2        (_0)
+     25   JUMP +3            (to 28)
+     26   LOAD_CONST 5       (first true)
+     27   STORE_VAR 2        (_0)
+     28   LOAD_VAR 2         (_0)
+     29   RETURN             
 
 Function DuplicateEnumVariant (arity: 1, kind: Exec):
-     0    LOAD_CONST 0        (null)
-     1    LOAD_CONST 0        (null)
-     2    LOAD_VAR 1          (s)
-     3    STORE_VAR 3         (_2)
-     4    LOAD_VAR 3          (_2)
-     5    LOAD_CONST 1        (Status.Active)
-     6    CMP_OP ==           
-     7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +24            (to 32)
-     9    LOAD_VAR 3          (_2)
-     10   LOAD_CONST 2        (Status.Active)
-     11   CMP_OP ==           
-     12   JUMP_IF_FALSE +2    (to 14)
-     13   JUMP +16            (to 29)
-     14   LOAD_VAR 3          (_2)
-     15   LOAD_CONST 3        (Status.Inactive)
-     16   CMP_OP ==           
-     17   JUMP_IF_FALSE +2    (to 19)
-     18   JUMP +8             (to 26)
-     19   LOAD_VAR 3          (_2)
-     20   LOAD_CONST 4        (Status.Pending)
-     21   CMP_OP ==           
-     22   JUMP_IF_FALSE +12   (to 34)
-     23   LOAD_CONST 5        (pending)
-     24   STORE_VAR 2         (_0)
-     25   JUMP +9             (to 34)
-     26   LOAD_CONST 6        (inactive)
-     27   STORE_VAR 2         (_0)
-     28   JUMP +6             (to 34)
-     29   LOAD_CONST 7        (second)
-     30   STORE_VAR 2         (_0)
-     31   JUMP +3             (to 34)
-     32   LOAD_CONST 8        (first)
-     33   STORE_VAR 2         (_0)
-     34   LOAD_VAR 2          (_0)
-     35   RETURN              
-
-Function DuplicateIntLiteral (arity: 1, kind: Exec):
-     0    LOAD_CONST 0       (null)
-     1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (x)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (1)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +12           (to 20)
-     9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 1       (1)
-     11   CMP_OP ==          
-     12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +4            (to 17)
-     14   LOAD_CONST 2       (other)
-     15   STORE_VAR 2        (_0)
-     16   JUMP +6            (to 22)
-     17   LOAD_CONST 3       (second one)
-     18   STORE_VAR 2        (_0)
-     19   JUMP +3            (to 22)
-     20   LOAD_CONST 4       (first one)
-     21   STORE_VAR 2        (_0)
-     22   LOAD_VAR 2         (_0)
-     23   RETURN             
-
-Function DuplicateStringLiteral (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (role)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (first user)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
-
-Function EnumVariantAfterTypedEnum (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (false)
-     6    JUMP_IF_FALSE +2   (to 8)
-     7    JUMP +8            (to 15)
-     8    LOAD_VAR 3         (_2)
-     9    LOAD_CONST 2       (Status.Active)
-     10   CMP_OP ==          
-     11   JUMP_IF_FALSE +6   (to 17)
-     12   LOAD_CONST 3       (unreachable)
-     13   STORE_VAR 2        (_0)
-     14   JUMP +3            (to 17)
-     15   LOAD_CONST 4       (any status)
+     5    LOAD_CONST 0       (null)
+     6    CMP_OP ==          
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +26           (to 34)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 0       (null)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +18           (to 31)
+     14   LOAD_VAR 3         (_2)
+     15   LOAD_CONST 0       (null)
+     16   CMP_OP ==          
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +10           (to 28)
+     19   LOAD_VAR 3         (_2)
+     20   LOAD_CONST 0       (null)
+     21   CMP_OP ==          
+     22   JUMP_IF_FALSE +2   (to 24)
+     23   JUMP +2            (to 25)
+     24   JUMP +12           (to 36)
+     25   LOAD_CONST 1       (pending)
+     26   STORE_VAR 2        (_0)
+     27   JUMP +9            (to 36)
+     28   LOAD_CONST 2       (inactive)
+     29   STORE_VAR 2        (_0)
+     30   JUMP +6            (to 36)
+     31   LOAD_CONST 3       (second)
+     32   STORE_VAR 2        (_0)
+     33   JUMP +3            (to 36)
+     34   LOAD_CONST 4       (first)
+     35   STORE_VAR 2        (_0)
+     36   LOAD_VAR 2         (_0)
+     37   RETURN             
+
+Function DuplicateIntLiteral (arity: 1, kind: Exec):
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (1)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +14           (to 23)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 1       (1)
+     12   CMP_OP ==          
+     13   JUMP_IF_FALSE +2   (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_VAR 3         (_2)
+     16   STORE_VAR 4        (_)
+     17   LOAD_CONST 2       (other)
+     18   STORE_VAR 2        (_0)
+     19   JUMP +6            (to 25)
+     20   LOAD_CONST 3       (second one)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +3            (to 25)
+     23   LOAD_CONST 4       (first one)
+     24   STORE_VAR 2        (_0)
+     25   LOAD_VAR 2         (_0)
+     26   RETURN             
+
+Function DuplicateStringLiteral (arity: 1, kind: Exec):
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_CONST 0   (null)
+     5    LOAD_CONST 0   (null)
+     6    LOAD_VAR 1     (role)
+     7    STORE_VAR 3    (_2)
+     8    LOAD_VAR 3     (_2)
+     9    STORE_VAR 4    (_)
+     10   LOAD_CONST 1   (first user)
+     11   STORE_VAR 2    (_0)
+     12   LOAD_VAR 2     (_0)
+     13   RETURN         
+
+Function EnumVariantAfterTypedEnum (arity: 1, kind: Exec):
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (s)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +10           (to 18)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 0       (null)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +8            (to 22)
+     15   LOAD_CONST 2       (unreachable)
      16   STORE_VAR 2        (_0)
-     17   LOAD_VAR 2         (_0)
-     18   RETURN             
+     17   JUMP +5            (to 22)
+     18   LOAD_VAR 3         (_2)
+     19   STORE_VAR 4        (x)
+     20   LOAD_CONST 3       (any status)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function EnumVariantUnion (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -206,49 +250,54 @@ Function EnumVariantUnion (arity: 1, kind: Exec):
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
+     5    LOAD_CONST 0       (null)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +13           (to 21)
+     8    JUMP +15           (to 23)
      9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Pending)
+     10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 3       (Status.Inactive)
+     15   LOAD_CONST 0       (null)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +6   (to 23)
-     18   LOAD_CONST 4       (inactive)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +3            (to 23)
-     21   LOAD_CONST 5       (actionable)
-     22   STORE_VAR 2        (_0)
-     23   LOAD_VAR 2         (_0)
-     24   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +6            (to 25)
+     20   LOAD_CONST 1       (inactive)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +3            (to 25)
+     23   LOAD_CONST 2       (actionable)
+     24   STORE_VAR 2        (_0)
+     25   LOAD_VAR 2         (_0)
+     26   RETURN             
 
 Function EnumVariantUnionWithCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (s)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +9            (to 17)
-     9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Pending)
-     11   CMP_OP ==          
-     12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +4            (to 17)
-     14   LOAD_CONST 3       (other)
-     15   STORE_VAR 2        (_0)
-     16   JUMP +3            (to 19)
-     17   LOAD_CONST 4       (actionable)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (s)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 0       (null)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +11           (to 20)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 0       (null)
+     12   CMP_OP ==          
+     13   JUMP_IF_FALSE +2   (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_VAR 3         (_2)
+     16   STORE_VAR 4        (_)
+     17   LOAD_CONST 1       (other)
      18   STORE_VAR 2        (_0)
-     19   LOAD_VAR 2         (_0)
-     20   RETURN             
+     19   JUMP +3            (to 22)
+     20   LOAD_CONST 2       (actionable)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function ExhaustiveAliasOfLiterals (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -259,18 +308,20 @@ Function ExhaustiveAliasOfLiterals (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (200)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (201)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 3       (created)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 4       (ok)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 3       (created)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 4       (ok)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function ExhaustiveBool (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -281,18 +332,20 @@ Function ExhaustiveBool (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (true)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (false)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 3       (no)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 4       (yes)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 3       (no)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 4       (yes)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function ExhaustiveClassPlusLiteral (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -303,19 +356,21 @@ Function ExhaustiveClassPlusLiteral (arity: 1, kind: Exec):
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
      7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +8             (to 16)
+     8    JUMP +10            (to 18)
      9    LOAD_VAR 3          (_2)
      10   LOAD_CONST 2        (200)
      11   CMP_OP ==           
-     12   JUMP_IF_FALSE +7    (to 19)
-     13   LOAD_CONST 3        (http ok)
-     14   STORE_VAR 2         (_0)
-     15   JUMP +4             (to 19)
-     16   LOAD_VAR 3          (_2)
-     17   LOAD_FIELD 0        
-     18   STORE_VAR 2         (_0)
-     19   LOAD_VAR 2          (_0)
-     20   RETURN              
+     12   JUMP_IF_FALSE +2    (to 14)
+     13   JUMP +2             (to 15)
+     14   JUMP +7             (to 21)
+     15   LOAD_CONST 3        (http ok)
+     16   STORE_VAR 2         (_0)
+     17   JUMP +4             (to 21)
+     18   LOAD_VAR 3          (_2)
+     19   LOAD_FIELD 0        
+     20   STORE_VAR 2         (_0)
+     21   LOAD_VAR 2          (_0)
+     22   RETURN              
 
 Function ExhaustiveCustomBool (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -326,18 +381,20 @@ Function ExhaustiveCustomBool (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (true)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (false)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 3       (no)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 4       (yes)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 3       (no)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 4       (yes)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function ExhaustiveDoubleMaybe (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -348,28 +405,30 @@ Function ExhaustiveDoubleMaybe (arity: 1, kind: Exec):
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
      7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +17            (to 25)
+     8    JUMP +19            (to 27)
      9    LOAD_VAR 3          (_2)
      10   LOAD_CONST 2        (<class Failure>)
      11   CMP_OP instanceof   
      12   JUMP_IF_FALSE +2    (to 14)
-     13   JUMP +8             (to 21)
+     13   JUMP +10            (to 23)
      14   LOAD_VAR 3          (_2)
      15   LOAD_CONST 0        (null)
      16   CMP_OP ==           
-     17   JUMP_IF_FALSE +11   (to 28)
-     18   LOAD_CONST 3        (nothing)
-     19   STORE_VAR 2         (_0)
-     20   JUMP +8             (to 28)
-     21   LOAD_VAR 3          (_2)
-     22   LOAD_FIELD 0        
-     23   STORE_VAR 2         (_0)
-     24   JUMP +4             (to 28)
-     25   LOAD_VAR 3          (_2)
-     26   LOAD_FIELD 0        
-     27   STORE_VAR 2         (_0)
-     28   LOAD_VAR 2          (_0)
-     29   RETURN              
+     17   JUMP_IF_FALSE +2    (to 19)
+     18   JUMP +2             (to 20)
+     19   JUMP +11            (to 30)
+     20   LOAD_CONST 3        (nothing)
+     21   STORE_VAR 2         (_0)
+     22   JUMP +8             (to 30)
+     23   LOAD_VAR 3          (_2)
+     24   LOAD_FIELD 0        
+     25   STORE_VAR 2         (_0)
+     26   JUMP +4             (to 30)
+     27   LOAD_VAR 3          (_2)
+     28   LOAD_FIELD 0        
+     29   STORE_VAR 2         (_0)
+     30   LOAD_VAR 2          (_0)
+     31   RETURN              
 
 Function ExhaustiveEnumAllVariants (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -377,65 +436,83 @@ Function ExhaustiveEnumAllVariants (arity: 1, kind: Exec):
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
+     5    LOAD_CONST 0       (null)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +16           (to 24)
+     8    JUMP +18           (to 26)
      9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Inactive)
+     10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 3       (Status.Pending)
+     15   LOAD_CONST 0       (null)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +9   (to 26)
-     18   LOAD_CONST 4       (pending)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +6            (to 26)
-     21   LOAD_CONST 5       (inactive)
-     22   STORE_VAR 2        (_0)
-     23   JUMP +3            (to 26)
-     24   LOAD_CONST 6       (active)
-     25   STORE_VAR 2        (_0)
-     26   LOAD_VAR 2         (_0)
-     27   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +9            (to 28)
+     20   LOAD_CONST 1       (pending)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +6            (to 28)
+     23   LOAD_CONST 2       (inactive)
+     24   STORE_VAR 2        (_0)
+     25   JUMP +3            (to 28)
+     26   LOAD_CONST 3       (active)
+     27   STORE_VAR 2        (_0)
+     28   LOAD_VAR 2         (_0)
+     29   RETURN             
 
 Function ExhaustiveEnumWithCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
-     1    LOAD_VAR 1         (s)
-     2    LOAD_CONST 1       (Status.Active)
-     3    CMP_OP ==          
-     4    JUMP_IF_FALSE +2   (to 6)
-     5    JUMP +4            (to 9)
-     6    LOAD_CONST 2       (other)
-     7    STORE_VAR 2        (_0)
-     8    JUMP +3            (to 11)
-     9    LOAD_CONST 3       (active)
-     10   STORE_VAR 2        (_0)
-     11   LOAD_VAR 2         (_0)
-     12   RETURN             
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (s)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 0       (null)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +6            (to 15)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (_)
+     12   LOAD_CONST 1       (other)
+     13   STORE_VAR 2        (_0)
+     14   JUMP +3            (to 17)
+     15   LOAD_CONST 2       (active)
+     16   STORE_VAR 2        (_0)
+     17   LOAD_VAR 2         (_0)
+     18   RETURN             
 
 Function ExhaustiveEnumWithTypedPattern (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (s)
-     2   LOAD_CONST 1       (false)
-     3   JUMP_IF_FALSE +3   (to 6)
-     4   LOAD_CONST 2       (any status)
-     5   STORE_VAR 2        (_0)
-     6   LOAD_VAR 2         (_0)
-     7   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (s)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +2            (to 10)
+     9    JUMP +5            (to 14)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (x)
+     12   LOAD_CONST 2       (any status)
+     13   STORE_VAR 2        (_0)
+     14   LOAD_VAR 2         (_0)
+     15   RETURN             
 
 Function ExhaustiveFalseType (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (f)
-     2   LOAD_CONST 1       (false)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (always false)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (f)
+     2    LOAD_CONST 1       (false)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (always false)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function ExhaustiveIntLiterals (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -446,128 +523,167 @@ Function ExhaustiveIntLiterals (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (200)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +16           (to 24)
+     8    JUMP +18           (to 26)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (201)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
      15   LOAD_CONST 3       (204)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +9   (to 26)
-     18   LOAD_CONST 4       (No Content)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +6            (to 26)
-     21   LOAD_CONST 5       (Created)
-     22   STORE_VAR 2        (_0)
-     23   JUMP +3            (to 26)
-     24   LOAD_CONST 6       (OK)
-     25   STORE_VAR 2        (_0)
-     26   LOAD_VAR 2         (_0)
-     27   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +9            (to 28)
+     20   LOAD_CONST 4       (No Content)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +6            (to 28)
+     23   LOAD_CONST 5       (Created)
+     24   STORE_VAR 2        (_0)
+     25   JUMP +3            (to 28)
+     26   LOAD_CONST 6       (OK)
+     27   STORE_VAR 2        (_0)
+     28   LOAD_VAR 2         (_0)
+     29   RETURN             
 
 Function ExhaustiveLiteralWithBaseType (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
-     1    LOAD_VAR 1         (x)
-     2    LOAD_CONST 1       (200)
-     3    CMP_OP ==          
-     4    JUMP_IF_FALSE +2   (to 6)
-     5    JUMP +4            (to 9)
-     6    LOAD_CONST 2       (other)
-     7    STORE_VAR 2        (_0)
-     8    JUMP +3            (to 11)
-     9    LOAD_CONST 3       (ok)
-     10   STORE_VAR 2        (_0)
-     11   LOAD_VAR 2         (_0)
-     12   RETURN             
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (200)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +11           (to 20)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 2       (false)
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +8            (to 22)
+     15   LOAD_VAR 3         (_2)
+     16   STORE_VAR 4        (n)
+     17   LOAD_CONST 3       (other)
+     18   STORE_VAR 2        (_0)
+     19   JUMP +3            (to 22)
+     20   LOAD_CONST 4       (ok)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function ExhaustiveMixedLiterals (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (x)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (200)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +4            (to 12)
-     9    LOAD_CONST 2       (string success)
-     10   STORE_VAR 2        (_0)
-     11   JUMP +3            (to 14)
-     12   LOAD_CONST 3       (http ok)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (200)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +6            (to 15)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (_)
+     12   LOAD_CONST 2       (string success)
      13   STORE_VAR 2        (_0)
-     14   LOAD_VAR 2         (_0)
-     15   RETURN             
+     14   JUMP +3            (to 17)
+     15   LOAD_CONST 3       (http ok)
+     16   STORE_VAR 2        (_0)
+     17   LOAD_VAR 2         (_0)
+     18   RETURN             
 
 Function ExhaustiveNullableEnum (arity: 1, kind: Exec):
-     0    LOAD_CONST 0        (null)
-     1    LOAD_CONST 0        (null)
-     2    LOAD_VAR 1          (s)
-     3    STORE_VAR 3         (_2)
-     4    LOAD_VAR 3          (_2)
-     5    LOAD_CONST 1        (Status.Active)
-     6    CMP_OP ==           
-     7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +24            (to 32)
-     9    LOAD_VAR 3          (_2)
-     10   LOAD_CONST 2        (Status.Inactive)
-     11   CMP_OP ==           
-     12   JUMP_IF_FALSE +2    (to 14)
-     13   JUMP +16            (to 29)
-     14   LOAD_VAR 3          (_2)
-     15   LOAD_CONST 3        (Status.Pending)
-     16   CMP_OP ==           
-     17   JUMP_IF_FALSE +2    (to 19)
-     18   JUMP +8             (to 26)
-     19   LOAD_VAR 3          (_2)
-     20   LOAD_CONST 0        (null)
-     21   CMP_OP ==           
-     22   JUMP_IF_FALSE +12   (to 34)
-     23   LOAD_CONST 4        (no status)
-     24   STORE_VAR 2         (_0)
-     25   JUMP +9             (to 34)
-     26   LOAD_CONST 5        (pending)
-     27   STORE_VAR 2         (_0)
-     28   JUMP +6             (to 34)
-     29   LOAD_CONST 6        (inactive)
-     30   STORE_VAR 2         (_0)
-     31   JUMP +3             (to 34)
-     32   LOAD_CONST 7        (active)
-     33   STORE_VAR 2         (_0)
-     34   LOAD_VAR 2          (_0)
-     35   RETURN              
-
-Function ExhaustiveNullableEnumWithTypedPattern (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (false)
-     6    JUMP_IF_FALSE +2   (to 8)
-     7    JUMP +8            (to 15)
-     8    LOAD_VAR 3         (_2)
-     9    LOAD_CONST 0       (null)
-     10   CMP_OP ==          
-     11   JUMP_IF_FALSE +6   (to 17)
-     12   LOAD_CONST 2       (no status)
-     13   STORE_VAR 2        (_0)
-     14   JUMP +3            (to 17)
-     15   LOAD_CONST 3       (some status)
+     5    LOAD_CONST 0       (null)
+     6    CMP_OP ==          
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +26           (to 34)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 0       (null)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +18           (to 31)
+     14   LOAD_VAR 3         (_2)
+     15   LOAD_CONST 0       (null)
+     16   CMP_OP ==          
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +10           (to 28)
+     19   LOAD_VAR 3         (_2)
+     20   LOAD_CONST 0       (null)
+     21   CMP_OP ==          
+     22   JUMP_IF_FALSE +2   (to 24)
+     23   JUMP +2            (to 25)
+     24   JUMP +12           (to 36)
+     25   LOAD_CONST 1       (no status)
+     26   STORE_VAR 2        (_0)
+     27   JUMP +9            (to 36)
+     28   LOAD_CONST 2       (pending)
+     29   STORE_VAR 2        (_0)
+     30   JUMP +6            (to 36)
+     31   LOAD_CONST 3       (inactive)
+     32   STORE_VAR 2        (_0)
+     33   JUMP +3            (to 36)
+     34   LOAD_CONST 4       (active)
+     35   STORE_VAR 2        (_0)
+     36   LOAD_VAR 2         (_0)
+     37   RETURN             
+
+Function ExhaustiveNullableEnumWithTypedPattern (arity: 1, kind: Exec):
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (s)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +10           (to 18)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 0       (null)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +8            (to 22)
+     15   LOAD_CONST 2       (no status)
      16   STORE_VAR 2        (_0)
-     17   LOAD_VAR 2         (_0)
-     18   RETURN             
+     17   JUMP +5            (to 22)
+     18   LOAD_VAR 3         (_2)
+     19   STORE_VAR 4        (x)
+     20   LOAD_CONST 3       (some status)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function ExhaustiveOptional (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (x)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (has value)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +10           (to 18)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 0       (null)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +8            (to 22)
+     15   LOAD_CONST 2       (no value)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +5            (to 22)
+     18   LOAD_VAR 3         (_2)
+     19   STORE_VAR 4        (n)
+     20   LOAD_CONST 3       (has value)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function ExhaustiveOptionalSingleton (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -578,50 +694,61 @@ Function ExhaustiveOptionalSingleton (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (200)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 2       (no code)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 3       (OK)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 2       (no code)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 3       (OK)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function ExhaustiveSingletonInt (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (code)
-     2   LOAD_CONST 1       (200)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (OK)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (code)
+     2    LOAD_CONST 1       (200)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (OK)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function ExhaustiveStringLiterals (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (role)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (User)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_CONST 0   (null)
+     5    LOAD_VAR 1     (role)
+     6    STORE_VAR 3    (_2)
+     7    LOAD_VAR 3     (_2)
+     8    STORE_VAR 4    (_)
+     9    LOAD_CONST 1   (User)
+     10   STORE_VAR 2    (_0)
+     11   LOAD_VAR 2     (_0)
+     12   RETURN         
 
 Function ExhaustiveTrueType (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (t)
-     2   LOAD_CONST 1       (true)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (always true)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (t)
+     2    LOAD_CONST 1       (true)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (always true)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function ExhaustiveTypeAlias (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -632,39 +759,44 @@ Function ExhaustiveTypeAlias (arity: 1, kind: Exec):
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
      7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +9             (to 17)
+     8    JUMP +11            (to 19)
      9    LOAD_VAR 3          (_2)
      10   LOAD_CONST 2        (<class Failure>)
      11   CMP_OP instanceof   
-     12   JUMP_IF_FALSE +8    (to 20)
-     13   LOAD_VAR 3          (_2)
-     14   LOAD_FIELD 0        
-     15   STORE_VAR 2         (_0)
-     16   JUMP +4             (to 20)
-     17   LOAD_VAR 3          (_2)
-     18   LOAD_FIELD 0        
-     19   STORE_VAR 2         (_0)
-     20   LOAD_VAR 2          (_0)
-     21   RETURN              
+     12   JUMP_IF_FALSE +2    (to 14)
+     13   JUMP +2             (to 15)
+     14   JUMP +8             (to 22)
+     15   LOAD_VAR 3          (_2)
+     16   LOAD_FIELD 0        
+     17   STORE_VAR 2         (_0)
+     18   JUMP +4             (to 22)
+     19   LOAD_VAR 3          (_2)
+     20   LOAD_FIELD 0        
+     21   STORE_VAR 2         (_0)
+     22   LOAD_VAR 2          (_0)
+     23   RETURN              
 
 Function ExhaustiveTypeAliasWithCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
      1    LOAD_CONST 0        (null)
-     2    LOAD_VAR 1          (r)
-     3    STORE_VAR 3         (_2)
-     4    LOAD_VAR 3          (_2)
-     5    LOAD_CONST 1        (<class Success>)
-     6    CMP_OP instanceof   
-     7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +4             (to 12)
-     9    LOAD_CONST 2        (fallback)
-     10   STORE_VAR 2         (_0)
-     11   JUMP +4             (to 15)
-     12   LOAD_VAR 3          (_2)
-     13   LOAD_FIELD 0        
-     14   STORE_VAR 2         (_0)
-     15   LOAD_VAR 2          (_0)
-     16   RETURN              
+     2    LOAD_CONST 0        (null)
+     3    LOAD_VAR 1          (r)
+     4    STORE_VAR 3         (_2)
+     5    LOAD_VAR 3          (_2)
+     6    LOAD_CONST 1        (<class Success>)
+     7    CMP_OP instanceof   
+     8    JUMP_IF_FALSE +2    (to 10)
+     9    JUMP +6             (to 15)
+     10   LOAD_VAR 3          (_2)
+     11   STORE_VAR 4         (_)
+     12   LOAD_CONST 2        (fallback)
+     13   STORE_VAR 2         (_0)
+     14   JUMP +4             (to 18)
+     15   LOAD_VAR 3          (_2)
+     16   LOAD_FIELD 0        
+     17   STORE_VAR 2         (_0)
+     18   LOAD_VAR 2          (_0)
+     19   RETURN              
 
 Function ExhaustiveWithNamedCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -689,28 +821,31 @@ Function ExhaustiveWithNamedCatchAll (arity: 1, kind: Exec):
 Function ExhaustiveWithUnderscore (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (x)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (1)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +12           (to 20)
-     9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (2)
-     11   CMP_OP ==          
-     12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +4            (to 17)
-     14   LOAD_CONST 3       (0)
-     15   STORE_VAR 2        (_0)
-     16   JUMP +6            (to 22)
-     17   LOAD_CONST 4       (200)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (1)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +14           (to 23)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 2       (2)
+     12   CMP_OP ==          
+     13   JUMP_IF_FALSE +2   (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_VAR 3         (_2)
+     16   STORE_VAR 4        (_)
+     17   LOAD_CONST 3       (0)
      18   STORE_VAR 2        (_0)
-     19   JUMP +3            (to 22)
-     20   LOAD_CONST 5       (100)
+     19   JUMP +6            (to 25)
+     20   LOAD_CONST 4       (200)
      21   STORE_VAR 2        (_0)
-     22   LOAD_VAR 2         (_0)
-     23   RETURN             
+     22   JUMP +3            (to 25)
+     23   LOAD_CONST 5       (100)
+     24   STORE_VAR 2        (_0)
+     25   LOAD_VAR 2         (_0)
+     26   RETURN             
 
 Function GuardedOnlyNonExhaustive (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -742,33 +877,44 @@ Function GuardedOnlyNonExhaustive (arity: 1, kind: Exec):
 Function GuardedWithFallback (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (x)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (0)
-     6    CMP_OP >           
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +4            (to 12)
-     9    LOAD_CONST 1       (0)
-     10   STORE_VAR 2        (_0)
-     11   JUMP +5            (to 16)
-     12   LOAD_VAR 3         (_2)
-     13   LOAD_CONST 2       (2)
-     14   BIN_OP *           
-     15   STORE_VAR 2        (_0)
-     16   LOAD_VAR 2         (_0)
-     17   RETURN             
+     2    LOAD_CONST 0       (null)
+     3    LOAD_CONST 0       (null)
+     4    LOAD_VAR 1         (x)
+     5    STORE_VAR 3        (_2)
+     6    LOAD_VAR 3         (_2)
+     7    LOAD_CONST 1       (false)
+     8    JUMP_IF_FALSE +8   (to 16)
+     9    LOAD_VAR 3         (_2)
+     10   STORE_VAR 4        (n)
+     11   LOAD_VAR 4         (n)
+     12   LOAD_CONST 2       (0)
+     13   CMP_OP >           
+     14   JUMP_IF_FALSE +2   (to 16)
+     15   JUMP +6            (to 21)
+     16   LOAD_VAR 3         (_2)
+     17   STORE_VAR 5        (_)
+     18   LOAD_CONST 2       (0)
+     19   STORE_VAR 2        (_0)
+     20   JUMP +5            (to 25)
+     21   LOAD_VAR 4         (n)
+     22   LOAD_CONST 3       (2)
+     23   BIN_OP *           
+     24   STORE_VAR 2        (_0)
+     25   LOAD_VAR 2         (_0)
+     26   RETURN             
 
 Function HighLineNumberNonExhaustive (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (s)
-     2   LOAD_CONST 1       (Status.Active)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (active only)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (s)
+     2    LOAD_CONST 0       (null)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 1       (active only)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function IntLiteralUnionPattern (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -779,149 +925,178 @@ Function IntLiteralUnionPattern (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (200)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +13           (to 21)
+     8    JUMP +15           (to 23)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (201)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
      15   LOAD_CONST 3       (204)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +6   (to 23)
-     18   LOAD_CONST 4       (no content)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +3            (to 23)
-     21   LOAD_CONST 5       (success with body)
-     22   STORE_VAR 2        (_0)
-     23   LOAD_VAR 2         (_0)
-     24   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +6            (to 25)
+     20   LOAD_CONST 4       (no content)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +3            (to 25)
+     23   LOAD_CONST 5       (success with body)
+     24   STORE_VAR 2        (_0)
+     25   LOAD_VAR 2         (_0)
+     26   RETURN             
 
 Function LiteralAfterTypedPattern (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (x)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (int)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +10           (to 18)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 2       (42)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +8            (to 22)
+     15   LOAD_CONST 3       (unreachable)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +5            (to 22)
+     18   LOAD_VAR 3         (_2)
+     19   STORE_VAR 4        (n)
+     20   LOAD_CONST 4       (int)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function LiteralUnionWithCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (code)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (200)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +22           (to 30)
-     9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (201)
-     11   CMP_OP ==          
-     12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +17           (to 30)
-     14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 3       (400)
-     16   CMP_OP ==          
-     17   JUMP_IF_FALSE +2   (to 19)
-     18   JUMP +9            (to 27)
-     19   LOAD_VAR 3         (_2)
-     20   LOAD_CONST 4       (404)
-     21   CMP_OP ==          
-     22   JUMP_IF_FALSE +2   (to 24)
-     23   JUMP +4            (to 27)
-     24   LOAD_CONST 5       (other)
-     25   STORE_VAR 2        (_0)
-     26   JUMP +6            (to 32)
-     27   LOAD_CONST 6       (client error)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (code)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (200)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +24           (to 33)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 2       (201)
+     12   CMP_OP ==          
+     13   JUMP_IF_FALSE +2   (to 15)
+     14   JUMP +19           (to 33)
+     15   LOAD_VAR 3         (_2)
+     16   LOAD_CONST 3       (400)
+     17   CMP_OP ==          
+     18   JUMP_IF_FALSE +2   (to 20)
+     19   JUMP +11           (to 30)
+     20   LOAD_VAR 3         (_2)
+     21   LOAD_CONST 4       (404)
+     22   CMP_OP ==          
+     23   JUMP_IF_FALSE +2   (to 25)
+     24   JUMP +6            (to 30)
+     25   LOAD_VAR 3         (_2)
+     26   STORE_VAR 4        (_)
+     27   LOAD_CONST 5       (other)
      28   STORE_VAR 2        (_0)
-     29   JUMP +3            (to 32)
-     30   LOAD_CONST 7       (success)
+     29   JUMP +6            (to 35)
+     30   LOAD_CONST 6       (client error)
      31   STORE_VAR 2        (_0)
-     32   LOAD_VAR 2         (_0)
-     33   RETURN             
+     32   JUMP +3            (to 35)
+     33   LOAD_CONST 7       (success)
+     34   STORE_VAR 2        (_0)
+     35   LOAD_VAR 2         (_0)
+     36   RETURN             
 
 Function MixedPatterns (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (x)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (0)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +20           (to 28)
-     9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (1)
-     11   CMP_OP ==          
-     12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +12           (to 25)
-     14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 1       (0)
-     16   CMP_OP >           
-     17   JUMP_IF_FALSE +2   (to 19)
-     18   JUMP +4            (to 22)
-     19   LOAD_CONST 3       (negative)
-     20   STORE_VAR 2        (_0)
-     21   JUMP +9            (to 30)
-     22   LOAD_CONST 4       (positive)
-     23   STORE_VAR 2        (_0)
-     24   JUMP +6            (to 30)
-     25   LOAD_CONST 5       (one)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (0)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +25           (to 34)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 2       (1)
+     12   CMP_OP ==          
+     13   JUMP_IF_FALSE +2   (to 15)
+     14   JUMP +17           (to 31)
+     15   LOAD_VAR 3         (_2)
+     16   LOAD_CONST 3       (false)
+     17   JUMP_IF_FALSE +6   (to 23)
+     18   LOAD_VAR 3         (_2)
+     19   LOAD_CONST 1       (0)
+     20   CMP_OP >           
+     21   JUMP_IF_FALSE +2   (to 23)
+     22   JUMP +6            (to 28)
+     23   LOAD_VAR 3         (_2)
+     24   STORE_VAR 4        (_)
+     25   LOAD_CONST 4       (negative)
      26   STORE_VAR 2        (_0)
-     27   JUMP +3            (to 30)
-     28   LOAD_CONST 6       (zero)
+     27   JUMP +9            (to 36)
+     28   LOAD_CONST 5       (positive)
      29   STORE_VAR 2        (_0)
-     30   LOAD_VAR 2         (_0)
-     31   RETURN             
+     30   JUMP +6            (to 36)
+     31   LOAD_CONST 6       (one)
+     32   STORE_VAR 2        (_0)
+     33   JUMP +3            (to 36)
+     34   LOAD_CONST 7       (zero)
+     35   STORE_VAR 2        (_0)
+     36   LOAD_VAR 2         (_0)
+     37   RETURN             
 
 Function MultipleUnreachableSpans (arity: 1, kind: Exec):
-     0    LOAD_CONST 0        (null)
-     1    LOAD_CONST 0        (null)
-     2    LOAD_VAR 1          (s)
-     3    STORE_VAR 3         (_2)
-     4    LOAD_VAR 3          (_2)
-     5    LOAD_CONST 1        (Status.Active)
-     6    CMP_OP ==           
-     7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +32            (to 40)
-     9    LOAD_VAR 3          (_2)
-     10   LOAD_CONST 2        (Status.Active)
-     11   CMP_OP ==           
-     12   JUMP_IF_FALSE +2    (to 14)
-     13   JUMP +24            (to 37)
-     14   LOAD_VAR 3          (_2)
-     15   LOAD_CONST 3        (Status.Inactive)
-     16   CMP_OP ==           
-     17   JUMP_IF_FALSE +2    (to 19)
-     18   JUMP +16            (to 34)
-     19   LOAD_VAR 3          (_2)
-     20   LOAD_CONST 4        (Status.Active)
-     21   CMP_OP ==           
-     22   JUMP_IF_FALSE +2    (to 24)
-     23   JUMP +8             (to 31)
-     24   LOAD_VAR 3          (_2)
-     25   LOAD_CONST 5        (Status.Pending)
-     26   CMP_OP ==           
-     27   JUMP_IF_FALSE +15   (to 42)
-     28   LOAD_CONST 6        (pending)
-     29   STORE_VAR 2         (_0)
-     30   JUMP +12            (to 42)
-     31   LOAD_CONST 7        (duplicate 2)
-     32   STORE_VAR 2         (_0)
-     33   JUMP +9             (to 42)
-     34   LOAD_CONST 8        (inactive)
-     35   STORE_VAR 2         (_0)
-     36   JUMP +6             (to 42)
-     37   LOAD_CONST 9        (duplicate 1)
-     38   STORE_VAR 2         (_0)
-     39   JUMP +3             (to 42)
-     40   LOAD_CONST 10       (active)
-     41   STORE_VAR 2         (_0)
-     42   LOAD_VAR 2          (_0)
-     43   RETURN              
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_VAR 1         (s)
+     3    STORE_VAR 3        (_2)
+     4    LOAD_VAR 3         (_2)
+     5    LOAD_CONST 0       (null)
+     6    CMP_OP ==          
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +34           (to 42)
+     9    LOAD_VAR 3         (_2)
+     10   LOAD_CONST 0       (null)
+     11   CMP_OP ==          
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +26           (to 39)
+     14   LOAD_VAR 3         (_2)
+     15   LOAD_CONST 0       (null)
+     16   CMP_OP ==          
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +18           (to 36)
+     19   LOAD_VAR 3         (_2)
+     20   LOAD_CONST 0       (null)
+     21   CMP_OP ==          
+     22   JUMP_IF_FALSE +2   (to 24)
+     23   JUMP +10           (to 33)
+     24   LOAD_VAR 3         (_2)
+     25   LOAD_CONST 0       (null)
+     26   CMP_OP ==          
+     27   JUMP_IF_FALSE +2   (to 29)
+     28   JUMP +2            (to 30)
+     29   JUMP +15           (to 44)
+     30   LOAD_CONST 1       (pending)
+     31   STORE_VAR 2        (_0)
+     32   JUMP +12           (to 44)
+     33   LOAD_CONST 2       (duplicate 2)
+     34   STORE_VAR 2        (_0)
+     35   JUMP +9            (to 44)
+     36   LOAD_CONST 3       (inactive)
+     37   STORE_VAR 2        (_0)
+     38   JUMP +6            (to 44)
+     39   LOAD_CONST 4       (duplicate 1)
+     40   STORE_VAR 2        (_0)
+     41   JUMP +3            (to 44)
+     42   LOAD_CONST 5       (active)
+     43   STORE_VAR 2        (_0)
+     44   LOAD_VAR 2         (_0)
+     45   RETURN             
 
 Function NestedEnumVariantUnions (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -929,122 +1104,135 @@ Function NestedEnumVariantUnions (arity: 1, kind: Exec):
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
+     5    LOAD_CONST 0       (null)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +10           (to 18)
+     8    JUMP +12           (to 20)
      9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Pending)
+     10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +5            (to 18)
+     13   JUMP +7            (to 20)
      14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 3       (Status.Inactive)
+     15   LOAD_CONST 0       (null)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +3   (to 20)
-     18   LOAD_CONST 4       (all statuses)
-     19   STORE_VAR 2        (_0)
-     20   LOAD_VAR 2         (_0)
-     21   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +3            (to 22)
+     20   LOAD_CONST 1       (all statuses)
+     21   STORE_VAR 2        (_0)
+     22   LOAD_VAR 2         (_0)
+     23   RETURN             
 
 Function NestedLiteralUnions (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (code)
-     3    STORE_VAR 3        (_2)
-     4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (200)
-     6    CMP_OP ==          
-     7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +47           (to 55)
-     9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (201)
-     11   CMP_OP ==          
-     12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +42           (to 55)
-     14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 3       (202)
-     16   CMP_OP ==          
-     17   JUMP_IF_FALSE +2   (to 19)
-     18   JUMP +37           (to 55)
-     19   LOAD_VAR 3         (_2)
-     20   LOAD_CONST 4       (204)
-     21   CMP_OP ==          
-     22   JUMP_IF_FALSE +2   (to 24)
-     23   JUMP +32           (to 55)
-     24   LOAD_VAR 3         (_2)
-     25   LOAD_CONST 5       (400)
-     26   CMP_OP ==          
-     27   JUMP_IF_FALSE +2   (to 29)
-     28   JUMP +24           (to 52)
-     29   LOAD_VAR 3         (_2)
-     30   LOAD_CONST 6       (404)
-     31   CMP_OP ==          
-     32   JUMP_IF_FALSE +2   (to 34)
-     33   JUMP +19           (to 52)
-     34   LOAD_VAR 3         (_2)
-     35   LOAD_CONST 7       (405)
-     36   CMP_OP ==          
-     37   JUMP_IF_FALSE +2   (to 39)
-     38   JUMP +14           (to 52)
-     39   LOAD_VAR 3         (_2)
-     40   LOAD_CONST 8       (406)
-     41   CMP_OP ==          
-     42   JUMP_IF_FALSE +2   (to 44)
-     43   JUMP +9            (to 52)
-     44   LOAD_VAR 3         (_2)
-     45   LOAD_CONST 9       (409)
-     46   CMP_OP ==          
-     47   JUMP_IF_FALSE +2   (to 49)
-     48   JUMP +4            (to 52)
-     49   LOAD_CONST 10      (other)
-     50   STORE_VAR 2        (_0)
-     51   JUMP +6            (to 57)
-     52   LOAD_CONST 11      (client error)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (code)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (200)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +49           (to 58)
+     10   LOAD_VAR 3         (_2)
+     11   LOAD_CONST 2       (201)
+     12   CMP_OP ==          
+     13   JUMP_IF_FALSE +2   (to 15)
+     14   JUMP +44           (to 58)
+     15   LOAD_VAR 3         (_2)
+     16   LOAD_CONST 3       (202)
+     17   CMP_OP ==          
+     18   JUMP_IF_FALSE +2   (to 20)
+     19   JUMP +39           (to 58)
+     20   LOAD_VAR 3         (_2)
+     21   LOAD_CONST 4       (204)
+     22   CMP_OP ==          
+     23   JUMP_IF_FALSE +2   (to 25)
+     24   JUMP +34           (to 58)
+     25   LOAD_VAR 3         (_2)
+     26   LOAD_CONST 5       (400)
+     27   CMP_OP ==          
+     28   JUMP_IF_FALSE +2   (to 30)
+     29   JUMP +26           (to 55)
+     30   LOAD_VAR 3         (_2)
+     31   LOAD_CONST 6       (404)
+     32   CMP_OP ==          
+     33   JUMP_IF_FALSE +2   (to 35)
+     34   JUMP +21           (to 55)
+     35   LOAD_VAR 3         (_2)
+     36   LOAD_CONST 7       (405)
+     37   CMP_OP ==          
+     38   JUMP_IF_FALSE +2   (to 40)
+     39   JUMP +16           (to 55)
+     40   LOAD_VAR 3         (_2)
+     41   LOAD_CONST 8       (406)
+     42   CMP_OP ==          
+     43   JUMP_IF_FALSE +2   (to 45)
+     44   JUMP +11           (to 55)
+     45   LOAD_VAR 3         (_2)
+     46   LOAD_CONST 9       (409)
+     47   CMP_OP ==          
+     48   JUMP_IF_FALSE +2   (to 50)
+     49   JUMP +6            (to 55)
+     50   LOAD_VAR 3         (_2)
+     51   STORE_VAR 4        (_)
+     52   LOAD_CONST 10      (other)
      53   STORE_VAR 2        (_0)
-     54   JUMP +3            (to 57)
-     55   LOAD_CONST 12      (success)
+     54   JUMP +6            (to 60)
+     55   LOAD_CONST 11      (client error)
      56   STORE_VAR 2        (_0)
-     57   LOAD_VAR 2         (_0)
-     58   RETURN             
+     57   JUMP +3            (to 60)
+     58   LOAD_CONST 12      (success)
+     59   STORE_VAR 2        (_0)
+     60   LOAD_VAR 2         (_0)
+     61   RETURN             
 
 Function NestedMatchSpans (arity: 2, kind: Exec):
      0    LOAD_CONST 0       (null)
      1    LOAD_CONST 0       (null)
-     2    LOAD_VAR 1         (x)
-     3    LOAD_CONST 1       (0)
-     4    CMP_OP ==          
-     5    JUMP_IF_FALSE +2   (to 7)
-     6    JUMP +4            (to 10)
-     7    LOAD_CONST 2       (other)
-     8    STORE_VAR 3        (_0)
-     9    JUMP +25           (to 34)
-     10   LOAD_VAR 2         (y)
-     11   STORE_VAR 4        (_6)
-     12   LOAD_VAR 4         (_6)
-     13   LOAD_CONST 3       (true)
-     14   CMP_OP ==          
-     15   JUMP_IF_FALSE +2   (to 17)
-     16   JUMP +16           (to 32)
-     17   LOAD_VAR 4         (_6)
-     18   LOAD_CONST 4       (false)
-     19   CMP_OP ==          
-     20   JUMP_IF_FALSE +2   (to 22)
-     21   JUMP +8            (to 29)
-     22   LOAD_VAR 4         (_6)
-     23   LOAD_CONST 3       (true)
-     24   CMP_OP ==          
-     25   JUMP_IF_FALSE +9   (to 34)
-     26   LOAD_CONST 5       (unreachable nested)
-     27   STORE_VAR 3        (_0)
-     28   JUMP +6            (to 34)
-     29   LOAD_CONST 6       (zero false)
-     30   STORE_VAR 3        (_0)
-     31   JUMP +3            (to 34)
-     32   LOAD_CONST 7       (zero true)
-     33   STORE_VAR 3        (_0)
-     34   LOAD_VAR 3         (_0)
-     35   RETURN             
+     2    LOAD_CONST 0       (null)
+     3    LOAD_CONST 0       (null)
+     4    LOAD_VAR 1         (x)
+     5    STORE_VAR 4        (_3)
+     6    LOAD_VAR 4         (_3)
+     7    LOAD_CONST 1       (0)
+     8    CMP_OP ==          
+     9    JUMP_IF_FALSE +2   (to 11)
+     10   JUMP +6            (to 16)
+     11   LOAD_VAR 4         (_3)
+     12   STORE_VAR 6        (_)
+     13   LOAD_CONST 2       (other)
+     14   STORE_VAR 3        (_0)
+     15   JUMP +27           (to 42)
+     16   LOAD_VAR 2         (y)
+     17   STORE_VAR 5        (_5)
+     18   LOAD_VAR 5         (_5)
+     19   LOAD_CONST 3       (true)
+     20   CMP_OP ==          
+     21   JUMP_IF_FALSE +2   (to 23)
+     22   JUMP +18           (to 40)
+     23   LOAD_VAR 5         (_5)
+     24   LOAD_CONST 4       (false)
+     25   CMP_OP ==          
+     26   JUMP_IF_FALSE +2   (to 28)
+     27   JUMP +10           (to 37)
+     28   LOAD_VAR 5         (_5)
+     29   LOAD_CONST 3       (true)
+     30   CMP_OP ==          
+     31   JUMP_IF_FALSE +2   (to 33)
+     32   JUMP +2            (to 34)
+     33   JUMP +9            (to 42)
+     34   LOAD_CONST 5       (unreachable nested)
+     35   STORE_VAR 3        (_0)
+     36   JUMP +6            (to 42)
+     37   LOAD_CONST 6       (zero false)
+     38   STORE_VAR 3        (_0)
+     39   JUMP +3            (to 42)
+     40   LOAD_CONST 7       (zero true)
+     41   STORE_VAR 3        (_0)
+     42   LOAD_VAR 3         (_0)
+     43   RETURN             
 
 Function NestedTypeAlias (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -1055,82 +1243,111 @@ Function NestedTypeAlias (arity: 1, kind: Exec):
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
      7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +17            (to 25)
+     8    JUMP +19            (to 27)
      9    LOAD_VAR 3          (_2)
      10   LOAD_CONST 2        (<class Failure>)
      11   CMP_OP instanceof   
      12   JUMP_IF_FALSE +2    (to 14)
-     13   JUMP +8             (to 21)
+     13   JUMP +10            (to 23)
      14   LOAD_VAR 3          (_2)
      15   LOAD_CONST 0        (null)
      16   CMP_OP ==           
-     17   JUMP_IF_FALSE +11   (to 28)
-     18   LOAD_CONST 3        (nothing)
-     19   STORE_VAR 2         (_0)
-     20   JUMP +8             (to 28)
-     21   LOAD_VAR 3          (_2)
-     22   LOAD_FIELD 0        
-     23   STORE_VAR 2         (_0)
-     24   JUMP +4             (to 28)
-     25   LOAD_VAR 3          (_2)
-     26   LOAD_FIELD 0        
-     27   STORE_VAR 2         (_0)
-     28   LOAD_VAR 2          (_0)
-     29   RETURN              
+     17   JUMP_IF_FALSE +2    (to 19)
+     18   JUMP +2             (to 20)
+     19   JUMP +11            (to 30)
+     20   LOAD_CONST 3        (nothing)
+     21   STORE_VAR 2         (_0)
+     22   JUMP +8             (to 30)
+     23   LOAD_VAR 3          (_2)
+     24   LOAD_FIELD 0        
+     25   STORE_VAR 2         (_0)
+     26   JUMP +4             (to 30)
+     27   LOAD_VAR 3          (_2)
+     28   LOAD_FIELD 0        
+     29   STORE_VAR 2         (_0)
+     30   LOAD_VAR 2          (_0)
+     31   RETURN              
 
 Function NestedTypeBindings (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (r)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (0)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0        (null)
+     1    LOAD_CONST 0        (null)
+     2    LOAD_CONST 0        (null)
+     3    LOAD_CONST 0        (null)
+     4    LOAD_VAR 1          (r)
+     5    STORE_VAR 3         (_2)
+     6    LOAD_VAR 3          (_2)
+     7    LOAD_CONST 1        (false)
+     8    JUMP_IF_FALSE +2    (to 10)
+     9    JUMP +12            (to 21)
+     10   LOAD_VAR 3          (_2)
+     11   LOAD_CONST 2        (<class Failure>)
+     12   CMP_OP instanceof   
+     13   JUMP_IF_FALSE +2    (to 15)
+     14   JUMP +2             (to 16)
+     15   JUMP +10            (to 25)
+     16   LOAD_VAR 3          (_2)
+     17   STORE_VAR 5         (f)
+     18   LOAD_CONST 3        (1)
+     19   STORE_VAR 2         (_0)
+     20   JUMP +5             (to 25)
+     21   LOAD_VAR 3          (_2)
+     22   STORE_VAR 4         (s)
+     23   LOAD_CONST 4        (0)
+     24   STORE_VAR 2         (_0)
+     25   LOAD_VAR 2          (_0)
+     26   RETURN              
 
 Function NonExhaustiveAliasOfLiterals (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (code)
-     2   LOAD_CONST 1       (200)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (ok)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (code)
+     2    LOAD_CONST 1       (200)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (ok)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveBoolMissingFalse (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (b)
-     2   LOAD_CONST 1       (true)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (yes)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (b)
+     2    LOAD_CONST 1       (true)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (yes)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveBoolMissingTrue (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (b)
-     2   LOAD_CONST 1       (false)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (no)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (b)
+     2    LOAD_CONST 1       (false)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (no)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveClassPlusLiteralMissingClass (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (x)
-     2   LOAD_CONST 1       (200)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (http ok)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (x)
+     2    LOAD_CONST 1       (200)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (http ok)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveClassPlusLiteralMissingLiteral (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -1140,23 +1357,27 @@ Function NonExhaustiveClassPlusLiteralMissingLiteral (arity: 1, kind: Exec):
      4    LOAD_VAR 3          (_2)
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
-     7    JUMP_IF_FALSE +4    (to 11)
-     8    LOAD_VAR 3          (_2)
-     9    LOAD_FIELD 0        
-     10   STORE_VAR 2         (_0)
-     11   LOAD_VAR 2          (_0)
-     12   RETURN              
+     7    JUMP_IF_FALSE +2    (to 9)
+     8    JUMP +2             (to 10)
+     9    JUMP +4             (to 13)
+     10   LOAD_VAR 3          (_2)
+     11   LOAD_FIELD 0        
+     12   STORE_VAR 2         (_0)
+     13   LOAD_VAR 2          (_0)
+     14   RETURN              
 
 Function NonExhaustiveCustomBoolMissing (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (b)
-     2   LOAD_CONST 1       (true)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (yes)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (b)
+     2    LOAD_CONST 1       (true)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (yes)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveDoubleMaybeMissingNull (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -1167,31 +1388,35 @@ Function NonExhaustiveDoubleMaybeMissingNull (arity: 1, kind: Exec):
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
      7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +9             (to 17)
+     8    JUMP +11            (to 19)
      9    LOAD_VAR 3          (_2)
      10   LOAD_CONST 2        (<class Failure>)
      11   CMP_OP instanceof   
-     12   JUMP_IF_FALSE +8    (to 20)
-     13   LOAD_VAR 3          (_2)
-     14   LOAD_FIELD 0        
-     15   STORE_VAR 2         (_0)
-     16   JUMP +4             (to 20)
-     17   LOAD_VAR 3          (_2)
-     18   LOAD_FIELD 0        
-     19   STORE_VAR 2         (_0)
-     20   LOAD_VAR 2          (_0)
-     21   RETURN              
+     12   JUMP_IF_FALSE +2    (to 14)
+     13   JUMP +2             (to 15)
+     14   JUMP +8             (to 22)
+     15   LOAD_VAR 3          (_2)
+     16   LOAD_FIELD 0        
+     17   STORE_VAR 2         (_0)
+     18   JUMP +4             (to 22)
+     19   LOAD_VAR 3          (_2)
+     20   LOAD_FIELD 0        
+     21   STORE_VAR 2         (_0)
+     22   LOAD_VAR 2          (_0)
+     23   RETURN              
 
 Function NonExhaustiveEnumMissingMultiple (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (s)
-     2   LOAD_CONST 1       (Status.Active)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (active)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (s)
+     2    LOAD_CONST 0       (null)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 1       (active)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveEnumMissingOne (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -1199,21 +1424,23 @@ Function NonExhaustiveEnumMissingOne (arity: 1, kind: Exec):
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
+     5    LOAD_CONST 0       (null)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Inactive)
+     10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 3       (inactive)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 4       (active)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 1       (inactive)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 2       (active)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function NonExhaustiveFullResultMissingOne (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -1224,20 +1451,22 @@ Function NonExhaustiveFullResultMissingOne (arity: 1, kind: Exec):
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
      7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +9             (to 17)
+     8    JUMP +11            (to 19)
      9    LOAD_VAR 3          (_2)
      10   LOAD_CONST 2        (<class Failure>)
      11   CMP_OP instanceof   
-     12   JUMP_IF_FALSE +8    (to 20)
-     13   LOAD_VAR 3          (_2)
-     14   LOAD_FIELD 0        
-     15   STORE_VAR 2         (_0)
-     16   JUMP +4             (to 20)
-     17   LOAD_VAR 3          (_2)
-     18   LOAD_FIELD 0        
-     19   STORE_VAR 2         (_0)
-     20   LOAD_VAR 2          (_0)
-     21   RETURN              
+     12   JUMP_IF_FALSE +2    (to 14)
+     13   JUMP +2             (to 15)
+     14   JUMP +8             (to 22)
+     15   LOAD_VAR 3          (_2)
+     16   LOAD_FIELD 0        
+     17   STORE_VAR 2         (_0)
+     18   JUMP +4             (to 22)
+     19   LOAD_VAR 3          (_2)
+     20   LOAD_FIELD 0        
+     21   STORE_VAR 2         (_0)
+     22   LOAD_VAR 2          (_0)
+     23   RETURN              
 
 Function NonExhaustiveIntLiteral (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -1248,33 +1477,41 @@ Function NonExhaustiveIntLiteral (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (200)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (201)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 3       (Created)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 4       (OK)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 3       (Created)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 4       (OK)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function NonExhaustiveMixedLiterals (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
-     1    LOAD_VAR 1         (x)
-     2    LOAD_CONST 1       (200)
-     3    CMP_OP ==          
-     4    JUMP_IF_FALSE +2   (to 6)
-     5    JUMP +4            (to 9)
-     6    LOAD_CONST 2       (string success)
-     7    STORE_VAR 2        (_0)
-     8    JUMP +3            (to 11)
-     9    LOAD_CONST 3       (http ok)
-     10   STORE_VAR 2        (_0)
-     11   LOAD_VAR 2         (_0)
-     12   RETURN             
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (200)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +6            (to 15)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (_)
+     12   LOAD_CONST 2       (string success)
+     13   STORE_VAR 2        (_0)
+     14   JUMP +3            (to 17)
+     15   LOAD_CONST 3       (http ok)
+     16   STORE_VAR 2        (_0)
+     17   LOAD_VAR 2         (_0)
+     18   RETURN             
 
 Function NonExhaustiveNullableEnumMissingNull (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -1282,29 +1519,31 @@ Function NonExhaustiveNullableEnumMissingNull (arity: 1, kind: Exec):
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
+     5    LOAD_CONST 0       (null)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +16           (to 24)
+     8    JUMP +18           (to 26)
      9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Inactive)
+     10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
-     15   LOAD_CONST 3       (Status.Pending)
+     15   LOAD_CONST 0       (null)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +9   (to 26)
-     18   LOAD_CONST 4       (pending)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +6            (to 26)
-     21   LOAD_CONST 5       (inactive)
-     22   STORE_VAR 2        (_0)
-     23   JUMP +3            (to 26)
-     24   LOAD_CONST 6       (active)
-     25   STORE_VAR 2        (_0)
-     26   LOAD_VAR 2         (_0)
-     27   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +9            (to 28)
+     20   LOAD_CONST 1       (pending)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +6            (to 28)
+     23   LOAD_CONST 2       (inactive)
+     24   STORE_VAR 2        (_0)
+     25   JUMP +3            (to 28)
+     26   LOAD_CONST 3       (active)
+     27   STORE_VAR 2        (_0)
+     28   LOAD_VAR 2         (_0)
+     29   RETURN             
 
 Function NonExhaustiveNullableEnumMissingVariant (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -1312,72 +1551,84 @@ Function NonExhaustiveNullableEnumMissingVariant (arity: 1, kind: Exec):
      2    LOAD_VAR 1         (s)
      3    STORE_VAR 3        (_2)
      4    LOAD_VAR 3         (_2)
-     5    LOAD_CONST 1       (Status.Active)
+     5    LOAD_CONST 0       (null)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +16           (to 24)
+     8    JUMP +18           (to 26)
      9    LOAD_VAR 3         (_2)
-     10   LOAD_CONST 2       (Status.Inactive)
+     10   LOAD_CONST 0       (null)
      11   CMP_OP ==          
      12   JUMP_IF_FALSE +2   (to 14)
-     13   JUMP +8            (to 21)
+     13   JUMP +10           (to 23)
      14   LOAD_VAR 3         (_2)
      15   LOAD_CONST 0       (null)
      16   CMP_OP ==          
-     17   JUMP_IF_FALSE +9   (to 26)
-     18   LOAD_CONST 3       (no status)
-     19   STORE_VAR 2        (_0)
-     20   JUMP +6            (to 26)
-     21   LOAD_CONST 4       (inactive)
-     22   STORE_VAR 2        (_0)
-     23   JUMP +3            (to 26)
-     24   LOAD_CONST 5       (active)
-     25   STORE_VAR 2        (_0)
-     26   LOAD_VAR 2         (_0)
-     27   RETURN             
+     17   JUMP_IF_FALSE +2   (to 19)
+     18   JUMP +2            (to 20)
+     19   JUMP +9            (to 28)
+     20   LOAD_CONST 1       (no status)
+     21   STORE_VAR 2        (_0)
+     22   JUMP +6            (to 28)
+     23   LOAD_CONST 2       (inactive)
+     24   STORE_VAR 2        (_0)
+     25   JUMP +3            (to 28)
+     26   LOAD_CONST 3       (active)
+     27   STORE_VAR 2        (_0)
+     28   LOAD_VAR 2         (_0)
+     29   RETURN             
 
 Function NonExhaustiveOptionalMissingNull (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (code)
-     2   LOAD_CONST 1       (200)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (OK)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (code)
+     2    LOAD_CONST 1       (200)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (OK)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveOptionalMissingValue (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (code)
-     2   LOAD_CONST 0       (null)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 1       (no code)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (code)
+     2    LOAD_CONST 0       (null)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 1       (no code)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveStringLiteral (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (role)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (User)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_VAR 1     (role)
+     5    STORE_VAR 3    (_2)
+     6    LOAD_VAR 3     (_2)
+     7    STORE_VAR 4    (_)
+     8    LOAD_CONST 1   (User)
+     9    STORE_VAR 2    (_0)
+     10   LOAD_VAR 2     (_0)
+     11   RETURN         
 
 Function NonExhaustiveTrueTypeWrongLiteral (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (t)
-     2   LOAD_CONST 1       (false)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (wrong!)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (t)
+     2    LOAD_CONST 1       (false)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (wrong!)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function NonExhaustiveTypeAliasMissingOne (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
@@ -1387,61 +1638,91 @@ Function NonExhaustiveTypeAliasMissingOne (arity: 1, kind: Exec):
      4    LOAD_VAR 3          (_2)
      5    LOAD_CONST 1        (<class Success>)
      6    CMP_OP instanceof   
-     7    JUMP_IF_FALSE +4    (to 11)
-     8    LOAD_VAR 3          (_2)
-     9    LOAD_FIELD 0        
-     10   STORE_VAR 2         (_0)
-     11   LOAD_VAR 2          (_0)
-     12   RETURN              
+     7    JUMP_IF_FALSE +2    (to 9)
+     8    JUMP +2             (to 10)
+     9    JUMP +4             (to 13)
+     10   LOAD_VAR 3          (_2)
+     11   LOAD_FIELD 0        
+     12   STORE_VAR 2         (_0)
+     13   LOAD_VAR 2          (_0)
+     14   RETURN              
 
 Function OptionalWithCatchAll (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
-     1    LOAD_VAR 1         (x)
+     1    LOAD_CONST 0       (null)
      2    LOAD_CONST 0       (null)
-     3    CMP_OP ==          
-     4    JUMP_IF_FALSE +2   (to 6)
-     5    JUMP +4            (to 9)
-     6    LOAD_CONST 1       (has value)
-     7    STORE_VAR 2        (_0)
-     8    JUMP +3            (to 11)
-     9    LOAD_CONST 2       (no value)
-     10   STORE_VAR 2        (_0)
-     11   LOAD_VAR 2         (_0)
-     12   RETURN             
+     3    LOAD_VAR 1         (x)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 0       (null)
+     7    CMP_OP ==          
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +6            (to 15)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (_)
+     12   LOAD_CONST 1       (has value)
+     13   STORE_VAR 2        (_0)
+     14   JUMP +3            (to 17)
+     15   LOAD_CONST 2       (no value)
+     16   STORE_VAR 2        (_0)
+     17   LOAD_VAR 2         (_0)
+     18   RETURN             
 
 Function OverlappingTypedPatterns (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
-     1    LOAD_VAR 1          (r)
-     2    LOAD_CONST 1        (<class Success>)
-     3    CMP_OP instanceof   
-     4    JUMP_IF_FALSE +2    (to 6)
-     5    JUMP +4             (to 9)
-     6    LOAD_CONST 2        (covers failure only (success already handled))
-     7    STORE_VAR 2         (_0)
-     8    JUMP +3             (to 11)
-     9    LOAD_CONST 3        (success)
-     10   STORE_VAR 2         (_0)
-     11   LOAD_VAR 2          (_0)
-     12   RETURN              
+     1    LOAD_CONST 0        (null)
+     2    LOAD_CONST 0        (null)
+     3    LOAD_CONST 0        (null)
+     4    LOAD_VAR 1          (r)
+     5    STORE_VAR 3         (_2)
+     6    LOAD_VAR 3          (_2)
+     7    LOAD_CONST 1        (<class Success>)
+     8    CMP_OP instanceof   
+     9    JUMP_IF_FALSE +2    (to 11)
+     10   JUMP +11            (to 21)
+     11   LOAD_VAR 3          (_2)
+     12   LOAD_CONST 2        (false)
+     13   JUMP_IF_FALSE +2    (to 15)
+     14   JUMP +2             (to 16)
+     15   JUMP +10            (to 25)
+     16   LOAD_VAR 3          (_2)
+     17   STORE_VAR 5         (_)
+     18   LOAD_CONST 3        (covers failure only (success already handled))
+     19   STORE_VAR 2         (_0)
+     20   JUMP +5             (to 25)
+     21   LOAD_VAR 3          (_2)
+     22   STORE_VAR 4         (_)
+     23   LOAD_CONST 4        (success)
+     24   STORE_VAR 2         (_0)
+     25   LOAD_VAR 2          (_0)
+     26   RETURN              
 
 Function OverlappingWithBindings (arity: 1, kind: Exec):
      0    LOAD_CONST 0        (null)
      1    LOAD_CONST 0        (null)
-     2    LOAD_VAR 1          (r)
-     3    STORE_VAR 3         (_2)
-     4    LOAD_VAR 3          (_2)
-     5    LOAD_CONST 1        (<class Success>)
-     6    CMP_OP instanceof   
-     7    JUMP_IF_FALSE +2    (to 9)
-     8    JUMP +4             (to 12)
-     9    LOAD_CONST 2        (remaining)
-     10   STORE_VAR 2         (_0)
-     11   JUMP +4             (to 15)
-     12   LOAD_VAR 3          (_2)
-     13   LOAD_FIELD 0        
-     14   STORE_VAR 2         (_0)
-     15   LOAD_VAR 2          (_0)
-     16   RETURN              
+     2    LOAD_CONST 0        (null)
+     3    LOAD_VAR 1          (r)
+     4    STORE_VAR 3         (_2)
+     5    LOAD_VAR 3          (_2)
+     6    LOAD_CONST 1        (<class Success>)
+     7    CMP_OP instanceof   
+     8    JUMP_IF_FALSE +2    (to 10)
+     9    JUMP +11            (to 20)
+     10   LOAD_VAR 3          (_2)
+     11   LOAD_CONST 2        (false)
+     12   JUMP_IF_FALSE +2    (to 14)
+     13   JUMP +2             (to 15)
+     14   JUMP +9             (to 23)
+     15   LOAD_VAR 3          (_2)
+     16   STORE_VAR 4         (x)
+     17   LOAD_CONST 3        (remaining)
+     18   STORE_VAR 2         (_0)
+     19   JUMP +4             (to 23)
+     20   LOAD_VAR 3          (_2)
+     21   LOAD_FIELD 0        
+     22   STORE_VAR 2         (_0)
+     23   LOAD_VAR 2          (_0)
+     24   RETURN              
 
 Function ParenthesizedSingleLiteral (arity: 1, kind: Exec):
      0    LOAD_CONST 0       (null)
@@ -1452,107 +1733,183 @@ Function ParenthesizedSingleLiteral (arity: 1, kind: Exec):
      5    LOAD_CONST 1       (true)
      6    CMP_OP ==          
      7    JUMP_IF_FALSE +2   (to 9)
-     8    JUMP +8            (to 16)
+     8    JUMP +10           (to 18)
      9    LOAD_VAR 3         (_2)
      10   LOAD_CONST 2       (false)
      11   CMP_OP ==          
-     12   JUMP_IF_FALSE +6   (to 18)
-     13   LOAD_CONST 3       (no)
-     14   STORE_VAR 2        (_0)
-     15   JUMP +3            (to 18)
-     16   LOAD_CONST 4       (yes)
-     17   STORE_VAR 2        (_0)
-     18   LOAD_VAR 2         (_0)
-     19   RETURN             
+     12   JUMP_IF_FALSE +2   (to 14)
+     13   JUMP +2            (to 15)
+     14   JUMP +6            (to 20)
+     15   LOAD_CONST 3       (no)
+     16   STORE_VAR 2        (_0)
+     17   JUMP +3            (to 20)
+     18   LOAD_CONST 4       (yes)
+     19   STORE_VAR 2        (_0)
+     20   LOAD_VAR 2         (_0)
+     21   RETURN             
 
 Function PartialUnionPatternCoverage (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_VAR 1     (r)
-     2   STORE_VAR 2    (_2)
-     3   LOAD_CONST 1   (not pending)
-     4   RETURN         
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (r)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +2            (to 10)
+     9    JUMP +5            (to 14)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (x)
+     12   LOAD_CONST 2       (not pending)
+     13   STORE_VAR 2        (_0)
+     14   LOAD_VAR 2         (_0)
+     15   RETURN             
 
 Function PartialUnionPlusCatchAll (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (r)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (success or failure)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0        (null)
+     1    LOAD_CONST 0        (null)
+     2    LOAD_CONST 0        (null)
+     3    LOAD_CONST 0        (null)
+     4    LOAD_VAR 1          (r)
+     5    STORE_VAR 3         (_2)
+     6    LOAD_VAR 3          (_2)
+     7    LOAD_CONST 1        (false)
+     8    JUMP_IF_FALSE +2    (to 10)
+     9    JUMP +12            (to 21)
+     10   LOAD_VAR 3          (_2)
+     11   LOAD_CONST 2        (<class Pending>)
+     12   CMP_OP instanceof   
+     13   JUMP_IF_FALSE +2    (to 15)
+     14   JUMP +2             (to 16)
+     15   JUMP +10            (to 25)
+     16   LOAD_VAR 3          (_2)
+     17   STORE_VAR 5         (_)
+     18   LOAD_CONST 3        (pending)
+     19   STORE_VAR 2         (_0)
+     20   JUMP +5             (to 25)
+     21   LOAD_VAR 3          (_2)
+     22   STORE_VAR 4         (x)
+     23   LOAD_CONST 4        (success or failure)
+     24   STORE_VAR 2         (_0)
+     25   LOAD_VAR 2          (_0)
+     26   RETURN              
 
 Function StringLiteralAfterStringType (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (s)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (any string)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_CONST 0       (null)
+     4    LOAD_VAR 1         (s)
+     5    STORE_VAR 3        (_2)
+     6    LOAD_VAR 3         (_2)
+     7    LOAD_CONST 1       (false)
+     8    JUMP_IF_FALSE +2   (to 10)
+     9    JUMP +6            (to 15)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 5        (_)
+     12   LOAD_CONST 2       (unreachable)
+     13   STORE_VAR 2        (_0)
+     14   JUMP +5            (to 19)
+     15   LOAD_VAR 3         (_2)
+     16   STORE_VAR 4        (x)
+     17   LOAD_CONST 3       (any string)
+     18   STORE_VAR 2        (_0)
+     19   LOAD_VAR 2         (_0)
+     20   RETURN             
 
 Function StringLiteralUnionPattern (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (role)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (chat participant)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_VAR 1     (role)
+     5    STORE_VAR 3    (_2)
+     6    LOAD_VAR 3     (_2)
+     7    STORE_VAR 4    (_)
+     8    LOAD_CONST 1   (chat participant)
+     9    STORE_VAR 2    (_0)
+     10   LOAD_VAR 2     (_0)
+     11   RETURN         
 
 Function StringLiteralWithCatchAll (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (role)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (User message)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_CONST 0   (null)
+     5    LOAD_VAR 1     (role)
+     6    STORE_VAR 3    (_2)
+     7    LOAD_VAR 3     (_2)
+     8    STORE_VAR 4    (_)
+     9    LOAD_CONST 1   (User message)
+     10   STORE_VAR 2    (_0)
+     11   LOAD_VAR 2     (_0)
+     12   RETURN         
 
 Function UnionPatternCoversAll (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_VAR 1     (r)
-     2   STORE_VAR 2    (_2)
-     3   LOAD_CONST 1   (covered)
-     4   RETURN         
+     0    LOAD_CONST 0       (null)
+     1    LOAD_CONST 0       (null)
+     2    LOAD_CONST 0       (null)
+     3    LOAD_VAR 1         (r)
+     4    STORE_VAR 3        (_2)
+     5    LOAD_VAR 3         (_2)
+     6    LOAD_CONST 1       (false)
+     7    JUMP_IF_FALSE +2   (to 9)
+     8    JUMP +2            (to 10)
+     9    JUMP +5            (to 14)
+     10   LOAD_VAR 3         (_2)
+     11   STORE_VAR 4        (x)
+     12   LOAD_CONST 2       (covered)
+     13   STORE_VAR 2        (_0)
+     14   LOAD_VAR 2         (_0)
+     15   RETURN             
 
 Function UnreachableAfterCatchAll (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (x)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (catch all)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_VAR 1     (x)
+     5    STORE_VAR 3    (_2)
+     6    LOAD_VAR 3     (_2)
+     7    STORE_VAR 4    (_)
+     8    LOAD_CONST 1   (catch all)
+     9    STORE_VAR 2    (_0)
+     10   LOAD_VAR 2     (_0)
+     11   RETURN         
 
 Function UnreachableMultiple (arity: 1, kind: Exec):
-     0   LOAD_CONST 0   (null)
-     1   LOAD_CONST 0   (null)
-     2   LOAD_VAR 1     (x)
-     3   STORE_VAR 3    (_2)
-     4   LOAD_CONST 1   (catch all)
-     5   STORE_VAR 2    (_0)
-     6   LOAD_VAR 2     (_0)
-     7   RETURN         
+     0    LOAD_CONST 0   (null)
+     1    LOAD_CONST 0   (null)
+     2    LOAD_CONST 0   (null)
+     3    LOAD_CONST 0   (null)
+     4    LOAD_CONST 0   (null)
+     5    LOAD_VAR 1     (x)
+     6    STORE_VAR 3    (_2)
+     7    LOAD_VAR 3     (_2)
+     8    STORE_VAR 4    (_)
+     9    LOAD_CONST 1   (catch all)
+     10   STORE_VAR 2    (_0)
+     11   LOAD_VAR 2     (_0)
+     12   RETURN         
 
 Function WrongLiteralTypeBoolWithInt (arity: 1, kind: Exec):
-     0   LOAD_CONST 0       (null)
-     1   LOAD_VAR 1         (b)
-     2   LOAD_CONST 1       (42)
-     3   CMP_OP ==          
-     4   JUMP_IF_FALSE +3   (to 7)
-     5   LOAD_CONST 2       (wrong type)
-     6   STORE_VAR 2        (_0)
-     7   LOAD_VAR 2         (_0)
-     8   RETURN             
+     0    LOAD_CONST 0       (null)
+     1    LOAD_VAR 1         (b)
+     2    LOAD_CONST 1       (42)
+     3    CMP_OP ==          
+     4    JUMP_IF_FALSE +2   (to 6)
+     5    JUMP +2            (to 7)
+     6    JUMP +3            (to 9)
+     7    LOAD_CONST 2       (wrong type)
+     8    STORE_VAR 2        (_0)
+     9    LOAD_VAR 2         (_0)
+     10   RETURN             
 
 Function WrongLiteralTypeIntWithString (arity: 1, kind: Exec):
      0   LOAD_CONST 0   (null)
      1   LOAD_VAR 1     (x)
-     2   STORE_VAR 2    (_2)
+     2   STORE_VAR 2    (_)
      3   LOAD_CONST 1   (wrong type)
      4   RETURN

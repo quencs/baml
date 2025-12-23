@@ -133,8 +133,8 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                     next_slot += 1;
                     slots_to_allocate += 1;
                 }
-                LocalClassification::Virtual => {
-                    // Virtual locals don't get slots!
+                LocalClassification::Virtual | LocalClassification::Dead => {
+                    // Virtual and dead locals don't get slots!
                 }
             }
         }
@@ -209,11 +209,18 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
     fn emit_statement(&mut self, kind: &StatementKind<'db>, mir: &MirFunction<'db>) {
         match kind {
             StatementKind::Assign { destination, value } => {
-                // Check if this is an assignment to a Virtual local
+                // Check if this is an assignment to a Virtual or Dead local
                 if let Place::Local(local) = destination {
-                    if self.analysis.classifications[local] == LocalClassification::Virtual {
-                        // Skip! This will be inlined at use site
-                        return;
+                    match self.analysis.classifications[local] {
+                        LocalClassification::Virtual => {
+                            // Skip! This will be inlined at use site
+                            return;
+                        }
+                        LocalClassification::Dead => {
+                            // Dead store elimination - skip entirely
+                            return;
+                        }
+                        _ => {}
                     }
                 }
 
@@ -420,6 +427,12 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                 }
             }
             Constant::Ty(_) => {
+                let idx = self.add_constant(Value::Null);
+                self.emit(Instruction::LoadConst(idx));
+            }
+            Constant::EnumVariant { .. } => {
+                // TODO: Implement proper enum variant constant emission
+                // This needs to look up the enum object and create a Variant object
                 let idx = self.add_constant(Value::Null);
                 self.emit(Instruction::LoadConst(idx));
             }
