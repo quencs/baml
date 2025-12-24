@@ -24,6 +24,7 @@ baml_mir = { workspace = true }
 baml_vm = { workspace = true }
 baml_workspace = { workspace = true }
 baml_thir = { workspace = true }
+baml_typed_ir = { workspace = true }
 
 [dev-dependencies]
 anyhow = "1.0"
