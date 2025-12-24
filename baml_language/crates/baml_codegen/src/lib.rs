@@ -1,6 +1,6 @@
 //! Code generation for BAML.
 //!
-//! Compiles MIR (Mid-level IR) to bytecode for the BAML VM.
+//! Compiles MIR (Mid-level IR) to bytecode for the BAML VM using stackification.
 //!
 //! # Architecture
 //!
@@ -11,15 +11,34 @@
 //!
 //! This crate handles the final step: MIR -> Bytecode.
 //!
-//! The compiler takes MIR functions (control flow graphs) and generates
-//! stack-based bytecode instructions. Key components:
+//! The compiler classifies MIR locals as Virtual or Real:
+//! - **Virtual locals**: Single-use temporaries inlined at use site
+//! - **Real locals**: Multi-use or cross-block variables that need stack slots
 //!
-//! - **`MirCodegen`**: Compiles MIR CFG to bytecode
-//! - **Local slot allocation**: Maps MIR locals to VM stack slots
-//! - **Block emission**: Emits bytecode for each basic block
-//! - **Jump patching**: Resolves jump targets after all blocks are emitted
+//! Key modules:
+//! - **`analysis`**: Def-use analysis, dominator computation, local classification
+//! - **`emit`**: Bytecode emission with stackification optimization
 
-mod mir_codegen;
+mod analysis;
+mod emit;
+
+use baml_vm::ObjectPool;
+pub(crate) use emit::compile_mir_function;
+
+/// Context for MIR codegen.
+///
+/// Contains all shared state needed during MIR compilation:
+/// global mappings, class information, and the shared object pool.
+pub(crate) struct MirCodegenContext<'ctx, 'obj> {
+    /// Resolved global names to indices (function names -> global index).
+    pub globals: &'ctx HashMap<String, usize>,
+    /// Resolved class field indices (class name -> field name -> field index).
+    pub classes: &'ctx HashMap<String, HashMap<String, usize>>,
+    /// Pre-allocated Class object indices in the program's object pool.
+    pub class_object_indices: &'ctx HashMap<String, usize>,
+    /// Shared object pool for strings, etc.
+    pub objects: &'obj mut ObjectPool,
+}
 
 use std::collections::HashMap;
 
@@ -178,27 +197,50 @@ pub fn compile_files(db: &dyn baml_mir::Db, files: &[SourceFile]) -> Program {
                     }
                     baml_hir::FunctionBody::Expr(_) => {
                         // Run type inference
+                        // Note: type_aliases and enum_variants are not passed here,
+                        // so exhaustiveness checking for type aliases and enums won't work.
+                        // This is acceptable since codegen is for runtime execution,
+                        // and type errors should be caught in the THIR phase.
+                        //
+                        // TODO(codegen-inference): Re-evaluate whether we need full type context.
+                        // Currently this works because:
+                        //   1. Exhaustiveness errors are caught in the THIR/Diagnostics phase
+                        //   2. The core type inference doesn't depend on these maps
+                        //   3. Codegen only uses inference.expr_types and path_segment_types
                         let inference = baml_thir::infer_function(
                             db,
                             &signature,
                             &body,
                             Some(typing_context.clone()),
                             Some(class_field_types.clone()),
+                            None, // type_aliases - not needed for codegen
+                            None, // enum_variants - not needed for codegen
                             *func_loc,
                         );
 
-                        // Lower to MIR
-                        let mir =
-                            baml_mir::lower_function(&signature, &body, &inference, db, &classes);
+                        // Try TypedIR path first (fails if Missing nodes present)
+                        let mir = match baml_typed_ir::lower_from_hir(db, &body, &inference) {
+                            Ok(typed_ir) => {
+                                // Use the new TypedIR → MIR path
+                                baml_mir::lower_from_typed_ir(&signature, &typed_ir, db, &classes)
+                            }
+                            Err(_) => {
+                                // Fall back to old HIR path if TypedIR lowering fails
+                                // (e.g., due to Missing nodes)
+                                baml_mir::lower_function(
+                                    &signature, &body, &inference, db, &classes,
+                                )
+                            }
+                        };
 
                         // Compile MIR to bytecode
-                        let ctx = mir_codegen::MirCodegenContext {
+                        let ctx = MirCodegenContext {
                             globals: &globals,
                             classes: &classes,
                             class_object_indices: &class_object_indices,
                             objects: &mut program.objects,
                         };
-                        mir_codegen::compile_mir_function(&mir, ctx)
+                        compile_mir_function(&mir, ctx)
                     }
                 };
 
