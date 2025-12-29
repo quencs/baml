@@ -400,7 +400,7 @@ pub fn type_ref_to_str(ty: &TypeRef) -> String {
         TypeRef::Optional(inner) => format!("{}?", type_ref_to_str(inner)),
         TypeRef::List(inner) => format!("{}[]", type_ref_to_str(inner)),
         TypeRef::Map { key, value } => {
-            format!("Map<{}, {}>", type_ref_to_str(key), type_ref_to_str(value))
+            format!("map<{}, {}>", type_ref_to_str(key), type_ref_to_str(value))
         }
         TypeRef::Union(types) => types
             .iter()

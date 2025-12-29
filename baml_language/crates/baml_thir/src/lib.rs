@@ -20,6 +20,7 @@ use baml_workspace::Project;
 pub mod builtins;
 mod exhaustiveness;
 mod lower;
+mod normalize;
 pub mod pretty;
 mod types;
 
@@ -340,6 +341,29 @@ impl<'db> TypeContext<'db> {
         self.type_aliases.get(name)
     }
 
+    /// Check if `sub` is a subtype of `sup`, resolving type aliases.
+    pub fn is_subtype_of(&self, sub: &Ty<'db>, sup: &Ty<'db>) -> bool {
+        normalize::is_subtype_of(sub, sup, &self.type_aliases)
+    }
+
+    /// Resolve a type to its underlying class/enum name, expanding aliases.
+    ///
+    /// Returns `Some(name)` if the type is a named type (class/enum) or an alias
+    /// that ultimately resolves to a named type. Returns `None` for primitives
+    /// and other non-named types.
+    pub fn resolve_to_named(&self, ty: &Ty<'db>) -> Option<Name> {
+        match ty {
+            Ty::Named(name) => {
+                if let Some(alias_ty) = self.type_aliases.get(name) {
+                    self.resolve_to_named(alias_ty)
+                } else {
+                    Some(name.clone()) // Class or enum name
+                }
+            }
+            _ => None,
+        }
+    }
+
     /// Look up enum variants.
     pub fn lookup_enum_variants(&self, name: &Name) -> Option<&Vec<Name>> {
         self.enum_variants.get(name)
@@ -520,7 +544,7 @@ pub fn infer_function_body<'db>(
 
     // Check all return statement types against expected return type
     for (return_ty, span) in &ctx.return_types {
-        if !return_ty.is_subtype_of(expected_return)
+        if !ctx.is_subtype_of(return_ty, expected_return)
             && !return_ty.is_unknown()
             && !expected_return.is_unknown()
         {
@@ -536,7 +560,7 @@ pub fn infer_function_body<'db>(
     // A trailing expression is an implicit return, so it must match
     // BUT only if there are no explicit return statements (those are checked separately)
     if ctx.return_types.is_empty()
-        && !trailing_expr_type.is_subtype_of(expected_return)
+        && !ctx.is_subtype_of(&trailing_expr_type, expected_return)
         && !trailing_expr_type.is_unknown()
         && !expected_return.is_unknown()
     {
@@ -837,7 +861,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
 
                     // Check argument types
                     for (arg_ty, param_ty) in effective_args.iter().zip(params.iter()) {
-                        if !arg_ty.is_subtype_of(param_ty) {
+                        if !ctx.is_subtype_of(arg_ty, param_ty) {
                             ctx.push_error(TypeError::TypeMismatch {
                                 expected: param_ty.clone(),
                                 found: arg_ty.clone(),
@@ -880,7 +904,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                 // Check all elements have compatible types
                 for &elem in &elements[1..] {
                     let other_ty = infer_expr(ctx, elem, body);
-                    if !other_ty.is_subtype_of(&elem_ty) {
+                    if !ctx.is_subtype_of(&other_ty, &elem_ty) {
                         ctx.push_error(TypeError::TypeMismatch {
                             expected: elem_ty.clone(),
                             found: other_ty,
@@ -932,7 +956,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
         } => {
             // Condition must be bool
             let cond_ty = infer_expr(ctx, *condition, body);
-            if !cond_ty.is_subtype_of(&Ty::Bool) {
+            if !ctx.is_subtype_of(&cond_ty, &Ty::Bool) {
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Bool,
                     found: cond_ty,
@@ -1004,7 +1028,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                         // Type-check the guard (if present)
                         if let Some(guard) = arm.guard {
                             let guard_ty = infer_expr(ctx, guard, body);
-                            if !guard_ty.is_subtype_of(&Ty::Bool) && !guard_ty.is_unknown() {
+                            if !ctx.is_subtype_of(&guard_ty, &Ty::Bool) && !guard_ty.is_unknown() {
                                 ctx.push_error(TypeError::TypeMismatch {
                                     expected: Ty::Bool,
                                     found: guard_ty,
@@ -1219,8 +1243,8 @@ fn infer_binary_op<'db>(
         Eq | Ne => Ty::Bool,
 
         Lt | Le | Gt | Ge => {
-            if (lhs.is_subtype_of(&Ty::Int) || lhs.is_subtype_of(&Ty::Float))
-                && (rhs.is_subtype_of(&Ty::Int) || rhs.is_subtype_of(&Ty::Float))
+            if (ctx.is_subtype_of(lhs, &Ty::Int) || ctx.is_subtype_of(lhs, &Ty::Float))
+                && (ctx.is_subtype_of(rhs, &Ty::Int) || ctx.is_subtype_of(rhs, &Ty::Float))
             {
                 Ty::Bool
             } else {
@@ -1236,7 +1260,7 @@ fn infer_binary_op<'db>(
 
         // Logical operations
         And | Or => {
-            if lhs.is_subtype_of(&Ty::Bool) && rhs.is_subtype_of(&Ty::Bool) {
+            if ctx.is_subtype_of(lhs, &Ty::Bool) && ctx.is_subtype_of(rhs, &Ty::Bool) {
                 Ty::Bool
             } else {
                 ctx.push_error(TypeError::InvalidBinaryOp {
@@ -1251,7 +1275,7 @@ fn infer_binary_op<'db>(
 
         // Bitwise operations
         BitAnd | BitOr | BitXor | Shl | Shr => {
-            if lhs.is_subtype_of(&Ty::Int) && rhs.is_subtype_of(&Ty::Int) {
+            if ctx.is_subtype_of(lhs, &Ty::Int) && ctx.is_subtype_of(rhs, &Ty::Int) {
                 Ty::Int
             } else {
                 ctx.push_error(TypeError::InvalidBinaryOp {
@@ -1277,7 +1301,7 @@ fn infer_unary_op<'db>(
 
     match op {
         Not => {
-            if operand.is_subtype_of(&Ty::Bool) {
+            if ctx.is_subtype_of(operand, &Ty::Bool) {
                 Ty::Bool
             } else {
                 ctx.push_error(TypeError::InvalidUnaryOp {
@@ -1289,9 +1313,9 @@ fn infer_unary_op<'db>(
             }
         }
         Neg => {
-            if operand.is_subtype_of(&Ty::Int) {
+            if ctx.is_subtype_of(operand, &Ty::Int) {
                 Ty::Int
-            } else if operand.is_subtype_of(&Ty::Float) {
+            } else if ctx.is_subtype_of(operand, &Ty::Float) {
                 Ty::Float
             } else {
                 ctx.push_error(TypeError::InvalidUnaryOp {
@@ -1315,12 +1339,18 @@ fn infer_field_access<'db>(
     field: &Name,
     span: Span,
 ) -> Ty<'db> {
-    // First, try class field lookup for named types
+    // First, try class field lookup for named types (resolving aliases)
     let found_field = match base {
-        Ty::Named(class_name) => ctx
-            .lookup(field)
-            .or(ctx.lookup_class_field(class_name, field))
-            .cloned(),
+        Ty::Named(_) => {
+            // Resolve through type aliases to find the underlying class name
+            if let Some(class_name) = ctx.resolve_to_named(base) {
+                ctx.lookup(field)
+                    .or(ctx.lookup_class_field(&class_name, field))
+                    .cloned()
+            } else {
+                None
+            }
+        }
         Ty::Class(class_id) => {
             let class_fields_data = baml_hir::class_fields(ctx.db(), *class_id);
             let fields = class_fields_data.fields(ctx.db());
@@ -1376,7 +1406,7 @@ fn infer_index_access<'db>(
     match base {
         Ty::List(elem) => {
             // Index must be int
-            if !index.is_subtype_of(&Ty::Int) {
+            if !ctx.is_subtype_of(index, &Ty::Int) {
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Int,
                     found: index.clone(),
@@ -1387,7 +1417,7 @@ fn infer_index_access<'db>(
         }
         Ty::Map { key, value } => {
             // Index must match key type
-            if !index.is_subtype_of(key) {
+            if !ctx.is_subtype_of(index, key) {
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: (**key).clone(),
                     found: index.clone(),
@@ -1398,7 +1428,7 @@ fn infer_index_access<'db>(
         }
         Ty::String => {
             // String indexing returns a character (string of length 1)
-            if !index.is_subtype_of(&Ty::Int) {
+            if !ctx.is_subtype_of(index, &Ty::Int) {
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Int,
                     found: index.clone(),
@@ -1441,7 +1471,7 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
                     // this unwrap is safe because if type_ann is populated, so is type_span
                     let span = ctx.build_span_default(type_span);
                     let annot_ty = lower_type_ref(ctx.db(), annot);
-                    if !init_ty.is_subtype_of(&annot_ty) {
+                    if !ctx.is_subtype_of(&init_ty, &annot_ty) {
                         ctx.push_error(TypeError::TypeMismatch {
                             expected: annot_ty.clone(),
                             found: init_ty,
@@ -1499,7 +1529,7 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
             origin: _, // origin is used for diagnostics, not type checking
         } => {
             let cond_ty = infer_expr(ctx, *condition, body);
-            if !cond_ty.is_subtype_of(&Ty::Bool) {
+            if !ctx.is_subtype_of(&cond_ty, &Ty::Bool) {
                 let span = body.get_expr_span(*condition).unwrap_or_default();
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Bool,

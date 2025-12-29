@@ -119,6 +119,7 @@ impl TypeRef {
     /// - String literal types: `"foo"` or `'bar'`
     /// - Array types: `int[]`
     /// - Optional types: `int?`
+    /// - Generic types: `map<string, int>`
     /// - Boolean literal types: `true` or `false`
     /// - Integer literal types: `42`
     /// - Primitive types: `int`, `string`, etc.
@@ -140,6 +141,11 @@ impl TypeRef {
         if let Some(inner_text) = text.strip_suffix('?') {
             let inner = Self::from_type_text(inner_text);
             return TypeRef::Optional(Box::new(inner));
+        }
+
+        // Check for generic types like map<K, V>
+        if let Some(result) = Self::try_parse_generic(text) {
+            return result;
         }
 
         // Check for boolean literal types
@@ -169,6 +175,75 @@ impl TypeRef {
         }
 
         Self::from_type_name(text)
+    }
+
+    /// Try to parse a generic type like `map<K, V>`.
+    ///
+    /// Returns `Some(TypeRef)` if successful, `None` if not a generic type.
+    fn try_parse_generic(text: &str) -> Option<Self> {
+        // Find the opening angle bracket
+        let open_bracket = text.find('<')?;
+
+        // Must end with '>'
+        if !text.ends_with('>') {
+            return None;
+        }
+
+        let base_name = text[..open_bracket].trim();
+        let args_text = &text[open_bracket + 1..text.len() - 1];
+
+        // Parse the type arguments, respecting nested angle brackets
+        let args = Self::split_generic_args(args_text);
+
+        match base_name.to_lowercase().as_str() {
+            "map" => {
+                if args.len() == 2 {
+                    let key = Self::from_type_text(args[0].trim());
+                    let value = Self::from_type_text(args[1].trim());
+                    Some(TypeRef::Map {
+                        key: Box::new(key),
+                        value: Box::new(value),
+                    })
+                } else {
+                    // Wrong number of type arguments for map
+                    Some(TypeRef::Error)
+                }
+            }
+            // Future: handle other generic types here (e.g., Result<T, E>)
+            _ => {
+                // Unknown generic type - treat as a named type for now
+                // This preserves the original behavior
+                Some(TypeRef::Path(Path::single(Name::new(text))))
+            }
+        }
+    }
+
+    /// Split generic type arguments by comma, respecting nested angle brackets.
+    ///
+    /// For example: `"string, map<int, bool>"` -> `["string", "map<int, bool>"]`
+    fn split_generic_args(text: &str) -> Vec<&str> {
+        let mut args = Vec::new();
+        let mut depth = 0;
+        let mut start = 0;
+
+        for (i, c) in text.char_indices() {
+            match c {
+                '<' => depth += 1,
+                '>' => depth -= 1,
+                ',' if depth == 0 => {
+                    args.push(&text[start..i]);
+                    start = i + 1;
+                }
+                _ => {}
+            }
+        }
+
+        // Don't forget the last argument
+        if start < text.len() {
+            args.push(&text[start..]);
+        }
+
+        args
     }
 
     /// Create a `TypeRef` from a type name string.
@@ -266,6 +341,79 @@ mod tests {
         assert_eq!(
             TypeRef::from_type_text("int[]"),
             TypeRef::List(Box::new(TypeRef::Int))
+        );
+    }
+
+    #[test]
+    fn test_map_simple() {
+        assert_eq!(
+            TypeRef::from_type_text("map<string, int>"),
+            TypeRef::Map {
+                key: Box::new(TypeRef::String),
+                value: Box::new(TypeRef::Int),
+            }
+        );
+    }
+
+    #[test]
+    fn test_map_with_bool_value() {
+        assert_eq!(
+            TypeRef::from_type_text("map<string, bool>"),
+            TypeRef::Map {
+                key: Box::new(TypeRef::String),
+                value: Box::new(TypeRef::Bool),
+            }
+        );
+    }
+
+    #[test]
+    fn test_map_nested() {
+        // map<string, map<int, bool>>
+        assert_eq!(
+            TypeRef::from_type_text("map<string, map<int, bool>>"),
+            TypeRef::Map {
+                key: Box::new(TypeRef::String),
+                value: Box::new(TypeRef::Map {
+                    key: Box::new(TypeRef::Int),
+                    value: Box::new(TypeRef::Bool),
+                }),
+            }
+        );
+    }
+
+    #[test]
+    fn test_map_optional() {
+        // map<string, int>?
+        assert_eq!(
+            TypeRef::from_type_text("map<string, int>?"),
+            TypeRef::Optional(Box::new(TypeRef::Map {
+                key: Box::new(TypeRef::String),
+                value: Box::new(TypeRef::Int),
+            }))
+        );
+    }
+
+    #[test]
+    fn test_map_array() {
+        // map<string, int>[]
+        assert_eq!(
+            TypeRef::from_type_text("map<string, int>[]"),
+            TypeRef::List(Box::new(TypeRef::Map {
+                key: Box::new(TypeRef::String),
+                value: Box::new(TypeRef::Int),
+            }))
+        );
+    }
+
+    #[test]
+    fn test_split_generic_args() {
+        assert_eq!(
+            TypeRef::split_generic_args("string, int"),
+            vec!["string", " int"]
+        );
+        assert_eq!(
+            TypeRef::split_generic_args("string, map<int, bool>"),
+            vec!["string", " map<int, bool>"]
         );
     }
 }

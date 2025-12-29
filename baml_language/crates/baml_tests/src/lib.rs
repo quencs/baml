@@ -91,7 +91,7 @@ fn format_type_ref(type_ref: &baml_hir::TypeRef) -> String {
         TypeRef::Optional(inner) => format!("{}?", format_type_ref(inner)),
         TypeRef::List(inner) => format!("{}[]", format_type_ref(inner)),
         TypeRef::Map { key, value } => {
-            format!("Map<{}, {}>", format_type_ref(key), format_type_ref(value))
+            format!("map<{}, {}>", format_type_ref(key), format_type_ref(value))
         }
         TypeRef::Union(types) => types
             .iter()
