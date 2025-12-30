@@ -133,8 +133,11 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                     next_slot += 1;
                     slots_to_allocate += 1;
                 }
-                LocalClassification::Virtual | LocalClassification::Dead => {
-                    // Virtual and dead locals don't get slots!
+                LocalClassification::Virtual
+                | LocalClassification::PhiLike
+                | LocalClassification::ReturnPhi
+                | LocalClassification::Dead => {
+                    // Virtual, phi-like, return-phi, and dead locals don't get slots!
                 }
             }
         }
@@ -176,14 +179,29 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
 
     /// Emit a jump to target, unless it's a fall-through to the next block.
     ///
+    /// Applies jump threading: if the target is an empty goto-only block,
+    /// jump directly to its final destination instead.
+    ///
     /// Returns true if a jump was emitted, false if it was elided.
     fn emit_jump_unless_fallthrough(&mut self, target: BlockId) -> bool {
-        if self.next_block == Some(target) {
-            // Target is the next block - no jump needed, just fall through
+        // Apply jump threading: resolve through redirect map
+        let resolved_target = self.analysis.resolve_jump_target(target);
+
+        // Check if we can fall through:
+        // 1. Next block IS the resolved target, OR
+        // 2. Next block is an empty block that resolves to our target
+        //    (fall through to it, and it will take us there)
+        let can_fall_through = self.next_block.is_some_and(|next| {
+            let resolved_next = self.analysis.resolve_jump_target(next);
+            resolved_target == next || resolved_target == resolved_next
+        });
+
+        if can_fall_through {
+            // No jump needed - fall through will get us there
             false
         } else {
             let jump_idx = self.emit(Instruction::Jump(0));
-            self.pending_jumps.push((jump_idx, target));
+            self.pending_jumps.push((jump_idx, resolved_target));
             true
         }
     }
@@ -209,11 +227,18 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
     fn emit_statement(&mut self, kind: &StatementKind<'db>, mir: &MirFunction<'db>) {
         match kind {
             StatementKind::Assign { destination, value } => {
-                // Check if this is an assignment to a Virtual or Dead local
+                // Check if this is an assignment to a Virtual, PhiLike, or Dead local
                 if let Place::Local(local) = destination {
                     match self.analysis.classifications[local] {
                         LocalClassification::Virtual => {
                             // Skip! This will be inlined at use site
+                            return;
+                        }
+                        LocalClassification::PhiLike | LocalClassification::ReturnPhi => {
+                            // Emit rvalue (leaves value on stack) but NOT the store.
+                            // PhiLike: value stays on stack until the join point uses it.
+                            // ReturnPhi: value stays on stack until Return.
+                            self.emit_rvalue_pull(value, mir);
                             return;
                         }
                         LocalClassification::Dead => {
@@ -280,19 +305,27 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
             Place::Local(local) => {
                 let classification = self.analysis.classifications[local];
 
-                if classification == LocalClassification::Virtual {
-                    // PULL: emit the definition's rvalue inline
-                    // Clone the rvalue to avoid borrow checker issues
-                    let rvalue = self.analysis.def_use[local]
-                        .def
-                        .as_ref()
-                        .map(|def| def.rvalue.clone())
-                        .unwrap_or_else(|| panic!("virtual local {local} without definition"));
-                    self.emit_rvalue_pull(&rvalue, mir);
-                } else {
-                    // Real local: emit LoadVar
-                    let slot = self.local_slots[local];
-                    self.emit(Instruction::LoadVar(slot));
+                match classification {
+                    LocalClassification::Virtual => {
+                        // PULL: emit the definition's rvalue inline
+                        // Clone the rvalue to avoid borrow checker issues
+                        let rvalue = self.analysis.def_use[local]
+                            .def
+                            .as_ref()
+                            .map(|def| def.rvalue.clone())
+                            .unwrap_or_else(|| panic!("virtual local {local} without definition"));
+                        self.emit_rvalue_pull(&rvalue, mir);
+                    }
+                    LocalClassification::PhiLike | LocalClassification::ReturnPhi => {
+                        // PhiLike: value is already on the stack from the predecessor block.
+                        // ReturnPhi: value is already on the stack from the assignment.
+                        // Don't emit any instruction - the value is there waiting for us.
+                    }
+                    _ => {
+                        // Real/Parameter local: emit LoadVar
+                        let slot = self.local_slots[local];
+                        self.emit(Instruction::LoadVar(slot));
+                    }
                 }
             }
             Place::Field { base, field } => {
@@ -470,12 +503,22 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
     fn emit_store_place(&mut self, place: &Place, _mir: &MirFunction<'db>) {
         match place {
             Place::Local(local) => {
-                // Check if this local has a slot (Real locals do, Virtual/Dead don't)
-                if let Some(&slot) = self.local_slots.get(local) {
-                    self.emit(Instruction::StoreVar(slot));
-                } else {
-                    // Virtual or Dead local - just pop the value
-                    self.emit(Instruction::Pop(1));
+                let classification = self.analysis.classifications[local];
+                match classification {
+                    LocalClassification::Parameter | LocalClassification::Real => {
+                        // Real locals get stored to their slot
+                        let slot = self.local_slots[local];
+                        self.emit(Instruction::StoreVar(slot));
+                    }
+                    LocalClassification::PhiLike | LocalClassification::ReturnPhi => {
+                        // PhiLike/ReturnPhi: keep value on stack (no-op)
+                        // Note: This case shouldn't occur because phi-like and return-phi
+                        // locals require specific terminator patterns (Goto/Return).
+                    }
+                    LocalClassification::Virtual | LocalClassification::Dead => {
+                        // Virtual or Dead local - just pop the value
+                        self.emit(Instruction::Pop(1));
+                    }
                 }
             }
             // Field/Index stores from terminators (Call/Await destinations) are not
@@ -505,9 +548,11 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                 else_block,
             } => {
                 self.emit_operand_pull(condition, mir);
-                // JumpIfFalse to else_block
-                let else_jump = self.emit(Instruction::JumpIfFalse(0));
-                self.pending_jumps.push((else_jump, *else_block));
+                // PopJumpIfFalse to else_block (pops condition from stack)
+                // Apply jump threading to resolve through empty blocks
+                let resolved_else = self.analysis.resolve_jump_target(*else_block);
+                let else_jump = self.emit(Instruction::PopJumpIfFalse(0));
+                self.pending_jumps.push((else_jump, resolved_else));
                 // Jump to then_block (may be elided if it's next)
                 self.emit_jump_unless_fallthrough(*then_block);
             }
@@ -524,8 +569,7 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                     let idx = self.add_constant(Value::Int(*value));
                     self.emit(Instruction::LoadConst(idx));
                     self.emit(Instruction::CmpOp(CmpOp::Eq));
-                    let jump_idx = self.emit(Instruction::JumpIfFalse(0));
-                    self.emit(Instruction::Pop(1));
+                    let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
                     self.emit(Instruction::Pop(1));
                     self.emit_jump_unless_fallthrough(*target);
                     let skip_to = self.current_pc();
@@ -608,8 +652,9 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
                 Instruction::Jump(_) => {
                     self.bytecode.instructions[instruction_idx] = Instruction::Jump(offset);
                 }
-                Instruction::JumpIfFalse(_) => {
-                    self.bytecode.instructions[instruction_idx] = Instruction::JumpIfFalse(offset);
+                Instruction::PopJumpIfFalse(_) => {
+                    self.bytecode.instructions[instruction_idx] =
+                        Instruction::PopJumpIfFalse(offset);
                 }
                 _ => panic!("expected jump instruction at index {instruction_idx}"),
             }
@@ -624,8 +669,8 @@ impl<'ctx, 'obj, 'db> StackifyCodegen<'ctx, 'obj, 'db> {
             Instruction::Jump(_) => {
                 self.bytecode.instructions[instruction_idx] = Instruction::Jump(offset);
             }
-            Instruction::JumpIfFalse(_) => {
-                self.bytecode.instructions[instruction_idx] = Instruction::JumpIfFalse(offset);
+            Instruction::PopJumpIfFalse(_) => {
+                self.bytecode.instructions[instruction_idx] = Instruction::PopJumpIfFalse(offset);
             }
             _ => panic!("expected jump instruction at index {instruction_idx}"),
         }

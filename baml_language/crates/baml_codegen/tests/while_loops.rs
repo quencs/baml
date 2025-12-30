@@ -34,7 +34,7 @@ fn while_loop_gcd() -> anyhow::Result<()> {
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadVar("b".to_string()),
                 Instruction::CmpOp(CmpOp::NotEq),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 Instruction::Jump(3),
                 // Loop exit: return a
                 Instruction::LoadVar("a".to_string()),
@@ -43,14 +43,15 @@ fn while_loop_gcd() -> anyhow::Result<()> {
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadVar("b".to_string()),
                 Instruction::CmpOp(CmpOp::Gt),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 Instruction::Jump(6),
                 // Else branch: b = b - a
                 Instruction::LoadVar("b".to_string()),
                 Instruction::LoadVar("a".to_string()),
                 Instruction::BinOp(BinOp::Sub),
                 Instruction::StoreVar("b".to_string()),
-                Instruction::Jump(5),
+                // Jump threading: direct jump back to loop condition (was Jump(5) -> Jump(-21))
+                Instruction::Jump(-16),
                 // Then branch: a = a - b
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadVar("b".to_string()),
@@ -92,7 +93,7 @@ fn while_loop_with_ending_if() -> anyhow::Result<()> {
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(5)),
                 Instruction::CmpOp(CmpOp::Lt),
-                Instruction::JumpIfFalse(11),
+                Instruction::PopJumpIfFalse(11),
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(1)),
                 Instruction::BinOp(BinOp::Add),
@@ -100,7 +101,7 @@ fn while_loop_with_ending_if() -> anyhow::Result<()> {
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(2)),
                 Instruction::CmpOp(CmpOp::Eq),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 Instruction::Jump(2),
                 Instruction::Jump(-13),
                 Instruction::LoadVar("a".to_string()),
@@ -139,7 +140,7 @@ fn while_loop_with_break() -> anyhow::Result<()> {
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(5)),
                 Instruction::CmpOp(CmpOp::Lt),
-                Instruction::JumpIfFalse(11),
+                Instruction::PopJumpIfFalse(11),
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(1)),
                 Instruction::BinOp(BinOp::Add),
@@ -147,7 +148,7 @@ fn while_loop_with_break() -> anyhow::Result<()> {
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(2)),
                 Instruction::CmpOp(CmpOp::Eq),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 Instruction::Jump(2),
                 Instruction::Jump(-13),
                 Instruction::LoadVar("a".to_string()),
@@ -186,12 +187,12 @@ fn break_factorial() -> anyhow::Result<()> {
                 Instruction::StoreVar("result".to_string()),
                 // Loop condition: true
                 Instruction::LoadConst(Value::Bool(true)),
-                Instruction::JumpIfFalse(15),
+                Instruction::PopJumpIfFalse(15),
                 // if (limit == 0)
                 Instruction::LoadVar("limit".to_string()),
                 Instruction::LoadConst(Value::Int(0)),
                 Instruction::CmpOp(CmpOp::Eq),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 // break - jump to loop exit
                 Instruction::Jump(10),
                 // result = result * limit
@@ -252,7 +253,7 @@ fn continue_factorial() -> anyhow::Result<()> {
                 Instruction::StoreVar("should_continue".to_string()),
                 // Loop condition: should_continue
                 Instruction::LoadVar("should_continue".to_string()),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 Instruction::Jump(3),
                 // Loop exit: load result and return
                 Instruction::LoadVar("result".to_string()),
@@ -271,16 +272,15 @@ fn continue_factorial() -> anyhow::Result<()> {
                 Instruction::LoadVar("limit".to_string()),
                 Instruction::LoadConst(Value::Int(0)),
                 Instruction::CmpOp(CmpOp::NotEq),
-                Instruction::JumpIfFalse(2),
-                // continue - jump to loop condition
-                Instruction::Jump(4),
+                Instruction::PopJumpIfFalse(2),
+                // continue - jump threading: direct to loop condition (was Jump(4) -> Jump(-21))
+                Instruction::Jump(-17),
                 // else: should_continue = false
                 Instruction::LoadConst(Value::Bool(false)),
                 Instruction::StoreVar("should_continue".to_string()),
                 // Jump back to loop condition
                 Instruction::Jump(-20),
-                // Unreachable continue fallthrough
-                Instruction::Jump(-21),
+                // Note: unreachable continue fallthrough eliminated by jump threading
             ],
         )],
     })
@@ -304,23 +304,23 @@ fn continue_nested() -> anyhow::Result<()> {
         "#,
         expected: vec![(
             "Nested",
-            // Stackification with dead store elimination:
-            // Dead compiler temps (_2 for if result) are eliminated
+            // Jump threading eliminates intermediate jumps:
+            // - Inner continue jumps directly to inner condition
+            // - Outer continue jumps directly to outer condition
             vec![
                 Instruction::LoadConst(Value::Bool(true)),
-                Instruction::JumpIfFalse(2),
+                Instruction::PopJumpIfFalse(2),
                 Instruction::Jump(3),
                 Instruction::LoadConst(Value::Int(5)),
                 Instruction::Return,
                 Instruction::LoadConst(Value::Bool(false)),
-                Instruction::JumpIfFalse(2),
-                Instruction::Jump(6),
+                Instruction::PopJumpIfFalse(2),
+                Instruction::Jump(-2), // inner continue: direct to inner condition
                 Instruction::LoadConst(Value::Bool(false)),
-                Instruction::JumpIfFalse(2),
-                Instruction::Jump(2),
-                Instruction::Jump(-11),
-                Instruction::Jump(-12),
-                Instruction::Jump(-8),
+                Instruction::PopJumpIfFalse(2),
+                Instruction::Jump(-10), // outer continue: direct to outer condition
+                Instruction::Jump(-11), // outer loop back
+                Instruction::Jump(-7),  // inner loop back
             ],
         )],
     })
@@ -352,9 +352,9 @@ fn break_nested() -> anyhow::Result<()> {
                 Instruction::LoadConst(Value::Int(5)),
                 Instruction::StoreVar("a".to_string()),
                 Instruction::LoadConst(Value::Bool(true)),
-                Instruction::JumpIfFalse(11),
+                Instruction::PopJumpIfFalse(11),
                 Instruction::LoadConst(Value::Bool(true)),
-                Instruction::JumpIfFalse(5),
+                Instruction::PopJumpIfFalse(5),
                 Instruction::LoadVar("a".to_string()),
                 Instruction::LoadConst(Value::Int(1)),
                 Instruction::BinOp(BinOp::Add),
@@ -364,6 +364,120 @@ fn break_nested() -> anyhow::Result<()> {
                 Instruction::BinOp(BinOp::Add),
                 Instruction::StoreVar("a".to_string()),
                 Instruction::LoadVar("a".to_string()),
+                Instruction::Return,
+            ],
+        )],
+    })
+}
+
+/// Test break with variable conditions to verify bytecode generation.
+///
+/// Key observation: The compiler detects that `break` is unconditional at the
+/// end of each loop body, so it eliminates:
+/// 1. Explicit jump instructions for `break` (uses fall-through instead)
+/// 2. Loop-back jumps (dead code since break always executes)
+///
+/// This is NOT constant folding - it happens with variable conditions too.
+#[test]
+fn break_nested_with_variable_conditions() -> anyhow::Result<()> {
+    assert_compiles(Program {
+        source: r#"
+            function Nested(x: bool, y: bool) -> int {
+                let a = 5;
+                while (x) {
+                    while (y) {
+                        a = a + 1;
+                        break;
+                    }
+                    a = a + 1;
+                    break;
+                }
+                a
+            }
+        "#,
+        expected: vec![(
+            "Nested",
+            vec![
+                // let a = 5
+                Instruction::LoadConst(Value::Null),
+                Instruction::LoadConst(Value::Int(5)),
+                Instruction::StoreVar("a".to_string()),
+                // outer while (x) - condition check
+                Instruction::LoadVar("x".to_string()),
+                Instruction::PopJumpIfFalse(11), // if false, jump to return (idx 15)
+                // inner while (y) - condition check
+                Instruction::LoadVar("y".to_string()),
+                Instruction::PopJumpIfFalse(5), // if false, jump to outer body (idx 11)
+                // inner body: a = a + 1; break (no explicit break jump - falls through!)
+                Instruction::LoadVar("a".to_string()),
+                Instruction::LoadConst(Value::Int(1)),
+                Instruction::BinOp(BinOp::Add),
+                Instruction::StoreVar("a".to_string()),
+                // outer body after inner: a = a + 1; break (no explicit break jump!)
+                Instruction::LoadVar("a".to_string()),
+                Instruction::LoadConst(Value::Int(1)),
+                Instruction::BinOp(BinOp::Add),
+                Instruction::StoreVar("a".to_string()),
+                // after outer loop: return a (no loop-back jumps exist!)
+                Instruction::LoadVar("a".to_string()),
+                Instruction::Return,
+            ],
+        )],
+    })
+}
+
+/// Test a loop that should actually iterate (conditional break, not unconditional).
+/// This verifies that loop-back jumps ARE generated when needed.
+///
+/// Key difference from unconditional break:
+/// - Unconditional break at end of loop body → no loop-back jump (dead code)
+/// - Conditional break inside if-statement → loop-back jump IS generated
+#[test]
+fn while_loop_with_conditional_break() -> anyhow::Result<()> {
+    assert_compiles(Program {
+        source: r#"
+            function CountDown(n: int) -> int {
+                let result = 0;
+                while (true) {
+                    result = result + n;
+                    n = n - 1;
+                    if (n == 0) {
+                        break;
+                    }
+                }
+                result
+            }
+        "#,
+        expected: vec![(
+            "CountDown",
+            vec![
+                // let result = 0
+                Instruction::LoadConst(Value::Null),
+                Instruction::LoadConst(Value::Int(0)),
+                Instruction::StoreVar("result".to_string()),
+                // while (true) - condition
+                Instruction::LoadConst(Value::Bool(true)),
+                Instruction::PopJumpIfFalse(15), // if false, jump to return (idx 19)
+                // loop body: result = result + n
+                Instruction::LoadVar("result".to_string()),
+                Instruction::LoadVar("n".to_string()),
+                Instruction::BinOp(BinOp::Add),
+                Instruction::StoreVar("result".to_string()),
+                // n = n - 1
+                Instruction::LoadVar("n".to_string()),
+                Instruction::LoadConst(Value::Int(1)),
+                Instruction::BinOp(BinOp::Sub),
+                Instruction::StoreVar("n".to_string()),
+                // if (n == 0)
+                Instruction::LoadVar("n".to_string()),
+                Instruction::LoadConst(Value::Int(0)),
+                Instruction::CmpOp(CmpOp::Eq),
+                Instruction::PopJumpIfFalse(2), // if false (n != 0), jump to loop-back
+                Instruction::Jump(2),           // if true (n == 0), jump to break/exit
+                // else path: LOOP-BACK JUMP (this is the key difference!)
+                Instruction::Jump(-15), // back to while condition (idx 3)
+                // after loop: return result
+                Instruction::LoadVar("result".to_string()),
                 Instruction::Return,
             ],
         )],
