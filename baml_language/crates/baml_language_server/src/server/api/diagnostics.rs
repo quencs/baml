@@ -355,6 +355,7 @@ fn type_error_to_diagnostic<T: std::fmt::Display>(
             expected,
             found,
             span,
+            info_span: _, // TODO: include as related_information in LSP diagnostic
         } => (
             format!("Expected `{}`, found `{}`", expected, found),
             span,

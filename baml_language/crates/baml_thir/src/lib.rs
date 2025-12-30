@@ -526,20 +526,23 @@ pub fn infer_function_body<'db>(
         ctx.define(name.clone(), ty.clone());
     }
 
-    // Type check the body and get the trailing expression type
-    let trailing_expr_type = match body {
+    // Type check the body and get the trailing expression type and its span
+    let (trailing_expr_type, trailing_expr_span) = match body {
         FunctionBody::Expr(expr_body) => {
             if let Some(root_expr) = expr_body.root_expr {
-                infer_expr(&mut ctx, root_expr, expr_body)
+                let ty = infer_expr(&mut ctx, root_expr, expr_body);
+                // Get the span of the actual trailing expression, not the block wrapper
+                let span = get_trailing_expr_span(root_expr, expr_body);
+                (ty, span)
             } else {
-                Ty::Void
+                (Ty::Void, None)
             }
         }
         FunctionBody::Llm(_) => {
             // LLM functions return their declared return type
-            expected_return.clone()
+            (expected_return.clone(), None)
         }
-        FunctionBody::Missing => Ty::Unknown,
+        FunctionBody::Missing => (Ty::Unknown, None),
     };
 
     // Check all return statement types against expected return type
@@ -552,6 +555,7 @@ pub fn infer_function_body<'db>(
                 expected: expected_return.clone(),
                 found: return_ty.clone(),
                 span: *span,
+                info_span: None, // TODO: add span of return type declaration
             });
         }
     }
@@ -564,11 +568,11 @@ pub fn infer_function_body<'db>(
         && !trailing_expr_type.is_unknown()
         && !expected_return.is_unknown()
     {
-        // TODO: we actually want the span of the last expression here.
         let error = TypeError::TypeMismatch {
             expected: expected_return.clone(),
             found: trailing_expr_type.clone(),
-            span: Span::default(),
+            span: trailing_expr_span.unwrap_or_default(),
+            info_span: None, // TODO: add span of return type declaration
         };
         ctx.push_error(error);
     }
@@ -866,6 +870,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                                 expected: param_ty.clone(),
                                 found: arg_ty.clone(),
                                 span, // Ideally we'd have the span of each arg
+                                info_span: None, // TODO: add span of param declaration
                             });
                         }
                     }
@@ -909,6 +914,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                             expected: elem_ty.clone(),
                             found: other_ty,
                             span,
+                            info_span: None, // TODO: add span of first element
                         });
                     }
                 }
@@ -961,6 +967,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                     expected: Ty::Bool,
                     found: cond_ty,
                     span,
+                    info_span: None, // Built-in constraint: if conditions must be bool
                 });
             }
 
@@ -1033,6 +1040,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                                     expected: Ty::Bool,
                                     found: guard_ty,
                                     span,
+                                    info_span: None, // Built-in constraint: guards must be bool
                                 });
                             }
                         }
@@ -1411,6 +1419,7 @@ fn infer_index_access<'db>(
                     expected: Ty::Int,
                     found: index.clone(),
                     span,
+                    info_span: None, // Built-in constraint: list indices must be int
                 });
             }
             (**elem).clone()
@@ -1422,6 +1431,7 @@ fn infer_index_access<'db>(
                     expected: (**key).clone(),
                     found: index.clone(),
                     span,
+                    info_span: None, // TODO: add span of map type declaration
                 });
             }
             (**value).clone()
@@ -1433,6 +1443,7 @@ fn infer_index_access<'db>(
                     expected: Ty::Int,
                     found: index.clone(),
                     span,
+                    info_span: None, // Built-in constraint: string indices must be int
                 });
             }
             Ty::String
@@ -1469,13 +1480,16 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
                     // TODO: currently type_span and type_annotations are separate `Option`s
                     // turn it into one tuple.
                     // this unwrap is safe because if type_ann is populated, so is type_span
-                    let span = ctx.build_span_default(type_span);
+                    let type_ann_span = ctx.build_span_default(type_span);
                     let annot_ty = lower_type_ref(ctx.db(), annot);
                     if !ctx.is_subtype_of(&init_ty, &annot_ty) {
+                        // Get span of the initializer expression for the error
+                        let init_span = body.get_expr_span(*init);
                         ctx.push_error(TypeError::TypeMismatch {
                             expected: annot_ty.clone(),
                             found: init_ty,
-                            span,
+                            span: init_span.unwrap_or(type_ann_span),
+                            info_span: Some(type_ann_span),
                         });
                     }
                     annot_ty
@@ -1535,6 +1549,7 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
                     expected: Ty::Bool,
                     found: cond_ty,
                     span,
+                    info_span: None, // Built-in constraint: while conditions must be bool
                 });
             }
             infer_expr(ctx, *while_body, body);
@@ -1570,5 +1585,21 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
         }
 
         Stmt::Missing => {}
+    }
+}
+
+/// Get the span of the actual trailing expression, unwrapping blocks.
+///
+/// For a function body like `{ let x = 1; x + 1 }`, we want the span of `x + 1`,
+/// not the span of the entire block. This function recursively unwraps blocks
+/// to find the innermost trailing expression.
+fn get_trailing_expr_span(expr_id: ExprId, body: &ExprBody) -> Option<Span> {
+    use baml_hir::Expr;
+    match &body.exprs[expr_id] {
+        Expr::Block { tail_expr: Some(tail), .. } => {
+            // Recursively get the span from nested blocks
+            get_trailing_expr_span(*tail, body)
+        }
+        _ => body.get_expr_span(expr_id),
     }
 }

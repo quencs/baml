@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-aa5d47d691073f9a/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
@@ -13868,11 +13868,10 @@ expression: output
 ────╯
 
   [type] Error: Expected int, found void
-   ╭─[ 0:1:1 ]
-   │
- 1 │ class StringTorture {
-   │ │ 
-   │ ╰─ Expected int, found void
-   │ 
-   │ Note: Error code: E0001
-───╯
+    ╭─[ 4:5:30 ]
+    │
+  5 │ ╭─▶ function BodyTorture() -> int {
+    ┆ ┆   
+    │     
+    │     Note: Error code: E0001
+────╯

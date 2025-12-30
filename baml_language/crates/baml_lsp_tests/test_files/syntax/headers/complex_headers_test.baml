@@ -67,11 +67,11 @@ function ForLoopWithHeaders() -> int {
 //----
 //- diagnostics
 // Error: Expected string, found int
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ //# Main Function
-//    │ │ 
-//    │ ╰─ Expected string, found int
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//     ╭─[ 0:43:5 ]
+//     │
+//  43 │     final_result
+//     │     ──────┬─────  
+//     │           ╰─────── Expected string, found int
+//     │ 
+//     │ Note: Error code: E0001
+// ────╯

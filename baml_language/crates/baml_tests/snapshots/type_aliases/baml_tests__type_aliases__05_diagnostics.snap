@@ -1,14 +1,14 @@
 ---
-source: target/debug/build/baml_tests-176fd1045f27e6d5/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
   [type] Error: Expected foo, found bool
-   ╭─[ 0:1:1 ]
-   │
- 1 │ type foo = bar
-   │ │ 
-   │ ╰─ Expected foo, found bool
-   │ 
-   │ Note: Error code: E0001
-───╯
+    ╭─[ 0:11:3 ]
+    │
+ 11 │   true
+    │   ──┬─  
+    │     ╰─── Expected foo, found bool
+    │ 
+    │ Note: Error code: E0001
+────╯

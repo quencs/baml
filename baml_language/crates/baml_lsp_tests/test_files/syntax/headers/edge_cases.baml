@@ -223,75 +223,12 @@ function HeaderOnlyFunction() -> string {
 //     │ 
 //     │ Note: Error code: E0010
 // ────╯
-// Error: Expected string, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
-// Error: Expected string, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
 // Error: Expected string, found int
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found int
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
-// Error: Expected string, found unknown | void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found unknown | void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
-// Error: Expected string, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
-// Error: Expected string, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
-// Error: Expected string, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
-// Error: Expected string, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ // Edge cases for MDX headers
-//    │ │ 
-//    │ ╰─ Expected string, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//      ╭─[ 0:135:15 ]
+//      │
+//  135 │ function VeryLongHeaderTitle() -> string {
+//      │               ┬  
+//      │               ╰── Expected string, found int
+//      │ 
+//      │ Note: Error code: E0001
+// ─────╯

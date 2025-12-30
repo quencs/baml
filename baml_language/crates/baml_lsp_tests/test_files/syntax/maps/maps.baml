@@ -33,23 +33,16 @@ function Len() -> int {
 //----
 //- diagnostics
 // Error: Expected map<string, string>, found void
-//    ╭─[ 0:1:1 ]
+//    ╭─[ 0:5:48 ]
 //    │
-//  1 │ function CreateMap() -> map<string, string> {
-//    │ │ 
-//    │ ╰─ Expected map<string, string>, found void
-//    │ 
-//    │ Note: Error code: E0001
+//  5 │ ╭─▶ function CreateMapJSON() -> map<string, string> {
+//    ┆ ┆   
+//  7 │ ├─▶ }
+//    │ │       
+//    │ ╰─────── Expected map<string, string>, found void
+//    │     
+//    │     Note: Error code: E0001
 // ───╯
-// Error: Type map<string, string> is not indexable
-//     ╭─[ 0:16:5 ]
-//     │
-//  16 │     map["world"]
-//     │     ──────┬─────  
-//     │           ╰─────── Type map<string, string> is not indexable
-//     │ 
-//     │ Note: Error code: E0008
-// ────╯
 // Error: Unknown variable hello
 //    ╭─[ 0:2:7 ]
 //    │
@@ -59,49 +52,21 @@ function Len() -> int {
 //    │ 
 //    │ Note: Error code: E0003
 // ───╯
-// Error: Type map<string, string> has no field 'has'
-//     ╭─[ 0:21:9 ]
-//     │
-//  21 │     if (map.has("hello")) {
-//     │         ───┬───  
-//     │            ╰───── Type map<string, string> has no field 'has'
-//     │ 
-//     │ Note: Error code: E0007
-// ────╯
-// Error: Type map<string, string> is not indexable
-//     ╭─[ 0:22:9 ]
-//     │
-//  22 │         map["hello"]
-//     │         ──────┬─────  
-//     │               ╰─────── Type map<string, string> is not indexable
-//     │ 
-//     │ Note: Error code: E0008
-// ────╯
-// Error: Expected string, found unknown | void
-//    ╭─[ 0:1:1 ]
+// Error: Expected map<string, string>, found string
+//    ╭─[ 0:2:12 ]
 //    │
-//  1 │ function CreateMap() -> map<string, string> {
-//    │ │ 
-//    │ ╰─ Expected string, found unknown | void
+//  2 │     { hello "world" }
+//    │            ────┬───  
+//    │                ╰───── Expected map<string, string>, found string
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯
-// Error: Type map<string, string> has no field 'length'
-//     ╭─[ 0:29:27 ]
+// Error: Expected 2 arguments, found 1
+//     ╭─[ 0:21:9 ]
 //     │
-//  29 │ ╭─▶     let map = CreateMap();
-//  30 │ ├─▶     map.length()
-//     │ │                      
-//     │ ╰────────────────────── Type map<string, string> has no field 'length'
-//     │     
-//     │     Note: Error code: E0007
-// ────╯
-// Error: Type map<string, string> is not indexable
-//     ╭─[ 0:11:5 ]
-//     │
-//  11 │     map["hello"]
-//     │     ──────┬─────  
-//     │           ╰─────── Type map<string, string> is not indexable
+//  21 │     if (map.has("hello")) {
+//     │         ────────┬───────  
+//     │                 ╰───────── Expected 2 arguments, found 1
 //     │ 
-//     │ Note: Error code: E0008
+//     │ Note: Error code: E0005
 // ────╯

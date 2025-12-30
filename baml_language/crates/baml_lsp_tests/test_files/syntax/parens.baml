@@ -677,46 +677,6 @@ function foo() -> int {
 //     │ 
 //     │ Note: Error code: E0010
 // ────╯
-// Error: Expected bool, found true
-//    ╭─[ 0:5:17 ]
-//    │
-//  5 │ ╭─▶    if (true) { }
-//    ┆ ┆   
-//  7 │ ├─▶    if true {}
-//    │ │                   
-//    │ ╰─────────────────── Expected bool, found true
-//    │     
-//    │     Note: Error code: E0001
-// ───╯
-// Error: Expected bool, found true
-//     ╭─[ 0:9:16 ]
-//     │
-//   9 │ ╭─▶    if true) { }
-//     ┆ ┆   
-//  11 │ ├─▶    if (true { }
-//     │ │                     
-//     │ ╰───────────────────── Expected bool, found true
-//     │     
-//     │     Note: Error code: E0001
-// ────╯
-// Error: Expected bool, found true
-//     ╭─[ 0:15:10 ]
-//     │
-//  15 │    while true {}
-//     │          ───┬───  
-//     │             ╰───── Expected bool, found true
-//     │ 
-//     │ Note: Error code: E0001
-// ────╯
-// Error: Expected bool, found true
-//     ╭─[ 0:17:11 ]
-//     │
-//  17 │    while (true {}
-//     │           ───┬───  
-//     │              ╰───── Expected bool, found true
-//     │ 
-//     │ Note: Error code: E0001
-// ────╯
 // Error: Unknown variable i
 //     ╭─[ 0:35:11 ]
 //     │
@@ -880,11 +840,13 @@ function foo() -> int {
 //    │ Note: Error code: E0003
 // ───╯
 // Error: Expected int, found void
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ function foo() -> int {
-//    │ │ 
-//    │ ╰─ Expected int, found void
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//     ╭─[ 0:1:22 ]
+//     │
+//   1 │ ╭─▶ function foo() -> int {
+//     ┆ ┆   
+//  63 │ ├─▶ }
+//     │ │       
+//     │ ╰─────── Expected int, found void
+//     │     
+//     │     Note: Error code: E0001
+// ────╯

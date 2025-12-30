@@ -60,29 +60,29 @@ function IfThenOnlyHeader2() -> int {
 //    │ Note: Error code: E0011
 // ───╯
 // Error: Expected int, found int | null
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ //# Case 1
-//    │ │ 
-//    │ ╰─ Expected int, found int | null
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//     ╭─[ 0:28:5 ]
+//     │
+//  28 │     y
+//     │     ┬  
+//     │     ╰── Expected int, found int | null
+//     │ 
+//     │ Note: Error code: E0001
+// ────╯
 // Error: Expected int, found int | null
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ //# Case 1
-//    │ │ 
-//    │ ╰─ Expected int, found int | null
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//     ╭─[ 0:28:5 ]
+//     │
+//  28 │     y
+//     │     ┬  
+//     │     ╰── Expected int, found int | null
+//     │ 
+//     │ Note: Error code: E0001
+// ────╯
 // Error: Expected int, found int | null
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ //# Case 1
-//    │ │ 
-//    │ ╰─ Expected int, found int | null
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//     ╭─[ 0:11:5 ]
+//     │
+//  11 │     y
+//     │     ┬  
+//     │     ╰── Expected int, found int | null
+//     │ 
+//     │ Note: Error code: E0001
+// ────╯

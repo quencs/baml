@@ -3,6 +3,18 @@ source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
+  [type] Error: Expected string, found int
+   ╭─[ 0:7:19 ]
+   │
+ 7 │   let x: string = 123
+   │         ───┬───   ─┬─  
+   │            ╰─────────── Expected type string declared here
+   │                    │   
+   │                    ╰─── Expected string, found int
+   │ 
+   │ Note: Error code: E0001
+───╯
+
   [type] Error: Cannot apply operator 'Add' to types int and string
    ╭─[ 0:2:3 ]
    │

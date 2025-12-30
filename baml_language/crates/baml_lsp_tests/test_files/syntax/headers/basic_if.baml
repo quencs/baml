@@ -18,11 +18,11 @@ function BasicIf() -> string {
 //----
 //- diagnostics
 // Error: Expected string, found int
-//    ╭─[ 0:1:1 ]
-//    │
-//  1 │ //# Basic test
-//    │ │ 
-//    │ ╰─ Expected string, found int
-//    │ 
-//    │ Note: Error code: E0001
-// ───╯
+//     ╭─[ 0:14:5 ]
+//     │
+//  14 │     z
+//     │     ┬  
+//     │     ╰── Expected string, found int
+//     │ 
+//     │ Note: Error code: E0001
+// ────╯

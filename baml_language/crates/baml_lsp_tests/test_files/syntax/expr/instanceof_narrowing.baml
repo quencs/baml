@@ -223,16 +223,6 @@ function test_multiple_classes(x: Foo | Bar | Baz) -> string {
 //     │ 
 //     │ Note: Error code: E0010
 // ────╯
-// Error: Expected bool, found Foo | Bar
-//     ╭─[ 0:10:57 ]
-//     │
-//  10 │ ╭─▶ function test_simple_narrowing(x: Foo | Bar) -> string {
-//  11 │ ├─▶     if (x instanceof Foo) {
-//     │ │                                 
-//     │ ╰───────────────────────────────── Expected bool, found Foo | Bar
-//     │     
-//     │     Note: Error code: E0001
-// ────╯
 // Error: Unknown variable Foo
 //     ╭─[ 0:11:22 ]
 //     │
@@ -251,16 +241,6 @@ function test_multiple_classes(x: Foo | Bar | Baz) -> string {
 //     │ 
 //     │ Note: Error code: E0007
 // ────╯
-// Error: Expected bool, found Foo | Bar | Baz
-//     ╭─[ 0:34:63 ]
-//     │
-//  34 │ ╭─▶ function test_multiple_classes(x: Foo | Bar | Baz) -> string {
-//  35 │ ├─▶     if (x instanceof Foo) {
-//     │ │                                 
-//     │ ╰───────────────────────────────── Expected bool, found Foo | Bar | Baz
-//     │     
-//     │     Note: Error code: E0001
-// ────╯
 // Error: Unknown variable Foo
 //     ╭─[ 0:35:22 ]
 //     │
@@ -278,15 +258,6 @@ function test_multiple_classes(x: Foo | Bar | Baz) -> string {
 //     │                   ╰───── Type Foo | Bar | Baz has no field 'field'
 //     │ 
 //     │ Note: Error code: E0007
-// ────╯
-// Error: Expected bool, found Foo | Bar | Baz
-//     ╭─[ 0:37:11 ]
-//     │
-//  37 │     } else if (x instanceof Baz) {
-//     │           ───┬──  
-//     │              ╰──── Expected bool, found Foo | Bar | Baz
-//     │ 
-//     │ Note: Error code: E0001
 // ────╯
 // Error: Unknown variable Baz
 //     ╭─[ 0:37:29 ]

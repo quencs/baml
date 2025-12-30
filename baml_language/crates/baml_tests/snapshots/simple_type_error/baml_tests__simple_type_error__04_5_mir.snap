@@ -1,8 +1,25 @@
 ---
-source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === MIR ===
+fn Bar() -> Int {
+    // Locals:
+    let _0: Int // return
+    let _1: Int // x
+
+    bb0: {
+        _1 = const 123_i64;
+        _0 = const 0_i64;
+        goto -> bb1;
+    }
+
+    bb1: {
+        return;
+    }
+
+}
+
 fn Foo() -> Error {
     // Locals:
     let _0: Error // return

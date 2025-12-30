@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-176fd1045f27e6d5/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 Word "type"
@@ -68,17 +68,6 @@ LParen "("
 RParen ")"
 Arrow "->"
 Word "Json"
-LBrace "{"
-Quote "\""
-Word "hello"
-Quote "\""
-RBrace "}"
-Function "function"
-Word "TestString"
-LParen "("
-RParen ")"
-Arrow "->"
-Word "string"
 LBrace "{"
 Quote "\""
 Word "hello"

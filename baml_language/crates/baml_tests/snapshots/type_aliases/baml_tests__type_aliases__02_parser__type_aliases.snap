@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-176fd1045f27e6d5/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -81,23 +81,6 @@ SOURCE_FILE
     ARROW "->"
     TYPE_EXPR "Json"
       WORD "Json"
-    EXPR_FUNCTION_BODY
-      BLOCK_EXPR
-        L_BRACE "{"
-        STRING_LITERAL "hello"
-          QUOTE """
-          WORD "hello"
-          QUOTE """
-        R_BRACE "}"
-  FUNCTION_DEF
-    KW_FUNCTION "function"
-    WORD "TestString"
-    PARAMETER_LIST "()"
-      L_PAREN "("
-      R_PAREN ")"
-    ARROW "->"
-    TYPE_EXPR "string"
-      WORD "string"
     EXPR_FUNCTION_BODY
       BLOCK_EXPR
         L_BRACE "{"

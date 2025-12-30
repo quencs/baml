@@ -106,20 +106,24 @@ function Ok() -> int {
 //    │ Note: Error code: E0010
 // ───╯
 // Error: Expected int, found float
-//    ╭─[ 0:5:10 ]
+//    ╭─[ 0:5:17 ]
 //    │
 //  5 │   let y : int = 10.0;
-//    │          ──┬─  
-//    │            ╰─── Expected int, found float
+//    │          ──┬─   ──┬─  
+//    │            ╰────────── Expected type int declared here
+//    │                   │   
+//    │                   ╰─── Expected int, found float
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯
 // Error: Expected int, found string
-//    ╭─[ 0:6:9 ]
+//    ╭─[ 0:6:15 ]
 //    │
 //  6 │   let c: int = "hello";
-//    │         ──┬─  
-//    │           ╰─── Expected int, found string
+//    │         ──┬─  ────┬───  
+//    │           ╰───────────── Expected type int declared here
+//    │                   │     
+//    │                   ╰───── Expected int, found string
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯

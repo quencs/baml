@@ -3,9 +3,16 @@ source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === BYTECODE ===
-Functions: 1
-Objects: 20
-Globals: 19
+Functions: 2
+Objects: 21
+Globals: 20
+
+Function Bar (arity: 0, kind: Exec):
+     0   LOAD_CONST 0   (null)
+     1   LOAD_CONST 1   (123)
+     2   STORE_VAR 1    (x)
+     3   LOAD_CONST 2   (0)
+     4   RETURN         
 
 Function Foo (arity: 0, kind: Exec):
      0   LOAD_CONST 0   (1)
