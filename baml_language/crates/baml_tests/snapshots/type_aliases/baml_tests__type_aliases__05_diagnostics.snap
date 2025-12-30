@@ -4,7 +4,7 @@ expression: output
 ---
 === DIAGNOSTICS ===
   [type] Error: Expected foo, found bool
-    ╭─[ 0:11:3 ]
+    ╭─[ type_aliases.baml:11:3 ]
     │
  11 │   true
     │   ──┬─  

@@ -869,7 +869,7 @@ fn infer_expr<'db>(ctx: &mut TypeContext<'db>, expr_id: ExprId, body: &ExprBody)
                             ctx.push_error(TypeError::TypeMismatch {
                                 expected: param_ty.clone(),
                                 found: arg_ty.clone(),
-                                span, // Ideally we'd have the span of each arg
+                                span,            // Ideally we'd have the span of each arg
                                 info_span: None, // TODO: add span of param declaration
                             });
                         }
@@ -1596,7 +1596,10 @@ fn check_stmt(ctx: &mut TypeContext<'_>, stmt_id: StmtId, body: &ExprBody) {
 fn get_trailing_expr_span(expr_id: ExprId, body: &ExprBody) -> Option<Span> {
     use baml_hir::Expr;
     match &body.exprs[expr_id] {
-        Expr::Block { tail_expr: Some(tail), .. } => {
+        Expr::Block {
+            tail_expr: Some(tail),
+            ..
+        } => {
             // Recursively get the span from nested blocks
             get_trailing_expr_span(*tail, body)
         }

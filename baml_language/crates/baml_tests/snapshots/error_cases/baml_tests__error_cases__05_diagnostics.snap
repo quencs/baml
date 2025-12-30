@@ -4,7 +4,7 @@ expression: output
 ---
 === DIAGNOSTICS ===
   [parse] Error: Expected function name, found IntegerLiteral
-   ╭─[ 0:6:10 ]
+   ╭─[ syntax_errors.baml:6:10 ]
    │
  6 │ function 123Invalid() {}
    │          ─┬─  
@@ -14,7 +14,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected return type (->), found LBrace
-   ╭─[ 0:6:23 ]
+   ╭─[ syntax_errors.baml:6:23 ]
    │
  6 │ function 123Invalid() {}
    │                       ┬  
@@ -24,7 +24,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected '=>' after pattern, found Colon
-    ╭─[ 0:18:19 ]
+    ╭─[ syntax_errors.baml:18:19 ]
     │
  18 │         a: int | b: bool => "bad"
     │                   ┬  
@@ -34,7 +34,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected expression, found Colon
-    ╭─[ 0:18:19 ]
+    ╭─[ syntax_errors.baml:18:19 ]
     │
  18 │         a: int | b: bool => "bad"
     │                   ┬  
@@ -44,7 +44,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected RBrace, found EOF
-    ╭─[ 0:27:1 ]
+    ╭─[ syntax_errors.baml:27:1 ]
     │
  27 │ }
     │ ┬  

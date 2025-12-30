@@ -1,10 +1,10 @@
 ---
-source: target/debug/build/baml_tests-176fd1045f27e6d5/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
   [parse] Error: Expected attribute argument, found Error
-   ╭─[ 0:4:34 ]
+   ╭─[ nested_quotes.baml:4:34 ]
    │
  4 │   double_in_single string @alias('She said "hello"')
    │                                  ┬  
@@ -14,7 +14,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected RParen, found Error
-   ╭─[ 0:4:34 ]
+   ╭─[ nested_quotes.baml:4:34 ]
    │
  4 │   double_in_single string @alias('She said "hello"')
    │                                  ┬  
@@ -24,7 +24,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:4:34 ]
+   ╭─[ nested_quotes.baml:4:34 ]
    │
  4 │   double_in_single string @alias('She said "hello"')
    │                                  ┬  
@@ -34,7 +34,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:4:44 ]
+   ╭─[ nested_quotes.baml:4:44 ]
    │
  4 │   double_in_single string @alias('She said "hello"')
    │                                            ┬  
@@ -44,7 +44,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 0:5:41 ]
+   ╭─[ nested_quotes.baml:5:41 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                         ┬  
@@ -54,7 +54,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:5:41 ]
+   ╭─[ nested_quotes.baml:5:41 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                         ┬  
@@ -64,7 +64,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:5:42 ]
+   ╭─[ nested_quotes.baml:5:42 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                          ┬  
@@ -74,7 +74,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 0:5:48 ]
+   ╭─[ nested_quotes.baml:5:48 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                                ┬  
@@ -84,7 +84,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:5:48 ]
+   ╭─[ nested_quotes.baml:5:48 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                                ┬  
@@ -94,7 +94,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:5:49 ]
+   ╭─[ nested_quotes.baml:5:49 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                                 ┬  
@@ -104,7 +104,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:5:58 ]
+   ╭─[ nested_quotes.baml:5:58 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                                          ┬  
@@ -114,7 +114,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found RParen
-   ╭─[ 0:5:59 ]
+   ╭─[ nested_quotes.baml:5:59 ]
    │
  5 │   escaped_in_escaped string @alias("The \"quote\" is here")
    │                                                           ┬  
@@ -124,7 +124,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected RParen, found Word
-   ╭─[ 0:6:47 ]
+   ╭─[ nested_quotes.baml:6:47 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                               ───┬──  
@@ -134,7 +134,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 0:6:53 ]
+   ╭─[ nested_quotes.baml:6:53 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                     ┬  
@@ -144,7 +144,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:6:53 ]
+   ╭─[ nested_quotes.baml:6:53 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                     ┬  
@@ -154,7 +154,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:6:54 ]
+   ╭─[ nested_quotes.baml:6:54 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                      ┬  
@@ -164,7 +164,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:6:56 ]
+   ╭─[ nested_quotes.baml:6:56 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                        ┬  
@@ -174,7 +174,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 0:6:64 ]
+   ╭─[ nested_quotes.baml:6:64 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                                ┬  
@@ -184,7 +184,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:6:64 ]
+   ╭─[ nested_quotes.baml:6:64 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                                ┬  
@@ -194,7 +194,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:6:65 ]
+   ╭─[ nested_quotes.baml:6:65 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                                 ┬  
@@ -204,7 +204,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found RParen
-   ╭─[ 0:6:66 ]
+   ╭─[ nested_quotes.baml:6:66 ]
    │
  6 │   complex_nesting string @description("It's \"really\" 'complex'")
    │                                                                  ┬  
@@ -214,7 +214,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected RParen, found Word
-   ╭─[ 0:7:31 ]
+   ╭─[ nested_quotes.baml:7:31 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                               ─┬─  
@@ -224,7 +224,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 0:7:34 ]
+   ╭─[ nested_quotes.baml:7:34 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                  ┬  
@@ -234,7 +234,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:7:34 ]
+   ╭─[ nested_quotes.baml:7:34 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                  ┬  
@@ -244,7 +244,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:7:35 ]
+   ╭─[ nested_quotes.baml:7:35 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                   ┬  
@@ -254,7 +254,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Colon
-   ╭─[ 0:7:36 ]
+   ╭─[ nested_quotes.baml:7:36 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                    ┬  
@@ -264,7 +264,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:7:38 ]
+   ╭─[ nested_quotes.baml:7:38 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                      ┬  
@@ -274,7 +274,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:7:39 ]
+   ╭─[ nested_quotes.baml:7:39 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                       ┬  
@@ -284,7 +284,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 0:7:45 ]
+   ╭─[ nested_quotes.baml:7:45 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                             ┬  
@@ -294,7 +294,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:7:45 ]
+   ╭─[ nested_quotes.baml:7:45 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                             ┬  
@@ -304,7 +304,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:7:46 ]
+   ╭─[ nested_quotes.baml:7:46 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                              ┬  
@@ -314,7 +314,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected top-level declaration, found Quote
-   ╭─[ 0:7:48 ]
+   ╭─[ nested_quotes.baml:7:48 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                                ┬  
@@ -324,7 +324,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected top-level declaration, found RParen
-   ╭─[ 0:7:49 ]
+   ╭─[ nested_quotes.baml:7:49 ]
    │
  7 │   json_like string @alias("{\"key\": \"value\"}")
    │                                                 ┬  
@@ -334,7 +334,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected top-level declaration, found RBrace
-   ╭─[ 0:8:1 ]
+   ╭─[ nested_quotes.baml:8:1 ]
    │
  8 │ }
    │ ┬  
@@ -344,7 +344,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected RParen, found Word
-   ╭─[ 2:7:41 ]
+   ╭─[ simple_strings.baml:7:41 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                         ──┬──  
@@ -354,7 +354,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected type, found Error
-   ╭─[ 2:7:46 ]
+   ╭─[ simple_strings.baml:7:46 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                              ┬  
@@ -364,7 +364,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Error
-   ╭─[ 2:7:46 ]
+   ╭─[ simple_strings.baml:7:46 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                              ┬  
@@ -374,7 +374,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 2:7:47 ]
+   ╭─[ simple_strings.baml:7:47 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                               ┬  
@@ -384,7 +384,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 2:7:48 ]
+   ╭─[ simple_strings.baml:7:48 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                                ┬  
@@ -394,7 +394,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected Unexpected token in class body, found RParen
-   ╭─[ 2:7:49 ]
+   ╭─[ simple_strings.baml:7:49 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                                 ┬  
@@ -404,7 +404,7 @@ expression: output
 ───╯
 
   [parse] Error: Expected function name, found Error
-    ╭─[ 3:29:1 ]
+    ╭─[ unicode_strings.baml:29:1 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │ ─┬─  
@@ -414,7 +414,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected parameter name, found Error
-    ╭─[ 3:29:14 ]
+    ╭─[ unicode_strings.baml:29:14 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │              ─┬─  
@@ -424,7 +424,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected type annotation, found Error
-    ╭─[ 3:29:14 ]
+    ╭─[ unicode_strings.baml:29:14 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │              ─┬─  
@@ -434,7 +434,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected RParen, found Error
-    ╭─[ 3:29:14 ]
+    ╭─[ unicode_strings.baml:29:14 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │              ─┬─  
@@ -444,7 +444,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected return type (->), found Error
-    ╭─[ 3:29:14 ]
+    ╭─[ unicode_strings.baml:29:14 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │              ─┬─  
@@ -454,7 +454,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected function body, found Error
-    ╭─[ 3:29:14 ]
+    ╭─[ unicode_strings.baml:29:14 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │              ─┬─  
@@ -464,7 +464,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found Error
-    ╭─[ 3:29:14 ]
+    ╭─[ unicode_strings.baml:29:14 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │              ─┬─  
@@ -474,7 +474,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found Error
-    ╭─[ 3:29:17 ]
+    ╭─[ unicode_strings.baml:29:17 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │                 ─┬─  
@@ -484,7 +484,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found Word
-    ╭─[ 3:29:21 ]
+    ╭─[ unicode_strings.baml:29:21 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │                     ───┬──  
@@ -494,7 +494,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found RParen
-    ╭─[ 3:29:27 ]
+    ╭─[ unicode_strings.baml:29:27 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │                           ┬  
@@ -504,7 +504,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found Arrow
-    ╭─[ 3:29:29 ]
+    ╭─[ unicode_strings.baml:29:29 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │                             ─┬   
@@ -514,7 +514,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found Word
-    ╭─[ 3:29:32 ]
+    ╭─[ unicode_strings.baml:29:32 ]
     │
  29 │     Return result with emojis: ✅ or ❌
     │                                ────┬───  
@@ -524,7 +524,7 @@ expression: output
 ────╯
 
   [parse] Error: Expected top-level declaration, found LBrace
-    ╭─[ 3:30:1 ]
+    ╭─[ unicode_strings.baml:30:1 ]
     │
  30 │   "#
     │ ┬  

@@ -57,13 +57,13 @@ pub fn run_test(parsed: &ParsedTestFile) -> TestResult {
     for source_file in &source_files {
         let errors = baml_parser::parse_errors(&db, *source_file);
         for error in errors.iter() {
-            all_errors.push(render_parse_error(error, &sources, false));
+            all_errors.push(render_parse_error(error, &sources, None, false));
         }
     }
 
     // Collect name errors (duplicates)
     for error in baml_hir::validate_duplicate_names(&db, root) {
-        all_errors.push(render_name_error(&error, &sources, false));
+        all_errors.push(render_name_error(&error, &sources, None, false));
     }
 
     // Collect type errors
@@ -91,7 +91,7 @@ pub fn run_test(parsed: &ParsedTestFile) -> TestResult {
                     *func_id,
                 );
                 for error in &result.errors {
-                    all_errors.push(render_type_error(error, &sources, false));
+                    all_errors.push(render_type_error(error, &sources, None, false));
                 }
             }
         }

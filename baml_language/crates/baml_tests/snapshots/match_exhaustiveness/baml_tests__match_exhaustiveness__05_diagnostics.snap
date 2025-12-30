@@ -4,7 +4,7 @@ expression: output
 ---
 === DIAGNOSTICS ===
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:478:34 ]
+     ╭─[ match_exhaustiveness.baml:478:34 ]
      │
  478 │ ╭─▶         Status.Active => "first",
  479 │ ├─▶         Status.Active => "second",
@@ -15,7 +15,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type bool not fully covered. Missing: true, false
-     ╭─[ 0:744:58 ]
+     ╭─[ match_exhaustiveness.baml:744:58 ]
      │
  744 │ ╭─▶ function WrongLiteralTypeBoolWithInt(b: bool) -> string {
      ┆ ┆   
@@ -27,7 +27,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-    ╭─[ 0:26:26 ]
+    ╭─[ match_exhaustiveness.baml:26:26 ]
     │
  26 │ ╭─▶         _ => "catch all",
  27 │ ├─▶         n: int => "unreachable 1",
@@ -38,7 +38,7 @@ expression: output
 ────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-    ╭─[ 0:27:35 ]
+    ╭─[ match_exhaustiveness.baml:27:35 ]
     │
  27 │ ╭─▶         n: int => "unreachable 1",
  28 │ ├─▶         m: int => "unreachable 2"
@@ -49,7 +49,7 @@ expression: output
 ────╯
 
   [type] Error: Non-exhaustive match: type bool not fully covered. Missing: true
-     ╭─[ 0:250:59 ]
+     ╭─[ match_exhaustiveness.baml:250:59 ]
      │
  250 │ ╭─▶ function NonExhaustiveBoolMissingTrue(b: bool) -> string {
      ┆ ┆   
@@ -61,7 +61,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:732:35 ]
+     ╭─[ match_exhaustiveness.baml:732:35 ]
      │
  732 │ ╭─▶         x: Status => "any status",
  733 │ ├─▶         Status.Active => "unreachable"
@@ -72,7 +72,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:792:31 ]
+     ╭─[ match_exhaustiveness.baml:792:31 ]
      │
  792 │ ╭─▶         x: bool => "any bool",
  793 │ ├─▶         true => "unreachable"
@@ -83,7 +83,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:348:26 ]
+     ╭─[ match_exhaustiveness.baml:348:26 ]
      │
  348 │ ╭─▶         "user" => "User",
  349 │ ├─▶         "assistant" => "Assistant",
@@ -94,7 +94,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:349:36 ]
+     ╭─[ match_exhaustiveness.baml:349:36 ]
      │
  349 │ ╭─▶         "assistant" => "Assistant",
  350 │ ├─▶         "system" => "System"
@@ -105,7 +105,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:488:26 ]
+     ╭─[ match_exhaustiveness.baml:488:26 ]
      │
  488 │ ╭─▶         1 => "first one",
  489 │ ├─▶         1 => "second one",
@@ -116,7 +116,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type Status? not fully covered. Missing: null
-     ╭─[ 0:671:70 ]
+     ╭─[ match_exhaustiveness.baml:671:70 ]
      │
  671 │ ╭─▶ function NonExhaustiveNullableEnumMissingNull(s: Status?) -> string {
      ┆ ┆   
@@ -128,7 +128,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type Result not fully covered. Missing: Failure
-     ╭─[ 0:620:65 ]
+     ╭─[ match_exhaustiveness.baml:620:65 ]
      │
  620 │ ╭─▶ function NonExhaustiveTypeAliasMissingOne(r: Result) -> string {
      ┆ ┆   
@@ -140,7 +140,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:365:52 ]
+     ╭─[ match_exhaustiveness.baml:365:52 ]
      │
  365 │ ╭─▶         "user" | "assistant" => "chat participant",
  366 │ ├─▶         "system" => "system"
@@ -151,7 +151,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type DoubleMaybe not fully covered. Missing: null
-     ╭─[ 0:607:74 ]
+     ╭─[ match_exhaustiveness.baml:607:74 ]
      │
  607 │ ╭─▶ function NonExhaustiveDoubleMaybeMissingNull(dm: DoubleMaybe) -> string {
      ┆ ┆   
@@ -163,7 +163,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type int not fully covered. Missing: int
-    ╭─[ 0:59:51 ]
+    ╭─[ match_exhaustiveness.baml:59:51 ]
     │
  59 │ ╭─▶ function GuardedOnlyNonExhaustive(x: int) -> int {
     ┆ ┆   
@@ -175,7 +175,7 @@ expression: output
 ────╯
 
   [type] Error: Non-exhaustive match: type bool not fully covered. Missing: false
-     ╭─[ 0:243:60 ]
+     ╭─[ match_exhaustiveness.baml:243:60 ]
      │
  243 │ ╭─▶ function NonExhaustiveBoolMissingFalse(b: bool) -> string {
      ┆ ┆   
@@ -187,7 +187,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:865:35 ]
+     ╭─[ match_exhaustiveness.baml:865:35 ]
      │
  865 │ ╭─▶         Status.Active => "active",
  866 │ ├─▶         Status.Active => "duplicate 1",
@@ -198,7 +198,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:867:39 ]
+     ╭─[ match_exhaustiveness.baml:867:39 ]
      │
  867 │ ╭─▶         Status.Inactive => "inactive",
  868 │ ├─▶         Status.Active => "duplicate 2",
@@ -209,7 +209,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:553:39 ]
+     ╭─[ match_exhaustiveness.baml:553:39 ]
      │
  553 │ ╭─▶         "success" => "string success",
  554 │ ├─▶         true => "boolean true"
@@ -220,7 +220,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:854:35 ]
+     ╭─[ match_exhaustiveness.baml:854:35 ]
      │
  854 │ ╭─▶             false => "zero false",
  855 │ ├─▶             true => "unreachable nested"
@@ -231,7 +231,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type MaybeOk not fully covered. Missing: 200
-     ╭─[ 0:536:70 ]
+     ╭─[ match_exhaustiveness.baml:536:70 ]
      │
  536 │ ╭─▶ function NonExhaustiveOptionalMissingValue(code: MaybeOk) -> string {
      ┆ ┆   
@@ -243,7 +243,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type MaybeOk not fully covered. Missing: null
-     ╭─[ 0:529:69 ]
+     ╭─[ match_exhaustiveness.baml:529:69 ]
      │
  529 │ ╭─▶ function NonExhaustiveOptionalMissingNull(code: MaybeOk) -> string {
      ┆ ┆   
@@ -255,7 +255,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type AlwaysTrue not fully covered. Missing: true
-     ╭─[ 0:295:70 ]
+     ╭─[ match_exhaustiveness.baml:295:70 ]
      │
  295 │ ╭─▶ function NonExhaustiveTrueTypeWrongLiteral(t: AlwaysTrue) -> string {
      ┆ ┆   
@@ -267,7 +267,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type OkOrCreated not fully covered. Missing: 201
-     ╭─[ 0:583:69 ]
+     ╭─[ match_exhaustiveness.baml:583:69 ]
      │
  583 │ ╭─▶ function NonExhaustiveAliasOfLiterals(code: OkOrCreated) -> string {
      ┆ ┆   
@@ -279,7 +279,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type Status not fully covered. Missing: Status.Inactive, Status.Pending
-     ╭─[ 0:875:60 ]
+     ╭─[ match_exhaustiveness.baml:875:60 ]
      │
  875 │ ╭─▶ function HighLineNumberNonExhaustive(s: Status) -> string {
      ┆ ┆   
@@ -291,7 +291,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type Status? not fully covered. Missing: Status.Pending
-     ╭─[ 0:680:73 ]
+     ╭─[ match_exhaustiveness.baml:680:73 ]
      │
  680 │ ╭─▶ function NonExhaustiveNullableEnumMissingVariant(s: Status?) -> string {
      ┆ ┆   
@@ -303,7 +303,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type FullResult not fully covered. Missing: Pending
-     ╭─[ 0:627:70 ]
+     ╭─[ match_exhaustiveness.baml:627:70 ]
      │
  627 │ ╭─▶ function NonExhaustiveFullResultMissingOne(r: FullResult) -> string {
      ┆ ┆   
@@ -315,7 +315,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type SuccessOr200 not fully covered. Missing: 200
-     ╭─[ 0:704:82 ]
+     ╭─[ match_exhaustiveness.baml:704:82 ]
      │
  704 │ ╭─▶ function NonExhaustiveClassPlusLiteralMissingLiteral(x: SuccessOr200) -> string {
      ┆ ┆   
@@ -327,7 +327,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:506:32 ]
+     ╭─[ match_exhaustiveness.baml:506:32 ]
      │
  506 │ ╭─▶         "user" => "first user",
  507 │ ├─▶         "user" => "second user",
@@ -338,7 +338,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:507:33 ]
+     ╭─[ match_exhaustiveness.baml:507:33 ]
      │
  507 │ ╭─▶         "user" => "second user",
  508 │ ├─▶         "assistant" => "assistant",
@@ -349,7 +349,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:508:36 ]
+     ╭─[ match_exhaustiveness.baml:508:36 ]
      │
  508 │ ╭─▶         "assistant" => "assistant",
  509 │ ├─▶         "system" => "system"
@@ -360,7 +360,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type Status not fully covered. Missing: Status.Pending
-     ╭─[ 0:456:60 ]
+     ╭─[ match_exhaustiveness.baml:456:60 ]
      │
  456 │ ╭─▶ function NonExhaustiveEnumMissingOne(s: Status) -> string {
      ┆ ┆   
@@ -372,7 +372,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type CustomBool not fully covered. Missing: false
-     ╭─[ 0:302:67 ]
+     ╭─[ match_exhaustiveness.baml:302:67 ]
      │
  302 │ ╭─▶ function NonExhaustiveCustomBoolMissing(b: CustomBool) -> string {
      ┆ ┆   
@@ -384,7 +384,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type SuccessOr200 not fully covered. Missing: Success
-     ╭─[ 0:711:80 ]
+     ╭─[ match_exhaustiveness.baml:711:80 ]
      │
  711 │ ╭─▶ function NonExhaustiveClassPlusLiteralMissingClass(x: SuccessOr200) -> string {
      ┆ ┆   
@@ -396,7 +396,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-    ╭─[ 0:18:26 ]
+    ╭─[ match_exhaustiveness.baml:18:26 ]
     │
  18 │ ╭─▶         _ => "catch all",
  19 │ ├─▶         n: int => "never reached"
@@ -407,7 +407,7 @@ expression: output
 ────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:497:30 ]
+     ╭─[ match_exhaustiveness.baml:497:30 ]
      │
  497 │ ╭─▶         true => "first true",
  498 │ ├─▶         true => "second true",
@@ -418,7 +418,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type FullResult not fully covered. Missing: Pending
-     ╭─[ 0:763:64 ]
+     ╭─[ match_exhaustiveness.baml:763:64 ]
      │
  763 │ ╭─▶ function PartialUnionPatternCoverage(r: FullResult) -> string {
      ┆ ┆   
@@ -430,7 +430,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:357:26 ]
+     ╭─[ match_exhaustiveness.baml:357:26 ]
      │
  357 │ ╭─▶         "user" => "User",
  358 │ ├─▶         "assistant" => "Assistant"
@@ -441,7 +441,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:339:34 ]
+     ╭─[ match_exhaustiveness.baml:339:34 ]
      │
  339 │ ╭─▶         "user" => "User message",
  340 │ ├─▶         "assistant" => "Assistant message",
@@ -452,7 +452,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:340:44 ]
+     ╭─[ match_exhaustiveness.baml:340:44 ]
      │
  340 │ ╭─▶         "assistant" => "Assistant message",
  341 │ ├─▶         _ => "Other"
@@ -463,7 +463,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type Status not fully covered. Missing: Status.Inactive, Status.Pending
-     ╭─[ 0:464:65 ]
+     ╭─[ match_exhaustiveness.baml:464:65 ]
      │
  464 │ ╭─▶ function NonExhaustiveEnumMissingMultiple(s: Status) -> string {
      ┆ ┆   
@@ -475,7 +475,7 @@ expression: output
 ─────╯
 
   [type] Error: Non-exhaustive match: type SuccessCode not fully covered. Missing: 204
-     ╭─[ 0:396:64 ]
+     ╭─[ match_exhaustiveness.baml:396:64 ]
      │
  396 │ ╭─▶ function NonExhaustiveIntLiteral(code: SuccessCode) -> string {
      ┆ ┆   
@@ -487,7 +487,7 @@ expression: output
 ─────╯
 
   [type] Error: Unreachable match arm: previous arms already cover all cases
-     ╭─[ 0:784:25 ]
+     ╭─[ match_exhaustiveness.baml:784:25 ]
      │
  784 │ ╭─▶         n: int => "int",
  785 │ ├─▶         42 => "unreachable"

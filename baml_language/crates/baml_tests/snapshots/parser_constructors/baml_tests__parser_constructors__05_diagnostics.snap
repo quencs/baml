@@ -4,13 +4,13 @@ expression: output
 ---
 === DIAGNOSTICS ===
   [name] Error: Duplicate class 'Point'
-   ╭─[ 1:1:1 ]
+   ╭─[ class_constructor.baml:1:1 ]
    │
  1 │ class Point {
    │ │ 
    │ ╰─ class 'Point' defined in class_constructor.baml
    │
-   ├─[ 0:1:1 ]
+   ├─[ array_constructor.baml:1:1 ]
    │
  1 │ class Point {
    │ │ 
@@ -20,7 +20,7 @@ expression: output
 ───╯
 
   [type] Error: Expected map<string, bool>, found void
-    ╭─[ 2:22:43 ]
+    ╭─[ map_constructor.baml:22:43 ]
     │
  22 │ ╭─▶ function boolValues() -> map<string, bool> {
     ┆ ┆   
@@ -32,7 +32,7 @@ expression: output
 ────╯
 
   [type] Error: Expected map<string, int>, found void
-    ╭─[ 2:8:41 ]
+    ╭─[ map_constructor.baml:8:41 ]
     │
   8 │ ╭─▶ function intValues() -> map<string, int> {
     ┆ ┆   
@@ -44,7 +44,7 @@ expression: output
 ────╯
 
   [type] Error: Expected map<string, string>, found void
-   ╭─[ 2:1:47 ]
+   ╭─[ map_constructor.baml:1:47 ]
    │
  1 │ ╭─▶ function stringValues() -> map<string, string> {
    ┆ ┆   
@@ -56,7 +56,7 @@ expression: output
 ───╯
 
   [type] Error: Expected map<string, float>, found void
-    ╭─[ 2:15:45 ]
+    ╭─[ map_constructor.baml:15:45 ]
     │
  15 │ ╭─▶ function floatValues() -> map<string, float> {
     ┆ ┆   

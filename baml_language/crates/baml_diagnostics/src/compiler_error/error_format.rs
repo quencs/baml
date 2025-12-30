@@ -47,7 +47,8 @@ where
                 // Add secondary label for the type constraint source if available
                 if let Some(info) = info_span {
                     report = report.with_label(
-                        Label::new(info).with_message(format!("Expected type {expected} declared here")),
+                        Label::new(info)
+                            .with_message(format!("Expected type {expected} declared here")),
                     );
                 }
                 (report, TYPE_MISMATCH)

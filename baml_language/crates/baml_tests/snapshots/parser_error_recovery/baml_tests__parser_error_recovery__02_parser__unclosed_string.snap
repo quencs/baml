@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -64,7 +64,7 @@ SOURCE_FILE
 
 === ERRORS ===
 Error: Expected RParen, found Word
-   ╭─[ 0:4:25 ]
+   ╭─[ unclosed_string.baml:4:25 ]
    │
  4 │   field3 string @alias("another closed string")  // Should still parse this
    │                         ───┬───  
@@ -74,7 +74,7 @@ Error: Expected RParen, found Word
 ───╯
 
 Error: Expected Unclosed string literal, found EOF
-   ╭─[ 0:5:2 ]
+   ╭─[ unclosed_string.baml:5:2 ]
    │
  5 │ }
    │  ┬  
@@ -84,7 +84,7 @@ Error: Expected Unclosed string literal, found EOF
 ───╯
 
 Error: Expected RBrace, found EOF
-   ╭─[ 0:5:2 ]
+   ╭─[ unclosed_string.baml:5:2 ]
    │
  5 │ }
    │  ┬  

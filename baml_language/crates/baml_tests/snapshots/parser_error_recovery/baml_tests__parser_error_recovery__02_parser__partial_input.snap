@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -85,7 +85,7 @@ SOURCE_FILE
 
 === ERRORS ===
 Error: Expected type, found At
-   ╭─[ 0:5:17 ]
+   ╭─[ partial_input.baml:5:17 ]
    │
  5 │   field3 string @  // Incomplete attribute
    │                 ┬  
@@ -95,7 +95,7 @@ Error: Expected type, found At
 ───╯
 
 Error: Expected type, found At
-   ╭─[ 0:6:17 ]
+   ╭─[ partial_input.baml:6:17 ]
    │
  6 │   field4 string @alias(  // Unclosed attribute
    │                 ┬  
@@ -105,7 +105,7 @@ Error: Expected type, found At
 ───╯
 
 Error: Expected RParen, found Word
-   ╭─[ 0:7:10 ]
+   ╭─[ partial_input.baml:7:10 ]
    │
  7 │   field5 string  // This should parse correctly
    │          ───┬──  
@@ -115,7 +115,7 @@ Error: Expected RParen, found Word
 ───╯
 
 Error: Expected type, found RBrace
-   ╭─[ 0:8:1 ]
+   ╭─[ partial_input.baml:8:1 ]
    │
  8 │ }
    │ ┬  
@@ -125,7 +125,7 @@ Error: Expected type, found RBrace
 ───╯
 
 Error: Expected RParen, found Function
-    ╭─[ 0:13:1 ]
+    ╭─[ partial_input.baml:13:1 ]
     │
  13 │ function NextFunction() -> string {  // Should still parse this
     │ ────┬───  
@@ -135,7 +135,7 @@ Error: Expected RParen, found Function
 ────╯
 
 Error: Expected return type (->), found Function
-    ╭─[ 0:13:1 ]
+    ╭─[ partial_input.baml:13:1 ]
     │
  13 │ function NextFunction() -> string {  // Should still parse this
     │ ────┬───  
@@ -145,7 +145,7 @@ Error: Expected return type (->), found Function
 ────╯
 
 Error: Expected function body, found Function
-    ╭─[ 0:13:1 ]
+    ╭─[ partial_input.baml:13:1 ]
     │
  13 │ function NextFunction() -> string {  // Should still parse this
     │ ────┬───  
@@ -155,7 +155,7 @@ Error: Expected function body, found Function
 ────╯
 
 Error: Expected LBrace, found Word
-    ╭─[ 0:19:3 ]
+    ╭─[ partial_input.baml:19:3 ]
     │
  19 │   VALUE2
     │   ───┬──  
@@ -165,7 +165,7 @@ Error: Expected LBrace, found Word
 ────╯
 
 Error: Expected top-level declaration, found Word
-    ╭─[ 0:19:3 ]
+    ╭─[ partial_input.baml:19:3 ]
     │
  19 │   VALUE2
     │   ───┬──  
@@ -175,7 +175,7 @@ Error: Expected top-level declaration, found Word
 ────╯
 
 Error: Expected top-level declaration, found RBrace
-    ╭─[ 0:20:1 ]
+    ╭─[ partial_input.baml:20:1 ]
     │
  20 │ }
     │ ┬  

@@ -4,7 +4,7 @@ expression: output
 ---
 === DIAGNOSTICS ===
   [type] Error: Expected string, found int
-   ╭─[ 0:7:19 ]
+   ╭─[ simple_type_error.baml:7:19 ]
    │
  7 │   let x: string = 123
    │         ───┬───   ─┬─  
@@ -16,7 +16,7 @@ expression: output
 ───╯
 
   [type] Error: Cannot apply operator 'Add' to types int and string
-   ╭─[ 0:2:3 ]
+   ╭─[ simple_type_error.baml:2:3 ]
    │
  2 │   1 + "foo"
    │   ────┬────  

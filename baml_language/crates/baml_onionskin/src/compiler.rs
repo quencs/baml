@@ -1113,7 +1113,7 @@ impl CompilerRunner {
 
                 for error in errors {
                     total_parse_errors += 1;
-                    let rendered = render_parse_error(error, &sources, false);
+                    let rendered = render_parse_error(error, &sources, None, false);
                     for line in rendered.lines() {
                         writeln!(output, "{}", line).ok();
                         output_annotated.push((
@@ -1150,7 +1150,7 @@ impl CompilerRunner {
 
                 for error in errors {
                     total_type_errors += 1;
-                    let rendered = render_type_error(error, &sources, false);
+                    let rendered = render_type_error(error, &sources, None, false);
                     for line in rendered.lines() {
                         writeln!(output, "{}", line).ok();
                         output_annotated.push((

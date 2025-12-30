@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-eb448e436f8a003a/out/generated_tests.rs
+source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
 expression: output
 ---
 === SYNTAX TREE ===
@@ -127,7 +127,7 @@ SOURCE_FILE
 
 === ERRORS ===
 Error: Expected RParen, found Word
-   ╭─[ 0:7:41 ]
+   ╭─[ simple_strings.baml:7:41 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                         ──┬──  
@@ -137,7 +137,7 @@ Error: Expected RParen, found Word
 ───╯
 
 Error: Expected type, found Error
-   ╭─[ 0:7:46 ]
+   ╭─[ simple_strings.baml:7:46 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                              ┬  
@@ -147,7 +147,7 @@ Error: Expected type, found Error
 ───╯
 
 Error: Expected Unexpected token in class body, found Error
-   ╭─[ 0:7:46 ]
+   ╭─[ simple_strings.baml:7:46 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                              ┬  
@@ -157,7 +157,7 @@ Error: Expected Unexpected token in class body, found Error
 ───╯
 
 Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:7:47 ]
+   ╭─[ simple_strings.baml:7:47 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                               ┬  
@@ -167,7 +167,7 @@ Error: Expected Unexpected token in class body, found Quote
 ───╯
 
 Error: Expected Unexpected token in class body, found Quote
-   ╭─[ 0:7:48 ]
+   ╭─[ simple_strings.baml:7:48 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                                ┬  
@@ -177,7 +177,7 @@ Error: Expected Unexpected token in class body, found Quote
 ───╯
 
 Error: Expected Unexpected token in class body, found RParen
-   ╭─[ 0:7:49 ]
+   ╭─[ simple_strings.baml:7:49 ]
    │
  7 │   with_quotes string @alias("She said \"hello\"")
    │                                                 ┬  

@@ -161,7 +161,7 @@ impl<'db> StructuralTy<'db> {
     }
 }
 
-/// Substitute TyVar with replacement in type.
+/// Substitute `TyVar` with replacement in type.
 fn substitute<'db>(
     ty: &StructuralTy<'db>,
     var: &Name,
@@ -270,9 +270,9 @@ fn normalize_impl<'db>(
         Ty::Optional(inner) => StructuralTy::Optional(Box::new(normalize_impl(
             inner, aliases, recursive, expanding,
         ))),
-        Ty::List(inner) => {
-            StructuralTy::List(Box::new(normalize_impl(inner, aliases, recursive, expanding)))
-        }
+        Ty::List(inner) => StructuralTy::List(Box::new(normalize_impl(
+            inner, aliases, recursive, expanding,
+        ))),
         Ty::Map { key, value } => StructuralTy::Map {
             key: Box::new(normalize_impl(key, aliases, recursive, expanding)),
             value: Box::new(normalize_impl(value, aliases, recursive, expanding)),
@@ -298,7 +298,7 @@ fn normalize_impl<'db>(
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Find all recursive type aliases via DFS.
-fn find_recursive_aliases<'db>(aliases: &HashMap<Name, Ty<'db>>) -> HashSet<Name> {
+fn find_recursive_aliases(aliases: &HashMap<Name, Ty<'_>>) -> HashSet<Name> {
     let mut recursive = HashSet::new();
     for name in aliases.keys() {
         let mut visited = HashSet::new();
@@ -310,9 +310,9 @@ fn find_recursive_aliases<'db>(aliases: &HashMap<Name, Ty<'db>>) -> HashSet<Name
     recursive
 }
 
-fn has_cycle<'db>(
+fn has_cycle(
     name: &Name,
-    aliases: &HashMap<Name, Ty<'db>>,
+    aliases: &HashMap<Name, Ty<'_>>,
     visited: &mut HashSet<Name>,
     stack: &mut HashSet<Name>,
 ) -> bool {
@@ -326,7 +326,7 @@ fn has_cycle<'db>(
     stack.insert(name.clone());
     let result = aliases
         .get(name)
-        .map_or(false, |ty| ty_has_cycle(ty, aliases, visited, stack));
+        .is_some_and(|ty| ty_has_cycle(ty, aliases, visited, stack));
     stack.remove(name);
     result
 }
@@ -344,9 +344,13 @@ fn ty_has_cycle<'db>(
             ty_has_cycle(key, aliases, visited, stack)
                 || ty_has_cycle(value, aliases, visited, stack)
         }
-        Ty::Union(types) => types.iter().any(|t| ty_has_cycle(t, aliases, visited, stack)),
+        Ty::Union(types) => types
+            .iter()
+            .any(|t| ty_has_cycle(t, aliases, visited, stack)),
         Ty::Function { params, ret } => {
-            params.iter().any(|t| ty_has_cycle(t, aliases, visited, stack))
+            params
+                .iter()
+                .any(|t| ty_has_cycle(t, aliases, visited, stack))
                 || ty_has_cycle(ret, aliases, visited, stack)
         }
         _ => false,
@@ -363,10 +367,18 @@ mod tests {
         aliases.insert(Name::new("MyInt"), Ty::Int);
 
         // MyInt <: int should be true
-        assert!(is_subtype_of(&Ty::Named(Name::new("MyInt")), &Ty::Int, &aliases));
+        assert!(is_subtype_of(
+            &Ty::Named(Name::new("MyInt")),
+            &Ty::Int,
+            &aliases
+        ));
 
         // int <: MyInt should also be true (same structural type)
-        assert!(is_subtype_of(&Ty::Int, &Ty::Named(Name::new("MyInt")), &aliases));
+        assert!(is_subtype_of(
+            &Ty::Int,
+            &Ty::Named(Name::new("MyInt")),
+            &aliases
+        ));
     }
 
     #[test]

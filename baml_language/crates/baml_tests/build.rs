@@ -299,8 +299,11 @@ fn generate_parser_test(baml_file: &BamlFile) -> TokenStream {
             let content = content.replace("\r\n", "\n");
             let mut db = RootDatabase::new();
             let mut sources = HashMap::new();
+            let mut filenames = HashMap::new();
             let source_file = db.add_file(#relative_path, &content);
-            sources.insert(source_file.file_id(&db), content.clone());
+            let file_id = source_file.file_id(&db);
+            sources.insert(file_id, content.clone());
+            filenames.insert(file_id, #relative_path.to_string());
             let tree = baml_parser::syntax_tree(&db, source_file);
             let errors = baml_parser::parse_errors(&db, source_file);
 
@@ -312,7 +315,7 @@ fn generate_parser_test(baml_file: &BamlFile) -> TokenStream {
                 writeln!(output, "None").unwrap();
             } else {
                 for error in errors.iter() {
-                    writeln!(output, "{}", render_parse_error(error, &sources, false)).unwrap();
+                    writeln!(output, "{}", render_parse_error(error, &sources, Some(&filenames), false)).unwrap();
                 }
             }
 
@@ -548,12 +551,14 @@ fn generate_diagnostics_test(project: &TestProject) -> TokenStream {
                         #relative_path,
                         &content,
                     );
-                    sources.insert(source_file.file_id(&db), content.clone());
+                    let file_id = source_file.file_id(&db);
+                    sources.insert(file_id, content.clone());
+                    filenames.insert(file_id, #relative_path.to_string());
                     source_files.push(source_file);
 
                     let errors = baml_parser::parse_errors(&db, source_file);
                     for error in errors {
-                        all_errors.push(("parse".to_string(), render_parse_error(&error, &sources, false)));
+                        all_errors.push(("parse".to_string(), render_parse_error(&error, &sources, Some(&filenames), false)));
                     }
                 }
             }
@@ -566,6 +571,7 @@ fn generate_diagnostics_test(project: &TestProject) -> TokenStream {
             let mut db = RootDatabase::new();
             let root = db.set_project_root(std::path::PathBuf::from("."));
             let mut sources = HashMap::new();
+            let mut filenames = HashMap::new();
             let mut source_files = Vec::new();
             let mut all_errors = Vec::new();
 
@@ -576,7 +582,7 @@ fn generate_diagnostics_test(project: &TestProject) -> TokenStream {
 
             // Check for duplicate names
             for error in baml_hir::validate_duplicate_names(&db, root) {
-                all_errors.push(("name".to_string(), render_name_error(&error, &sources, false)));
+                all_errors.push(("name".to_string(), render_name_error(&error, &sources, Some(&filenames), false)));
             }
 
             // Build typing context and run type inference
@@ -595,7 +601,7 @@ fn generate_diagnostics_test(project: &TestProject) -> TokenStream {
                         let body = function_body(&db, *func_id);
                         let result = baml_thir::infer_function(&db, &signature, &body, Some(globals.clone()), Some(class_fields.clone()), Some(type_aliases_map.clone()), Some(enum_variants_data.clone()), *func_id);
                         for error in &result.errors {
-                            all_errors.push(("type".to_string(), render_type_error(error, &sources, false)));
+                            all_errors.push(("type".to_string(), render_type_error(error, &sources, Some(&filenames), false)));
                         }
                     }
                 }
