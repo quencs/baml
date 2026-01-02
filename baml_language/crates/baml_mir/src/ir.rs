@@ -488,6 +488,9 @@ pub enum BinOp {
     BitXor,
     Shl,
     Shr,
+
+    // Type checking
+    Instanceof,
 }
 
 impl fmt::Display for BinOp {
@@ -509,6 +512,7 @@ impl fmt::Display for BinOp {
             BinOp::BitXor => "^",
             BinOp::Shl => "<<",
             BinOp::Shr => ">>",
+            BinOp::Instanceof => "instanceof",
         };
         write!(f, "{s}")
     }

@@ -2207,6 +2207,9 @@ fn get_error_file_id(error: &StoredCompilerError) -> FileId {
             baml_diagnostics::compiler_error::ParseError::UnexpectedEof { span, .. } => {
                 span.file_id
             }
+            baml_diagnostics::compiler_error::ParseError::InvalidSyntax { span, .. } => {
+                span.file_id
+            }
         },
         CompilerError::TypeError(e) => match e {
             TypeError::TypeMismatch { span, .. } => span.file_id,
@@ -2224,6 +2227,7 @@ fn get_error_file_id(error: &StoredCompilerError) -> FileId {
         },
         CompilerError::NameError(e) => match e {
             baml_diagnostics::NameError::DuplicateName { second, .. } => second.file_id,
+            baml_diagnostics::NameError::DuplicateTestForFunction { second, .. } => second.file_id,
         },
     }
 }
