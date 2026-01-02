@@ -31,12 +31,11 @@ fn create_and_access() -> anyhow::Result<()> {
             ),
             (
                 "UseMap",
+                // CallResultImmediate optimization: Call result stays on stack,
+                // used immediately for map access (no Store/Load)
                 vec![
-                    Instruction::LoadConst(Value::Null),
                     Instruction::LoadGlobal(Value::function("CreateMap")),
                     Instruction::Call(0),
-                    Instruction::StoreVar("map".to_string()),
-                    Instruction::LoadVar("map".to_string()),
                     Instruction::LoadConst(Value::string("hello")),
                     Instruction::LoadMapElement,
                     Instruction::Return,
@@ -71,12 +70,11 @@ fn access_no_key() -> anyhow::Result<()> {
             ),
             (
                 "UseMapNoKey",
+                // CallResultImmediate optimization: Call result stays on stack,
+                // used immediately for map access (no Store/Load)
                 vec![
-                    Instruction::LoadConst(Value::Null),
                     Instruction::LoadGlobal(Value::function("CreateMap")),
                     Instruction::Call(0),
-                    Instruction::StoreVar("map".to_string()),
-                    Instruction::LoadVar("map".to_string()),
                     Instruction::LoadConst(Value::string("world")),
                     Instruction::LoadMapElement,
                     Instruction::Return,
@@ -115,21 +113,18 @@ fn contains() -> anyhow::Result<()> {
             (
                 "UseMapContains",
                 vec![
-                    // Init locals for return value and map
-                    Instruction::LoadConst(Value::Null),
+                    // Init local for map (return value is PhiLike, _3 is CallResultImmediate)
                     Instruction::LoadConst(Value::Null),
                     // let map = CreateMapJSON();
                     Instruction::LoadGlobal(Value::function("CreateMapJSON")),
                     Instruction::Call(0),
                     Instruction::StoreVar("map".to_string()),
-                    // map.has("hello") - method call
+                    // map.has("hello") - method call, result stays on stack (CallResultImmediate)
                     Instruction::LoadGlobal(Value::function("baml.Map.has")),
                     Instruction::LoadVar("map".to_string()),
                     Instruction::LoadConst(Value::string("hello")),
                     Instruction::Call(2),
-                    Instruction::StoreVar("_3".to_string()),
-                    Instruction::LoadVar("_3".to_string()),
-                    // if condition
+                    // if condition - Call result used directly from stack
                     Instruction::PopJumpIfFalse(2),
                     Instruction::Jump(3),
                     // else branch: "hi"
@@ -163,8 +158,7 @@ fn modify() -> anyhow::Result<()> {
         expected: vec![(
             "EditMapKey",
             vec![
-                // Init locals for return value and map
-                Instruction::LoadConst(Value::Null),
+                // Init local for map (return value is ReturnPhi, no slot needed)
                 Instruction::LoadConst(Value::Null),
                 // let map = { "hi": 123 }; (values first, then keys)
                 Instruction::LoadConst(Value::Int(123)),
@@ -178,13 +172,11 @@ fn modify() -> anyhow::Result<()> {
                 Instruction::LoadConst(Value::Int(4)),
                 Instruction::BinOp(BinOp::Sub),
                 Instruction::StoreMapElement,
-                // map["hi"] += 4; (uses temp for key)
+                // map["hi"] += 4; (constant propagation: key inlined at each use)
+                Instruction::LoadVar("map".to_string()),
                 Instruction::LoadConst(Value::string("hi")),
-                Instruction::StoreVar("_10".to_string()),
                 Instruction::LoadVar("map".to_string()),
-                Instruction::LoadVar("_10".to_string()),
-                Instruction::LoadVar("map".to_string()),
-                Instruction::LoadVar("_10".to_string()),
+                Instruction::LoadConst(Value::string("hi")),
                 Instruction::LoadMapElement,
                 Instruction::LoadConst(Value::Int(4)),
                 Instruction::BinOp(BinOp::Add),
