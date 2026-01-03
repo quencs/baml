@@ -70,7 +70,7 @@ echo "pnpm version: $(pnpm --version)"
 # Install required Rust tools
 echo "Installing Rust tools..."
 cargo install wasm-pack --version 0.13.1 || true
-cargo install cross || true
+cargo install cross --git https://github.com/cross-rs/cross --rev fb2bd3078e764acf2df6cc1e747aa6f156fe7458 || true
 
 # Add wasm target
 rustup target add wasm32-unknown-unknown

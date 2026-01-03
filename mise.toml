@@ -10,7 +10,8 @@ java = "temurin-23"
 
 # Rust tools
 "cargo:bacon" = "latest"
-"cargo:cross" = "latest"
+# Pinned to specific revision for stability - see https://github.com/cross-rs/cross/commit/fb2bd3078e764acf2df6cc1e747aa6f156fe7458
+"cargo:cross" = "git:https://github.com/cross-rs/cross#fb2bd3078e764acf2df6cc1e747aa6f156fe7458"
 "cargo:cargo-watch" = "latest"
 "cargo:wasm-pack" = "0.13.1"
 "cargo:ripgrep" = "latest"

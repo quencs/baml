@@ -105,5 +105,5 @@ runs:
 
     - name: Install cross-rs
       if: inputs.enable-cross == 'true'
-      run: cargo install cross --git https://github.com/cross-rs/cross
+      run: cargo install cross --git https://github.com/cross-rs/cross --rev fb2bd3078e764acf2df6cc1e747aa6f156fe7458
       shell: bash

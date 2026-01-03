@@ -733,7 +733,7 @@ def main():
         )
         print("Please install cross-rs: https://github.com/cross-rs/cross")
         print(
-            "Example installation: cargo install cross --git https://github.com/cross-rs/cross"
+            "Example installation: cargo install cross --git https://github.com/cross-rs/cross --rev fb2bd3078e764acf2df6cc1e747aa6f156fe7458"
         )
         sys.exit(1)
 
