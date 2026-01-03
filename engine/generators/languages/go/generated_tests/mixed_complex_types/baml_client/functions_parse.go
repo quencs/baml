@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of TestKitchenSink (Takes in string and returns types.KitchenSink)
-func (*parse) TestKitchenSink(text string, opts ...CallOptionFunc) (types.KitchenSink, error) {
+func (*parse) TestKitchenSink(ctx context.Context, text string, opts ...CallOptionFunc) (types.KitchenSink, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) TestKitchenSink(text string, opts ...CallOptionFunc) (types.Kitche
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestKitchenSink", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestKitchenSink", encoded)
 	if err != nil {
 		return types.KitchenSink{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) TestKitchenSink(text string, opts ...CallOptionFunc) (types.Kitche
 }
 
 // / Parse version of TestRecursiveComplexity (Takes in string and returns types.Node)
-func (*parse) TestRecursiveComplexity(text string, opts ...CallOptionFunc) (types.Node, error) {
+func (*parse) TestRecursiveComplexity(ctx context.Context, text string, opts ...CallOptionFunc) (types.Node, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) TestRecursiveComplexity(text string, opts ...CallOptionFunc) (type
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestRecursiveComplexity", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestRecursiveComplexity", encoded)
 	if err != nil {
 		return types.Node{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) TestRecursiveComplexity(text string, opts ...CallOptionFunc) (type
 }
 
 // / Parse version of TestUltraComplex (Takes in string and returns types.UltraComplex)
-func (*parse) TestUltraComplex(text string, opts ...CallOptionFunc) (types.UltraComplex, error) {
+func (*parse) TestUltraComplex(ctx context.Context, text string, opts ...CallOptionFunc) (types.UltraComplex, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) TestUltraComplex(text string, opts ...CallOptionFunc) (types.Ultra
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestUltraComplex", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestUltraComplex", encoded)
 	if err != nil {
 		return types.UltraComplex{}, err
 	}

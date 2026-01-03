@@ -13,7 +13,8 @@ import (
 )
 
 func TestDecodeOptional(t *testing.T) {
-	result, err := b.ParseStream.Bar(`
+	ctx := context.Background()
+	result, err := b.ParseStream.Bar(ctx, `
 	Accumulated:  I need to create a JSON response that follows one of the two schemas provided. Let me analyze the schemas:
 
 Schema 1 (example_2):

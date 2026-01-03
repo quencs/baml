@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestMediaArrayInputs (Takes in string and returns stream_types.MediaArrayAnalysisResult)
-func (*parse_stream) TestMediaArrayInputs(text string, opts ...CallOptionFunc) (stream_types.MediaArrayAnalysisResult, error) {
+func (*parse_stream) TestMediaArrayInputs(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.MediaArrayAnalysisResult, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) TestMediaArrayInputs(text string, opts ...CallOptionFunc) (
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMediaArrayInputs", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMediaArrayInputs", encoded)
 	if err != nil {
 		return stream_types.MediaArrayAnalysisResult{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) TestMediaArrayInputs(text string, opts ...CallOptionFunc) (
 }
 
 // / Parse version of TestMediaInput (Takes in string and returns stream_types.MediaAnalysisResult)
-func (*parse_stream) TestMediaInput(text string, opts ...CallOptionFunc) (stream_types.MediaAnalysisResult, error) {
+func (*parse_stream) TestMediaInput(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.MediaAnalysisResult, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) TestMediaInput(text string, opts ...CallOptionFunc) (stream
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMediaInput", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMediaInput", encoded)
 	if err != nil {
 		return stream_types.MediaAnalysisResult{}, err
 	}

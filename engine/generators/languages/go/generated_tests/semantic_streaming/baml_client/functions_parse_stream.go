@@ -28,7 +28,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of MakeClassWithBlockDone (Takes in string and returns types.ClassWithBlockDone)
-func (*parse_stream) MakeClassWithBlockDone(text string, opts ...CallOptionFunc) (types.ClassWithBlockDone, error) {
+func (*parse_stream) MakeClassWithBlockDone(ctx context.Context, text string, opts ...CallOptionFunc) (types.ClassWithBlockDone, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -64,7 +64,7 @@ func (*parse_stream) MakeClassWithBlockDone(text string, opts ...CallOptionFunc)
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeClassWithBlockDone", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeClassWithBlockDone", encoded)
 	if err != nil {
 		return types.ClassWithBlockDone{}, err
 	}
@@ -75,7 +75,7 @@ func (*parse_stream) MakeClassWithBlockDone(text string, opts ...CallOptionFunc)
 }
 
 // / Parse version of MakeClassWithExternalDone (Takes in string and returns types.ClassWithoutDone)
-func (*parse_stream) MakeClassWithExternalDone(text string, opts ...CallOptionFunc) (types.ClassWithoutDone, error) {
+func (*parse_stream) MakeClassWithExternalDone(ctx context.Context, text string, opts ...CallOptionFunc) (types.ClassWithoutDone, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -111,7 +111,7 @@ func (*parse_stream) MakeClassWithExternalDone(text string, opts ...CallOptionFu
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeClassWithExternalDone", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeClassWithExternalDone", encoded)
 	if err != nil {
 		return types.ClassWithoutDone{}, err
 	}
@@ -122,7 +122,7 @@ func (*parse_stream) MakeClassWithExternalDone(text string, opts ...CallOptionFu
 }
 
 // / Parse version of MakeSemanticContainer (Takes in string and returns stream_types.SemanticContainer)
-func (*parse_stream) MakeSemanticContainer(text string, opts ...CallOptionFunc) (stream_types.SemanticContainer, error) {
+func (*parse_stream) MakeSemanticContainer(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SemanticContainer, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -158,7 +158,7 @@ func (*parse_stream) MakeSemanticContainer(text string, opts ...CallOptionFunc) 
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeSemanticContainer", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeSemanticContainer", encoded)
 	if err != nil {
 		return stream_types.SemanticContainer{}, err
 	}

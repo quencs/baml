@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of Bar (Takes in string and returns stream_types.Union2ExampleOrExample2)
-func (*parse_stream) Bar(text string, opts ...CallOptionFunc) (stream_types.Union2ExampleOrExample2, error) {
+func (*parse_stream) Bar(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.Union2ExampleOrExample2, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) Bar(text string, opts ...CallOptionFunc) (stream_types.Unio
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "Bar", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "Bar", encoded)
 	if err != nil {
 		return stream_types.Union2ExampleOrExample2{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) Bar(text string, opts ...CallOptionFunc) (stream_types.Unio
 }
 
 // / Parse version of Foo (Takes in string and returns stream_types.Union2ExampleOrExample2)
-func (*parse_stream) Foo(text string, opts ...CallOptionFunc) (stream_types.Union2ExampleOrExample2, error) {
+func (*parse_stream) Foo(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.Union2ExampleOrExample2, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) Foo(text string, opts ...CallOptionFunc) (stream_types.Unio
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "Foo", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "Foo", encoded)
 	if err != nil {
 		return stream_types.Union2ExampleOrExample2{}, err
 	}

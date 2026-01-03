@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of Bar (Takes in string and returns types.Union2ExampleOrExample2)
-func (*parse) Bar(text string, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {
+func (*parse) Bar(ctx context.Context, text string, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) Bar(text string, opts ...CallOptionFunc) (types.Union2ExampleOrExa
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "Bar", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "Bar", encoded)
 	if err != nil {
 		return types.Union2ExampleOrExample2{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) Bar(text string, opts ...CallOptionFunc) (types.Union2ExampleOrExa
 }
 
 // / Parse version of Foo (Takes in string and returns types.Union2ExampleOrExample2)
-func (*parse) Foo(text string, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {
+func (*parse) Foo(ctx context.Context, text string, opts ...CallOptionFunc) (types.Union2ExampleOrExample2, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) Foo(text string, opts ...CallOptionFunc) (types.Union2ExampleOrExa
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "Foo", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "Foo", encoded)
 	if err != nil {
 		return types.Union2ExampleOrExample2{}, err
 	}

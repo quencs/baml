@@ -126,7 +126,7 @@ func TestParseAPIPatterns(t *testing.T) {
 			}
 		}`
 		
-		result, err := b.Parse.BuildLinkedList(jsonInput)
+		result, err := b.Parse.BuildLinkedList(context.Background(), jsonInput)
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), result.Len)
 		assert.NotNil(t, result.Head)
@@ -143,7 +143,7 @@ func TestParseAPIPatterns(t *testing.T) {
 			"skills": ["Go", "Python"]
 		}`
 		
-		result, err := b.Parse.ExtractResume(jsonInput)
+		result, err := b.Parse.ExtractResume(context.Background(), jsonInput)
 		require.NoError(t, err)
 		assert.NotNil(t, result.Name)
 		assert.Equal(t, "John Doe", result.Name)
@@ -272,7 +272,7 @@ func TestErrorHandlingPatterns(t *testing.T) {
 	})
 	
 	t.Run("ParseErrorHandling", func(t *testing.T) {
-		_, err := b.Parse.ExtractResume("invalid json")
+		_, err := b.Parse.ExtractResume(context.Background(), "invalid json")
 		assert.Error(t, err)
 	})
 }

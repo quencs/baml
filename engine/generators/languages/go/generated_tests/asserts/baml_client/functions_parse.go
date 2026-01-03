@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of PersonTest (Takes in string and returns types.Person)
-func (*parse) PersonTest(text string, opts ...CallOptionFunc) (types.Person, error) {
+func (*parse) PersonTest(ctx context.Context, text string, opts ...CallOptionFunc) (types.Person, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) PersonTest(text string, opts ...CallOptionFunc) (types.Person, err
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "PersonTest", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "PersonTest", encoded)
 	if err != nil {
 		return types.Person{}, err
 	}

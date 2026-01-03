@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestAllNull (Takes in string and returns stream_types.NullableTypes)
-func (*parse_stream) TestAllNull(text string, opts ...CallOptionFunc) (stream_types.NullableTypes, error) {
+func (*parse_stream) TestAllNull(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.NullableTypes, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) TestAllNull(text string, opts ...CallOptionFunc) (stream_ty
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestAllNull", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestAllNull", encoded)
 	if err != nil {
 		return stream_types.NullableTypes{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) TestAllNull(text string, opts ...CallOptionFunc) (stream_ty
 }
 
 // / Parse version of TestAllOptionalOmitted (Takes in string and returns stream_types.OptionalFields)
-func (*parse_stream) TestAllOptionalOmitted(text string, opts ...CallOptionFunc) (stream_types.OptionalFields, error) {
+func (*parse_stream) TestAllOptionalOmitted(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.OptionalFields, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) TestAllOptionalOmitted(text string, opts ...CallOptionFunc)
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestAllOptionalOmitted", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestAllOptionalOmitted", encoded)
 	if err != nil {
 		return stream_types.OptionalFields{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse_stream) TestAllOptionalOmitted(text string, opts ...CallOptionFunc)
 }
 
 // / Parse version of TestMixedOptionalNullable (Takes in string and returns stream_types.MixedOptionalNullable)
-func (*parse_stream) TestMixedOptionalNullable(text string, opts ...CallOptionFunc) (stream_types.MixedOptionalNullable, error) {
+func (*parse_stream) TestMixedOptionalNullable(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.MixedOptionalNullable, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse_stream) TestMixedOptionalNullable(text string, opts ...CallOptionFu
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMixedOptionalNullable", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMixedOptionalNullable", encoded)
 	if err != nil {
 		return stream_types.MixedOptionalNullable{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse_stream) TestMixedOptionalNullable(text string, opts ...CallOptionFu
 }
 
 // / Parse version of TestNullableTypes (Takes in string and returns stream_types.NullableTypes)
-func (*parse_stream) TestNullableTypes(text string, opts ...CallOptionFunc) (stream_types.NullableTypes, error) {
+func (*parse_stream) TestNullableTypes(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.NullableTypes, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse_stream) TestNullableTypes(text string, opts ...CallOptionFunc) (str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestNullableTypes", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestNullableTypes", encoded)
 	if err != nil {
 		return stream_types.NullableTypes{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse_stream) TestNullableTypes(text string, opts ...CallOptionFunc) (str
 }
 
 // / Parse version of TestOptionalFields (Takes in string and returns stream_types.OptionalFields)
-func (*parse_stream) TestOptionalFields(text string, opts ...CallOptionFunc) (stream_types.OptionalFields, error) {
+func (*parse_stream) TestOptionalFields(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.OptionalFields, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse_stream) TestOptionalFields(text string, opts ...CallOptionFunc) (st
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestOptionalFields", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestOptionalFields", encoded)
 	if err != nil {
 		return stream_types.OptionalFields{}, err
 	}

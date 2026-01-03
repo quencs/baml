@@ -2,7 +2,7 @@
 {% if let Some(doc) = fn.documentation -%}
 {{ crate::utils::prefix_lines(doc, "// ") }}
 {% endif -%}
-func (*parse_stream) {{ fn.name }}(text string, opts ...CallOptionFunc) ({{ fn.stream_return_type.serialize_type(pkg) }}, error) {
+func (*parse_stream) {{ fn.name }}(ctx context.Context, text string, opts ...CallOptionFunc) ({{ fn.stream_return_type.serialize_type(pkg) }}, error) {
 
     var callOpts callOption
     for _, opt := range opts {
@@ -38,7 +38,7 @@ func (*parse_stream) {{ fn.name }}(text string, opts ...CallOptionFunc) ({{ fn.s
         panic(wrapped_err)
     }
 
-    result, err := bamlRuntime.CallFunctionParse(context.Background(), "{{ fn.name }}", encoded)
+    result, err := bamlRuntime.CallFunctionParse(ctx, "{{ fn.name }}", encoded)
     if err != nil {
         return {{ fn.stream_return_type.zero_value(pkg) }}, err
     }

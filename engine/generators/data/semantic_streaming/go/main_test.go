@@ -12,6 +12,7 @@ import (
 
 func TestParseStream(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
 	raw_text := `
 {
@@ -36,7 +37,7 @@ func TestParseStream(t *testing.T) {
 	`
 	// parse every raw_text[:i]
 	for i := 0; i < len(raw_text); i++ {
-		result, err := b.ParseStream.MakeSemanticContainer(raw_text[:i])
+		result, err := b.ParseStream.MakeSemanticContainer(ctx, raw_text[:i])
 		if err != nil {
 			msg := err.Error()
 			if !(strings.Contains(msg, "Missing required field: class_done_needed") || strings.Contains(msg, "Missing required field: class_needed")) {

@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of TestComplexMaps (Takes in string and returns types.ComplexMaps)
-func (*parse) TestComplexMaps(text string, opts ...CallOptionFunc) (types.ComplexMaps, error) {
+func (*parse) TestComplexMaps(ctx context.Context, text string, opts ...CallOptionFunc) (types.ComplexMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) TestComplexMaps(text string, opts ...CallOptionFunc) (types.Comple
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestComplexMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestComplexMaps", encoded)
 	if err != nil {
 		return types.ComplexMaps{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) TestComplexMaps(text string, opts ...CallOptionFunc) (types.Comple
 }
 
 // / Parse version of TestEdgeCaseMaps (Takes in string and returns types.EdgeCaseMaps)
-func (*parse) TestEdgeCaseMaps(text string, opts ...CallOptionFunc) (types.EdgeCaseMaps, error) {
+func (*parse) TestEdgeCaseMaps(ctx context.Context, text string, opts ...CallOptionFunc) (types.EdgeCaseMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) TestEdgeCaseMaps(text string, opts ...CallOptionFunc) (types.EdgeC
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestEdgeCaseMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestEdgeCaseMaps", encoded)
 	if err != nil {
 		return types.EdgeCaseMaps{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) TestEdgeCaseMaps(text string, opts ...CallOptionFunc) (types.EdgeC
 }
 
 // / Parse version of TestLargeMaps (Takes in string and returns types.SimpleMaps)
-func (*parse) TestLargeMaps(text string, opts ...CallOptionFunc) (types.SimpleMaps, error) {
+func (*parse) TestLargeMaps(ctx context.Context, text string, opts ...CallOptionFunc) (types.SimpleMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) TestLargeMaps(text string, opts ...CallOptionFunc) (types.SimpleMa
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestLargeMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestLargeMaps", encoded)
 	if err != nil {
 		return types.SimpleMaps{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse) TestLargeMaps(text string, opts ...CallOptionFunc) (types.SimpleMa
 }
 
 // / Parse version of TestNestedMaps (Takes in string and returns types.NestedMaps)
-func (*parse) TestNestedMaps(text string, opts ...CallOptionFunc) (types.NestedMaps, error) {
+func (*parse) TestNestedMaps(ctx context.Context, text string, opts ...CallOptionFunc) (types.NestedMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse) TestNestedMaps(text string, opts ...CallOptionFunc) (types.NestedM
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestNestedMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestNestedMaps", encoded)
 	if err != nil {
 		return types.NestedMaps{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse) TestNestedMaps(text string, opts ...CallOptionFunc) (types.NestedM
 }
 
 // / Parse version of TestSimpleMaps (Takes in string and returns types.SimpleMaps)
-func (*parse) TestSimpleMaps(text string, opts ...CallOptionFunc) (types.SimpleMaps, error) {
+func (*parse) TestSimpleMaps(ctx context.Context, text string, opts ...CallOptionFunc) (types.SimpleMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse) TestSimpleMaps(text string, opts ...CallOptionFunc) (types.SimpleM
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestSimpleMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestSimpleMaps", encoded)
 	if err != nil {
 		return types.SimpleMaps{}, err
 	}
@@ -262,7 +262,7 @@ func (*parse) TestSimpleMaps(text string, opts ...CallOptionFunc) (types.SimpleM
 }
 
 // / Parse version of TestTopLevelBoolMap (Takes in string and returns map[string]bool)
-func (*parse) TestTopLevelBoolMap(text string, opts ...CallOptionFunc) (map[string]bool, error) {
+func (*parse) TestTopLevelBoolMap(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]bool, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -298,7 +298,7 @@ func (*parse) TestTopLevelBoolMap(text string, opts ...CallOptionFunc) (map[stri
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelBoolMap", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelBoolMap", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (*parse) TestTopLevelBoolMap(text string, opts ...CallOptionFunc) (map[stri
 }
 
 // / Parse version of TestTopLevelEmptyMap (Takes in string and returns map[string]string)
-func (*parse) TestTopLevelEmptyMap(text string, opts ...CallOptionFunc) (map[string]string, error) {
+func (*parse) TestTopLevelEmptyMap(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -345,7 +345,7 @@ func (*parse) TestTopLevelEmptyMap(text string, opts ...CallOptionFunc) (map[str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelEmptyMap", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelEmptyMap", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +356,7 @@ func (*parse) TestTopLevelEmptyMap(text string, opts ...CallOptionFunc) (map[str
 }
 
 // / Parse version of TestTopLevelFloatMap (Takes in string and returns map[string]float64)
-func (*parse) TestTopLevelFloatMap(text string, opts ...CallOptionFunc) (map[string]float64, error) {
+func (*parse) TestTopLevelFloatMap(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]float64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -392,7 +392,7 @@ func (*parse) TestTopLevelFloatMap(text string, opts ...CallOptionFunc) (map[str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelFloatMap", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelFloatMap", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +403,7 @@ func (*parse) TestTopLevelFloatMap(text string, opts ...CallOptionFunc) (map[str
 }
 
 // / Parse version of TestTopLevelIntMap (Takes in string and returns map[string]int64)
-func (*parse) TestTopLevelIntMap(text string, opts ...CallOptionFunc) (map[string]int64, error) {
+func (*parse) TestTopLevelIntMap(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -439,7 +439,7 @@ func (*parse) TestTopLevelIntMap(text string, opts ...CallOptionFunc) (map[strin
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelIntMap", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelIntMap", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +450,7 @@ func (*parse) TestTopLevelIntMap(text string, opts ...CallOptionFunc) (map[strin
 }
 
 // / Parse version of TestTopLevelMapOfArrays (Takes in string and returns map[string][]int64)
-func (*parse) TestTopLevelMapOfArrays(text string, opts ...CallOptionFunc) (map[string][]int64, error) {
+func (*parse) TestTopLevelMapOfArrays(ctx context.Context, text string, opts ...CallOptionFunc) (map[string][]int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -486,7 +486,7 @@ func (*parse) TestTopLevelMapOfArrays(text string, opts ...CallOptionFunc) (map[
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelMapOfArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelMapOfArrays", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +497,7 @@ func (*parse) TestTopLevelMapOfArrays(text string, opts ...CallOptionFunc) (map[
 }
 
 // / Parse version of TestTopLevelMapOfObjects (Takes in string and returns map[string]types.User)
-func (*parse) TestTopLevelMapOfObjects(text string, opts ...CallOptionFunc) (map[string]types.User, error) {
+func (*parse) TestTopLevelMapOfObjects(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]types.User, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -533,7 +533,7 @@ func (*parse) TestTopLevelMapOfObjects(text string, opts ...CallOptionFunc) (map
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelMapOfObjects", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelMapOfObjects", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +544,7 @@ func (*parse) TestTopLevelMapOfObjects(text string, opts ...CallOptionFunc) (map
 }
 
 // / Parse version of TestTopLevelMapWithNullable (Takes in string and returns map[string]*string)
-func (*parse) TestTopLevelMapWithNullable(text string, opts ...CallOptionFunc) (map[string]*string, error) {
+func (*parse) TestTopLevelMapWithNullable(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]*string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -580,7 +580,7 @@ func (*parse) TestTopLevelMapWithNullable(text string, opts ...CallOptionFunc) (
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelMapWithNullable", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelMapWithNullable", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -591,7 +591,7 @@ func (*parse) TestTopLevelMapWithNullable(text string, opts ...CallOptionFunc) (
 }
 
 // / Parse version of TestTopLevelNestedMap (Takes in string and returns map[string]map[string]string)
-func (*parse) TestTopLevelNestedMap(text string, opts ...CallOptionFunc) (map[string]map[string]string, error) {
+func (*parse) TestTopLevelNestedMap(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]map[string]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -627,7 +627,7 @@ func (*parse) TestTopLevelNestedMap(text string, opts ...CallOptionFunc) (map[st
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelNestedMap", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelNestedMap", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -638,7 +638,7 @@ func (*parse) TestTopLevelNestedMap(text string, opts ...CallOptionFunc) (map[st
 }
 
 // / Parse version of TestTopLevelStringMap (Takes in string and returns map[string]string)
-func (*parse) TestTopLevelStringMap(text string, opts ...CallOptionFunc) (map[string]string, error) {
+func (*parse) TestTopLevelStringMap(ctx context.Context, text string, opts ...CallOptionFunc) (map[string]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -674,7 +674,7 @@ func (*parse) TestTopLevelStringMap(text string, opts ...CallOptionFunc) (map[st
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelStringMap", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelStringMap", encoded)
 	if err != nil {
 		return nil, err
 	}

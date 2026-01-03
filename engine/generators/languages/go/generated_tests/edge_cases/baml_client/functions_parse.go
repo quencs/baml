@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of TestCircularReference (Takes in string and returns types.CircularReference)
-func (*parse) TestCircularReference(text string, opts ...CallOptionFunc) (types.CircularReference, error) {
+func (*parse) TestCircularReference(ctx context.Context, text string, opts ...CallOptionFunc) (types.CircularReference, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) TestCircularReference(text string, opts ...CallOptionFunc) (types.
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestCircularReference", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestCircularReference", encoded)
 	if err != nil {
 		return types.CircularReference{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) TestCircularReference(text string, opts ...CallOptionFunc) (types.
 }
 
 // / Parse version of TestDeepRecursion (Takes in string and returns types.DeepRecursion)
-func (*parse) TestDeepRecursion(text string, opts ...CallOptionFunc) (types.DeepRecursion, error) {
+func (*parse) TestDeepRecursion(ctx context.Context, text string, opts ...CallOptionFunc) (types.DeepRecursion, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) TestDeepRecursion(text string, opts ...CallOptionFunc) (types.Deep
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestDeepRecursion", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestDeepRecursion", encoded)
 	if err != nil {
 		return types.DeepRecursion{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) TestDeepRecursion(text string, opts ...CallOptionFunc) (types.Deep
 }
 
 // / Parse version of TestEmptyCollections (Takes in string and returns types.EmptyCollections)
-func (*parse) TestEmptyCollections(text string, opts ...CallOptionFunc) (types.EmptyCollections, error) {
+func (*parse) TestEmptyCollections(ctx context.Context, text string, opts ...CallOptionFunc) (types.EmptyCollections, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) TestEmptyCollections(text string, opts ...CallOptionFunc) (types.E
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestEmptyCollections", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestEmptyCollections", encoded)
 	if err != nil {
 		return types.EmptyCollections{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse) TestEmptyCollections(text string, opts ...CallOptionFunc) (types.E
 }
 
 // / Parse version of TestLargeStructure (Takes in string and returns types.LargeStructure)
-func (*parse) TestLargeStructure(text string, opts ...CallOptionFunc) (types.LargeStructure, error) {
+func (*parse) TestLargeStructure(ctx context.Context, text string, opts ...CallOptionFunc) (types.LargeStructure, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse) TestLargeStructure(text string, opts ...CallOptionFunc) (types.Lar
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestLargeStructure", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestLargeStructure", encoded)
 	if err != nil {
 		return types.LargeStructure{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse) TestLargeStructure(text string, opts ...CallOptionFunc) (types.Lar
 }
 
 // / Parse version of TestNumberEdgeCases (Takes in string and returns types.NumberEdgeCases)
-func (*parse) TestNumberEdgeCases(text string, opts ...CallOptionFunc) (types.NumberEdgeCases, error) {
+func (*parse) TestNumberEdgeCases(ctx context.Context, text string, opts ...CallOptionFunc) (types.NumberEdgeCases, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse) TestNumberEdgeCases(text string, opts ...CallOptionFunc) (types.Nu
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestNumberEdgeCases", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestNumberEdgeCases", encoded)
 	if err != nil {
 		return types.NumberEdgeCases{}, err
 	}
@@ -262,7 +262,7 @@ func (*parse) TestNumberEdgeCases(text string, opts ...CallOptionFunc) (types.Nu
 }
 
 // / Parse version of TestSpecialCharacters (Takes in string and returns types.SpecialCharacters)
-func (*parse) TestSpecialCharacters(text string, opts ...CallOptionFunc) (types.SpecialCharacters, error) {
+func (*parse) TestSpecialCharacters(ctx context.Context, text string, opts ...CallOptionFunc) (types.SpecialCharacters, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -298,7 +298,7 @@ func (*parse) TestSpecialCharacters(text string, opts ...CallOptionFunc) (types.
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestSpecialCharacters", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestSpecialCharacters", encoded)
 	if err != nil {
 		return types.SpecialCharacters{}, err
 	}

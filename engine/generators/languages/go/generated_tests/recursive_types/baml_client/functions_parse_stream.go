@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of Foo (Takes in string and returns stream_types.JSON)
-func (*parse_stream) Foo(text string, opts ...CallOptionFunc) (stream_types.JSON, error) {
+func (*parse_stream) Foo(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.JSON, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) Foo(text string, opts ...CallOptionFunc) (stream_types.JSON
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "Foo", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "Foo", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) Foo(text string, opts ...CallOptionFunc) (stream_types.JSON
 }
 
 // / Parse version of JsonInput (Takes in string and returns stream_types.JSON)
-func (*parse_stream) JsonInput(text string, opts ...CallOptionFunc) (stream_types.JSON, error) {
+func (*parse_stream) JsonInput(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.JSON, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) JsonInput(text string, opts ...CallOptionFunc) (stream_type
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "JsonInput", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "JsonInput", encoded)
 	if err != nil {
 		return nil, err
 	}

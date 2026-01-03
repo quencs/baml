@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of MakeClassWithBlockDone (Takes in string and returns types.ClassWithBlockDone)
-func (*parse) MakeClassWithBlockDone(text string, opts ...CallOptionFunc) (types.ClassWithBlockDone, error) {
+func (*parse) MakeClassWithBlockDone(ctx context.Context, text string, opts ...CallOptionFunc) (types.ClassWithBlockDone, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) MakeClassWithBlockDone(text string, opts ...CallOptionFunc) (types
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeClassWithBlockDone", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeClassWithBlockDone", encoded)
 	if err != nil {
 		return types.ClassWithBlockDone{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) MakeClassWithBlockDone(text string, opts ...CallOptionFunc) (types
 }
 
 // / Parse version of MakeClassWithExternalDone (Takes in string and returns types.ClassWithoutDone)
-func (*parse) MakeClassWithExternalDone(text string, opts ...CallOptionFunc) (types.ClassWithoutDone, error) {
+func (*parse) MakeClassWithExternalDone(ctx context.Context, text string, opts ...CallOptionFunc) (types.ClassWithoutDone, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) MakeClassWithExternalDone(text string, opts ...CallOptionFunc) (ty
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeClassWithExternalDone", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeClassWithExternalDone", encoded)
 	if err != nil {
 		return types.ClassWithoutDone{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) MakeClassWithExternalDone(text string, opts ...CallOptionFunc) (ty
 }
 
 // / Parse version of MakeSemanticContainer (Takes in string and returns types.SemanticContainer)
-func (*parse) MakeSemanticContainer(text string, opts ...CallOptionFunc) (types.SemanticContainer, error) {
+func (*parse) MakeSemanticContainer(ctx context.Context, text string, opts ...CallOptionFunc) (types.SemanticContainer, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) MakeSemanticContainer(text string, opts ...CallOptionFunc) (types.
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeSemanticContainer", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeSemanticContainer", encoded)
 	if err != nil {
 		return types.SemanticContainer{}, err
 	}

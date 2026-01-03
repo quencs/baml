@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of TestBooleanLiterals (Takes in string and returns types.BooleanLiterals)
-func (*parse) TestBooleanLiterals(text string, opts ...CallOptionFunc) (types.BooleanLiterals, error) {
+func (*parse) TestBooleanLiterals(ctx context.Context, text string, opts ...CallOptionFunc) (types.BooleanLiterals, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) TestBooleanLiterals(text string, opts ...CallOptionFunc) (types.Bo
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestBooleanLiterals", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestBooleanLiterals", encoded)
 	if err != nil {
 		return types.BooleanLiterals{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) TestBooleanLiterals(text string, opts ...CallOptionFunc) (types.Bo
 }
 
 // / Parse version of TestComplexLiterals (Takes in string and returns types.ComplexLiterals)
-func (*parse) TestComplexLiterals(text string, opts ...CallOptionFunc) (types.ComplexLiterals, error) {
+func (*parse) TestComplexLiterals(ctx context.Context, text string, opts ...CallOptionFunc) (types.ComplexLiterals, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) TestComplexLiterals(text string, opts ...CallOptionFunc) (types.Co
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestComplexLiterals", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestComplexLiterals", encoded)
 	if err != nil {
 		return types.ComplexLiterals{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) TestComplexLiterals(text string, opts ...CallOptionFunc) (types.Co
 }
 
 // / Parse version of TestIntegerLiterals (Takes in string and returns types.IntegerLiterals)
-func (*parse) TestIntegerLiterals(text string, opts ...CallOptionFunc) (types.IntegerLiterals, error) {
+func (*parse) TestIntegerLiterals(ctx context.Context, text string, opts ...CallOptionFunc) (types.IntegerLiterals, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) TestIntegerLiterals(text string, opts ...CallOptionFunc) (types.In
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestIntegerLiterals", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestIntegerLiterals", encoded)
 	if err != nil {
 		return types.IntegerLiterals{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse) TestIntegerLiterals(text string, opts ...CallOptionFunc) (types.In
 }
 
 // / Parse version of TestMixedLiterals (Takes in string and returns types.MixedLiterals)
-func (*parse) TestMixedLiterals(text string, opts ...CallOptionFunc) (types.MixedLiterals, error) {
+func (*parse) TestMixedLiterals(ctx context.Context, text string, opts ...CallOptionFunc) (types.MixedLiterals, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse) TestMixedLiterals(text string, opts ...CallOptionFunc) (types.Mixe
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMixedLiterals", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMixedLiterals", encoded)
 	if err != nil {
 		return types.MixedLiterals{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse) TestMixedLiterals(text string, opts ...CallOptionFunc) (types.Mixe
 }
 
 // / Parse version of TestStringLiterals (Takes in string and returns types.StringLiterals)
-func (*parse) TestStringLiterals(text string, opts ...CallOptionFunc) (types.StringLiterals, error) {
+func (*parse) TestStringLiterals(ctx context.Context, text string, opts ...CallOptionFunc) (types.StringLiterals, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse) TestStringLiterals(text string, opts ...CallOptionFunc) (types.Str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestStringLiterals", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestStringLiterals", encoded)
 	if err != nil {
 		return types.StringLiterals{}, err
 	}

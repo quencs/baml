@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of ConsumeSimpleClass (Takes in string and returns stream_types.SimpleClass)
-func (*parse_stream) ConsumeSimpleClass(text string, opts ...CallOptionFunc) (stream_types.SimpleClass, error) {
+func (*parse_stream) ConsumeSimpleClass(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SimpleClass, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) ConsumeSimpleClass(text string, opts ...CallOptionFunc) (st
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "ConsumeSimpleClass", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "ConsumeSimpleClass", encoded)
 	if err != nil {
 		return stream_types.SimpleClass{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) ConsumeSimpleClass(text string, opts ...CallOptionFunc) (st
 }
 
 // / Parse version of MakeSimpleClass (Takes in string and returns stream_types.SimpleClass)
-func (*parse_stream) MakeSimpleClass(text string, opts ...CallOptionFunc) (stream_types.SimpleClass, error) {
+func (*parse_stream) MakeSimpleClass(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SimpleClass, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) MakeSimpleClass(text string, opts ...CallOptionFunc) (strea
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "MakeSimpleClass", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "MakeSimpleClass", encoded)
 	if err != nil {
 		return stream_types.SimpleClass{}, err
 	}

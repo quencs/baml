@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of TestEmptyCollections (Takes in string and returns types.PrimitiveArrays)
-func (*parse) TestEmptyCollections(text string, opts ...CallOptionFunc) (types.PrimitiveArrays, error) {
+func (*parse) TestEmptyCollections(ctx context.Context, text string, opts ...CallOptionFunc) (types.PrimitiveArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) TestEmptyCollections(text string, opts ...CallOptionFunc) (types.P
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestEmptyCollections", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestEmptyCollections", encoded)
 	if err != nil {
 		return types.PrimitiveArrays{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) TestEmptyCollections(text string, opts ...CallOptionFunc) (types.P
 }
 
 // / Parse version of TestMixedPrimitives (Takes in string and returns types.MixedPrimitives)
-func (*parse) TestMixedPrimitives(text string, opts ...CallOptionFunc) (types.MixedPrimitives, error) {
+func (*parse) TestMixedPrimitives(ctx context.Context, text string, opts ...CallOptionFunc) (types.MixedPrimitives, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) TestMixedPrimitives(text string, opts ...CallOptionFunc) (types.Mi
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMixedPrimitives", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMixedPrimitives", encoded)
 	if err != nil {
 		return types.MixedPrimitives{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) TestMixedPrimitives(text string, opts ...CallOptionFunc) (types.Mi
 }
 
 // / Parse version of TestPrimitiveArrays (Takes in string and returns types.PrimitiveArrays)
-func (*parse) TestPrimitiveArrays(text string, opts ...CallOptionFunc) (types.PrimitiveArrays, error) {
+func (*parse) TestPrimitiveArrays(ctx context.Context, text string, opts ...CallOptionFunc) (types.PrimitiveArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) TestPrimitiveArrays(text string, opts ...CallOptionFunc) (types.Pr
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveArrays", encoded)
 	if err != nil {
 		return types.PrimitiveArrays{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse) TestPrimitiveArrays(text string, opts ...CallOptionFunc) (types.Pr
 }
 
 // / Parse version of TestPrimitiveMaps (Takes in string and returns types.PrimitiveMaps)
-func (*parse) TestPrimitiveMaps(text string, opts ...CallOptionFunc) (types.PrimitiveMaps, error) {
+func (*parse) TestPrimitiveMaps(ctx context.Context, text string, opts ...CallOptionFunc) (types.PrimitiveMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse) TestPrimitiveMaps(text string, opts ...CallOptionFunc) (types.Prim
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveMaps", encoded)
 	if err != nil {
 		return types.PrimitiveMaps{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse) TestPrimitiveMaps(text string, opts ...CallOptionFunc) (types.Prim
 }
 
 // / Parse version of TestPrimitiveTypes (Takes in string and returns types.PrimitiveTypes)
-func (*parse) TestPrimitiveTypes(text string, opts ...CallOptionFunc) (types.PrimitiveTypes, error) {
+func (*parse) TestPrimitiveTypes(ctx context.Context, text string, opts ...CallOptionFunc) (types.PrimitiveTypes, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse) TestPrimitiveTypes(text string, opts ...CallOptionFunc) (types.Pri
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveTypes", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveTypes", encoded)
 	if err != nil {
 		return types.PrimitiveTypes{}, err
 	}
@@ -262,7 +262,7 @@ func (*parse) TestPrimitiveTypes(text string, opts ...CallOptionFunc) (types.Pri
 }
 
 // / Parse version of TestTopLevelBool (Takes in string and returns bool)
-func (*parse) TestTopLevelBool(text string, opts ...CallOptionFunc) (bool, error) {
+func (*parse) TestTopLevelBool(ctx context.Context, text string, opts ...CallOptionFunc) (bool, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -298,7 +298,7 @@ func (*parse) TestTopLevelBool(text string, opts ...CallOptionFunc) (bool, error
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelBool", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelBool", encoded)
 	if err != nil {
 		return false, err
 	}
@@ -309,7 +309,7 @@ func (*parse) TestTopLevelBool(text string, opts ...CallOptionFunc) (bool, error
 }
 
 // / Parse version of TestTopLevelFloat (Takes in string and returns float64)
-func (*parse) TestTopLevelFloat(text string, opts ...CallOptionFunc) (float64, error) {
+func (*parse) TestTopLevelFloat(ctx context.Context, text string, opts ...CallOptionFunc) (float64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -345,7 +345,7 @@ func (*parse) TestTopLevelFloat(text string, opts ...CallOptionFunc) (float64, e
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelFloat", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelFloat", encoded)
 	if err != nil {
 		return 0.0, err
 	}
@@ -356,7 +356,7 @@ func (*parse) TestTopLevelFloat(text string, opts ...CallOptionFunc) (float64, e
 }
 
 // / Parse version of TestTopLevelInt (Takes in string and returns int64)
-func (*parse) TestTopLevelInt(text string, opts ...CallOptionFunc) (int64, error) {
+func (*parse) TestTopLevelInt(ctx context.Context, text string, opts ...CallOptionFunc) (int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -392,7 +392,7 @@ func (*parse) TestTopLevelInt(text string, opts ...CallOptionFunc) (int64, error
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelInt", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelInt", encoded)
 	if err != nil {
 		return 0, err
 	}
@@ -403,7 +403,7 @@ func (*parse) TestTopLevelInt(text string, opts ...CallOptionFunc) (int64, error
 }
 
 // / Parse version of TestTopLevelNull (Takes in string and returns *interface{})
-func (*parse) TestTopLevelNull(text string, opts ...CallOptionFunc) (*interface{}, error) {
+func (*parse) TestTopLevelNull(ctx context.Context, text string, opts ...CallOptionFunc) (*interface{}, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -439,7 +439,7 @@ func (*parse) TestTopLevelNull(text string, opts ...CallOptionFunc) (*interface{
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelNull", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelNull", encoded)
 	if err != nil {
 		return (*interface{})(nil), err
 	}
@@ -450,7 +450,7 @@ func (*parse) TestTopLevelNull(text string, opts ...CallOptionFunc) (*interface{
 }
 
 // / Parse version of TestTopLevelString (Takes in string and returns string)
-func (*parse) TestTopLevelString(text string, opts ...CallOptionFunc) (string, error) {
+func (*parse) TestTopLevelString(ctx context.Context, text string, opts ...CallOptionFunc) (string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -486,7 +486,7 @@ func (*parse) TestTopLevelString(text string, opts ...CallOptionFunc) (string, e
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelString", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelString", encoded)
 	if err != nil {
 		return "", err
 	}

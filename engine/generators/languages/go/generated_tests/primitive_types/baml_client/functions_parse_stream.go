@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestEmptyCollections (Takes in string and returns stream_types.PrimitiveArrays)
-func (*parse_stream) TestEmptyCollections(text string, opts ...CallOptionFunc) (stream_types.PrimitiveArrays, error) {
+func (*parse_stream) TestEmptyCollections(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.PrimitiveArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) TestEmptyCollections(text string, opts ...CallOptionFunc) (
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestEmptyCollections", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestEmptyCollections", encoded)
 	if err != nil {
 		return stream_types.PrimitiveArrays{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) TestEmptyCollections(text string, opts ...CallOptionFunc) (
 }
 
 // / Parse version of TestMixedPrimitives (Takes in string and returns stream_types.MixedPrimitives)
-func (*parse_stream) TestMixedPrimitives(text string, opts ...CallOptionFunc) (stream_types.MixedPrimitives, error) {
+func (*parse_stream) TestMixedPrimitives(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.MixedPrimitives, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) TestMixedPrimitives(text string, opts ...CallOptionFunc) (s
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMixedPrimitives", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMixedPrimitives", encoded)
 	if err != nil {
 		return stream_types.MixedPrimitives{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse_stream) TestMixedPrimitives(text string, opts ...CallOptionFunc) (s
 }
 
 // / Parse version of TestPrimitiveArrays (Takes in string and returns stream_types.PrimitiveArrays)
-func (*parse_stream) TestPrimitiveArrays(text string, opts ...CallOptionFunc) (stream_types.PrimitiveArrays, error) {
+func (*parse_stream) TestPrimitiveArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.PrimitiveArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse_stream) TestPrimitiveArrays(text string, opts ...CallOptionFunc) (s
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveArrays", encoded)
 	if err != nil {
 		return stream_types.PrimitiveArrays{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse_stream) TestPrimitiveArrays(text string, opts ...CallOptionFunc) (s
 }
 
 // / Parse version of TestPrimitiveMaps (Takes in string and returns stream_types.PrimitiveMaps)
-func (*parse_stream) TestPrimitiveMaps(text string, opts ...CallOptionFunc) (stream_types.PrimitiveMaps, error) {
+func (*parse_stream) TestPrimitiveMaps(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.PrimitiveMaps, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse_stream) TestPrimitiveMaps(text string, opts ...CallOptionFunc) (str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveMaps", encoded)
 	if err != nil {
 		return stream_types.PrimitiveMaps{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse_stream) TestPrimitiveMaps(text string, opts ...CallOptionFunc) (str
 }
 
 // / Parse version of TestPrimitiveTypes (Takes in string and returns stream_types.PrimitiveTypes)
-func (*parse_stream) TestPrimitiveTypes(text string, opts ...CallOptionFunc) (stream_types.PrimitiveTypes, error) {
+func (*parse_stream) TestPrimitiveTypes(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.PrimitiveTypes, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse_stream) TestPrimitiveTypes(text string, opts ...CallOptionFunc) (st
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveTypes", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveTypes", encoded)
 	if err != nil {
 		return stream_types.PrimitiveTypes{}, err
 	}
@@ -262,7 +262,7 @@ func (*parse_stream) TestPrimitiveTypes(text string, opts ...CallOptionFunc) (st
 }
 
 // / Parse version of TestTopLevelBool (Takes in string and returns bool)
-func (*parse_stream) TestTopLevelBool(text string, opts ...CallOptionFunc) (bool, error) {
+func (*parse_stream) TestTopLevelBool(ctx context.Context, text string, opts ...CallOptionFunc) (bool, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -298,7 +298,7 @@ func (*parse_stream) TestTopLevelBool(text string, opts ...CallOptionFunc) (bool
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelBool", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelBool", encoded)
 	if err != nil {
 		return false, err
 	}
@@ -309,7 +309,7 @@ func (*parse_stream) TestTopLevelBool(text string, opts ...CallOptionFunc) (bool
 }
 
 // / Parse version of TestTopLevelFloat (Takes in string and returns float64)
-func (*parse_stream) TestTopLevelFloat(text string, opts ...CallOptionFunc) (float64, error) {
+func (*parse_stream) TestTopLevelFloat(ctx context.Context, text string, opts ...CallOptionFunc) (float64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -345,7 +345,7 @@ func (*parse_stream) TestTopLevelFloat(text string, opts ...CallOptionFunc) (flo
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelFloat", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelFloat", encoded)
 	if err != nil {
 		return 0.0, err
 	}
@@ -356,7 +356,7 @@ func (*parse_stream) TestTopLevelFloat(text string, opts ...CallOptionFunc) (flo
 }
 
 // / Parse version of TestTopLevelInt (Takes in string and returns int64)
-func (*parse_stream) TestTopLevelInt(text string, opts ...CallOptionFunc) (int64, error) {
+func (*parse_stream) TestTopLevelInt(ctx context.Context, text string, opts ...CallOptionFunc) (int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -392,7 +392,7 @@ func (*parse_stream) TestTopLevelInt(text string, opts ...CallOptionFunc) (int64
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelInt", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelInt", encoded)
 	if err != nil {
 		return 0, err
 	}
@@ -403,7 +403,7 @@ func (*parse_stream) TestTopLevelInt(text string, opts ...CallOptionFunc) (int64
 }
 
 // / Parse version of TestTopLevelNull (Takes in string and returns *interface{})
-func (*parse_stream) TestTopLevelNull(text string, opts ...CallOptionFunc) (*interface{}, error) {
+func (*parse_stream) TestTopLevelNull(ctx context.Context, text string, opts ...CallOptionFunc) (*interface{}, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -439,7 +439,7 @@ func (*parse_stream) TestTopLevelNull(text string, opts ...CallOptionFunc) (*int
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelNull", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelNull", encoded)
 	if err != nil {
 		return (*interface{})(nil), err
 	}
@@ -450,7 +450,7 @@ func (*parse_stream) TestTopLevelNull(text string, opts ...CallOptionFunc) (*int
 }
 
 // / Parse version of TestTopLevelString (Takes in string and returns string)
-func (*parse_stream) TestTopLevelString(text string, opts ...CallOptionFunc) (string, error) {
+func (*parse_stream) TestTopLevelString(ctx context.Context, text string, opts ...CallOptionFunc) (string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -486,7 +486,7 @@ func (*parse_stream) TestTopLevelString(text string, opts ...CallOptionFunc) (st
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelString", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelString", encoded)
 	if err != nil {
 		return "", err
 	}

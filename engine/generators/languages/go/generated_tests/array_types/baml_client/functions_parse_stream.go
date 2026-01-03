@@ -28,7 +28,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestEmptyArrays (Takes in string and returns stream_types.SimpleArrays)
-func (*parse_stream) TestEmptyArrays(text string, opts ...CallOptionFunc) (stream_types.SimpleArrays, error) {
+func (*parse_stream) TestEmptyArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SimpleArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -64,7 +64,7 @@ func (*parse_stream) TestEmptyArrays(text string, opts ...CallOptionFunc) (strea
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestEmptyArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestEmptyArrays", encoded)
 	if err != nil {
 		return stream_types.SimpleArrays{}, err
 	}
@@ -75,7 +75,7 @@ func (*parse_stream) TestEmptyArrays(text string, opts ...CallOptionFunc) (strea
 }
 
 // / Parse version of TestLargeArrays (Takes in string and returns stream_types.SimpleArrays)
-func (*parse_stream) TestLargeArrays(text string, opts ...CallOptionFunc) (stream_types.SimpleArrays, error) {
+func (*parse_stream) TestLargeArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SimpleArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -111,7 +111,7 @@ func (*parse_stream) TestLargeArrays(text string, opts ...CallOptionFunc) (strea
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestLargeArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestLargeArrays", encoded)
 	if err != nil {
 		return stream_types.SimpleArrays{}, err
 	}
@@ -122,7 +122,7 @@ func (*parse_stream) TestLargeArrays(text string, opts ...CallOptionFunc) (strea
 }
 
 // / Parse version of TestMixedArrays (Takes in string and returns stream_types.MixedArrays)
-func (*parse_stream) TestMixedArrays(text string, opts ...CallOptionFunc) (stream_types.MixedArrays, error) {
+func (*parse_stream) TestMixedArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.MixedArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -158,7 +158,7 @@ func (*parse_stream) TestMixedArrays(text string, opts ...CallOptionFunc) (strea
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMixedArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMixedArrays", encoded)
 	if err != nil {
 		return stream_types.MixedArrays{}, err
 	}
@@ -169,7 +169,7 @@ func (*parse_stream) TestMixedArrays(text string, opts ...CallOptionFunc) (strea
 }
 
 // / Parse version of TestNestedArrays (Takes in string and returns stream_types.NestedArrays)
-func (*parse_stream) TestNestedArrays(text string, opts ...CallOptionFunc) (stream_types.NestedArrays, error) {
+func (*parse_stream) TestNestedArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.NestedArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -205,7 +205,7 @@ func (*parse_stream) TestNestedArrays(text string, opts ...CallOptionFunc) (stre
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestNestedArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestNestedArrays", encoded)
 	if err != nil {
 		return stream_types.NestedArrays{}, err
 	}
@@ -216,7 +216,7 @@ func (*parse_stream) TestNestedArrays(text string, opts ...CallOptionFunc) (stre
 }
 
 // / Parse version of TestObjectArrays (Takes in string and returns stream_types.ObjectArrays)
-func (*parse_stream) TestObjectArrays(text string, opts ...CallOptionFunc) (stream_types.ObjectArrays, error) {
+func (*parse_stream) TestObjectArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.ObjectArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -252,7 +252,7 @@ func (*parse_stream) TestObjectArrays(text string, opts ...CallOptionFunc) (stre
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestObjectArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestObjectArrays", encoded)
 	if err != nil {
 		return stream_types.ObjectArrays{}, err
 	}
@@ -263,7 +263,7 @@ func (*parse_stream) TestObjectArrays(text string, opts ...CallOptionFunc) (stre
 }
 
 // / Parse version of TestSimpleArrays (Takes in string and returns stream_types.SimpleArrays)
-func (*parse_stream) TestSimpleArrays(text string, opts ...CallOptionFunc) (stream_types.SimpleArrays, error) {
+func (*parse_stream) TestSimpleArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SimpleArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -299,7 +299,7 @@ func (*parse_stream) TestSimpleArrays(text string, opts ...CallOptionFunc) (stre
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestSimpleArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestSimpleArrays", encoded)
 	if err != nil {
 		return stream_types.SimpleArrays{}, err
 	}
@@ -310,7 +310,7 @@ func (*parse_stream) TestSimpleArrays(text string, opts ...CallOptionFunc) (stre
 }
 
 // / Parse version of TestTopLevel3DArray (Takes in string and returns [][][]string)
-func (*parse_stream) TestTopLevel3DArray(text string, opts ...CallOptionFunc) ([][][]string, error) {
+func (*parse_stream) TestTopLevel3DArray(ctx context.Context, text string, opts ...CallOptionFunc) ([][][]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -346,7 +346,7 @@ func (*parse_stream) TestTopLevel3DArray(text string, opts ...CallOptionFunc) ([
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevel3DArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevel3DArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +357,7 @@ func (*parse_stream) TestTopLevel3DArray(text string, opts ...CallOptionFunc) ([
 }
 
 // / Parse version of TestTopLevelArrayOfMaps (Takes in string and returns []map[string]int64)
-func (*parse_stream) TestTopLevelArrayOfMaps(text string, opts ...CallOptionFunc) ([]map[string]int64, error) {
+func (*parse_stream) TestTopLevelArrayOfMaps(ctx context.Context, text string, opts ...CallOptionFunc) ([]map[string]int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -393,7 +393,7 @@ func (*parse_stream) TestTopLevelArrayOfMaps(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelArrayOfMaps", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelArrayOfMaps", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +404,7 @@ func (*parse_stream) TestTopLevelArrayOfMaps(text string, opts ...CallOptionFunc
 }
 
 // / Parse version of TestTopLevelBoolArray (Takes in string and returns []bool)
-func (*parse_stream) TestTopLevelBoolArray(text string, opts ...CallOptionFunc) ([]bool, error) {
+func (*parse_stream) TestTopLevelBoolArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]bool, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -440,7 +440,7 @@ func (*parse_stream) TestTopLevelBoolArray(text string, opts ...CallOptionFunc) 
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelBoolArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelBoolArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +451,7 @@ func (*parse_stream) TestTopLevelBoolArray(text string, opts ...CallOptionFunc) 
 }
 
 // / Parse version of TestTopLevelEmptyArray (Takes in string and returns []string)
-func (*parse_stream) TestTopLevelEmptyArray(text string, opts ...CallOptionFunc) ([]string, error) {
+func (*parse_stream) TestTopLevelEmptyArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -487,7 +487,7 @@ func (*parse_stream) TestTopLevelEmptyArray(text string, opts ...CallOptionFunc)
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelEmptyArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelEmptyArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +498,7 @@ func (*parse_stream) TestTopLevelEmptyArray(text string, opts ...CallOptionFunc)
 }
 
 // / Parse version of TestTopLevelFloatArray (Takes in string and returns []float64)
-func (*parse_stream) TestTopLevelFloatArray(text string, opts ...CallOptionFunc) ([]float64, error) {
+func (*parse_stream) TestTopLevelFloatArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]float64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -534,7 +534,7 @@ func (*parse_stream) TestTopLevelFloatArray(text string, opts ...CallOptionFunc)
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelFloatArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelFloatArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +545,7 @@ func (*parse_stream) TestTopLevelFloatArray(text string, opts ...CallOptionFunc)
 }
 
 // / Parse version of TestTopLevelIntArray (Takes in string and returns []int64)
-func (*parse_stream) TestTopLevelIntArray(text string, opts ...CallOptionFunc) ([]int64, error) {
+func (*parse_stream) TestTopLevelIntArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -581,7 +581,7 @@ func (*parse_stream) TestTopLevelIntArray(text string, opts ...CallOptionFunc) (
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelIntArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelIntArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +592,7 @@ func (*parse_stream) TestTopLevelIntArray(text string, opts ...CallOptionFunc) (
 }
 
 // / Parse version of TestTopLevelMixedArray (Takes in string and returns []types.Union3BoolOrIntOrString)
-func (*parse_stream) TestTopLevelMixedArray(text string, opts ...CallOptionFunc) ([]types.Union3BoolOrIntOrString, error) {
+func (*parse_stream) TestTopLevelMixedArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]types.Union3BoolOrIntOrString, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -628,7 +628,7 @@ func (*parse_stream) TestTopLevelMixedArray(text string, opts ...CallOptionFunc)
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelMixedArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelMixedArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -639,7 +639,7 @@ func (*parse_stream) TestTopLevelMixedArray(text string, opts ...CallOptionFunc)
 }
 
 // / Parse version of TestTopLevelNestedArray (Takes in string and returns [][]int64)
-func (*parse_stream) TestTopLevelNestedArray(text string, opts ...CallOptionFunc) ([][]int64, error) {
+func (*parse_stream) TestTopLevelNestedArray(ctx context.Context, text string, opts ...CallOptionFunc) ([][]int64, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -675,7 +675,7 @@ func (*parse_stream) TestTopLevelNestedArray(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelNestedArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelNestedArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -686,7 +686,7 @@ func (*parse_stream) TestTopLevelNestedArray(text string, opts ...CallOptionFunc
 }
 
 // / Parse version of TestTopLevelNullableArray (Takes in string and returns []*string)
-func (*parse_stream) TestTopLevelNullableArray(text string, opts ...CallOptionFunc) ([]*string, error) {
+func (*parse_stream) TestTopLevelNullableArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]*string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -722,7 +722,7 @@ func (*parse_stream) TestTopLevelNullableArray(text string, opts ...CallOptionFu
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelNullableArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelNullableArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -733,7 +733,7 @@ func (*parse_stream) TestTopLevelNullableArray(text string, opts ...CallOptionFu
 }
 
 // / Parse version of TestTopLevelObjectArray (Takes in string and returns []stream_types.User)
-func (*parse_stream) TestTopLevelObjectArray(text string, opts ...CallOptionFunc) ([]stream_types.User, error) {
+func (*parse_stream) TestTopLevelObjectArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]stream_types.User, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -769,7 +769,7 @@ func (*parse_stream) TestTopLevelObjectArray(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelObjectArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelObjectArray", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -780,7 +780,7 @@ func (*parse_stream) TestTopLevelObjectArray(text string, opts ...CallOptionFunc
 }
 
 // / Parse version of TestTopLevelStringArray (Takes in string and returns []string)
-func (*parse_stream) TestTopLevelStringArray(text string, opts ...CallOptionFunc) ([]string, error) {
+func (*parse_stream) TestTopLevelStringArray(ctx context.Context, text string, opts ...CallOptionFunc) ([]string, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -816,7 +816,7 @@ func (*parse_stream) TestTopLevelStringArray(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestTopLevelStringArray", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestTopLevelStringArray", encoded)
 	if err != nil {
 		return nil, err
 	}

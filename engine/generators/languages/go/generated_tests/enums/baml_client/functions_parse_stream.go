@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of ConsumeTestEnum (Takes in string and returns types.TestEnum)
-func (*parse_stream) ConsumeTestEnum(text string, opts ...CallOptionFunc) (types.TestEnum, error) {
+func (*parse_stream) ConsumeTestEnum(ctx context.Context, text string, opts ...CallOptionFunc) (types.TestEnum, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) ConsumeTestEnum(text string, opts ...CallOptionFunc) (types
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "ConsumeTestEnum", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "ConsumeTestEnum", encoded)
 	if err != nil {
 		return types.TestEnum(""), err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) ConsumeTestEnum(text string, opts ...CallOptionFunc) (types
 }
 
 // / Parse version of FnTestAliasedEnumOutput (Takes in string and returns types.TestEnum)
-func (*parse_stream) FnTestAliasedEnumOutput(text string, opts ...CallOptionFunc) (types.TestEnum, error) {
+func (*parse_stream) FnTestAliasedEnumOutput(ctx context.Context, text string, opts ...CallOptionFunc) (types.TestEnum, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) FnTestAliasedEnumOutput(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "FnTestAliasedEnumOutput", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "FnTestAliasedEnumOutput", encoded)
 	if err != nil {
 		return types.TestEnum(""), err
 	}

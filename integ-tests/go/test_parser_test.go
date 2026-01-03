@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -38,7 +39,8 @@ func TestParseLLMResponse(t *testing.T) {
         ` + "```" + `
     `
 
-	parsed, err := b.Parse.BuildLinkedList(llmResponse)
+	ctx := context.Background()
+	parsed, err := b.Parse.BuildLinkedList(ctx, llmResponse)
 	require.NoError(t, err)
 
 	expected := types.LinkedList{
@@ -91,7 +93,8 @@ func TestParseLLMResponseSync(t *testing.T) {
         ` + "```" + `
     `
 
-	parsed, err := b.Parse.BuildLinkedList(llmResponse)
+	ctx := context.Background()
+	parsed, err := b.Parse.BuildLinkedList(ctx, llmResponse)
 	require.NoError(t, err)
 
 	expected := types.LinkedList{
@@ -128,7 +131,8 @@ func TestParseLLMStream(t *testing.T) {
         ` + "```" + `
     `
 
-	parsed, err := b.ParseStream.ExtractResume(stream)
+	ctx := context.Background()
+	parsed, err := b.ParseStream.ExtractResume(ctx, stream)
 	require.NoError(t, err)
 
 	expected := stream_types.Resume{
@@ -173,10 +177,11 @@ func TestParseJSONExtraction(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Test with a simple parsing function
-			_, err := b.Parse.JsonTypeAliasCycle(tc.input)
+			_, err := b.Parse.JsonTypeAliasCycle(ctx, tc.input)
 			
 			if tc.expected {
 				assert.NoError(t, err, "Expected successful parsing for %s", tc.name)
@@ -209,7 +214,8 @@ func TestParseComplexStructures(t *testing.T) {
 		"skills": ["Go", "Python", "JavaScript"]
 	}`
 
-	parsed, err := b.Parse.ExtractResume(complexJSON)
+	ctx := context.Background()
+	parsed, err := b.Parse.ExtractResume(ctx, complexJSON)
 	require.NoError(t, err)
 
 	assert.NotNil(t, parsed.Name)
@@ -254,9 +260,10 @@ func TestParseErrorHandling(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := b.Parse.ExtractResume(tc.input)
+			_, err := b.Parse.ExtractResume(ctx, tc.input)
 			assert.Error(t, err, "Expected parsing error for %s", tc.name)
 		})
 	}
@@ -273,9 +280,10 @@ func TestParsePartialStreaming(t *testing.T) {
 		`{"name": "John", "email": "john@example.com", "phone": "123-456-7890"}`,
 	}
 
+	ctx := context.Background()
 	for i, partial := range partialResponses {
 		t.Run(fmt.Sprintf("Partial%d", i), func(t *testing.T) {
-			parsed, err := b.ParseStream.ExtractResume(partial)
+			parsed, err := b.ParseStream.ExtractResume(ctx, partial)
 			
 			if err != nil {
 				// Some partial responses might fail, which is expected
@@ -321,9 +329,10 @@ func TestParseWithDifferentFormats(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, format := range formats {
 		t.Run(format.name, func(t *testing.T) {
-			parsed, err := b.Parse.FnOutputClass(format.format)
+			parsed, err := b.Parse.FnOutputClass(ctx, format.format)
 			require.NoError(t, err, "Expected successful parsing for format: %s", format.name)
 			assert.NotEmpty(t, parsed.Prop1, "Expected prop1 to be parsed")
 			assert.Equal(t, int64(42), parsed.Prop2, "Expected prop2 to be 42")
@@ -353,10 +362,11 @@ func TestParseUnionTypes(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Use a function that returns union types
-			result, err := b.Parse.LiteralUnionsTest(tc.input)
+			result, err := b.Parse.LiteralUnionsTest(ctx, tc.input)
 			require.NoError(t, err, "Expected successful parsing for %s", tc.name)
 			assert.NotNil(t, result, "Expected non-nil result")
 		})

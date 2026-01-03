@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestComplexUnions (Takes in string and returns stream_types.ComplexUnions)
-func (*parse_stream) TestComplexUnions(text string, opts ...CallOptionFunc) (stream_types.ComplexUnions, error) {
+func (*parse_stream) TestComplexUnions(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.ComplexUnions, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) TestComplexUnions(text string, opts ...CallOptionFunc) (str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestComplexUnions", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestComplexUnions", encoded)
 	if err != nil {
 		return stream_types.ComplexUnions{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) TestComplexUnions(text string, opts ...CallOptionFunc) (str
 }
 
 // / Parse version of TestDiscriminatedUnions (Takes in string and returns stream_types.DiscriminatedUnions)
-func (*parse_stream) TestDiscriminatedUnions(text string, opts ...CallOptionFunc) (stream_types.DiscriminatedUnions, error) {
+func (*parse_stream) TestDiscriminatedUnions(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.DiscriminatedUnions, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) TestDiscriminatedUnions(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestDiscriminatedUnions", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestDiscriminatedUnions", encoded)
 	if err != nil {
 		return stream_types.DiscriminatedUnions{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse_stream) TestDiscriminatedUnions(text string, opts ...CallOptionFunc
 }
 
 // / Parse version of TestPrimitiveUnions (Takes in string and returns stream_types.PrimitiveUnions)
-func (*parse_stream) TestPrimitiveUnions(text string, opts ...CallOptionFunc) (stream_types.PrimitiveUnions, error) {
+func (*parse_stream) TestPrimitiveUnions(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.PrimitiveUnions, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse_stream) TestPrimitiveUnions(text string, opts ...CallOptionFunc) (s
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestPrimitiveUnions", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestPrimitiveUnions", encoded)
 	if err != nil {
 		return stream_types.PrimitiveUnions{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse_stream) TestPrimitiveUnions(text string, opts ...CallOptionFunc) (s
 }
 
 // / Parse version of TestUnionArrays (Takes in string and returns stream_types.UnionArrays)
-func (*parse_stream) TestUnionArrays(text string, opts ...CallOptionFunc) (stream_types.UnionArrays, error) {
+func (*parse_stream) TestUnionArrays(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.UnionArrays, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse_stream) TestUnionArrays(text string, opts ...CallOptionFunc) (strea
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestUnionArrays", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestUnionArrays", encoded)
 	if err != nil {
 		return stream_types.UnionArrays{}, err
 	}

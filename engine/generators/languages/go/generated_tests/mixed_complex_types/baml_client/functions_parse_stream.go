@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestKitchenSink (Takes in string and returns stream_types.KitchenSink)
-func (*parse_stream) TestKitchenSink(text string, opts ...CallOptionFunc) (stream_types.KitchenSink, error) {
+func (*parse_stream) TestKitchenSink(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.KitchenSink, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) TestKitchenSink(text string, opts ...CallOptionFunc) (strea
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestKitchenSink", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestKitchenSink", encoded)
 	if err != nil {
 		return stream_types.KitchenSink{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) TestKitchenSink(text string, opts ...CallOptionFunc) (strea
 }
 
 // / Parse version of TestRecursiveComplexity (Takes in string and returns stream_types.Node)
-func (*parse_stream) TestRecursiveComplexity(text string, opts ...CallOptionFunc) (stream_types.Node, error) {
+func (*parse_stream) TestRecursiveComplexity(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.Node, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) TestRecursiveComplexity(text string, opts ...CallOptionFunc
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestRecursiveComplexity", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestRecursiveComplexity", encoded)
 	if err != nil {
 		return stream_types.Node{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse_stream) TestRecursiveComplexity(text string, opts ...CallOptionFunc
 }
 
 // / Parse version of TestUltraComplex (Takes in string and returns stream_types.UltraComplex)
-func (*parse_stream) TestUltraComplex(text string, opts ...CallOptionFunc) (stream_types.UltraComplex, error) {
+func (*parse_stream) TestUltraComplex(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.UltraComplex, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse_stream) TestUltraComplex(text string, opts ...CallOptionFunc) (stre
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestUltraComplex", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestUltraComplex", encoded)
 	if err != nil {
 		return stream_types.UltraComplex{}, err
 	}

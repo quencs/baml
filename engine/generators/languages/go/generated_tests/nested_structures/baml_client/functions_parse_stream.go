@@ -27,7 +27,7 @@ type parse_stream struct{}
 var ParseStream = &parse_stream{}
 
 // / Parse version of TestComplexNested (Takes in string and returns stream_types.ComplexNested)
-func (*parse_stream) TestComplexNested(text string, opts ...CallOptionFunc) (stream_types.ComplexNested, error) {
+func (*parse_stream) TestComplexNested(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.ComplexNested, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse_stream) TestComplexNested(text string, opts ...CallOptionFunc) (str
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestComplexNested", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestComplexNested", encoded)
 	if err != nil {
 		return stream_types.ComplexNested{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse_stream) TestComplexNested(text string, opts ...CallOptionFunc) (str
 }
 
 // / Parse version of TestDeeplyNested (Takes in string and returns stream_types.DeeplyNested)
-func (*parse_stream) TestDeeplyNested(text string, opts ...CallOptionFunc) (stream_types.DeeplyNested, error) {
+func (*parse_stream) TestDeeplyNested(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.DeeplyNested, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse_stream) TestDeeplyNested(text string, opts ...CallOptionFunc) (stre
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestDeeplyNested", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestDeeplyNested", encoded)
 	if err != nil {
 		return stream_types.DeeplyNested{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse_stream) TestDeeplyNested(text string, opts ...CallOptionFunc) (stre
 }
 
 // / Parse version of TestRecursiveStructure (Takes in string and returns stream_types.RecursiveStructure)
-func (*parse_stream) TestRecursiveStructure(text string, opts ...CallOptionFunc) (stream_types.RecursiveStructure, error) {
+func (*parse_stream) TestRecursiveStructure(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.RecursiveStructure, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse_stream) TestRecursiveStructure(text string, opts ...CallOptionFunc)
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestRecursiveStructure", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestRecursiveStructure", encoded)
 	if err != nil {
 		return stream_types.RecursiveStructure{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse_stream) TestRecursiveStructure(text string, opts ...CallOptionFunc)
 }
 
 // / Parse version of TestSimpleNested (Takes in string and returns stream_types.SimpleNested)
-func (*parse_stream) TestSimpleNested(text string, opts ...CallOptionFunc) (stream_types.SimpleNested, error) {
+func (*parse_stream) TestSimpleNested(ctx context.Context, text string, opts ...CallOptionFunc) (stream_types.SimpleNested, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse_stream) TestSimpleNested(text string, opts ...CallOptionFunc) (stre
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestSimpleNested", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestSimpleNested", encoded)
 	if err != nil {
 		return stream_types.SimpleNested{}, err
 	}

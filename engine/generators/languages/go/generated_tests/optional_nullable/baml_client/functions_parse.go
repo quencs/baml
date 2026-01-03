@@ -27,7 +27,7 @@ type parse struct{}
 var Parse = &parse{}
 
 // / Parse version of TestAllNull (Takes in string and returns types.NullableTypes)
-func (*parse) TestAllNull(text string, opts ...CallOptionFunc) (types.NullableTypes, error) {
+func (*parse) TestAllNull(ctx context.Context, text string, opts ...CallOptionFunc) (types.NullableTypes, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -63,7 +63,7 @@ func (*parse) TestAllNull(text string, opts ...CallOptionFunc) (types.NullableTy
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestAllNull", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestAllNull", encoded)
 	if err != nil {
 		return types.NullableTypes{}, err
 	}
@@ -74,7 +74,7 @@ func (*parse) TestAllNull(text string, opts ...CallOptionFunc) (types.NullableTy
 }
 
 // / Parse version of TestAllOptionalOmitted (Takes in string and returns types.OptionalFields)
-func (*parse) TestAllOptionalOmitted(text string, opts ...CallOptionFunc) (types.OptionalFields, error) {
+func (*parse) TestAllOptionalOmitted(ctx context.Context, text string, opts ...CallOptionFunc) (types.OptionalFields, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -110,7 +110,7 @@ func (*parse) TestAllOptionalOmitted(text string, opts ...CallOptionFunc) (types
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestAllOptionalOmitted", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestAllOptionalOmitted", encoded)
 	if err != nil {
 		return types.OptionalFields{}, err
 	}
@@ -121,7 +121,7 @@ func (*parse) TestAllOptionalOmitted(text string, opts ...CallOptionFunc) (types
 }
 
 // / Parse version of TestMixedOptionalNullable (Takes in string and returns types.MixedOptionalNullable)
-func (*parse) TestMixedOptionalNullable(text string, opts ...CallOptionFunc) (types.MixedOptionalNullable, error) {
+func (*parse) TestMixedOptionalNullable(ctx context.Context, text string, opts ...CallOptionFunc) (types.MixedOptionalNullable, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -157,7 +157,7 @@ func (*parse) TestMixedOptionalNullable(text string, opts ...CallOptionFunc) (ty
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestMixedOptionalNullable", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestMixedOptionalNullable", encoded)
 	if err != nil {
 		return types.MixedOptionalNullable{}, err
 	}
@@ -168,7 +168,7 @@ func (*parse) TestMixedOptionalNullable(text string, opts ...CallOptionFunc) (ty
 }
 
 // / Parse version of TestNullableTypes (Takes in string and returns types.NullableTypes)
-func (*parse) TestNullableTypes(text string, opts ...CallOptionFunc) (types.NullableTypes, error) {
+func (*parse) TestNullableTypes(ctx context.Context, text string, opts ...CallOptionFunc) (types.NullableTypes, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -204,7 +204,7 @@ func (*parse) TestNullableTypes(text string, opts ...CallOptionFunc) (types.Null
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestNullableTypes", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestNullableTypes", encoded)
 	if err != nil {
 		return types.NullableTypes{}, err
 	}
@@ -215,7 +215,7 @@ func (*parse) TestNullableTypes(text string, opts ...CallOptionFunc) (types.Null
 }
 
 // / Parse version of TestOptionalFields (Takes in string and returns types.OptionalFields)
-func (*parse) TestOptionalFields(text string, opts ...CallOptionFunc) (types.OptionalFields, error) {
+func (*parse) TestOptionalFields(ctx context.Context, text string, opts ...CallOptionFunc) (types.OptionalFields, error) {
 
 	var callOpts callOption
 	for _, opt := range opts {
@@ -251,7 +251,7 @@ func (*parse) TestOptionalFields(text string, opts ...CallOptionFunc) (types.Opt
 		panic(wrapped_err)
 	}
 
-	result, err := bamlRuntime.CallFunctionParse(context.Background(), "TestOptionalFields", encoded)
+	result, err := bamlRuntime.CallFunctionParse(ctx, "TestOptionalFields", encoded)
 	if err != nil {
 		return types.OptionalFields{}, err
 	}
