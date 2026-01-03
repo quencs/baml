@@ -75,12 +75,20 @@ func CreateRuntime(
 func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, encoded_args []byte, onTick OnTickCallbackData) (*ResultCallback, error) {
 	callback_id, callback := create_unique_id(ctx, onTick)
 
+	// Create a done channel to stop the context monitoring goroutine when the function completes
+	done := make(chan struct{})
+	defer close(done)
+
 	// Monitor context for early cancellation
 	go func() {
-		<-ctx.Done()
-		// Send cancellation to Rust immediately when context is done
-		// This will trigger callback to send an error message
-		baml_go.CancelFunctionCall(callback_id)
+		select {
+		case <-ctx.Done():
+			// Send cancellation to Rust immediately when context is done
+			// This will trigger callback to send an error message
+			baml_go.CancelFunctionCall(callback_id)
+		case <-done:
+			// Function completed, exit goroutine
+		}
 	}()
 
 	result, err := baml_go.CallFunctionFromC(r.runtime, functionName, encoded_args, callback_id)
@@ -102,34 +110,61 @@ func (r *BamlRuntime) CallFunction(ctx context.Context, functionName string, enc
 func (r *BamlRuntime) CallFunctionStream(ctx context.Context, functionName string, encoded_args []byte, onTick OnTickCallbackData) (<-chan ResultCallback, error) {
 	callback_id, callback := create_unique_id(ctx, onTick)
 
+	// Create a done channel to stop the context monitoring goroutine when the stream completes
+	done := make(chan struct{})
+
 	// Monitor context for early cancellation
 	go func() {
-		<-ctx.Done()
-		// Send cancellation to Rust immediately when context is done
-		baml_go.CancelFunctionCall(callback_id)
+		select {
+		case <-ctx.Done():
+			// Send cancellation to Rust immediately when context is done
+			baml_go.CancelFunctionCall(callback_id)
+		case <-done:
+			// Stream completed, exit goroutine
+		}
 	}()
 
 	result, err := baml_go.CallFunctionStreamFromC(r.runtime, functionName, encoded_args, callback_id)
 	if err != nil {
+		close(done)
 		return nil, err
 	}
 
 	if result != nil {
 		result_str := (*string)(result)
+		close(done)
 		return nil, errors.New(*result_str)
 	}
 
-	return callback, nil
+	// Create a wrapper channel that closes the done channel when the stream ends
+	wrappedCallback := make(chan ResultCallback)
+	go func() {
+		defer close(done)
+		defer close(wrappedCallback)
+		for res := range callback {
+			wrappedCallback <- res
+		}
+	}()
+
+	return wrappedCallback, nil
 }
 
 func (r *BamlRuntime) CallFunctionParse(ctx context.Context, functionName string, encoded_args []byte) (any, error) {
 	callback_id, callback := create_unique_id(ctx, nil)
 
+	// Create a done channel to stop the context monitoring goroutine when the function completes
+	done := make(chan struct{})
+	defer close(done)
+
 	// Monitor context for early cancellation
 	go func() {
-		<-ctx.Done()
-		// Send cancellation to Rust immediately when context is done
-		baml_go.CancelFunctionCall(callback_id)
+		select {
+		case <-ctx.Done():
+			// Send cancellation to Rust immediately when context is done
+			baml_go.CancelFunctionCall(callback_id)
+		case <-done:
+			// Function completed, exit goroutine
+		}
 	}()
 
 	result, err := baml_go.CallFunctionParseFromC(r.runtime, functionName, encoded_args, callback_id)
