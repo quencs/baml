@@ -7,11 +7,11 @@
 //! - Handling primitive type names
 //! - Validating that named types exist (when `known_types` is provided)
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use baml_base::{Name, Span};
 use baml_diagnostics::compiler_error::TypeError;
-use baml_hir::TypeRef;
+use baml_hir::{ClassId, EnumId, TypeRef};
 
 use crate::{LiteralValue, Ty};
 
@@ -29,7 +29,7 @@ pub struct TypeLoweringContext<'a, 'db> {
     pub errors: Vec<TypeError<Ty<'db>>>,
 }
 
-impl<'a, 'db> TypeLoweringContext<'a, 'db> {
+impl<'a> TypeLoweringContext<'a, '_> {
     /// Create a new context without validation.
     pub fn new() -> Self {
         TypeLoweringContext {
@@ -47,24 +47,6 @@ impl<'a, 'db> TypeLoweringContext<'a, 'db> {
             errors: Vec::new(),
         }
     }
-
-    /// Check if a type name is known (exists in the project).
-    fn is_known_type(&self, name: &Name) -> bool {
-        match &self.known_types {
-            Some(known) => known.contains(name),
-            None => true, // If no validation, assume all types are valid
-        }
-    }
-
-    /// Record an unknown type error and return `Ty::Error`.
-    fn unknown_type_error(&mut self, name: &Name) -> Ty<'db> {
-        let span = self.span.unwrap_or_default();
-        self.errors.push(TypeError::UnknownType {
-            name: name.to_string(),
-            span,
-        });
-        Ty::Error
-    }
 }
 
 impl Default for TypeLoweringContext<'_, '_> {
@@ -73,134 +55,76 @@ impl Default for TypeLoweringContext<'_, '_> {
     }
 }
 
-/// Lower a `TypeRef` to a Ty without validation.
+/// Lower a `TypeRef` to a Ty with validation AND resolution of class/enum types.
 ///
-/// This function converts syntactic type references into semantic types.
-/// Named types are NOT validated - use `lower_type_ref_validated` for validation.
-pub fn lower_type_ref<'db>(_db: &'db dyn baml_hir::Db, type_ref: &TypeRef) -> Ty<'db> {
-    TyLowering::lower(type_ref)
-}
-
-/// Type lowering context.
-// In the future, this will hold database reference for name resolution
-pub(crate) struct TyLowering;
-
-impl TyLowering {
-    /// Lower a `TypeRef` to a Ty.
-    pub(crate) fn lower<'db>(type_ref: &TypeRef) -> Ty<'db> {
-        match type_ref {
-            // Primitives
-            TypeRef::Int => Ty::Int,
-            TypeRef::Float => Ty::Float,
-            TypeRef::String => Ty::String,
-            TypeRef::Bool => Ty::Bool,
-            TypeRef::Null => Ty::Null,
-
-            // Media types
-            TypeRef::Image => Ty::Image,
-            TypeRef::Audio => Ty::Audio,
-            TypeRef::Video => Ty::Video,
-            TypeRef::Pdf => Ty::Pdf,
-
-            // Named type via path
-            TypeRef::Path(path) => TyLowering::lower_path_type(path),
-
-            // Type constructors
-            TypeRef::Optional(inner) => {
-                let inner_ty = TyLowering::lower(inner);
-                // Flatten nested optionals: T?? = T? since (T | null) | null = T | null
-                match inner_ty {
-                    Ty::Optional(_) => inner_ty, // Already optional, don't double-wrap
-                    _ => Ty::Optional(Box::new(inner_ty)),
-                }
-            }
-
-            TypeRef::List(inner) => {
-                let inner_ty = TyLowering::lower(inner);
-                Ty::List(Box::new(inner_ty))
-            }
-
-            TypeRef::Map { key, value } => {
-                let key_ty = TyLowering::lower(key);
-                let value_ty = TyLowering::lower(value);
-                Ty::Map {
-                    key: Box::new(key_ty),
-                    value: Box::new(value_ty),
-                }
-            }
-
-            TypeRef::Union(types) => {
-                let tys: Vec<Ty<'db>> = types.iter().map(TyLowering::lower).collect();
-                normalize_union(tys)
-            }
-
-            // Literal types - preserve the literal values for exhaustiveness checking
-            TypeRef::StringLiteral(s) => Ty::Literal(LiteralValue::String(s.clone())),
-            TypeRef::IntLiteral(i) => Ty::Literal(LiteralValue::Int(*i)),
-            TypeRef::FloatLiteral(f) => Ty::Literal(LiteralValue::Float(f.clone())),
-            TypeRef::BoolLiteral(b) => Ty::Literal(LiteralValue::Bool(*b)),
-
-            // Generics - not yet supported
-            TypeRef::Generic { .. } => Ty::Unknown,
-            TypeRef::TypeParam(_) => Ty::Unknown,
-
-            // Error/Unknown
-            TypeRef::Error => Ty::Error,
-            TypeRef::Unknown => Ty::Unknown,
-        }
-    }
-
-    /// Lower a path-based type reference (named type).
-    fn lower_path_type<'db>(path: &baml_hir::Path) -> Ty<'db> {
-        // For simple paths (single segment), check if it's a primitive type name
-        match path.segments.len() {
-            1 => {
-                let name = &path.segments[0];
-                match name.as_str() {
-                    "int" => Ty::Int,
-                    "float" => Ty::Float,
-                    "string" => Ty::String,
-                    "bool" => Ty::Bool,
-                    "null" => Ty::Null,
-                    "image" => Ty::Image,
-                    "audio" => Ty::Audio,
-                    "video" => Ty::Video,
-                    "pdf" => Ty::Pdf,
-                    // User-defined type - return as Named for now
-                    _ => Ty::Named(name.clone()),
-                }
-            }
-            // For qualified paths, join them with :: and return as Named
-            _ => {
-                let full_path = path
-                    .segments
-                    .iter()
-                    .map(smol_str::SmolStr::as_str)
-                    .collect::<Vec<_>>()
-                    .join(".");
-                Ty::Named(baml_base::Name::new(&full_path))
-            }
-        }
-    }
-}
-
-/// Lower a `TypeRef` to a Ty with validation against known types.
+/// This combines validation (checking types exist) with resolution (converting
+/// Named types to Class/Enum with their IDs). This is the preferred function
+/// for type checking contexts where you need fully resolved types.
 ///
 /// Returns the lowered type and any errors encountered.
-/// Unknown type names will return `Ty::Error` to suppress downstream errors.
-pub fn lower_type_ref_validated<'db>(
+pub fn lower_type_ref_validated_resolved<'db>(
     type_ref: &TypeRef,
     known_types: &HashSet<Name>,
+    class_ids: &HashMap<Name, ClassId<'db>>,
+    enum_ids: &HashMap<Name, EnumId<'db>>,
     span: Span,
 ) -> (Ty<'db>, Vec<TypeError<Ty<'db>>>) {
-    let mut ctx = TypeLoweringContext::with_validation(known_types, span);
-    let ty = lower_type_ref_with_ctx(&mut ctx, type_ref);
+    let mut ctx = TypeLoweringContextResolved::new(known_types, class_ids, enum_ids, span);
+    let ty = lower_type_ref_resolved_with_ctx(&mut ctx, type_ref);
     (ty, ctx.errors)
 }
 
-/// Lower a `TypeRef` to a Ty using the provided context.
-fn lower_type_ref_with_ctx<'db>(
-    ctx: &mut TypeLoweringContext<'_, 'db>,
+/// Context for type lowering with validation and resolution.
+struct TypeLoweringContextResolved<'a, 'db> {
+    known_types: &'a HashSet<Name>,
+    class_ids: &'a HashMap<Name, ClassId<'db>>,
+    enum_ids: &'a HashMap<Name, EnumId<'db>>,
+    span: Span,
+    errors: Vec<TypeError<Ty<'db>>>,
+}
+
+impl<'a, 'db> TypeLoweringContextResolved<'a, 'db> {
+    fn new(
+        known_types: &'a HashSet<Name>,
+        class_ids: &'a HashMap<Name, ClassId<'db>>,
+        enum_ids: &'a HashMap<Name, EnumId<'db>>,
+        span: Span,
+    ) -> Self {
+        Self {
+            known_types,
+            class_ids,
+            enum_ids,
+            span,
+            errors: Vec::new(),
+        }
+    }
+
+    fn is_known_type(&self, name: &Name) -> bool {
+        self.known_types.contains(name)
+    }
+
+    fn unknown_type_error(&mut self, name: &Name) -> Ty<'db> {
+        self.errors.push(TypeError::UnknownType {
+            name: name.to_string(),
+            span: self.span,
+        });
+        Ty::Error
+    }
+
+    fn resolve_name(&self, name: &Name) -> Option<Ty<'db>> {
+        if let Some(&class_id) = self.class_ids.get(name) {
+            Some(Ty::Class(class_id, name.clone()))
+        } else if let Some(&enum_id) = self.enum_ids.get(name) {
+            Some(Ty::Enum(enum_id, name.clone()))
+        } else {
+            None
+        }
+    }
+}
+
+/// Lower a `TypeRef` with validation and resolution context.
+fn lower_type_ref_resolved_with_ctx<'db>(
+    ctx: &mut TypeLoweringContextResolved<'_, 'db>,
     type_ref: &TypeRef,
 ) -> Ty<'db> {
     match type_ref {
@@ -218,22 +142,22 @@ fn lower_type_ref_with_ctx<'db>(
         TypeRef::Pdf => Ty::Pdf,
 
         // Named type via path
-        TypeRef::Path(path) => lower_path_type_with_ctx(ctx, path),
+        TypeRef::Path(path) => lower_path_type_resolved_with_ctx(ctx, path),
 
         // Type constructors
         TypeRef::Optional(inner) => {
-            let inner_ty = lower_type_ref_with_ctx(ctx, inner);
+            let inner_ty = lower_type_ref_resolved_with_ctx(ctx, inner);
             Ty::Optional(Box::new(inner_ty))
         }
 
         TypeRef::List(inner) => {
-            let inner_ty = lower_type_ref_with_ctx(ctx, inner);
+            let inner_ty = lower_type_ref_resolved_with_ctx(ctx, inner);
             Ty::List(Box::new(inner_ty))
         }
 
         TypeRef::Map { key, value } => {
-            let key_ty = lower_type_ref_with_ctx(ctx, key);
-            let value_ty = lower_type_ref_with_ctx(ctx, value);
+            let key_ty = lower_type_ref_resolved_with_ctx(ctx, key);
+            let value_ty = lower_type_ref_resolved_with_ctx(ctx, value);
             Ty::Map {
                 key: Box::new(key_ty),
                 value: Box::new(value_ty),
@@ -243,16 +167,15 @@ fn lower_type_ref_with_ctx<'db>(
         TypeRef::Union(types) => {
             let tys: Vec<Ty<'db>> = types
                 .iter()
-                .map(|t| lower_type_ref_with_ctx(ctx, t))
+                .map(|t| lower_type_ref_resolved_with_ctx(ctx, t))
                 .collect();
             normalize_union(tys)
         }
 
-        // Literal types - treat as their base type for now
-        TypeRef::StringLiteral(_) => Ty::String,
-        TypeRef::IntLiteral(_) => Ty::Int,
-        TypeRef::FloatLiteral(_) => Ty::Float,
-        TypeRef::BoolLiteral(_) => Ty::Bool,
+        TypeRef::StringLiteral(s) => Ty::Literal(LiteralValue::String(s.clone())),
+        TypeRef::IntLiteral(i) => Ty::Literal(LiteralValue::Int(*i)),
+        TypeRef::FloatLiteral(f) => Ty::Literal(LiteralValue::Float(f.clone())),
+        TypeRef::BoolLiteral(b) => Ty::Literal(LiteralValue::Bool(*b)),
 
         // Generics - not yet supported
         TypeRef::Generic { .. } => Ty::Unknown,
@@ -261,6 +184,63 @@ fn lower_type_ref_with_ctx<'db>(
         // Error/Unknown
         TypeRef::Error => Ty::Error,
         TypeRef::Unknown => Ty::Unknown,
+    }
+}
+
+/// Lower a path-based type with validation and resolution.
+fn lower_path_type_resolved_with_ctx<'db>(
+    ctx: &mut TypeLoweringContextResolved<'_, 'db>,
+    path: &baml_hir::Path,
+) -> Ty<'db> {
+    match path.segments.len() {
+        1 => {
+            let name = &path.segments[0];
+            match name.as_str() {
+                // Primitive type names
+                "int" => Ty::Int,
+                "float" => Ty::Float,
+                "string" => Ty::String,
+                "bool" => Ty::Bool,
+                "null" => Ty::Null,
+                "image" => Ty::Image,
+                "audio" => Ty::Audio,
+                "video" => Ty::Video,
+                "pdf" => Ty::Pdf,
+                // User-defined type - resolve to Class/Enum or validate
+                _ => {
+                    // Skip validation for complex type expressions
+                    if !is_simple_type_name(name.as_str()) {
+                        return Ty::Named(name.clone());
+                    }
+
+                    // Try to resolve to Class/Enum
+                    if let Some(resolved) = ctx.resolve_name(name) {
+                        return resolved;
+                    }
+
+                    // Check if it's a known type (could be a type alias)
+                    if ctx.is_known_type(name) {
+                        Ty::Named(name.clone())
+                    } else {
+                        ctx.unknown_type_error(name)
+                    }
+                }
+            }
+        }
+        _ => {
+            let full_path = path
+                .segments
+                .iter()
+                .map(smol_str::SmolStr::as_str)
+                .collect::<Vec<_>>()
+                .join(".");
+            let name = Name::new(&full_path);
+            if !is_simple_type_name(&full_path) || ctx.is_known_type(&name) {
+                Ty::Named(name)
+            } else {
+                ctx.unknown_type_error(&name)
+            }
+        }
     }
 }
 
@@ -281,56 +261,6 @@ fn is_simple_type_name(name: &str) -> bool {
     // Simple type names contain only alphanumeric characters and underscores
     // Complex types contain: < > [ ] | ? , etc.
     !name.contains(['<', '>', '[', ']', '|', '?', ','])
-}
-
-/// Lower a path-based type reference (named type) with validation.
-fn lower_path_type_with_ctx<'db>(
-    ctx: &mut TypeLoweringContext<'_, 'db>,
-    path: &baml_hir::Path,
-) -> Ty<'db> {
-    // For simple paths (single segment), check if it's a primitive type name
-    match path.segments.len() {
-        1 => {
-            let name = &path.segments[0];
-            match name.as_str() {
-                "int" => Ty::Int,
-                "float" => Ty::Float,
-                "string" => Ty::String,
-                "bool" => Ty::Bool,
-                "null" => Ty::Null,
-                "image" => Ty::Image,
-                "audio" => Ty::Audio,
-                "video" => Ty::Video,
-                "pdf" => Ty::Pdf,
-                // User-defined type - validate if known_types is provided
-                _ => {
-                    // Only validate simple type names (not complex expressions like `map<K,V>`)
-                    // Complex expressions need proper parsing, not name validation
-                    if !is_simple_type_name(name.as_str()) || ctx.is_known_type(name) {
-                        Ty::Named(name.clone())
-                    } else {
-                        ctx.unknown_type_error(name)
-                    }
-                }
-            }
-        }
-        // For qualified paths, join them and validate the full path
-        _ => {
-            let full_path = path
-                .segments
-                .iter()
-                .map(smol_str::SmolStr::as_str)
-                .collect::<Vec<_>>()
-                .join(".");
-            let name = Name::new(&full_path);
-            // Only validate simple type names
-            if !is_simple_type_name(&full_path) || ctx.is_known_type(&name) {
-                Ty::Named(name)
-            } else {
-                ctx.unknown_type_error(&name)
-            }
-        }
-    }
 }
 
 /// Normalize a union type by flattening nested unions and removing duplicates.
