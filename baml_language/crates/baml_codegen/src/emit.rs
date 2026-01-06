@@ -14,8 +14,71 @@ use baml_tir::Ty;
 use baml_vm::{
     BinOp as VmBinOp, Bytecode, CmpOp, Function, FunctionKind, GlobalIndex, Instruction, Object,
     ObjectIndex, ObjectPool, UnaryOp as VmUnaryOp, Value,
-    bytecode::{BlockNotification, BlockNotificationType},
+    bytecode::{BlockNotification, BlockNotificationType, JumpTableData},
 };
+
+// ============================================================================
+// Switch Strategy Analysis
+// ============================================================================
+
+/// Strategy for emitting a switch statement.
+#[derive(Debug)]
+enum SwitchStrategy {
+    /// Use jump table (O(1) lookup) for dense integer ranges.
+    JumpTable { min: i64, max: i64 },
+    /// Use binary search tree (O(log n) comparisons) for sparse integers.
+    BinarySearch,
+    /// Use linear if-else chain (O(n) comparisons).
+    IfElseChain,
+}
+
+// Tunable thresholds for switch emission strategy
+const JUMP_TABLE_MIN_ARMS: usize = 4; // Minimum arms to consider jump table
+const JUMP_TABLE_MIN_DENSITY: f64 = 0.5; // Minimum density for jump table
+const JUMP_TABLE_MAX_SIZE: usize = 256; // Maximum jump table size
+const BINARY_SEARCH_MIN_ARMS: usize = 4; // Minimum arms for binary search
+
+/// Analyze a switch's arms to determine the best emission strategy.
+///
+/// The thresholds are tunable constants that balance code size, memory usage,
+/// and runtime performance.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)]
+fn analyze_switch(arms: &[(i64, BlockId)]) -> SwitchStrategy {
+    // No arms - use if-else (will just jump to otherwise)
+    if arms.is_empty() {
+        return SwitchStrategy::IfElseChain;
+    }
+
+    // Find min and max values
+    let min = arms.iter().map(|(v, _)| *v).min().unwrap();
+    let max = arms.iter().map(|(v, _)| *v).max().unwrap();
+    // Safety: max >= min always, and we limit jump tables to 256 entries
+    let range = (max - min + 1) as usize;
+
+    // Calculate density (how much of the range is covered)
+    // Safety: precision loss acceptable for density calculation
+    let density = arms.len() as f64 / range as f64;
+
+    // Use jump table for dense ranges
+    if arms.len() >= JUMP_TABLE_MIN_ARMS
+        && density >= JUMP_TABLE_MIN_DENSITY
+        && range <= JUMP_TABLE_MAX_SIZE
+    {
+        SwitchStrategy::JumpTable { min, max }
+    }
+    // Use binary search for sparse but large switch
+    else if arms.len() >= BINARY_SEARCH_MIN_ARMS {
+        SwitchStrategy::BinarySearch
+    }
+    // Default to if-else chain for small switches
+    else {
+        SwitchStrategy::IfElseChain
+    }
+}
 
 use crate::{
     MirCodegenContext,
@@ -25,6 +88,20 @@ use crate::{
 // ============================================================================
 // Stackification Codegen
 // ============================================================================
+
+/// Pending jump table that needs offset patching after all blocks are emitted.
+struct PendingJumpTable {
+    /// Index of the jump table in `bytecode.jump_tables`.
+    table_idx: usize,
+    /// Instruction index where the `JumpTable` instruction is.
+    jump_table_pc: usize,
+    /// Arms with their target blocks (values will be patched to offsets).
+    arms: Vec<(i64, BlockId)>,
+    /// Default target block.
+    otherwise: BlockId,
+    /// The jump table data being built.
+    table: JumpTableData,
+}
 
 /// MIR to bytecode compiler with stackification.
 struct StackifyCodegen<'ctx, 'obj> {
@@ -53,6 +130,9 @@ struct StackifyCodegen<'ctx, 'obj> {
 
     /// Pending jumps that need patching: (`instruction_index`, `target_block`).
     pending_jumps: Vec<(usize, BlockId)>,
+
+    /// Pending jump tables that need patching after all blocks are emitted.
+    pending_jump_tables: Vec<PendingJumpTable>,
 
     /// Bytecode being generated.
     bytecode: Bytecode,
@@ -86,6 +166,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             local_slots: HashMap::new(),
             block_addresses: HashMap::new(),
             pending_jumps: Vec::new(),
+            pending_jump_tables: Vec::new(),
             bytecode: Bytecode::new(),
             current_source_line: 0,
             next_block: None,
@@ -119,8 +200,9 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             self.emit_block(block, mir);
         }
 
-        // 3. Patch all jump targets
+        // 3. Patch all jump targets and jump tables
         self.patch_jumps();
+        self.patch_jump_tables();
 
         // 4. Convert MIR VizNodes to VM VizNodeMeta
         let viz_nodes = mir
@@ -750,14 +832,21 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 then_block,
                 else_block,
             } => {
-                self.emit_operand_pull(condition, mir);
-                // PopJumpIfFalse to else_block (pops condition from stack)
-                // Apply jump threading to resolve through empty blocks
-                let resolved_else = self.analysis.resolve_jump_target(*else_block);
-                let else_jump = self.emit(Instruction::PopJumpIfFalse(0));
-                self.pending_jumps.push((else_jump, resolved_else));
-                // Jump to then_block (may be elided if it's next)
-                self.emit_jump_unless_fallthrough(*then_block);
+                // Optimization: If else_block is unreachable (last arm of exhaustive match),
+                // we know the condition must be true, so skip the comparison entirely.
+                if self.analysis.is_block_unreachable(*else_block, mir) {
+                    // Don't evaluate condition - just go directly to then_block
+                    self.emit_jump_unless_fallthrough(*then_block);
+                } else {
+                    self.emit_operand_pull(condition, mir);
+                    // PopJumpIfFalse to else_block (pops condition from stack)
+                    // Apply jump threading to resolve through empty blocks
+                    let resolved_else = self.analysis.resolve_jump_target(*else_block);
+                    let else_jump = self.emit(Instruction::PopJumpIfFalse(0));
+                    self.pending_jumps.push((else_jump, resolved_else));
+                    // Jump to then_block (may be elided if it's next)
+                    self.emit_jump_unless_fallthrough(*then_block);
+                }
             }
 
             Terminator::Switch {
@@ -765,22 +854,20 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 arms,
                 otherwise,
             } => {
-                self.emit_operand_pull(discriminant, mir);
+                // Analyze the switch to determine the best emission strategy
+                let strategy = analyze_switch(arms);
 
-                for (value, target) in arms {
-                    self.emit(Instruction::Copy(0));
-                    let idx = self.add_constant(Value::Int(*value));
-                    self.emit(Instruction::LoadConst(idx));
-                    self.emit(Instruction::CmpOp(CmpOp::Eq));
-                    let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
-                    self.emit(Instruction::Pop(1));
-                    self.emit_jump_unless_fallthrough(*target);
-                    let skip_to = self.current_pc();
-                    self.patch_jump_to(jump_idx, skip_to);
+                match strategy {
+                    SwitchStrategy::JumpTable { min, max } => {
+                        self.emit_switch_jump_table(discriminant, arms, *otherwise, min, max, mir);
+                    }
+                    SwitchStrategy::BinarySearch => {
+                        self.emit_switch_binary_search(discriminant, arms, *otherwise, mir);
+                    }
+                    SwitchStrategy::IfElseChain => {
+                        self.emit_switch_if_else(discriminant, arms, *otherwise, mir);
+                    }
                 }
-
-                self.emit(Instruction::Pop(1));
-                self.emit_jump_unless_fallthrough(*otherwise);
             }
 
             Terminator::Return => {
@@ -806,21 +893,11 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             }
 
             Terminator::Unreachable => {
-                // TODO(#UNREACHABLE): This code should NEVER be reached at runtime.
-                // Currently we emit a safety return of null, but this is a fallback
-                // that masks bugs. We should instead:
-                //
-                // 1. Add a `Panic` instruction to the VM that halts execution with
-                //    an error message like "reached unreachable code".
-                // 2. Emit `Instruction::Panic("unreachable")` here instead.
-                // 3. Consider adding dead code elimination to remove unreachable
-                //    blocks entirely during compilation.
-                //
-                // For now, we return null to avoid undefined behavior if this is
-                // somehow reached due to a compiler bug or type system unsoundness.
-                let idx = self.add_constant(Value::Null);
-                self.emit(Instruction::LoadConst(idx));
-                self.emit(Instruction::Return);
+                // Emit an instruction that will panic at runtime if reached.
+                // This should never happen - if it does, there's a bug in the
+                // compiler or type system (e.g., non-exhaustive match incorrectly
+                // marked as exhaustive).
+                self.emit(Instruction::Unreachable);
             }
 
             Terminator::DispatchFuture {
@@ -888,6 +965,203 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 self.bytecode.instructions[instruction_idx] = Instruction::PopJumpIfFalse(offset);
             }
             _ => panic!("expected jump instruction at index {instruction_idx}"),
+        }
+    }
+
+    /// Patch all pending jump tables with actual offsets.
+    #[allow(clippy::cast_possible_wrap)]
+    fn patch_jump_tables(&mut self) {
+        for pending in std::mem::take(&mut self.pending_jump_tables) {
+            let jump_table_pc = pending.jump_table_pc;
+            let mut table = pending.table;
+
+            // Patch each arm's offset
+            for (value, target) in &pending.arms {
+                let target_pc = self.block_addresses[target];
+                let offset = target_pc as isize - jump_table_pc as isize;
+                table.set(*value, offset);
+            }
+
+            // Patch default offset
+            let otherwise_pc = self.block_addresses[&pending.otherwise];
+            let default_offset = otherwise_pc as isize - jump_table_pc as isize;
+
+            // Update the instruction with the correct default offset
+            self.bytecode.instructions[jump_table_pc] = Instruction::JumpTable {
+                table_idx: pending.table_idx,
+                default: default_offset,
+            };
+
+            // Store the completed table
+            self.bytecode.jump_tables.push(table);
+        }
+    }
+
+    // ========================================================================
+    // Switch Emission Strategies
+    // ========================================================================
+
+    /// Emit switch using if-else chain (O(n) comparisons).
+    ///
+    /// This is the original linear emission strategy.
+    fn emit_switch_if_else(
+        &mut self,
+        discriminant: &Operand,
+        arms: &[(i64, BlockId)],
+        otherwise: BlockId,
+        mir: &MirFunction,
+    ) {
+        self.emit_operand_pull(discriminant, mir);
+
+        for (value, target) in arms {
+            self.emit(Instruction::Copy(0));
+            let idx = self.add_constant(Value::Int(*value));
+            self.emit(Instruction::LoadConst(idx));
+            self.emit(Instruction::CmpOp(CmpOp::Eq));
+            let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
+            self.emit(Instruction::Pop(1));
+            self.emit_jump_unless_fallthrough(*target);
+            let skip_to = self.current_pc();
+            self.patch_jump_to(jump_idx, skip_to);
+        }
+
+        self.emit(Instruction::Pop(1));
+        self.emit_jump_unless_fallthrough(otherwise);
+    }
+
+    /// Emit switch using jump table (O(1) lookup).
+    ///
+    /// Creates a jump table for dense integer ranges.
+    fn emit_switch_jump_table(
+        &mut self,
+        discriminant: &Operand,
+        arms: &[(i64, BlockId)],
+        otherwise: BlockId,
+        min: i64,
+        max: i64,
+        mir: &MirFunction,
+    ) {
+        // 1. Push discriminant onto stack
+        self.emit_operand_pull(discriminant, mir);
+
+        // 2. Create jump table data structure with placeholder offsets
+        let table_idx = self.pending_jump_tables.len();
+        let table = JumpTableData::new(min, max);
+
+        // 3. Emit JumpTable instruction with placeholder default offset
+        let jump_table_pc = self.emit(Instruction::JumpTable {
+            table_idx,
+            default: 0, // Will be patched later
+        });
+
+        // 4. Record pending jump table for patching
+        self.pending_jump_tables.push(PendingJumpTable {
+            table_idx,
+            jump_table_pc,
+            arms: arms.to_vec(),
+            otherwise,
+            table,
+        });
+    }
+
+    /// Emit switch using binary search (O(log n) comparisons).
+    ///
+    /// Creates a balanced binary search tree of comparisons.
+    fn emit_switch_binary_search(
+        &mut self,
+        discriminant: &Operand,
+        arms: &[(i64, BlockId)],
+        otherwise: BlockId,
+        mir: &MirFunction,
+    ) {
+        // Push discriminant onto stack (will be popped by comparisons)
+        self.emit_operand_pull(discriminant, mir);
+
+        // Sort arms by value for binary search
+        let mut sorted_arms: Vec<_> = arms.to_vec();
+        sorted_arms.sort_by_key(|(v, _)| *v);
+
+        // Emit binary search tree
+        self.emit_binary_search_node(&sorted_arms, otherwise);
+
+        // Pop the discriminant if we fall through (shouldn't happen with well-formed switches)
+        self.emit(Instruction::Pop(1));
+        self.emit_jump_unless_fallthrough(otherwise);
+    }
+
+    /// Recursively emit a binary search node.
+    ///
+    /// The discriminant is already on the stack. We emit comparisons to split
+    /// the search space in half at each level.
+    #[allow(clippy::only_used_in_recursion)]
+    fn emit_binary_search_node(&mut self, arms: &[(i64, BlockId)], otherwise: BlockId) {
+        match arms.len() {
+            0 => {
+                // No arms left - just fall through to otherwise
+                // (already handled by caller)
+            }
+            1 => {
+                // Single arm - emit direct comparison
+                let (value, target) = &arms[0];
+                self.emit(Instruction::Copy(0));
+                let idx = self.add_constant(Value::Int(*value));
+                self.emit(Instruction::LoadConst(idx));
+                self.emit(Instruction::CmpOp(CmpOp::Eq));
+                let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
+                self.emit(Instruction::Pop(1));
+                self.emit_jump_unless_fallthrough(*target);
+                let skip_to = self.current_pc();
+                self.patch_jump_to(jump_idx, skip_to);
+            }
+            2 => {
+                // Two arms - emit both comparisons sequentially
+                for (value, target) in arms {
+                    self.emit(Instruction::Copy(0));
+                    let idx = self.add_constant(Value::Int(*value));
+                    self.emit(Instruction::LoadConst(idx));
+                    self.emit(Instruction::CmpOp(CmpOp::Eq));
+                    let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
+                    self.emit(Instruction::Pop(1));
+                    self.emit_jump_unless_fallthrough(*target);
+                    let skip_to = self.current_pc();
+                    self.patch_jump_to(jump_idx, skip_to);
+                }
+            }
+            _ => {
+                // Multiple arms - split in half and recurse
+                let mid = arms.len() / 2;
+                let (value, target) = &arms[mid];
+                let left = &arms[..mid];
+                let right = &arms[mid + 1..];
+
+                // Compare with pivot
+                self.emit(Instruction::Copy(0));
+                let idx = self.add_constant(Value::Int(*value));
+                self.emit(Instruction::LoadConst(idx));
+                self.emit(Instruction::CmpOp(CmpOp::Eq));
+                let eq_jump = self.emit(Instruction::PopJumpIfFalse(0));
+
+                // If equal, jump to target
+                self.emit(Instruction::Pop(1));
+                self.emit_jump_unless_fallthrough(*target);
+                let after_eq = self.current_pc();
+                self.patch_jump_to(eq_jump, after_eq);
+
+                // Compare < pivot for left subtree
+                self.emit(Instruction::Copy(0));
+                self.emit(Instruction::LoadConst(idx));
+                self.emit(Instruction::CmpOp(CmpOp::Lt));
+                let lt_jump = self.emit(Instruction::PopJumpIfFalse(0));
+
+                // Left subtree (values < pivot)
+                self.emit_binary_search_node(left, otherwise);
+
+                let after_left = self.current_pc();
+                self.patch_jump_to(lt_jump, after_left);
+
+                // Right subtree (values > pivot)
+                self.emit_binary_search_node(right, otherwise);
+            }
         }
     }
 
