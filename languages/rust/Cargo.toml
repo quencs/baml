@@ -36,9 +36,10 @@ ureq = { version = "2", default-features = false, features = ["tls"] }
 hex = "0.4"
 
 # internal dependencies
-baml-macros = { version = "*", path = "baml-macros" }
-baml = { version = "*", path = "baml" }
-baml-sys = { version = "*", path = "baml-sys" }
+# Versions are managed by cargo-release (see release.toml)
+baml-macros = { version = "0.216.0", path = "baml-macros" }
+baml = { version = "0.216.0", path = "baml" }
+baml-sys = { version = "0.216.0", path = "baml-sys" }
 
 [workspace.lints.rust]
 unsafe_code = "warn"
