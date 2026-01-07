@@ -107,21 +107,21 @@ test TestMakePoem() {
 //     │ 
 //     │ Note: Error code: E0010
 // ────╯
-// Error: Unknown variable poem
+// Error: Unknown variable `poem`
 //     ╭─[ expr_expr_full.baml:41:16 ]
 //     │
 //  41 │   CombinePoems(poem, another)
 //     │                ──┬─  
-//     │                  ╰─── Unknown variable poem
+//     │                  ╰─── Unknown variable `poem`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable another
+// Error: Unknown variable `another`
 //     ╭─[ expr_expr_full.baml:41:22 ]
 //     │
 //  41 │   CombinePoems(poem, another)
 //     │                      ───┬───  
-//     │                         ╰───── Unknown variable another
+//     │                         ╰───── Unknown variable `another`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯

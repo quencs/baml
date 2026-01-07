@@ -46,12 +46,12 @@ function BadValueReturn(x: int) -> string {
 
 //----
 //- diagnostics
-// Error: Expected string, found int
+// Error: Expected `string`, found `int`
 //    ╭─[ misc_return.baml:1:1 ]
 //    │
 //  1 │ function EarlyReturn(x: int) -> int {
 //    │ │ 
-//    │ ╰─ Expected string, found int
+//    │ ╰─ Expected `string`, found `int`
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯

@@ -677,174 +677,174 @@ function foo() -> int {
 //     │ 
 //     │ Note: Error code: E0010
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:35:11 ]
 //     │
 //  35 │    for (;;i += x) {}
 //     │           ┬  
-//     │           ╰── Unknown variable i
+//     │           ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable x
+// Error: Unknown variable `x`
 //     ╭─[ parens.baml:35:16 ]
 //     │
 //  35 │    for (;;i += x) {}
 //     │                ┬  
-//     │                ╰── Unknown variable x
+//     │                ╰── Unknown variable `x`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:37:11 ]
 //     │
 //  37 │    for (;;i += x {}
 //     │           ┬  
-//     │           ╰── Unknown variable i
+//     │           ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:39:10 ]
 //     │
 //  39 │    for ;;i += x) {}
 //     │          ┬  
-//     │          ╰── Unknown variable i
+//     │          ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable x
+// Error: Unknown variable `x`
 //     ╭─[ parens.baml:39:15 ]
 //     │
 //  39 │    for ;;i += x) {}
 //     │               ┬  
-//     │               ╰── Unknown variable x
+//     │               ╰── Unknown variable `x`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:41:10 ]
 //     │
 //  41 │    for ;;i += x {}
 //     │          ┬  
-//     │          ╰── Unknown variable i
+//     │          ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:45:11 ]
 //     │
 //  45 │    for (;;i = x) {}
 //     │           ┬  
-//     │           ╰── Unknown variable i
+//     │           ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable x
+// Error: Unknown variable `x`
 //     ╭─[ parens.baml:45:15 ]
 //     │
 //  45 │    for (;;i = x) {}
 //     │               ┬  
-//     │               ╰── Unknown variable x
+//     │               ╰── Unknown variable `x`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:47:11 ]
 //     │
 //  47 │    for (;;i = x {}
 //     │           ┬  
-//     │           ╰── Unknown variable i
+//     │           ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:49:10 ]
 //     │
 //  49 │    for ;;i = x) {}
 //     │          ┬  
-//     │          ╰── Unknown variable i
+//     │          ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable x
+// Error: Unknown variable `x`
 //     ╭─[ parens.baml:49:14 ]
 //     │
 //  49 │    for ;;i = x) {}
 //     │              ┬  
-//     │              ╰── Unknown variable x
+//     │              ╰── Unknown variable `x`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable i
+// Error: Unknown variable `i`
 //     ╭─[ parens.baml:51:10 ]
 //     │
 //  51 │    for ;;i = x {}
 //     │          ┬  
-//     │          ╰── Unknown variable i
+//     │          ╰── Unknown variable `i`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable a
+// Error: Unknown variable `a`
 //     ╭─[ parens.baml:55:12 ]
 //     │
 //  55 │    for let a in as {}
 //     │            ┬  
-//     │            ╰── Unknown variable a
+//     │            ╰── Unknown variable `a`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Type as has no field 'length'
+// Error: Type `as` has no field `length`
 //    ╭─[ parens.baml:1:1 ]
 //    │
 //  1 │ function foo() -> int {
 //    │ │ 
-//    │ ╰─ Type as has no field 'length'
+//    │ ╰─ Type `as` has no field `length`
 //    │ 
 //    │ Note: Error code: E0007
 // ───╯
-// Error: Type as is not indexable
+// Error: Type `as` is not indexable
 //    ╭─[ parens.baml:1:1 ]
 //    │
 //  1 │ function foo() -> int {
 //    │ │ 
-//    │ ╰─ Type as is not indexable
+//    │ ╰─ Type `as` is not indexable
 //    │ 
 //    │ Note: Error code: E0008
 // ───╯
-// Error: Unknown variable a
+// Error: Unknown variable `a`
 //     ╭─[ parens.baml:59:12 ]
 //     │
 //  59 │    for let a in as) {}
 //     │            ┬  
-//     │            ╰── Unknown variable a
+//     │            ╰── Unknown variable `a`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable as
+// Error: Unknown variable `as`
 //     ╭─[ parens.baml:59:17 ]
 //     │
 //  59 │    for let a in as) {}
 //     │                 ─┬  
-//     │                  ╰── Unknown variable as
+//     │                  ╰── Unknown variable `as`
 //     │ 
 //     │ Note: Error code: E0003
 // ────╯
-// Error: Unknown variable as
+// Error: Unknown variable `as`
 //    ╭─[ parens.baml:1:1 ]
 //    │
 //  1 │ function foo() -> int {
 //    │ │ 
-//    │ ╰─ Unknown variable as
+//    │ ╰─ Unknown variable `as`
 //    │ 
 //    │ Note: Error code: E0003
 // ───╯
-// Error: Expected int, found void
+// Error: Expected `int`, found `void`
 //    ╭─[ parens.baml:1:1 ]
 //    │
 //  1 │ function foo() -> int {
 //    │ │ 
-//    │ ╰─ Expected int, found void
+//    │ ╰─ Expected `int`, found `void`
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯

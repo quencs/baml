@@ -49,66 +49,66 @@ function PrimitiveAssignments() -> int {
 
 //----
 //- diagnostics
-// Error: Expected int, found string
+// Error: Expected `int`, found `string`
 //     ╭─[ invalid_assignment_primitives.baml:21:5 ]
 //     │
 //  21 │     e = "oops";
 //     │        ───┬───  
-//     │           ╰───── Expected int, found string
+//     │           ╰───── Expected `int`, found `string`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected string, found int
+// Error: Expected `string`, found `int`
 //     ╭─[ invalid_assignment_primitives.baml:25:6 ]
 //     │
 //  25 │     f = 42;
 //     │         ─┬  
-//     │          ╰── Expected string, found int
+//     │          ╰── Expected `string`, found `int`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected bool, found int
+// Error: Expected `bool`, found `int`
 //     ╭─[ invalid_assignment_primitives.baml:29:6 ]
 //     │
 //  29 │     g = 123;
 //     │         ─┬─  
-//     │          ╰─── Expected bool, found int
+//     │          ╰─── Expected `bool`, found `int`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected int, found bool
+// Error: Expected `int`, found `bool`
 //     ╭─[ invalid_assignment_primitives.baml:33:6 ]
 //     │
 //  33 │     h = false;
 //     │         ──┬──  
-//     │           ╰──── Expected int, found bool
+//     │           ╰──── Expected `int`, found `bool`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected float, found string
+// Error: Expected `float`, found `string`
 //     ╭─[ invalid_assignment_primitives.baml:37:5 ]
 //     │
 //  37 │     i = "pi";
 //     │        ──┬──  
-//     │          ╰──── Expected float, found string
+//     │          ╰──── Expected `float`, found `string`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected bool, found string
+// Error: Expected `bool`, found `string`
 //     ╭─[ invalid_assignment_primitives.baml:41:5 ]
 //     │
 //  41 │     j = "true";
 //     │        ───┬───  
-//     │           ╰───── Expected bool, found string
+//     │           ╰───── Expected `bool`, found `string`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected string, found bool
+// Error: Expected `string`, found `bool`
 //     ╭─[ invalid_assignment_primitives.baml:45:6 ]
 //     │
 //  45 │     k = true;
 //     │         ──┬─  
-//     │           ╰─── Expected string, found bool
+//     │           ╰─── Expected `string`, found `bool`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯

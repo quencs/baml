@@ -54,39 +54,39 @@ function UseMapTypecheck() -> int {
 //    │ 
 //    │ Note: Error code: E0010
 // ───╯
-// Error: Expected map<int, string>, found string
+// Error: Expected `map<int, string>`, found `string`
 //    ╭─[ maps_key_and_value_typecheck.baml:1:1 ]
 //    │
 //  1 │ // For now, errors with 'map keys must be string literals'
 //    │ │ 
-//    │ ╰─ Expected map<int, string>, found string
+//    │ ╰─ Expected `map<int, string>`, found `string`
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯
-// Error: Type map<int, string> has no field 'has'
+// Error: Type `map<int, string>` has no field `has`
 //    ╭─[ maps_key_and_value_typecheck.baml:8:9 ]
 //    │
 //  8 │     if (map.has(1)) {
 //    │         ───┬───  
-//    │            ╰───── Type map<int, string> has no field 'has'
+//    │            ╰───── Type `map<int, string>` has no field `has`
 //    │ 
 //    │ Note: Error code: E0007
 // ───╯
-// Error: Expected int, found string
+// Error: Expected `int`, found `string`
 //     ╭─[ maps_key_and_value_typecheck.baml:18:5 ]
 //     │
 //  18 │     map["string"]
 //     │     ──────┬──────  
-//     │           ╰──────── Expected int, found string
+//     │           ╰──────── Expected `int`, found `string`
 //     │ 
 //     │ Note: Error code: E0001
 // ────╯
-// Error: Expected int, found string
+// Error: Expected `int`, found `string`
 //    ╭─[ maps_key_and_value_typecheck.baml:1:1 ]
 //    │
 //  1 │ // For now, errors with 'map keys must be string literals'
 //    │ │ 
-//    │ ╰─ Expected int, found string
+//    │ ╰─ Expected `int`, found `string`
 //    │ 
 //    │ Note: Error code: E0001
 // ───╯

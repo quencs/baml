@@ -14,7 +14,7 @@ enum Test {
 
 //----
 //- diagnostics
-// Error: Duplicate variant 'ONE' in enum 'Test'
+// Error: Duplicate variant `ONE` in enum `Test`
 //    ╭─[ enum_duplicate_value.baml:4:5 ]
 //    │
 //  4 │     ONE
