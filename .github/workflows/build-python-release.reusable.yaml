@@ -176,3 +176,18 @@ jobs:
           name: wheels-${{ matrix._.target }}
           path: engine/language_client_python/dist
           if-no-files-found: error
+
+      # Upload debug symbols for crash analysis (internal use)
+      # Linux: .dwp files, macOS: .dSYM directories, Windows: .pdb files
+      - name: Upload Python FFI debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-debuginfo-${{ matrix._.target }}
+          path: |
+            engine/target/${{ matrix._.target }}/release/libbaml_py.so.dwp
+            engine/target/${{ matrix._.target }}/release/deps/libbaml_py.so.dwp
+            engine/target/${{ matrix._.target }}/release/libbaml_py.dylib.dSYM
+            engine/target/${{ matrix._.target }}/release/deps/libbaml_py.dylib.dSYM
+            engine/target/${{ matrix._.target }}/release/baml_py.pdb
+            engine/target/${{ matrix._.target }}/release/deps/baml_py.pdb
+          if-no-files-found: ignore

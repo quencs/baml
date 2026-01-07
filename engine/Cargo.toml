@@ -205,3 +205,6 @@ inherits = "dev"
 
 [profile.release]
 lto = true
+strip = true
+split-debuginfo = "packed"  # Creates .dwp file for Linux, .dSYM for macOS
+debug = "full"              # Required for split-debuginfo to generate .dwp files

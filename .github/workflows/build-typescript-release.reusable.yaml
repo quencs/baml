@@ -142,3 +142,18 @@ jobs:
           name: bindings-${{ matrix._.target }}
           path: engine/language_client_typescript/*.node
           if-no-files-found: error
+
+      # Upload debug symbols for crash analysis (internal use)
+      # Linux: .dwp files, macOS: .dSYM directories, Windows: .pdb files
+      - name: Upload TypeScript FFI debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-debuginfo-${{ matrix._.target }}
+          path: |
+            engine/target/${{ matrix._.target }}/release/libbaml.so.dwp
+            engine/target/${{ matrix._.target }}/release/deps/libbaml.so.dwp
+            engine/target/${{ matrix._.target }}/release/libbaml.dylib.dSYM
+            engine/target/${{ matrix._.target }}/release/deps/libbaml.dylib.dSYM
+            engine/target/${{ matrix._.target }}/release/baml.pdb
+            engine/target/${{ matrix._.target }}/release/deps/baml.pdb
+          if-no-files-found: ignore
