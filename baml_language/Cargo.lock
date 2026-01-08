@@ -304,7 +304,7 @@ name = "baml_cli"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "baml_language_server",
+ "baml_lsp",
  "cfg-if",
  "clap",
  "clap-cargo",
@@ -313,44 +313,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_codegen"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "baml_base",
- "baml_hir",
- "baml_mir",
- "baml_tests",
- "baml_tir",
- "baml_vir",
- "baml_vm",
- "baml_workspace",
- "insta",
- "la-arena",
- "salsa",
-]
-
-[[package]]
-name = "baml_db"
-version = "0.0.0"
-dependencies = [
- "baml_base",
- "baml_codegen",
- "baml_diagnostics",
- "baml_hir",
- "baml_lexer",
- "baml_mir",
- "baml_parser",
- "baml_syntax",
- "baml_tir",
- "baml_vir",
- "baml_workspace",
- "rowan",
- "salsa",
-]
-
-[[package]]
-name = "baml_diagnostics"
+name = "baml_compiler_diagnostics"
 version = "0.0.0"
 dependencies = [
  "ariadne",
@@ -361,17 +324,133 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_hir"
+name = "baml_compiler_emit"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "baml_base",
+ "baml_compiler_hir",
+ "baml_compiler_mir",
+ "baml_compiler_tir",
+ "baml_compiler_vir",
+ "baml_tests",
+ "baml_vm",
+ "baml_workspace",
+ "insta",
+ "la-arena",
+ "salsa",
+]
+
+[[package]]
+name = "baml_compiler_hir"
 version = "0.0.0"
 dependencies = [
  "baml_base",
- "baml_diagnostics",
- "baml_parser",
- "baml_syntax",
+ "baml_compiler_diagnostics",
+ "baml_compiler_parser",
+ "baml_compiler_syntax",
  "baml_workspace",
  "la-arena",
  "rowan",
  "rustc-hash 2.1.1",
+ "salsa",
+]
+
+[[package]]
+name = "baml_compiler_lexer"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "logos",
+ "salsa",
+ "text-size",
+]
+
+[[package]]
+name = "baml_compiler_mir"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_hir",
+ "baml_compiler_tir",
+ "baml_compiler_vir",
+ "baml_workspace",
+ "la-arena",
+ "log",
+ "rustc-hash 2.1.1",
+ "salsa",
+ "smol_str",
+ "text-size",
+]
+
+[[package]]
+name = "baml_compiler_parser"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_diagnostics",
+ "baml_compiler_lexer",
+ "baml_compiler_syntax",
+ "rowan",
+ "salsa",
+ "text-size",
+]
+
+[[package]]
+name = "baml_compiler_syntax"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "rowan",
+]
+
+[[package]]
+name = "baml_compiler_tir"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_diagnostics",
+ "baml_compiler_hir",
+ "baml_vm",
+ "baml_workspace",
+ "salsa",
+ "smol_str",
+ "text-size",
+]
+
+[[package]]
+name = "baml_compiler_vir"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_diagnostics",
+ "baml_compiler_hir",
+ "baml_compiler_tir",
+ "insta",
+ "la-arena",
+ "pretty_assertions",
+ "rustc-hash 2.1.1",
+ "salsa",
+ "smol_str",
+ "text-size",
+]
+
+[[package]]
+name = "baml_db"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_diagnostics",
+ "baml_compiler_emit",
+ "baml_compiler_hir",
+ "baml_compiler_lexer",
+ "baml_compiler_mir",
+ "baml_compiler_parser",
+ "baml_compiler_syntax",
+ "baml_compiler_tir",
+ "baml_compiler_vir",
+ "baml_workspace",
+ "rowan",
  "salsa",
 ]
 
@@ -386,13 +465,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_language_server"
+name = "baml_lsp"
 version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum 0.8.7",
+ "baml_compiler_diagnostics",
  "baml_db",
- "baml_diagnostics",
  "baml_ide",
  "baml_lsp_types",
  "baml_project",
@@ -440,21 +519,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_lexer"
+name = "baml_ide_tests"
 version = "0.0.0"
 dependencies = [
- "baml_base",
- "logos",
- "salsa",
- "text-size",
-]
-
-[[package]]
-name = "baml_lsp_tests"
-version = "0.0.0"
-dependencies = [
+ "baml_compiler_diagnostics",
  "baml_db",
- "baml_diagnostics",
  "baml_ide",
  "baml_project",
  "prettyplease",
@@ -479,87 +548,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_mir"
-version = "0.0.0"
-dependencies = [
- "baml_base",
- "baml_hir",
- "baml_tir",
- "baml_vir",
- "baml_workspace",
- "la-arena",
- "log",
- "rustc-hash 2.1.1",
- "salsa",
- "smol_str",
- "text-size",
-]
-
-[[package]]
-name = "baml_onionskin"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "arboard",
- "ariadne",
- "baml_base",
- "baml_codegen",
- "baml_db",
- "baml_diagnostics",
- "baml_hir",
- "baml_lexer",
- "baml_mir",
- "baml_parser",
- "baml_project",
- "baml_tir",
- "baml_vir",
- "baml_vm",
- "baml_workspace",
- "clap",
- "crossterm",
- "notify",
- "ratatui",
- "regex",
- "rowan",
- "salsa",
- "similar",
- "text-size",
-]
-
-[[package]]
-name = "baml_parser"
-version = "0.0.0"
-dependencies = [
- "baml_base",
- "baml_diagnostics",
- "baml_lexer",
- "baml_syntax",
- "rowan",
- "salsa",
- "text-size",
-]
-
-[[package]]
 name = "baml_project"
 version = "0.0.0"
 dependencies = [
+ "baml_compiler_diagnostics",
+ "baml_compiler_hir",
+ "baml_compiler_mir",
+ "baml_compiler_tir",
  "baml_db",
- "baml_diagnostics",
- "baml_hir",
- "baml_mir",
- "baml_tir",
  "baml_workspace",
  "lsp-types",
  "salsa",
  "text-size",
-]
-
-[[package]]
-name = "baml_syntax"
-version = "0.0.0"
-dependencies = [
- "baml_base",
- "rowan",
 ]
 
 [[package]]
@@ -568,13 +568,13 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "baml_base",
- "baml_codegen",
+ "baml_compiler_diagnostics",
+ "baml_compiler_emit",
+ "baml_compiler_hir",
+ "baml_compiler_mir",
+ "baml_compiler_tir",
  "baml_db",
- "baml_diagnostics",
- "baml_hir",
- "baml_mir",
  "baml_project",
- "baml_tir",
  "baml_vm",
  "baml_workspace",
  "codspeed-divan-compat",
@@ -589,33 +589,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_tir"
+name = "baml_tools_onionskin"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
+ "arboard",
+ "ariadne",
  "baml_base",
- "baml_diagnostics",
- "baml_hir",
+ "baml_compiler_diagnostics",
+ "baml_compiler_emit",
+ "baml_compiler_hir",
+ "baml_compiler_lexer",
+ "baml_compiler_mir",
+ "baml_compiler_parser",
+ "baml_compiler_tir",
+ "baml_compiler_vir",
+ "baml_db",
+ "baml_project",
  "baml_vm",
  "baml_workspace",
+ "clap",
+ "crossterm",
+ "notify",
+ "ratatui",
+ "regex",
+ "rowan",
  "salsa",
- "smol_str",
- "text-size",
-]
-
-[[package]]
-name = "baml_vir"
-version = "0.0.0"
-dependencies = [
- "baml_base",
- "baml_diagnostics",
- "baml_hir",
- "baml_tir",
- "insta",
- "la-arena",
- "pretty_assertions",
- "rustc-hash 2.1.1",
- "salsa",
- "smol_str",
+ "similar",
  "text-size",
 ]
 
@@ -625,7 +625,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "baml_base",
- "baml_codegen",
+ "baml_compiler_emit",
  "baml_tests",
  "codspeed-divan-compat",
  "colored",

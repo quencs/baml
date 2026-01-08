@@ -14,12 +14,12 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
-use baml_db::{FileId, SourceFile, baml_parser};
-use baml_diagnostics::{Diagnostic, ToDiagnostic};
-use baml_hir::{
+use baml_compiler_diagnostics::{Diagnostic, ToDiagnostic};
+use baml_compiler_hir::{
     self, FunctionBody, ItemId, file_items, file_lowering, function_body, function_signature,
 };
-use baml_tir::{self, class_field_types, enum_variants, type_aliases, typing_context};
+use baml_compiler_tir::{self, class_field_types, enum_variants, type_aliases, typing_context};
+use baml_db::{FileId, SourceFile, baml_compiler_parser};
 use baml_workspace::Project;
 
 use crate::ProjectDatabase;
@@ -57,7 +57,7 @@ pub fn collect_diagnostics(
 
     // 1. Collect parse errors
     for source_file in source_files {
-        let parse_errors = baml_parser::parse_errors(db, *source_file);
+        let parse_errors = baml_compiler_parser::parse_errors(db, *source_file);
         for error in &parse_errors {
             diagnostics.push(error.to_diagnostic());
         }
@@ -72,7 +72,7 @@ pub fn collect_diagnostics(
     }
 
     // 3. Collect validation errors (duplicates across files, reserved names)
-    let validation_result = baml_hir::validate_hir(db, project);
+    let validation_result = baml_compiler_hir::validate_hir(db, project);
     for diag in &validation_result.hir_diagnostics {
         diagnostics.push(diag.to_diagnostic());
     }
@@ -103,7 +103,7 @@ pub fn collect_diagnostics(
                         diagnostics.push(diag.to_diagnostic());
                     }
 
-                    let inference_result = baml_tir::infer_function(
+                    let inference_result = baml_compiler_tir::infer_function(
                         db,
                         &signature,
                         &body,
