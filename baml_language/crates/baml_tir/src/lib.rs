@@ -13,7 +13,7 @@
 use std::collections::{HashMap, HashSet};
 
 use baml_base::{FileId, Name, Span};
-use baml_diagnostics::compiler_error::TypeError;
+use baml_diagnostics::TypeError;
 use baml_hir::{ExprBody, ExprId, FunctionBody, FunctionLoc, FunctionSignature, Pattern, StmtId};
 use baml_workspace::Project;
 
@@ -773,20 +773,22 @@ pub fn infer_function_body<'db>(
     }
 
     // Type check the body against the expected return type (checking mode for bidirectional typing)
-    let trailing_expr_type = match body {
+    let (trailing_expr_type, body_span) = match body {
         FunctionBody::Expr(expr_body) => {
             if let Some(root_expr) = expr_body.root_expr {
                 // Use check_expr for bidirectional typing - check body against expected return type
-                check_expr(&mut ctx, root_expr, expr_body, expected_return)
+                let ty = check_expr(&mut ctx, root_expr, expr_body, expected_return);
+                let span = expr_body.get_expr_span(root_expr).unwrap_or_default();
+                (ty, span)
             } else {
-                Ty::Void
+                (Ty::Void, Span::default())
             }
         }
         FunctionBody::Llm(_) => {
             // LLM functions return their declared return type
-            expected_return.clone()
+            (expected_return.clone(), Span::default())
         }
-        FunctionBody::Missing => Ty::Unknown,
+        FunctionBody::Missing => (Ty::Unknown, Span::default()),
     };
 
     // With bidirectional type checking, return statements are already checked
@@ -801,11 +803,20 @@ pub fn infer_function_body<'db>(
         && !expected_return.is_unknown()
         && !expected_return.is_error()
     {
-        let error = TypeError::TypeMismatch {
-            expected: expected_return.clone(),
-            found: Ty::Void,
-            span: Span::default(),
-            info_span: return_type_span,
+        // If the trailing type is void (no tail expression) but we need a non-void return,
+        // emit a clearer "missing return expression" error
+        let error = if trailing_expr_type.is_void() && !expected_return.is_void() {
+            TypeError::MissingReturnExpression {
+                expected: expected_return.clone(),
+                span: body_span,
+            }
+        } else {
+            TypeError::TypeMismatch {
+                expected: expected_return.clone(),
+                found: trailing_expr_type.clone(),
+                span: body_span,
+                info_span: return_type_span,
+            }
         };
         ctx.push_error(error);
     }

@@ -6,8 +6,8 @@
 use std::fmt::Write;
 
 use crate::{
-    compiler_error::{HirDiagnostic, NameError, ParseError, TypeError},
     diagnostic::{Diagnostic, DiagnosticId, DiagnosticPhase, ToDiagnostic},
+    errors::{HirDiagnostic, NameError, ParseError, TypeError},
 };
 
 // ============================================================================
@@ -155,6 +155,14 @@ impl<T: std::fmt::Display> ToDiagnostic for TypeError<T> {
                 DiagnosticId::WatchOnUnwatchedVariable,
                 format!(
                     "Cannot use $watch on `{name}`: variable must be declared with `watch let`"
+                ),
+            )
+            .with_primary_span(*span),
+
+            TypeError::MissingReturnExpression { expected, span } => Diagnostic::error(
+                DiagnosticId::MissingReturnExpression,
+                format!(
+                    "Missing return expression. Function expects `{expected}` but body has no final expression."
                 ),
             )
             .with_primary_span(*span),
@@ -470,6 +478,30 @@ impl ToDiagnostic for HirDiagnostic {
                 format!(
                     "Unknown field `{field_name}` in client. Only `provider` and `options` are supported."
                 ),
+            )
+            .with_primary_span(*span),
+
+            HirDiagnostic::MissingSemicolon { span } => Diagnostic::error(
+                DiagnosticId::MissingSemicolon,
+                "Statement must end with a semicolon.",
+            )
+            .with_primary_span(*span),
+
+            HirDiagnostic::MissingReturnExpression { span } => Diagnostic::error(
+                DiagnosticId::MissingReturnExpression,
+                "Missing return expression. Function body must have a final expression or explicit return.",
+            )
+            .with_primary_span(*span),
+
+            HirDiagnostic::MissingConditionParens { kind, span } => Diagnostic::error(
+                DiagnosticId::MissingConditionParens,
+                format!("Condition in `{kind}` statement must be wrapped in parentheses."),
+            )
+            .with_primary_span(*span),
+
+            HirDiagnostic::UnmatchedDelimiter { token, span } => Diagnostic::error(
+                DiagnosticId::UnmatchedDelimiter,
+                format!("Unmatched `{token}`."),
             )
             .with_primary_span(*span),
         };

@@ -17,6 +17,7 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "WebFetch(domain:docs.rs)",
+      "Bash(cargo clippy:*)",
       "WebSearch",
       "Bash(cargo run:*)"
     ]

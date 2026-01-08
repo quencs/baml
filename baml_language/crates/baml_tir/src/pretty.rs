@@ -6,7 +6,7 @@
 use std::fmt::Write;
 
 use baml_base::Span;
-use baml_diagnostics::compiler_error::TypeError;
+use baml_diagnostics::TypeError;
 use baml_hir::{
     BinaryOp, Expr, ExprBody, ExprId, FunctionBody, FunctionSignature, Literal, LlmBody, Pattern,
     Stmt, StmtId, UnaryOp,
@@ -660,6 +660,11 @@ pub fn short_display(error: &TypeError<Ty>) -> String {
         }
         TypeError::WatchOnUnwatchedVariable { name, .. } => {
             format!("Cannot use $watch on '{name}': variable must be declared with `watch let`")
+        }
+        TypeError::MissingReturnExpression { expected, .. } => {
+            format!(
+                "Missing return expression. Function expects `{expected}` but body has no final expression."
+            )
         }
     }
 }

@@ -66,6 +66,17 @@ function ForLoopWithHeaders() -> int {
 
 //----
 //- diagnostics
+// Error: Statement must end with a semicolon.
+//     ╭─[ headers_complex_headers_test.baml:8:5 ]
+//     │
+//   8 │ ╭─▶     for (let item in items) {
+//     ┆ ┆   
+//  37 │ ├─▶     }
+//     │ │           
+//     │ ╰─────────── Statement must end with a semicolon.
+//     │     
+//     │     Note: Error code: E0028
+// ────╯
 // Error: Expected `string`, found `int`
 //     ╭─[ headers_complex_headers_test.baml:43:5 ]
 //     │
@@ -74,4 +85,15 @@ function ForLoopWithHeaders() -> int {
 //     │           ╰─────── Expected `string`, found `int`
 //     │ 
 //     │ Note: Error code: E0001
+// ────╯
+// Error: Statement must end with a semicolon.
+//     ╭─[ headers_complex_headers_test.baml:52:5 ]
+//     │
+//  52 │ ╭─▶     for (let item in items) {
+//     ┆ ┆   
+//  60 │ ├─▶     }
+//     │ │           
+//     │ ╰─────────── Statement must end with a semicolon.
+//     │     
+//     │     Note: Error code: E0028
 // ────╯

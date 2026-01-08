@@ -84,6 +84,14 @@ pub enum DiagnosticId {
     UnknownEnumVariant,
     WatchOnNonVariable,
     WatchOnUnwatchedVariable,
+
+    // Syntax errors (E0028-E0031)
+    MissingSemicolon,
+    MissingConditionParens,
+    UnmatchedDelimiter,
+
+    // Return expression errors (E0029)
+    MissingReturnExpression,
 }
 
 impl DiagnosticId {
@@ -132,6 +140,14 @@ impl DiagnosticId {
             DiagnosticId::UnknownEnumVariant => "E0064",
             DiagnosticId::WatchOnNonVariable => "E0065",
             DiagnosticId::WatchOnUnwatchedVariable => "E0066",
+
+            // Syntax errors
+            DiagnosticId::MissingSemicolon => "E0028",
+            DiagnosticId::MissingConditionParens => "E0030",
+            DiagnosticId::UnmatchedDelimiter => "E0031",
+
+            // Return expression errors
+            DiagnosticId::MissingReturnExpression => "E0029",
         }
     }
 }
