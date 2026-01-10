@@ -1,4 +1,4 @@
-// TODO: This file has been modified to remove baml_runtime dependency.
+// TODO: This file has been modified to remove baml_program dependency.
 // For now, rename returns None.
 
 use std::{collections::HashMap, path::PathBuf};

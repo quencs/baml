@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
-use baml_runtime::baml_src_files;
+use baml_program::baml_src_files;
 use clap::Args;
 use internal_baml_core::internal_baml_ast::{format_schema, FormatOptions};
 

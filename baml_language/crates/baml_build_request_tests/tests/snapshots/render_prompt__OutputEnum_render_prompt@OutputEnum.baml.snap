@@ -1,0 +1,10 @@
+---
+source: crates/baml_build_request_tests/tests/render_prompt.rs
+expression: "&result"
+input_file: crates/baml_build_request_tests/testdata/OutputEnum.baml
+---
+fixture: OutputEnum.baml
+function: FnOutputEnum
+prompt:
+  type: Completion
+  text: "Choose one of these values randomly. Before you give the answer, write out an unrelated haiku about the ocean.\n\nEnumOutput\n- ONE\n- TWO\n- THREE\n"

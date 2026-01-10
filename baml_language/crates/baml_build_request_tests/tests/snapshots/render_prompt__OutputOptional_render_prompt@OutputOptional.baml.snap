@@ -1,0 +1,10 @@
+---
+source: crates/baml_build_request_tests/tests/render_prompt.rs
+expression: "&result"
+input_file: crates/baml_build_request_tests/testdata/OutputOptional.baml
+---
+fixture: OutputOptional.baml
+function: FnOutputOptional
+prompt:
+  type: Completion
+  text: "Return a JSON blob with this schema:\n{\n  omega_3: 'Aleph' or 'Beta' or 'Gamma'?[]\n  omega_1: OptionalTest_Prop1?\n  omega_2: string?\n}?[]\n\nJSON:"

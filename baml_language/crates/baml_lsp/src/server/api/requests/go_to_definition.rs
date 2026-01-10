@@ -1,4 +1,4 @@
-// TODO: This file has been modified to remove baml_runtime/playground_server dependencies.
+// TODO: This file has been modified to remove baml_program/playground_server dependencies.
 // For now, go-to-definition returns None.
 
 use std::path::PathBuf;

@@ -1,5 +1,5 @@
 // TODO: This CLI has been simplified to only support the LSP command for now.
-// Other commands that depend on baml_runtime are commented out.
+// Other commands that depend on baml_program are commented out.
 #![allow(
     dead_code,
     unreachable_pub,
@@ -12,7 +12,7 @@
 pub(crate) mod commands;
 pub(crate) mod lsp;
 
-// TODO: These modules are disabled for now as they depend on baml_runtime
+// TODO: These modules are disabled for now as they depend on baml_program
 // pub(crate) mod api_client;
 // pub(crate) mod auth;
 // pub(crate) mod colordiff;
@@ -82,7 +82,7 @@ pub fn run_cli(argv: Vec<String>) -> Result<ExitCode> {
 // TODO: Original run_cli that used RuntimeCliDefaults is commented out
 // pub fn run_cli(
 //     argv: Vec<String>,
-//     caller_type: baml_runtime::RuntimeCliDefaults,
+//     caller_type: baml_program::RuntimeCliDefaults,
 // ) -> Result<ExitCode> {
 //     let mut cli = commands::RuntimeCli::parse_from_smart(argv);
 //     if !matches!(cli.command, commands::Commands::Test(_)) {

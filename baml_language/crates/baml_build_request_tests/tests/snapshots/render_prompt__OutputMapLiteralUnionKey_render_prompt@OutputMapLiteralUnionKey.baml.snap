@@ -1,0 +1,10 @@
+---
+source: crates/baml_build_request_tests/tests/render_prompt.rs
+expression: "&result"
+input_file: crates/baml_build_request_tests/testdata/OutputMapLiteralUnionKey.baml
+---
+fixture: OutputMapLiteralUnionKey.baml
+function: FnOutputMapLiteralUnionKey
+prompt:
+  type: Completion
+  text: "Merge these:\n\n\n\n\n\nmap<\"one\" or \"two\" or \"three\" or \"four\", string>"

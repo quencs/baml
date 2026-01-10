@@ -1,0 +1,22 @@
+[package]
+name = "baml_jinja_runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lints.rust]
+dead_code = "allow"
+
+[dependencies]
+baml_base.workspace = true
+baml_runtime_types = { path = "../baml_runtime_types" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+indexmap.workspace = true
+minijinja.workspace = true
+
+[features]
+default = []

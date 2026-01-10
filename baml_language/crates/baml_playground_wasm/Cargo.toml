@@ -1,5 +1,5 @@
 [package]
-name = "baml-playground-wasm"
+name = "baml-runtime-wasm"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,13 +7,21 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+convert_case = "0.6"
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1", optional = true }
 wee_alloc = { version = "0.4", optional = true }
+baml_db = { path = "../baml_db" }
 baml_project = { path = "../baml_project" }
+baml_program = { path = "../baml_program", default-features = false, features = [
+  "wasm",
+] }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+pretty_assertions.workspace = true
 
 [features]
 default = []

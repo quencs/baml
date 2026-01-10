@@ -1,8 +1,8 @@
-// TODO: This file has been simplified to remove baml_runtime/baml_log dependencies.
+// TODO: This file has been simplified to remove baml_program/baml_log dependencies.
 
 use anyhow::Result;
-// TODO: baml_runtime is disabled for now
-// use baml_runtime::RuntimeCliDefaults;
+// TODO: baml_program is disabled for now
+// use baml_program::RuntimeCliDefaults;
 
 fn main() -> Result<()> {
     // TODO: baml_log is disabled for now

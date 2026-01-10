@@ -119,6 +119,7 @@ impl TypeRef {
     /// - String literal types: `"foo"` or `'bar'`
     /// - Array types: `int[]`
     /// - Optional types: `int?`
+    /// - Parenthesized types: `(User?)` for grouping in unions
     /// - Boolean literal types: `true` or `false`
     /// - Integer literal types: `42`
     /// - Primitive types: `int`, `string`, etc.
@@ -140,6 +141,14 @@ impl TypeRef {
         if let Some(inner_text) = text.strip_suffix('?') {
             let inner = Self::from_type_text(inner_text);
             return TypeRef::Optional(Box::new(inner));
+        }
+
+        // Check for parenthesized types used for grouping (e.g., "(User?)" in "(User?)[]")
+        // This must be after [], ? checks so that "(User?)[]" is parsed as List(Optional(User))
+        if text.starts_with('(') && text.ends_with(')') {
+            let inner = &text[1..text.len() - 1];
+            // Parentheses can contain unions, so use from_ast-like logic
+            return Self::parse_possibly_union(inner);
         }
 
         // Check for boolean literal types
@@ -184,7 +193,56 @@ impl TypeRef {
             return TypeRef::Error;
         }
 
+        // Check for union types (contains | at the top level)
+        // This handles cases like `"one" | "two"` in map keys
+        let union_parts = Self::split_union_parts(text);
+        if union_parts.len() > 1 {
+            return TypeRef::Union(
+                union_parts
+                    .into_iter()
+                    .map(|p| Self::from_type_text(p.trim()))
+                    .collect(),
+            );
+        }
+
         Self::from_type_name(text)
+    }
+
+    /// Parse a string that may contain a union (separated by |).
+    fn parse_possibly_union(text: &str) -> Self {
+        let parts = Self::split_union_parts(text);
+        if parts.len() == 1 {
+            Self::from_type_text(parts[0].trim())
+        } else {
+            TypeRef::Union(
+                parts
+                    .into_iter()
+                    .map(|p| Self::from_type_text(p.trim()))
+                    .collect(),
+            )
+        }
+    }
+
+    /// Split a string by top-level | (not inside parentheses or angle brackets).
+    fn split_union_parts(text: &str) -> Vec<&str> {
+        let mut parts = Vec::new();
+        let mut depth = 0;
+        let mut start = 0;
+
+        for (i, c) in text.char_indices() {
+            match c {
+                '(' | '<' | '[' => depth += 1,
+                ')' | '>' | ']' => depth -= 1,
+                '|' if depth == 0 => {
+                    parts.push(&text[start..i]);
+                    start = i + 1;
+                }
+                _ => {}
+            }
+        }
+
+        parts.push(&text[start..]);
+        parts
     }
 
     /// Split generic parameters at the top-level comma.
