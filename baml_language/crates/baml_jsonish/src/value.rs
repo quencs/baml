@@ -1,7 +1,7 @@
 //! JSON-ish value type.
 
 use std::hash::{Hash, Hasher};
-use baml_runtime_types::CompletionState;
+use ir_stub::CompletionState;
 
 /// Fixes applied during parsing.
 #[derive(Debug, Clone, PartialEq, Eq)]

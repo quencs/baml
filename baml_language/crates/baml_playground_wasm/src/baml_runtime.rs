@@ -289,7 +289,7 @@ impl BamlRuntime {
         args_json: &str,
     ) -> RenderPromptResult {
         // Parse arguments
-        let args: baml_program::BamlMap<String, baml_program::BamlValue> =
+        let args: baml_program::BamlMap =
             match serde_json::from_str(args_json) {
                 Ok(args) => args,
                 Err(e) => {
@@ -334,7 +334,7 @@ impl BamlRuntime {
         expose_secrets: bool,
     ) -> RenderCurlResult {
         // Parse arguments
-        let args: baml_program::BamlMap<String, baml_program::BamlValue> =
+        let args: baml_program::BamlMap =
             match serde_json::from_str(args_json) {
                 Ok(args) => args,
                 Err(e) => {
@@ -379,7 +379,7 @@ impl BamlRuntime {
         stream: bool,
     ) -> BuildRequestResult {
         // Parse arguments
-        let args: baml_program::BamlMap<String, baml_program::BamlValue> =
+        let args: baml_program::BamlMap =
             match serde_json::from_str(args_json) {
                 Ok(args) => args,
                 Err(e) => {

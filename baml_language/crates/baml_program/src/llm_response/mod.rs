@@ -3,7 +3,7 @@
 use std::time::{Duration, SystemTime};
 
 use crate::prompt::RenderedPrompt;
-use crate::types::BamlMap;
+use indexmap::IndexMap;
 
 /// All possible outcomes from an LLM call.
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ pub struct LLMCompleteResponse {
     /// The prompt that was sent.
     pub prompt: RenderedPrompt,
     /// Request options that were used.
-    pub request_options: BamlMap<String, serde_json::Value>,
+    pub request_options: IndexMap<String, serde_json::Value>,
     /// The response content.
     pub content: String,
     /// When the request started.
@@ -94,7 +94,7 @@ pub struct LLMErrorResponse {
     /// The prompt that was sent.
     pub prompt: RenderedPrompt,
     /// Request options that were used.
-    pub request_options: BamlMap<String, serde_json::Value>,
+    pub request_options: IndexMap<String, serde_json::Value>,
     /// When the request started.
     pub start_time: SystemTime,
     /// How long before the error occurred.

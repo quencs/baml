@@ -1,16 +1,15 @@
 //! Output format types and rendering for BAML schemas.
 //!
 //! This module provides:
-//! - `OutputFormatContent` - Container for all type schemas
+//! - `OutputFormatContent` - Container for all type schemas (re-exported from baml_output_format)
 //! - `OutputFormat` - Wrapper implementing `minijinja::value::Object` for callable support
-//! - `RenderOptions` - Options for rendering output format
+//! - `RenderOptions` - Options for rendering output format (re-exported from baml_output_format)
 
-mod render;
-mod render_options;
-mod types;
-
-pub use render_options::{HoistClasses, MapStyle, RenderOptions};
-pub use types::{Class, ClassField, Enum, EnumVariant, Name, OutputFormatBuilder, OutputFormatContent};
+// Re-export from baml_output_format
+pub use baml_output_format::{
+    render, Class, ClassField, Enum, EnumVariant, HoistClasses, MapStyle, Name,
+    OutputFormatBuilder, OutputFormatContent, RenderOptions,
+};
 
 use minijinja::{value::Kwargs, ErrorKind, Value};
 use std::sync::Arc;
@@ -41,7 +40,7 @@ impl OutputFormat {
 
 impl std::fmt::Display for OutputFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match render::render(&self.content, &RenderOptions::default()) {
+        match render(&self.content, &RenderOptions::default()) {
             Ok(Some(content)) => write!(f, "{}", content),
             Ok(None) => Ok(()),
             Err(e) => {
@@ -230,7 +229,9 @@ impl minijinja::value::Object for OutputFormat {
             quote_class_fields,
         );
 
-        let content = render::render(&self.content, &options)?;
+        let content = render(&self.content, &options).map_err(|e| {
+            minijinja::Error::new(ErrorKind::InvalidOperation, e.to_string())
+        })?;
 
         match content {
             Some(content) => Ok(Value::from_safe_string(content)),

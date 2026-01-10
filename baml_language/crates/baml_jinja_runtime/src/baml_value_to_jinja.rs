@@ -12,7 +12,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use minijinja::value::{Enumerator, Object, ObjectRepr};
 
-use baml_runtime_types::{BamlMedia, BamlValue};
+use ir_stub::{BamlMedia, BamlValue};
 
 /// Trait for converting BAML values to minijinja values.
 pub trait IntoMiniJinjaValue {
@@ -373,7 +373,7 @@ impl Object for BamlNull {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use baml_runtime_types::BamlMap;
+    use ir_stub::BamlMap;
 
     #[test]
     fn test_string_conversion() {

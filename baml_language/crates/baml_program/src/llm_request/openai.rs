@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::BuildRequestError;
@@ -327,7 +328,6 @@ pub fn parse_openai_response(
     latency: Duration,
 ) -> crate::llm_response::LLMResponse {
     use crate::llm_response::*;
-    use crate::types::BamlMap;
 
     // Handle non-2xx status codes
     if status_code < 200 || status_code >= 300 {
@@ -342,7 +342,7 @@ pub fn parse_openai_response(
             client: client_name.to_string(),
             model: None,
             prompt,
-            request_options: BamlMap::new(),
+            request_options: IndexMap::new(),
             start_time,
             latency,
             message,
@@ -379,7 +379,7 @@ pub fn parse_openai_response(
                 client: client_name.to_string(),
                 model: response.model,
                 prompt,
-                request_options: BamlMap::new(),
+                request_options: IndexMap::new(),
                 content,
                 start_time,
                 latency,

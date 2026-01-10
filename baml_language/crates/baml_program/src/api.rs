@@ -15,9 +15,9 @@ use baml_db::baml_workspace::Project;
 use baml_project::ProjectDatabase as RootDatabase;
 use baml_jinja_runtime::{OutputFormatContent, RenderContext, RenderContext_Client};
 use baml_compiler_tir::Ty;
-use baml_runtime_types::{BamlMap, BamlValue};
+use ir_stub::{BamlMap, BamlValue};
 
-use crate::context::{PerCallContext, SharedCallContext};
+use crate::context::{DynamicBamlContext, PerCallContext, SharedCallContext};
 use crate::errors::RuntimeError;
 use crate::function_lookup::{find_function_by_name, get_function_info, FunctionBodyInfo};
 use crate::llm_request::openai::{OpenAiClientConfig, OpenAiRequest};
@@ -77,7 +77,7 @@ impl BamlRuntime {
     pub fn prepare_function(
         &self,
         function_name: &str,
-        args: BamlMap<String, BamlValue>,
+        args: BamlMap,
     ) -> Result<PreparedFunction, RuntimeError> {
         // Find the function by name
         let func_loc = find_function_by_name(&self.db, self.project, function_name).ok_or_else(
@@ -163,13 +163,14 @@ impl BamlRuntime {
         &self,
         prepared: &PreparedFunction,
         _shared_ctx: &SharedCallContext,
+        _dynamic_ctx: &DynamicBamlContext,
         per_call_ctx: &PerCallContext,
     ) -> Result<FunctionResult, RuntimeError> {
         // Build orchestrator config from prepared function
         let config = build_orchestrator_config(&prepared.client_spec)?;
 
         // Render the prompt
-        let prompt = self.render_prompt(prepared)?;
+        let prompt = self.render_prompt(prepared, _dynamic_ctx)?;
 
         // Execute through orchestrator
         let result = orchestrate_call(
@@ -207,13 +208,14 @@ impl BamlRuntime {
         &self,
         prepared: &PreparedFunction,
         _shared_ctx: &SharedCallContext,
+        _dynamic_ctx: &DynamicBamlContext,
         per_call_ctx: &PerCallContext,
     ) -> Result<FunctionResultStream, RuntimeError> {
         // Build orchestrator config from prepared function
         let config = build_orchestrator_config(&prepared.client_spec)?;
 
         // Render the prompt
-        let prompt = self.render_prompt(prepared)?;
+        let prompt = self.render_prompt(prepared, _dynamic_ctx)?;
 
         // Create stream through orchestrator
         orchestrate_stream(
@@ -230,10 +232,11 @@ impl BamlRuntime {
         &self,
         prepared: &PreparedFunction,
         shared_ctx: &SharedCallContext,
+        dynamic_ctx: &DynamicBamlContext,
         per_call_ctx: &PerCallContext,
     ) -> Result<TestResult, RuntimeError> {
         // Execute the function
-        let function_result = self.call_function(prepared, shared_ctx, per_call_ctx)?;
+        let function_result = self.call_function(prepared, shared_ctx, dynamic_ctx, per_call_ctx)?;
 
         // TODO: Evaluate constraints from the function definition
         // For now, return empty constraint results
@@ -246,7 +249,11 @@ impl BamlRuntime {
     /// Render a prompt without executing.
     ///
     /// This is useful for debugging and previewing prompts.
-    pub fn render_prompt(&self, prepared: &PreparedFunction) -> Result<RenderedPrompt, RuntimeError> {
+    pub fn render_prompt(
+        &self,
+        prepared: &PreparedFunction,
+        _dynamic_ctx: &DynamicBamlContext,
+    ) -> Result<RenderedPrompt, RuntimeError> {
         // Build the render context
         let ctx = self.build_render_context(prepared)?;
 
@@ -268,10 +275,11 @@ impl BamlRuntime {
     pub fn build_request(
         &self,
         prepared: &PreparedFunction,
+        dynamic_ctx: &DynamicBamlContext,
         per_call_ctx: &PerCallContext,
         stream: bool,
     ) -> Result<OpenAiRequest, RuntimeError> {
-        let prompt = self.render_prompt(prepared)?;
+        let prompt = self.render_prompt(prepared, dynamic_ctx)?;
 
         let client_config = OpenAiClientConfig {
             api_key: per_call_ctx
@@ -292,10 +300,11 @@ impl BamlRuntime {
     pub fn render_raw_curl(
         &self,
         prepared: &PreparedFunction,
+        dynamic_ctx: &DynamicBamlContext,
         per_call_ctx: &PerCallContext,
         options: &RenderOptions,
     ) -> Result<String, RuntimeError> {
-        let request = self.build_request(prepared, per_call_ctx, false)?;
+        let request = self.build_request(prepared, dynamic_ctx, per_call_ctx, false)?;
         Ok(request.to_curl(options))
     }
 
@@ -463,23 +472,23 @@ fn convert_jinja_part(part: baml_jinja_runtime::ChatMessagePart) -> MessagePart 
         JinjaPart::Media(media) => {
             // Convert BamlMedia to MediaContent
             let media_type = match media.media_type {
-                baml_runtime_types::BamlMediaType::Image => MediaType::Image,
-                baml_runtime_types::BamlMediaType::Audio => MediaType::Audio,
-                baml_runtime_types::BamlMediaType::Video => MediaType::Video,
-                baml_runtime_types::BamlMediaType::Pdf => MediaType::File, // PDF is a file type
+                ir_stub::BamlMediaType::Image => MediaType::Image,
+                ir_stub::BamlMediaType::Audio => MediaType::Audio,
+                ir_stub::BamlMediaType::Video => MediaType::Video,
+                ir_stub::BamlMediaType::Pdf => MediaType::File, // PDF is a file type
             };
 
             let content = match media.content {
-                baml_runtime_types::BamlMediaContent::Url(url) => MediaContent::Url {
+                ir_stub::BamlMediaContent::Url(url) => MediaContent::Url {
                     url: url.url,
                     media_type,
                 },
-                baml_runtime_types::BamlMediaContent::Base64(b64) => MediaContent::Base64 {
+                ir_stub::BamlMediaContent::Base64(b64) => MediaContent::Base64 {
                     mime_type: b64.media_type,
                     data: b64.base64,
                     media_type,
                 },
-                baml_runtime_types::BamlMediaContent::File(file) => MediaContent::FilePath {
+                ir_stub::BamlMediaContent::File(file) => MediaContent::FilePath {
                     path: file.path.into(),
                     media_type,
                 },
@@ -552,7 +561,8 @@ mod tests {
     fn test_render_prompt() {
         let runtime = create_test_runtime();
         let prepared = create_test_prepared();
-        let result = runtime.render_prompt(&prepared);
+        let dynamic_ctx = DynamicBamlContext::new();
+        let result = runtime.render_prompt(&prepared, &dynamic_ctx);
 
         assert!(result.is_ok());
         let prompt = result.unwrap();
@@ -565,9 +575,10 @@ mod tests {
     fn test_build_request() {
         let runtime = create_test_runtime();
         let prepared = create_test_prepared();
+        let dynamic_ctx = DynamicBamlContext::new();
         let ctx = PerCallContext::new();
 
-        let result = runtime.build_request(&prepared, &ctx, false);
+        let result = runtime.build_request(&prepared, &dynamic_ctx, &ctx, false);
         assert!(result.is_ok());
 
         let request = result.unwrap();
@@ -579,10 +590,11 @@ mod tests {
     fn test_render_raw_curl() {
         let runtime = create_test_runtime();
         let prepared = create_test_prepared();
+        let dynamic_ctx = DynamicBamlContext::new();
         let ctx = PerCallContext::new();
         let options = RenderOptions::default();
 
-        let result = runtime.render_raw_curl(&prepared, &ctx, &options);
+        let result = runtime.render_raw_curl(&prepared, &dynamic_ctx, &ctx, &options);
         assert!(result.is_ok());
 
         let curl = result.unwrap();
@@ -595,12 +607,13 @@ mod tests {
     fn test_render_raw_curl_with_secrets() {
         let runtime = create_test_runtime();
         let prepared = create_test_prepared();
+        let dynamic_ctx = DynamicBamlContext::new();
         let mut env = HashMap::new();
         env.insert("OPENAI_API_KEY".to_string(), "sk-test-key".to_string());
         let ctx = PerCallContext::new().with_env_vars(env);
         let options = RenderOptions::for_execution();
 
-        let result = runtime.render_raw_curl(&prepared, &ctx, &options);
+        let result = runtime.render_raw_curl(&prepared, &dynamic_ctx, &ctx, &options);
         assert!(result.is_ok());
 
         let curl = result.unwrap();

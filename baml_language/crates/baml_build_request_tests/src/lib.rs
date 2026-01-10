@@ -19,6 +19,7 @@ use std::path::Path;
 use baml_db::{SourceFile, Setter};
 use baml_project::ProjectDatabase as RootDatabase;
 use baml_db::baml_workspace::Project;
+use baml_program::context::DynamicBamlContext;
 use baml_program::prompt::{MediaContent, MessagePart, RenderedMessage, RenderedPrompt, Role};
 use baml_program::{BamlRuntime, BamlMap};
 use serde::Serialize;
@@ -163,8 +164,9 @@ pub fn render_prompt_for_fixture(
         .map_err(|e| anyhow::anyhow!("Failed to prepare function '{}': {}", func_name, e))?;
 
     // Render the prompt through the runtime
+    let dynamic_ctx = DynamicBamlContext::new();
     runtime
-        .render_prompt(&prepared)
+        .render_prompt(&prepared, &dynamic_ctx)
         .map_err(|e| anyhow::anyhow!("Failed to render prompt: {}", e))
 }
 

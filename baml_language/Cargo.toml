@@ -36,9 +36,9 @@ baml_vm = { path = "crates/baml_vm" }
 baml_workspace = { path = "crates/baml_workspace" }
 baml_lsp_types = { path = "crates/baml_lsp_types" }
 ir_stub = { path = "crates/ir_stub" }
-baml_runtime_types = { path = "crates/baml_runtime_types" }
 baml_jsonish = { path = "crates/baml_jsonish" }
 baml_jinja_runtime = { path = "crates/baml_jinja_runtime" }
+baml_output_format = { path = "crates/baml_output_format" }
 baml_ide = { path = "crates/baml_ide" }
 baml_project = { path = "crates/baml_project" }
 baml_lsp = { path = "crates/baml_lsp" }

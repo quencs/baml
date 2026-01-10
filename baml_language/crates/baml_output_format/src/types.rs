@@ -9,7 +9,7 @@
 use std::sync::Arc;
 use indexmap::{IndexMap, IndexSet};
 use baml_base::Ty;
-use baml_runtime_types::{Constraint, StreamingMode};
+use ir_stub::{Constraint, StreamingMode};
 
 /// A name that may have a different rendered form (alias).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

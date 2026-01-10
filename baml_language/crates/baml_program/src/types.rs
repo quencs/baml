@@ -2,8 +2,8 @@
 
 use std::time::Duration;
 
-// Re-export core types from baml_runtime_types
-pub use baml_runtime_types::{BamlMap, BamlValue, BamlValueWithMeta, BamlMedia, BamlMediaType, TypeIR};
+// Re-export core types from ir_stub
+pub use ir_stub::{BamlMap, BamlValue, BamlValueWithMeta, BamlMedia, BamlMediaType, TypeIR};
 
 /// Result of a function execution.
 #[derive(Debug, Clone)]

@@ -16,7 +16,7 @@ pub use coercer::{Coercer, CoercionError};
 pub use parser::{parse, ParseOptions, ParseError};
 pub use value::{Value, Fixes};
 
-use baml_runtime_types::{BamlValue, TypeIR};
+use ir_stub::{BamlValue, TypeIR};
 
 /// Parse a JSON-ish string and coerce it to the target type.
 ///

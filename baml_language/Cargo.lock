@@ -334,7 +334,6 @@ dependencies = [
  "baml_jinja_runtime",
  "baml_program",
  "baml_project",
- "baml_runtime_types",
  "insta",
  "serde",
  "serde_json",
@@ -530,8 +529,9 @@ name = "baml_jinja_runtime"
 version = "0.0.0"
 dependencies = [
  "baml_base",
- "baml_runtime_types",
+ "baml_output_format",
  "indexmap 2.13.0",
+ "ir_stub",
  "minijinja",
  "serde",
  "serde_json",
@@ -542,8 +542,8 @@ dependencies = [
 name = "baml_jsonish"
 version = "0.0.0"
 dependencies = [
- "baml_runtime_types",
  "indexmap 2.13.0",
+ "ir_stub",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -617,6 +617,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml_output_format"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "indexmap 2.13.0",
+ "ir_stub",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "baml_program"
 version = "0.0.0"
 dependencies = [
@@ -627,7 +637,6 @@ dependencies = [
  "baml_jinja_runtime",
  "baml_jsonish",
  "baml_project",
- "baml_runtime_types",
  "chrono",
  "getrandom 0.2.16",
  "indexmap 2.13.0",
@@ -659,17 +668,6 @@ dependencies = [
  "lsp-types",
  "salsa",
  "text-size",
-]
-
-[[package]]
-name = "baml_runtime_types"
-version = "0.0.0"
-dependencies = [
- "baml_base",
- "indexmap 2.13.0",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -2286,7 +2284,9 @@ checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
 name = "ir_stub"
 version = "0.0.0"
 dependencies = [
+ "indexmap 2.13.0",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

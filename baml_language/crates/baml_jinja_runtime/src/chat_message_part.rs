@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use baml_runtime_types::{BamlMedia, BamlMediaContent};
+use ir_stub::{BamlMedia, BamlMediaContent};
 use serde::Serialize;
 
 /// A part of a chat message.

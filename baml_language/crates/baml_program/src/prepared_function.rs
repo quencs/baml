@@ -3,7 +3,8 @@
 use baml_compiler_tir::Ty;
 use ir_stub::{ClientSpec, PromptTemplate, TypeRef};
 
-use crate::types::{BamlMap, BamlValue};
+use crate::types::BamlValue;
+use indexmap::IndexMap;
 
 /// A value paired with its type information.
 #[derive(Debug, Clone)]
@@ -21,10 +22,10 @@ pub struct PreparedFunction {
     /// Function name.
     pub function_name: String,
     /// Validated and coerced arguments.
-    pub args: BamlMap<String, BamlValue>,
+    pub args: IndexMap<String, BamlValue>,
     /// Type-annotated arguments (for constraint checking).
     /// Uses placeholder TypeRef until HIR/TIR integration.
-    pub args_with_types: BamlMap<String, TypedArg>,
+    pub args_with_types: IndexMap<String, TypedArg>,
     /// Output type specification (simple name wrapper).
     pub output_type: TypeRef,
     /// Resolved return type from TIR (for output format building).
@@ -40,7 +41,7 @@ impl PreparedFunction {
     /// Used for testing and stub implementations.
     pub fn new_stub(
         function_name: impl Into<String>,
-        args: BamlMap<String, BamlValue>,
+        args: IndexMap<String, BamlValue>,
         output_type: TypeRef,
         client_spec: ClientSpec,
         prompt_template: PromptTemplate,
@@ -76,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_prepared_function_construction() {
-        let mut args = BamlMap::new();
+        let mut args = IndexMap::new();
         args.insert("text".to_string(), BamlValue::from("Hello, world!"));
 
         let prepared = PreparedFunction::new_stub(

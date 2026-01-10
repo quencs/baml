@@ -4,10 +4,17 @@
 //! to a string suitable for inclusion in LLM prompts.
 
 use baml_base::{LiteralValue, Ty};
-use minijinja::Error;
+use thiserror::Error;
 
-use super::render_options::{HoistClasses, MapStyle, RenderOptions, RenderSetting};
-use super::types::OutputFormatContent;
+use crate::render_options::{HoistClasses, MapStyle, RenderOptions, RenderSetting};
+use crate::types::OutputFormatContent;
+
+/// Error during output format rendering.
+#[derive(Debug, Error)]
+pub enum RenderError {
+    #[error("Render error: {0}")]
+    Other(String),
+}
 
 /// Rendering context passed through recursive calls.
 struct RenderContext<'a> {
@@ -66,7 +73,7 @@ impl<'a> RenderContext<'a> {
 pub fn render(
     content: &OutputFormatContent,
     options: &RenderOptions,
-) -> Result<Option<String>, Error> {
+) -> Result<Option<String>, RenderError> {
     let mut ctx = RenderContext::new(content, options);
 
     // Check if target is a simple primitive type
@@ -167,7 +174,7 @@ fn render_simple_target(target: &Ty, options: &RenderOptions) -> Option<String> 
 }
 
 /// Render hoisted class/enum definitions.
-fn render_hoisted_definitions(ctx: &mut RenderContext) -> Result<String, Error> {
+fn render_hoisted_definitions(ctx: &mut RenderContext) -> Result<String, RenderError> {
     let mut result = String::new();
     let should_hoist = match &ctx.options.hoist_classes {
         HoistClasses::All => true,
@@ -210,7 +217,7 @@ fn render_hoisted_definitions(ctx: &mut RenderContext) -> Result<String, Error> 
 }
 
 /// Render a type, potentially with full schema expansion.
-fn render_type(ty: &Ty, ctx: &mut RenderContext, is_top_level: bool) -> Result<String, Error> {
+fn render_type(ty: &Ty, ctx: &mut RenderContext, is_top_level: bool) -> Result<String, RenderError> {
     match ty {
         Ty::Int => Ok("int".to_string()),
         Ty::Float => Ok("float".to_string()),
@@ -268,7 +275,7 @@ fn render_type(ty: &Ty, ctx: &mut RenderContext, is_top_level: bool) -> Result<S
 }
 
 /// Render a type inline (without full expansion).
-fn render_type_inline(ty: &Ty, ctx: &RenderContext) -> Result<String, Error> {
+fn render_type_inline(ty: &Ty, ctx: &RenderContext) -> Result<String, RenderError> {
     match ty {
         Ty::Int => Ok("int".to_string()),
         Ty::Float => Ok("float".to_string()),
@@ -347,7 +354,7 @@ fn render_literal(lit: &LiteralValue) -> String {
 }
 
 /// Render a class definition.
-fn render_class(name: &str, ctx: &mut RenderContext, _is_top_level: bool) -> Result<String, Error> {
+fn render_class(name: &str, ctx: &mut RenderContext, _is_top_level: bool) -> Result<String, RenderError> {
     // Check if this class is recursive and already rendered
     if ctx.content.recursive_classes.contains(name) {
         if ctx.rendered_classes.contains(name) {
@@ -392,7 +399,7 @@ fn render_class(name: &str, ctx: &mut RenderContext, _is_top_level: bool) -> Res
 }
 
 /// Render an enum definition.
-fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Result<String, Error> {
+fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Result<String, RenderError> {
     let enum_def = match ctx.content.find_enum(name) {
         Some(e) => e,
         None => return Ok(name.to_string()), // Unknown enum, just return name
@@ -429,7 +436,7 @@ fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::output_format::{Class, Enum, OutputFormatBuilder};
+    use crate::types::{Class, Enum, OutputFormatBuilder};
     use baml_base::Name as BaseName;
 
     #[test]

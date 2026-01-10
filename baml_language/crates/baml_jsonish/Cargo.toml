@@ -10,7 +10,7 @@ license.workspace = true
 dead_code = "allow"
 
 [dependencies]
-baml_runtime_types = { path = "../baml_runtime_types" }
+ir_stub.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

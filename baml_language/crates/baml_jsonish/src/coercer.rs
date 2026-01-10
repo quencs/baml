@@ -4,7 +4,7 @@
 
 use crate::value::Value;
 use crate::parser::ParseError;
-use baml_runtime_types::{BamlMap, BamlMedia, BamlMediaType, BamlValue, LiteralValue, TypeIR, TypeValue};
+use ir_stub::{BamlMap, BamlMedia, BamlMediaType, BamlValue, LiteralValue, TypeIR, TypeValue};
 use thiserror::Error;
 
 /// Error during coercion.
@@ -286,7 +286,7 @@ impl Coercer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use baml_runtime_types::CompletionState;
+    use ir_stub::CompletionState;
 
     #[test]
     fn test_coerce_string() {

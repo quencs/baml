@@ -5,7 +5,7 @@
 //! - Some tolerance for malformed JSON
 
 use crate::value::{Fixes, Value};
-use baml_runtime_types::CompletionState;
+use ir_stub::CompletionState;
 use thiserror::Error;
 
 /// Options for parsing.

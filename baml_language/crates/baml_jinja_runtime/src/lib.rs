@@ -20,7 +20,7 @@ use baml_value_to_jinja::MAGIC_MEDIA_DELIMITER;
 
 use std::collections::HashMap;
 
-use baml_runtime_types::{BamlMedia, BamlValue};
+use ir_stub::{BamlMedia, BamlValue};
 use indexmap::IndexMap;
 use minijinja::{context, value::Kwargs, ErrorKind};
 use serde::{Deserialize, Serialize};
@@ -417,7 +417,7 @@ fn render_minijinja(
 /// Used for constraint evaluation.
 pub fn evaluate_predicate(
     value: &BamlValue,
-    expression: &baml_runtime_types::JinjaExpression,
+    expression: &ir_stub::JinjaExpression,
 ) -> Result<bool, RenderError> {
     let mut env = minijinja::Environment::new();
 
@@ -440,7 +440,7 @@ pub fn evaluate_predicate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use baml_runtime_types::BamlMap;
+    use ir_stub::BamlMap;
 
     #[test]
     fn test_render_template_simple() {
@@ -551,7 +551,7 @@ Hello"#;
     #[test]
     fn test_evaluate_predicate() {
         let value = BamlValue::Int(42);
-        let expr = baml_runtime_types::JinjaExpression("this > 10".to_string());
+        let expr = ir_stub::JinjaExpression("this > 10".to_string());
 
         let result = evaluate_predicate(&value, &expr);
         assert!(result.is_ok());
@@ -561,7 +561,7 @@ Hello"#;
     #[test]
     fn test_evaluate_predicate_false() {
         let value = BamlValue::Int(5);
-        let expr = baml_runtime_types::JinjaExpression("this > 10".to_string());
+        let expr = ir_stub::JinjaExpression("this > 10".to_string());
 
         let result = evaluate_predicate(&value, &expr);
         assert!(result.is_ok());
@@ -571,7 +571,7 @@ Hello"#;
     #[test]
     fn test_evaluate_predicate_string() {
         let value = BamlValue::String("hello world".to_string());
-        let expr = baml_runtime_types::JinjaExpression("this | length > 5".to_string());
+        let expr = ir_stub::JinjaExpression("this | length > 5".to_string());
 
         let result = evaluate_predicate(&value, &expr);
         assert!(result.is_ok());

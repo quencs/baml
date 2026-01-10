@@ -1,5 +1,5 @@
 [package]
-name = "baml_runtime_types"
+name = "baml_output_format"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,8 +11,7 @@ dead_code = "allow"
 
 [dependencies]
 baml_base.workspace = true
-serde.workspace = true
-serde_json.workspace = true
+ir_stub.workspace = true
 indexmap.workspace = true
 thiserror.workspace = true
 
