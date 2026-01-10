@@ -9,7 +9,6 @@
 use std::sync::Arc;
 use indexmap::{IndexMap, IndexSet};
 use baml_base::Ty;
-use ir_stub::{Constraint, StreamingMode};
 
 /// A name that may have a different rendered form (alias).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -70,8 +69,6 @@ pub struct Enum {
     pub name: Name,
     /// The enum variants.
     pub variants: Vec<EnumVariant>,
-    /// Constraints on the enum.
-    pub constraints: Vec<Constraint>,
 }
 
 impl Enum {
@@ -80,7 +77,6 @@ impl Enum {
         Self {
             name: Name::new(name),
             variants: Vec::new(),
-            constraints: Vec::new(),
         }
     }
 
@@ -114,12 +110,8 @@ pub struct Class {
     pub name: Name,
     /// Optional description.
     pub description: Option<String>,
-    /// The streaming mode this class definition is for.
-    pub namespace: StreamingMode,
     /// The class fields.
     pub fields: Vec<ClassField>,
-    /// Constraints on the class.
-    pub constraints: Vec<Constraint>,
 }
 
 impl Class {
@@ -128,9 +120,7 @@ impl Class {
         Self {
             name: Name::new(name),
             description: None,
-            namespace: StreamingMode::NonStreaming,
             fields: Vec::new(),
-            constraints: Vec::new(),
         }
     }
 
@@ -166,8 +156,8 @@ impl Class {
 pub struct OutputFormatContent {
     /// Enum schemas indexed by name.
     pub enums: Arc<IndexMap<String, Enum>>,
-    /// Class schemas indexed by (name, streaming_mode).
-    pub classes: Arc<IndexMap<(String, StreamingMode), Class>>,
+    /// Class schemas indexed by name.
+    pub classes: Arc<IndexMap<String, Class>>,
     /// Names of classes that are recursive.
     pub recursive_classes: Arc<IndexSet<String>>,
     /// Type aliases that are structurally recursive.
@@ -193,14 +183,9 @@ impl OutputFormatContent {
         self.enums.get(name)
     }
 
-    /// Find a class by name and streaming mode.
-    pub fn find_class(&self, name: &str, mode: StreamingMode) -> Option<&Class> {
-        self.classes.get(&(name.to_string(), mode))
-    }
-
-    /// Find a class by name in non-streaming mode.
-    pub fn find_class_non_streaming(&self, name: &str) -> Option<&Class> {
-        self.find_class(name, StreamingMode::NonStreaming)
+    /// Find a class by name.
+    pub fn find_class(&self, name: &str) -> Option<&Class> {
+        self.classes.get(name)
     }
 }
 
@@ -208,7 +193,7 @@ impl OutputFormatContent {
 #[derive(Default)]
 pub struct OutputFormatBuilder {
     enums: IndexMap<String, Enum>,
-    classes: IndexMap<(String, StreamingMode), Class>,
+    classes: IndexMap<String, Class>,
     recursive_classes: IndexSet<String>,
     structural_recursive_aliases: IndexMap<String, Ty>,
     target: Option<Ty>,
@@ -228,8 +213,7 @@ impl OutputFormatBuilder {
 
     /// Add a class.
     pub fn with_class(mut self, c: Class) -> Self {
-        let key = (c.name.real_name().to_string(), c.namespace);
-        self.classes.insert(key, c);
+        self.classes.insert(c.name.real_name().to_string(), c);
         self
     }
 
@@ -314,6 +298,6 @@ mod tests {
             .build();
 
         assert!(of.find_enum("Status").is_some());
-        assert!(of.find_class_non_streaming("Person").is_some());
+        assert!(of.find_class("Person").is_some());
     }
 }

@@ -188,7 +188,7 @@ fn render_hoisted_definitions(ctx: &mut RenderContext) -> Result<String, RenderE
 
     // Hoist classes that need it
     for name in ctx.content.recursive_classes.iter() {
-        if let Some(class) = ctx.content.find_class_non_streaming(name) {
+        if let Some(class) = ctx.content.find_class(name) {
             if !ctx.rendered_classes.contains(name) {
                 ctx.rendered_classes.insert(name.clone());
 
@@ -364,7 +364,7 @@ fn render_class(name: &str, ctx: &mut RenderContext, _is_top_level: bool) -> Res
         ctx.rendered_classes.insert(name.to_string());
     }
 
-    let class = match ctx.content.find_class_non_streaming(name) {
+    let class = match ctx.content.find_class(name) {
         Some(c) => c,
         None => return Ok(name.to_string()), // Unknown class, just return name
     };

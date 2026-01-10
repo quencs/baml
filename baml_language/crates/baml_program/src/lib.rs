@@ -30,7 +30,6 @@ pub mod orchestrator;
 pub mod parsing;
 pub mod prompt;
 
-mod output_format_builder;
 mod prepared_function;
 mod render_options;
 mod types;

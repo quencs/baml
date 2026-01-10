@@ -1,5 +1,5 @@
 // TODO: This file has been simplified to only support the LSP command for now.
-// Other commands that depend on baml_program are commented out.
+// Other commands that depend on baml_runtime are commented out.
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
@@ -24,21 +24,21 @@ pub(crate) struct RuntimeCli {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Commands {
-    // TODO: All other commands are disabled for now as they depend on baml_program
+    // TODO: All other commands are disabled for now as they depend on baml_runtime
     // #[command(about = "Initialize a new BAML project.")]
-    // Init(baml_program::cli::init::InitArgs),
+    // Init(baml_runtime::cli::init::InitArgs),
 
     // #[command(about = "Runs all generators in the baml_src directory")]
-    // Generate(baml_program::cli::generate::GenerateArgs),
+    // Generate(baml_runtime::cli::generate::GenerateArgs),
 
     // #[command(about = "Checks for errors and warnings in the baml_src directory")]
-    // Check(baml_program::cli::check::CheckArgs),
+    // Check(baml_runtime::cli::check::CheckArgs),
 
     // #[command(about = "Starts a server that translates LLM responses to BAML responses")]
-    // Serve(baml_program::cli::serve::ServeArgs),
+    // Serve(baml_runtime::cli::serve::ServeArgs),
 
     // #[command(about = "Starts a development server")]
-    // Dev(baml_program::cli::dev::DevArgs),
+    // Dev(baml_runtime::cli::dev::DevArgs),
 
     // #[command(subcommand, about = "Authenticate with Boundary Cloud", hide = true)]
     // Auth(crate::auth::AuthCommands),
@@ -53,20 +53,20 @@ pub(crate) enum Commands {
     // Format(crate::format::FormatArgs),
 
     // #[command(about = "Run BAML tests")]
-    // Test(baml_program::cli::testing::TestArgs),
+    // Test(baml_runtime::cli::testing::TestArgs),
 
     // #[command(about = "Print HIR from BAML files", hide = true)]
-    // DumpHIR(baml_program::cli::dump_intermediate::DumpIntermediateArgs),
+    // DumpHIR(baml_runtime::cli::dump_intermediate::DumpIntermediateArgs),
 
     // #[command(about = "Print Bytecode from BAML files", hide = true)]
-    // DumpBytecode(baml_program::cli::dump_intermediate::DumpIntermediateArgs),
+    // DumpBytecode(baml_runtime::cli::dump_intermediate::DumpIntermediateArgs),
     #[command(about = "Starts a language server", name = "lsp")]
     LanguageServer(crate::lsp::LanguageServerArgs),
     // #[command(about = "Start an interactive REPL for BAML expressions", hide = true)]
-    // Repl(baml_program::cli::repl::ReplArgs),
+    // Repl(baml_runtime::cli::repl::ReplArgs),
 
     // #[command(about = "Optimize prompts using GEPA algorithm")]
-    // Optimize(baml_program::cli::optimize::OptimizeArgs),
+    // Optimize(baml_runtime::cli::optimize::OptimizeArgs),
 }
 
 impl RuntimeCli {

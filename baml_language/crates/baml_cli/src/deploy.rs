@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use baml_program::{baml_src_files, BamlRuntime};
+use baml_runtime::{baml_src_files, BamlRuntime};
 use bstd::ProjectFqn;
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Confirm};

@@ -2,19 +2,13 @@
 //!
 //! This crate provides:
 //! - `render_prompt` - Render a Jinja template with BAML values
-//! - `OutputFormatContent` - Schema information for parsing LLM responses
 //! - `RenderedPrompt` - The result of rendering a prompt template
 
 mod baml_value_to_jinja;
 mod chat_message_part;
-mod output_format;
 
 pub use baml_value_to_jinja::IntoMiniJinjaValue;
 pub use chat_message_part::ChatMessagePart;
-pub use output_format::{
-    Class, ClassField, Enum, EnumVariant, Name, OutputFormat, OutputFormatBuilder,
-    OutputFormatContent, RenderOptions,
-};
 
 use baml_value_to_jinja::MAGIC_MEDIA_DELIMITER;
 
@@ -71,8 +65,6 @@ impl Default for RenderContext_Client {
 pub struct RenderContext {
     /// Client configuration.
     pub client: RenderContext_Client,
-    /// Output format schema.
-    pub output_format: OutputFormatContent,
     /// Tags available in the template.
     pub tags: HashMap<String, BamlValue>,
 }
@@ -81,7 +73,6 @@ impl Default for RenderContext {
     fn default() -> Self {
         Self {
             client: RenderContext_Client::default(),
-            output_format: OutputFormatContent::empty(),
             tags: HashMap::new(),
         }
     }
@@ -236,16 +227,14 @@ fn render_minijinja(
 
     env.add_template("prompt", template)?;
 
-    // Add ctx global with output_format as a callable object
+    // Add ctx global
     let client = ctx.client.clone();
     let tags = ctx.tags.clone();
-    let output_format = OutputFormat::from_content(ctx.output_format.clone());
     env.add_global(
         "ctx",
         context! {
             client => client,
             tags => tags,
-            output_format => minijinja::Value::from_object(output_format),
         },
     );
 
@@ -578,147 +567,4 @@ Hello"#;
         assert!(result.unwrap());
     }
 
-    #[test]
-    fn test_ctx_output_format_int() {
-        use crate::output_format::OutputFormatBuilder;
-        use baml_base::Ty;
-
-        let args = BamlValue::Map(BamlMap::new());
-
-        let output_format = OutputFormatBuilder::new()
-            .with_target(Ty::Int)
-            .build();
-
-        let ctx = RenderContext {
-            output_format,
-            ..Default::default()
-        };
-
-        let template = "Return: {{ ctx.output_format }}";
-        let result = render_prompt(template, &args, ctx);
-
-        assert!(result.is_ok());
-        match result.unwrap() {
-            RenderedPrompt::Completion(s) => {
-                assert!(s.contains("Answer as an int"), "Expected 'Answer as an int' but got: {}", s);
-            }
-            _ => panic!("Expected Completion"),
-        }
-    }
-
-    #[test]
-    fn test_ctx_output_format_class() {
-        use crate::output_format::{Class, OutputFormatBuilder};
-        use baml_base::{Ty, Name as BaseName};
-
-        let args = BamlValue::Map(BamlMap::new());
-
-        let person_class = Class::new("Person")
-            .with_field("name", Ty::String, Some("The person's name".to_string()), true)
-            .with_field("age", Ty::Int, None, true);
-
-        let output_format = OutputFormatBuilder::new()
-            .with_class(person_class)
-            .with_target(Ty::Class(BaseName::from("Person")))
-            .build();
-
-        let ctx = RenderContext {
-            output_format,
-            ..Default::default()
-        };
-
-        let template = "Return JSON:\n{{ ctx.output_format }}";
-        let result = render_prompt(template, &args, ctx);
-
-        assert!(result.is_ok());
-        match result.unwrap() {
-            RenderedPrompt::Completion(s) => {
-                assert!(s.contains("name: string"), "Expected 'name: string' but got: {}", s);
-                assert!(s.contains("age: int"), "Expected 'age: int' but got: {}", s);
-                assert!(s.contains("The person's name"), "Expected description but got: {}", s);
-            }
-            _ => panic!("Expected Completion"),
-        }
-    }
-
-    #[test]
-    fn test_ctx_output_format_callable_with_kwargs() {
-        use crate::output_format::{Enum, OutputFormatBuilder};
-        use baml_base::{Ty, Name as BaseName};
-
-        let args = BamlValue::Map(BamlMap::new());
-
-        let color_enum = Enum::new("Color")
-            .with_variant("red", None)
-            .with_variant("green", None)
-            .with_variant("blue", None);
-
-        let output_format = OutputFormatBuilder::new()
-            .with_enum(color_enum)
-            .with_target(Ty::Enum(BaseName::from("Color")))
-            .build();
-
-        let ctx = RenderContext {
-            output_format,
-            ..Default::default()
-        };
-
-        // Test with prefix=null to suppress the "Answer with any of the categories:" prefix
-        let template = "{{ ctx.output_format(prefix=null) }}";
-        let result = render_prompt(template, &args, ctx);
-
-        assert!(result.is_ok());
-        match result.unwrap() {
-            RenderedPrompt::Completion(s) => {
-                // Top-level enums render in full format with name and values
-                assert!(s.contains("Color"), "Expected 'Color' but got: {}", s);
-                assert!(s.contains("- red"), "Expected '- red' but got: {}", s);
-                assert!(s.contains("- green"), "Expected '- green' but got: {}", s);
-                assert!(s.contains("- blue"), "Expected '- blue' but got: {}", s);
-                // Should NOT contain the prefix since we set prefix=null
-                assert!(!s.contains("Answer with"), "Should not contain prefix but got: {}", s);
-            }
-            _ => panic!("Expected Completion"),
-        }
-    }
-
-    #[test]
-    fn test_ctx_output_format_custom_or_splitter() {
-        use crate::output_format::{Class, Enum, OutputFormatBuilder};
-        use baml_base::{Ty, Name as BaseName};
-
-        let args = BamlValue::Map(BamlMap::new());
-
-        // Create an enum that's used in a class field (so it renders inline)
-        let status_enum = Enum::new("Status")
-            .with_variant("pending", None)
-            .with_variant("done", None);
-
-        let task_class = Class::new("Task")
-            .with_field("status", Ty::Enum(BaseName::from("Status")), None, true);
-
-        let output_format = OutputFormatBuilder::new()
-            .with_enum(status_enum)
-            .with_class(task_class)
-            .with_target(Ty::Class(BaseName::from("Task")))
-            .build();
-
-        let ctx = RenderContext {
-            output_format,
-            ..Default::default()
-        };
-
-        // Test with custom or_splitter
-        let template = "{{ ctx.output_format(or_splitter=' | ') }}";
-        let result = render_prompt(template, &args, ctx);
-
-        assert!(result.is_ok());
-        match result.unwrap() {
-            RenderedPrompt::Completion(s) => {
-                // Enum values in class field should use custom or_splitter
-                assert!(s.contains("'pending' | 'done'"), "Expected custom or_splitter but got: {}", s);
-            }
-            _ => panic!("Expected Completion"),
-        }
-    }
 }

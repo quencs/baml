@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use baml_db::baml_workspace::Project;
 use baml_project::ProjectDatabase as RootDatabase;
-use baml_jinja_runtime::{OutputFormatContent, RenderContext, RenderContext_Client};
+use baml_jinja_runtime::{RenderContext, RenderContext_Client};
 use baml_compiler_tir::Ty;
 use ir_stub::{BamlMap, BamlValue};
 
@@ -313,9 +313,6 @@ impl BamlRuntime {
         &self,
         prepared: &PreparedFunction,
     ) -> Result<RenderContext, RuntimeError> {
-        // Build output format from the function's return type
-        let output_format = self.build_output_format(prepared)?;
-
         // Determine client configuration
         let client_name = prepared.client_spec.client_name.clone();
         let (provider, default_role, allowed_roles) = parse_client_config(&client_name);
@@ -328,21 +325,8 @@ impl BamlRuntime {
                 allowed_roles,
                 ..Default::default()
             },
-            output_format,
             tags: HashMap::new(),
         })
-    }
-
-    /// Build OutputFormatContent from the function's return type.
-    fn build_output_format(
-        &self,
-        prepared: &PreparedFunction,
-    ) -> Result<OutputFormatContent, RuntimeError> {
-        Ok(crate::output_format_builder::build_output_format(
-            &self.db,
-            self.project,
-            &prepared.return_ty,
-        ))
     }
 }
 

@@ -529,7 +529,6 @@ name = "baml_jinja_runtime"
 version = "0.0.0"
 dependencies = [
  "baml_base",
- "baml_output_format",
  "indexmap 2.13.0",
  "ir_stub",
  "minijinja",
@@ -622,7 +621,6 @@ version = "0.0.0"
 dependencies = [
  "baml_base",
  "indexmap 2.13.0",
- "ir_stub",
  "thiserror 2.0.17",
 ]
 
