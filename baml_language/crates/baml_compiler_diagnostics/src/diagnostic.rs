@@ -92,6 +92,17 @@ pub enum DiagnosticId {
 
     // Return expression errors (E0029)
     MissingReturnExpression,
+
+    // Constraint attribute errors (E0032)
+    InvalidConstraintSyntax,
+
+    // Type literal errors (E0033)
+    UnsupportedFloatLiteral,
+
+    // Test diagnostics (E0034-E0036)
+    UnknownTestProperty,
+    MissingTestProperty,
+    TestFieldAttribute,
 }
 
 impl DiagnosticId {
@@ -148,6 +159,17 @@ impl DiagnosticId {
 
             // Return expression errors
             DiagnosticId::MissingReturnExpression => "E0029",
+
+            // Constraint attribute errors
+            DiagnosticId::InvalidConstraintSyntax => "E0032",
+
+            // Type literal errors
+            DiagnosticId::UnsupportedFloatLiteral => "E0033",
+
+            // Test diagnostics
+            DiagnosticId::UnknownTestProperty => "E0034",
+            DiagnosticId::MissingTestProperty => "E0035",
+            DiagnosticId::TestFieldAttribute => "E0036",
         }
     }
 }

@@ -982,14 +982,25 @@ impl<'a> Parser<'a> {
         });
     }
 
-    /// Parse a block attribute: @@dynamic
+    /// Parse a block attribute: @@dynamic or @@stream.done
     pub(crate) fn parse_block_attribute(&mut self) {
         self.with_node(SyntaxKind::BLOCK_ATTRIBUTE, |p| {
             p.expect(TokenKind::AtAt);
 
-            // Attribute name (can be a Word or reserved keyword like Dynamic or Assert)
+            // Attribute name (can be dotted like @@stream.done)
             if p.at(TokenKind::Word) || p.at(TokenKind::Dynamic) || p.at(TokenKind::Assert) {
                 p.bump();
+                // Handle dotted attribute names like @@stream.done
+                while p.at(TokenKind::Dot) {
+                    p.bump(); // consume dot
+                    if p.at(TokenKind::Word) || p.at(TokenKind::Dynamic) || p.at(TokenKind::Assert)
+                    {
+                        p.bump(); // consume next segment
+                    } else {
+                        p.error_unexpected_token("attribute name segment after dot".to_string());
+                        break;
+                    }
+                }
             } else {
                 p.error_unexpected_token("attribute name".to_string());
                 return;
@@ -1028,7 +1039,7 @@ impl<'a> Parser<'a> {
         // - String: @alias("user_name")
         // - Raw string: @description(#"Multi-line\ndescription"#)
         // - Expression: @assert({{ this > 0 }})
-        // - Identifier: @alias(field_name)
+        // - Unquoted string: @description(User is happy) - consumes until ) or ,
 
         if self.parse_any_string() {
             // String argument parsed
@@ -1041,8 +1052,12 @@ impl<'a> Parser<'a> {
             // Expression block: {{ }}
             self.parse_expression_block();
         } else if self.at(TokenKind::Word) {
-            // Identifier or keyword
-            self.bump();
+            // Unquoted string: consume all tokens until ) or ,
+            self.with_node(SyntaxKind::UNQUOTED_STRING, |p| {
+                while !p.at(TokenKind::RParen) && !p.at(TokenKind::Comma) && !p.at_end() {
+                    p.bump();
+                }
+            });
         } else {
             self.error_unexpected_token("attribute argument".to_string());
         }
@@ -1113,9 +1128,15 @@ impl<'a> Parser<'a> {
             return;
         }
 
-        // Check for number literal types
-        if self.at(TokenKind::IntegerLiteral) || self.at(TokenKind::FloatLiteral) {
-            self.bump();
+        // Float literal types are not supported - emit error at parse time
+        if self.at(TokenKind::FloatLiteral) {
+            if let Some(token) = self.current() {
+                self.error(
+                    format!("Float literal values are not supported: {}", token.text),
+                    token.span,
+                );
+            }
+            self.bump(); // consume to recover
             return;
         }
 
@@ -1184,6 +1205,8 @@ impl<'a> Parser<'a> {
                 } else if p.at(TokenKind::Word) {
                     // Enum variant
                     p.parse_enum_variant();
+                    // Optional comma after variant (allows both comma and no-comma styles)
+                    p.eat(TokenKind::Comma);
                 } else {
                     // Skip unexpected token
                     p.error_unexpected_token("Unexpected token in enum body".to_string());
@@ -1315,6 +1338,10 @@ impl<'a> Parser<'a> {
             // Return type
             if p.eat(TokenKind::Arrow) {
                 p.parse_type();
+                // Optional attributes on return type (e.g., @check)
+                while p.at(TokenKind::At) && !p.at(TokenKind::AtAt) {
+                    p.parse_field_attribute();
+                }
             } else {
                 p.error_unexpected_token("return type (->)".to_string());
             }
@@ -1371,6 +1398,11 @@ impl<'a> Parser<'a> {
                 p.parse_type();
             } else {
                 p.error_unexpected_token("type annotation".to_string());
+            }
+
+            // Optional attributes on parameter (e.g., @assert, @check)
+            while p.at(TokenKind::At) && !p.at(TokenKind::AtAt) {
+                p.parse_field_attribute();
             }
         });
     }
@@ -2775,13 +2807,24 @@ impl<'a> Parser<'a> {
 
             while !p.at(TokenKind::RBrace) && !p.at_end() {
                 // Error recovery: if we see a top-level keyword, assume we missed a closing brace.
-                // Exception: RetryPolicy can appear as a config key (e.g., `retry_policy MyPolicy`
-                // inside client blocks), so we don't break on it - let parse_config_item handle it.
-                if p.at_top_level_keyword() && !p.at(TokenKind::RetryPolicy) {
+                // Exceptions:
+                // - RetryPolicy can appear as a config key (e.g., `retry_policy MyPolicy` inside client blocks)
+                // - TypeBuilder can appear as a config key (e.g., `type_builder { ... }` inside test blocks)
+                // - Dynamic can appear inside type_builder blocks (e.g., `dynamic class Foo { ... }`)
+                if p.at_top_level_keyword()
+                    && !p.at(TokenKind::RetryPolicy)
+                    && !p.at(TokenKind::TypeBuilder)
+                    && !p.at(TokenKind::Dynamic)
+                {
                     break;
                 }
 
-                p.parse_config_item();
+                // Block attributes like @@check(...) inside config blocks
+                if p.at(TokenKind::AtAt) {
+                    p.parse_block_attribute();
+                } else {
+                    p.parse_config_item();
+                }
                 // Allow optional comma between config items
                 p.eat(TokenKind::Comma);
             }
@@ -2791,6 +2834,28 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_config_item(&mut self) {
+        // Special handling for type_builder blocks inside test definitions
+        if self.at(TokenKind::TypeBuilder) {
+            self.parse_type_builder_block();
+            return;
+        }
+
+        // Special handling for dynamic type definitions inside type_builder blocks
+        if self.at(TokenKind::Dynamic) {
+            self.parse_dynamic_type_def();
+            return;
+        }
+
+        // Special handling for class/enum definitions inside type_builder blocks
+        if self.at(TokenKind::Class) {
+            self.parse_class();
+            return;
+        }
+        if self.at(TokenKind::Enum) {
+            self.parse_enum();
+            return;
+        }
+
         self.with_node(SyntaxKind::CONFIG_ITEM, |p| {
             // Config key: identifier, keyword-as-identifier, or quoted/raw string
             // Note: RetryPolicy is a top-level keyword (for `retry_policy MyPolicy { ... }` declarations)
@@ -2824,7 +2889,69 @@ impl<'a> Parser<'a> {
                 // Simple value - unquoted string or other expression
                 p.parse_config_value();
             }
-            // eprintln!("[PARSE_CONFIG_ITEM] Finished, now at pos {}", p.current);
+
+            // Optional field attributes after config value (e.g., args { ... } @check(...))
+            while p.at(TokenKind::At) && !p.at(TokenKind::AtAt) {
+                p.parse_field_attribute();
+            }
+        });
+    }
+
+    /// Parse a `type_builder` block inside a test definition.
+    /// Contains class, enum, dynamic class, dynamic enum, and type alias definitions.
+    fn parse_type_builder_block(&mut self) {
+        self.with_node(SyntaxKind::TYPE_BUILDER_BLOCK, |p| {
+            p.expect(TokenKind::TypeBuilder);
+
+            if !p.expect(TokenKind::LBrace) {
+                return;
+            }
+
+            while !p.at(TokenKind::RBrace) && !p.at_end() {
+                // Error recovery: if we see a top-level keyword that's not valid in type_builder
+                if p.at_top_level_keyword()
+                    && !p.at(TokenKind::Class)
+                    && !p.at(TokenKind::Enum)
+                    && !p.at(TokenKind::Dynamic)
+                    && !p.at(TokenKind::TypeBuilder)
+                {
+                    break;
+                }
+
+                if p.at(TokenKind::Dynamic) {
+                    p.parse_dynamic_type_def();
+                } else if p.at(TokenKind::Class) {
+                    p.parse_class();
+                } else if p.at(TokenKind::Enum) {
+                    p.parse_enum();
+                } else if p.at(TokenKind::Word)
+                    && p.current().map(|t| t.text == "type").unwrap_or(false)
+                {
+                    p.parse_type_alias();
+                } else {
+                    p.error_unexpected_token(
+                        "class, enum, dynamic class, dynamic enum, or type alias".to_string(),
+                    );
+                    p.bump();
+                }
+            }
+
+            p.expect(TokenKind::RBrace);
+        });
+    }
+
+    /// Parse a dynamic type definition (dynamic class or dynamic enum).
+    fn parse_dynamic_type_def(&mut self) {
+        self.with_node(SyntaxKind::DYNAMIC_TYPE_DEF, |p| {
+            p.expect(TokenKind::Dynamic);
+
+            if p.at(TokenKind::Class) {
+                p.parse_class();
+            } else if p.at(TokenKind::Enum) {
+                p.parse_enum();
+            } else {
+                p.error_unexpected_token("class or enum after 'dynamic'".to_string());
+            }
         });
     }
 
@@ -3028,8 +3155,10 @@ impl<'a> Parser<'a> {
                 p.error_unexpected_token("template string name".to_string());
             }
 
-            // Parameters
-            p.parse_parameter_list();
+            // Optional parameters - only parse if we see '('
+            if p.at(TokenKind::LParen) {
+                p.parse_parameter_list();
+            }
 
             // Template body (raw string)
             if !p.parse_any_string() {

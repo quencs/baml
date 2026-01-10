@@ -71,6 +71,8 @@ ast_node!(RawStringLiteral, RAW_STRING_LITERAL);
 
 ast_node!(TypeExpr, TYPE_EXPR);
 ast_node!(Attribute, ATTRIBUTE);
+ast_node!(TypeBuilderBlock, TYPE_BUILDER_BLOCK);
+ast_node!(DynamicTypeDef, DYNAMIC_TYPE_DEF);
 
 impl TypeExpr {
     /// Check if this is a union type (contains PIPE separators).
@@ -439,6 +441,61 @@ impl ConfigBlock {
     pub fn items(&self) -> impl Iterator<Item = ConfigItem> {
         self.syntax.children().filter_map(ConfigItem::cast)
     }
+
+    /// Get all `type_builder` blocks inside this config block.
+    pub fn type_builder_blocks(&self) -> impl Iterator<Item = TypeBuilderBlock> {
+        self.syntax.children().filter_map(TypeBuilderBlock::cast)
+    }
+}
+
+impl TypeBuilderBlock {
+    /// Get all class definitions (non-dynamic).
+    pub fn classes(&self) -> impl Iterator<Item = ClassDef> {
+        self.syntax
+            .children()
+            .filter(|n| n.kind() == SyntaxKind::CLASS_DEF)
+            .filter_map(ClassDef::cast)
+    }
+
+    /// Get all enum definitions (non-dynamic).
+    pub fn enums(&self) -> impl Iterator<Item = EnumDef> {
+        self.syntax
+            .children()
+            .filter(|n| n.kind() == SyntaxKind::ENUM_DEF)
+            .filter_map(EnumDef::cast)
+    }
+
+    /// Get all dynamic type definitions (dynamic class or dynamic enum).
+    pub fn dynamic_types(&self) -> impl Iterator<Item = DynamicTypeDef> {
+        self.syntax.children().filter_map(DynamicTypeDef::cast)
+    }
+
+    /// Get all type alias definitions.
+    pub fn type_aliases(&self) -> impl Iterator<Item = TypeAliasDef> {
+        self.syntax.children().filter_map(TypeAliasDef::cast)
+    }
+}
+
+impl DynamicTypeDef {
+    /// Get the class definition inside this dynamic type def (if it's a dynamic class).
+    pub fn class(&self) -> Option<ClassDef> {
+        self.syntax.children().find_map(ClassDef::cast)
+    }
+
+    /// Get the enum definition inside this dynamic type def (if it's a dynamic enum).
+    pub fn enum_def(&self) -> Option<EnumDef> {
+        self.syntax.children().find_map(EnumDef::cast)
+    }
+
+    /// Check if this is a dynamic class.
+    pub fn is_class(&self) -> bool {
+        self.class().is_some()
+    }
+
+    /// Check if this is a dynamic enum.
+    pub fn is_enum(&self) -> bool {
+        self.enum_def().is_some()
+    }
 }
 
 impl ConfigItem {
@@ -560,6 +617,11 @@ impl ConfigItem {
     /// ```
     pub fn matches_key(&self, name: &str) -> bool {
         self.key().is_some_and(|k| k.text() == name)
+    }
+
+    /// Get attributes attached to this config item (e.g., `args { ... } @check(...)`).
+    pub fn attributes(&self) -> impl Iterator<Item = Attribute> {
+        self.syntax.children().filter_map(Attribute::cast)
     }
 }
 
@@ -685,21 +747,23 @@ impl BlockAttribute {
 
 impl Attribute {
     /// Get the first segment of the attribute name (e.g., "stream" from @stream.done).
+    /// Also handles keyword attribute names like @assert and @check.
     pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::WORD)
+            .find(|token| matches!(token.kind(), SyntaxKind::WORD | SyntaxKind::KW_ASSERT))
     }
 
     /// Get the full attribute name including dot-separated modifiers.
     /// For @stream.done returns "stream.done", for @alias returns "alias".
+    /// Also handles keyword attribute names like @assert and @check.
     pub fn full_name(&self) -> Option<String> {
         let segments: Vec<String> = self
             .syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
-            .filter(|token| token.kind() == SyntaxKind::WORD)
+            .filter(|token| matches!(token.kind(), SyntaxKind::WORD | SyntaxKind::KW_ASSERT))
             .map(|token| token.text().to_string())
             .collect();
 
@@ -712,12 +776,18 @@ impl Attribute {
 
     /// Get the text range covering the full attribute name (including modifiers).
     /// For @stream.done returns the range from "stream" to "done".
+    /// Also handles keyword attribute names like @assert and @check.
     pub fn full_name_range(&self) -> Option<rowan::TextRange> {
         let tokens: Vec<_> = self
             .syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
-            .filter(|token| matches!(token.kind(), SyntaxKind::WORD | SyntaxKind::DOT))
+            .filter(|token| {
+                matches!(
+                    token.kind(),
+                    SyntaxKind::WORD | SyntaxKind::KW_ASSERT | SyntaxKind::DOT
+                )
+            })
             .collect();
 
         if tokens.is_empty() {
