@@ -4,7 +4,6 @@
 //! - [`vm`]: Test-friendly representations of VM values and execution states
 //! - [`codegen`]: Test utilities for bytecode compilation tests
 //! - [`bytecode`]: Shared test utilities for bytecode compilation and VM execution
-//! - [`render_prompt`]: Snapshot tests for prompt rendering
 //! - Automatic snapshot tests generated from the `projects/` directory by `build.rs`
 
 pub mod bytecode;
@@ -13,7 +12,6 @@ pub mod vm;
 
 #[cfg(test)]
 pub mod incremental;
-
 
 #[cfg(test)]
 pub mod utils;
@@ -86,10 +84,7 @@ fn format_type_ref(type_ref: &baml_compiler_hir::TypeRef) -> String {
         TypeRef::String => "string".to_string(),
         TypeRef::Bool => "bool".to_string(),
         TypeRef::Null => "null".to_string(),
-        TypeRef::Image => "image".to_string(),
-        TypeRef::Audio => "audio".to_string(),
-        TypeRef::Video => "video".to_string(),
-        TypeRef::Pdf => "pdf".to_string(),
+        TypeRef::Media(kind) => kind.to_string(),
         TypeRef::Optional(inner) => format!("{}?", format_type_ref(inner)),
         TypeRef::List(inner) => format!("{}[]", format_type_ref(inner)),
         TypeRef::Map { key, value } => {
