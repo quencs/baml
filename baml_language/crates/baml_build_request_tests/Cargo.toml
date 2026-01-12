@@ -10,6 +10,7 @@ doctest = false
 
 [dependencies]
 baml_db = { workspace = true }
+baml_llm_interface = { workspace = true }
 baml_project = { workspace = true }
 baml_jinja_runtime = { workspace = true }
 baml_program = { workspace = true }

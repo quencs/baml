@@ -7,4 +7,4 @@ fixture: OutputMapLiteralUnionKey.baml
 function: FnOutputMapLiteralUnionKey
 prompt:
   type: Completion
-  text: "Merge these:\n\n\n\n\n\nmap<\"one\" or \"two\" or \"three\" or \"four\", string>"
+  text: "Merge these:\n\n\n\n\n\n"

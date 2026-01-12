@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use baml_compiler_tir::Ty;
 use baml_db::baml_workspace::Project;
-use baml_jinja_runtime::{RenderContext, RenderContext_Client};
+use baml_jinja_runtime::{LlmClientSpec, RenderContext};
 use baml_project::ProjectDatabase as RootDatabase;
 use ir_stub::{BamlMap, BamlValue};
 
@@ -319,7 +319,7 @@ impl BamlProgram {
         let (provider, default_role, allowed_roles) = parse_client_config(&client_name);
 
         Ok(RenderContext {
-            client: RenderContext_Client {
+            client: LlmClientSpec {
                 name: client_name,
                 provider,
                 default_role,

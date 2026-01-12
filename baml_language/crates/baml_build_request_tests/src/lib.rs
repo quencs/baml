@@ -153,6 +153,55 @@ impl From<&MessagePart> for ChatMessagePartSnapshot {
     }
 }
 
+// ============================================================================
+// Conversions from baml_llm_interface types
+// ============================================================================
+
+impl From<&baml_llm_interface::RenderedPrompt> for RenderedPromptSnapshot {
+    fn from(prompt: &baml_llm_interface::RenderedPrompt) -> Self {
+        match prompt {
+            baml_llm_interface::RenderedPrompt::Completion(text) => {
+                RenderedPromptSnapshot::Completion { text: text.clone() }
+            }
+            baml_llm_interface::RenderedPrompt::Chat(messages) => RenderedPromptSnapshot::Chat {
+                messages: messages.iter().map(ChatMessageSnapshot::from).collect(),
+            },
+        }
+    }
+}
+
+impl From<&baml_llm_interface::RenderedChatMessage> for ChatMessageSnapshot {
+    fn from(msg: &baml_llm_interface::RenderedChatMessage) -> Self {
+        ChatMessageSnapshot {
+            role: msg.role.clone(),
+            content: msg
+                .parts
+                .iter()
+                .map(ChatMessagePartSnapshot::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<&baml_llm_interface::ChatMessagePart> for ChatMessagePartSnapshot {
+    fn from(part: &baml_llm_interface::ChatMessagePart) -> Self {
+        match part {
+            baml_llm_interface::ChatMessagePart::Text(text) => {
+                ChatMessagePartSnapshot::Text { text: text.clone() }
+            }
+            baml_llm_interface::ChatMessagePart::Media(media) => ChatMessagePartSnapshot::Media {
+                media_type: format!("{}", media.media_type),
+            },
+            baml_llm_interface::ChatMessagePart::WithMeta(part, meta) => {
+                ChatMessagePartSnapshot::WithMeta {
+                    inner: Box::new(ChatMessagePartSnapshot::from(part.as_ref())),
+                    meta: serde_json::to_value(meta).unwrap_or_default(),
+                }
+            }
+        }
+    }
+}
+
 /// Render a prompt for a fixture file using BamlProgram.
 ///
 /// The function name is derived from the PascalCase fixture name:

@@ -5,19 +5,16 @@
 //! - `RenderedPrompt` - The result of rendering a prompt template
 
 mod baml_value_to_jinja;
-mod chat_message_part;
-
-pub use baml_value_to_jinja::IntoMiniJinjaValue;
-pub use chat_message_part::ChatMessagePart;
-
-use baml_value_to_jinja::MAGIC_MEDIA_DELIMITER;
 
 use std::collections::HashMap;
 
+// Re-export LLM interface types
+pub use baml_llm_interface::{ChatMessagePart, LlmClientSpec, RenderedChatMessage, RenderedPrompt};
+pub use baml_value_to_jinja::IntoMiniJinjaValue;
+use baml_value_to_jinja::MAGIC_MEDIA_DELIMITER;
 use ir_stub::{BamlMedia, BamlValue};
-use indexmap::IndexMap;
-use minijinja::{context, value::Kwargs, ErrorKind};
-use serde::{Deserialize, Serialize};
+use minijinja::{ErrorKind, context, value::Kwargs};
+use serde::Deserialize;
 
 const MAGIC_CHAT_ROLE_DELIMITER: &str = "BAML_CHAT_ROLE_MAGIC_STRING_DELIMITER";
 
@@ -25,46 +22,11 @@ const MAGIC_CHAT_ROLE_DELIMITER: &str = "BAML_CHAT_ROLE_MAGIC_STRING_DELIMITER";
 // Render Context
 // ============================================================================
 
-/// Client configuration for rendering.
-#[allow(non_camel_case_types)]
-#[derive(Clone, Debug, Serialize)]
-pub struct RenderContext_Client {
-    /// The name of the client.
-    pub name: String,
-    /// The provider (e.g., "openai", "anthropic").
-    pub provider: String,
-    /// Default role for messages without explicit role.
-    pub default_role: String,
-    /// Allowed roles for this client.
-    pub allowed_roles: Vec<String>,
-    /// Role remapping (e.g., "user" -> "human" for Anthropic).
-    pub remap_role: HashMap<String, String>,
-    /// Additional client options.
-    pub options: IndexMap<String, serde_json::Value>,
-}
-
-impl Default for RenderContext_Client {
-    fn default() -> Self {
-        Self {
-            name: "default".to_string(),
-            provider: "openai".to_string(),
-            default_role: "system".to_string(),
-            allowed_roles: vec![
-                "system".to_string(),
-                "user".to_string(),
-                "assistant".to_string(),
-            ],
-            remap_role: HashMap::new(),
-            options: IndexMap::new(),
-        }
-    }
-}
-
 /// Context for rendering a prompt.
 #[derive(Debug)]
 pub struct RenderContext {
     /// Client configuration.
-    pub client: RenderContext_Client,
+    pub client: LlmClientSpec,
     /// Tags available in the template.
     pub tags: HashMap<String, BamlValue>,
 }
@@ -72,56 +34,8 @@ pub struct RenderContext {
 impl Default for RenderContext {
     fn default() -> Self {
         Self {
-            client: RenderContext_Client::default(),
+            client: LlmClientSpec::default(),
             tags: HashMap::new(),
-        }
-    }
-}
-
-// ============================================================================
-// Rendered Prompt
-// ============================================================================
-
-/// A rendered chat message.
-#[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct RenderedChatMessage {
-    /// The role of this message.
-    pub role: String,
-    /// Whether duplicate roles are allowed.
-    pub allow_duplicate_role: bool,
-    /// The message parts.
-    pub parts: Vec<ChatMessagePart>,
-}
-
-/// The result of rendering a prompt template.
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum RenderedPrompt {
-    /// A completion prompt (single string).
-    Completion(String),
-    /// A chat prompt (multiple messages with roles).
-    Chat(Vec<RenderedChatMessage>),
-}
-
-impl std::fmt::Display for RenderedPrompt {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            RenderedPrompt::Completion(s) => write!(f, "{s}"),
-            RenderedPrompt::Chat(messages) => {
-                for message in messages {
-                    writeln!(
-                        f,
-                        "{}: {}",
-                        message.role,
-                        message
-                            .parts
-                            .iter()
-                            .map(ChatMessagePart::to_string)
-                            .collect::<Vec<String>>()
-                            .join("")
-                    )?;
-                }
-                Ok(())
-            }
         }
     }
 }
@@ -173,28 +87,6 @@ pub fn render_prompt(
         allowed_roles,
         remap_role,
     )
-}
-
-/// Render a template with simple variable substitution (legacy).
-///
-/// For backwards compatibility with simple use cases.
-pub fn render_template(
-    template: &str,
-    context: &IndexMap<String, BamlValue>,
-) -> Result<String, RenderError> {
-    let mut env = minijinja::Environment::new();
-    env.add_template("template", template)?;
-
-    let tmpl = env.get_template("template")?;
-
-    // Convert context to minijinja values
-    let ctx: IndexMap<&str, minijinja::Value> = context
-        .iter()
-        .map(|(k, v)| (k.as_str(), v.to_minijinja_value()))
-        .collect();
-
-    let rendered = tmpl.render(minijinja::Value::from_iter(ctx))?;
-    Ok(rendered)
 }
 
 fn render_minijinja(
@@ -359,7 +251,7 @@ fn render_minijinja(
                         Err(_) => {
                             return Err(RenderError::Other(format!(
                                 "Media variable had unrecognizable data: {media_data}"
-                            )))
+                            )));
                         }
                     }
                 } else if !part.trim().is_empty() {
@@ -411,7 +303,10 @@ pub fn evaluate_predicate(
     let mut env = minijinja::Environment::new();
 
     // Create a template that evaluates the expression
-    let template = format!("{{% if {} %}}true{{% else %}}false{{% endif %}}", expression.0);
+    let template = format!(
+        "{{% if {} %}}true{{% else %}}false{{% endif %}}",
+        expression.0
+    );
     env.add_template("predicate", &template)?;
 
     let tmpl = env.get_template("predicate")?;
@@ -428,28 +323,9 @@ pub fn evaluate_predicate(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ir_stub::BamlMap;
 
-    #[test]
-    fn test_render_template_simple() {
-        let mut ctx = IndexMap::new();
-        ctx.insert("name".to_string(), BamlValue::String("Alice".to_string()));
-
-        let result = render_template("Hello, {{ name }}!", &ctx);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Hello, Alice!");
-    }
-
-    #[test]
-    fn test_render_template_with_int() {
-        let mut ctx = IndexMap::new();
-        ctx.insert("count".to_string(), BamlValue::Int(42));
-
-        let result = render_template("Count: {{ count }}", &ctx);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Count: 42");
-    }
+    use super::*;
 
     #[test]
     fn test_render_prompt_completion() {
@@ -566,5 +442,4 @@ Hello"#;
         assert!(result.is_ok());
         assert!(result.unwrap());
     }
-
 }

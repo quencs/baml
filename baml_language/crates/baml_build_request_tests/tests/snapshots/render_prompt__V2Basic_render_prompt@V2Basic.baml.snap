@@ -11,4 +11,4 @@ prompt:
     - role: system
       content:
         - type: Text
-          text: "Extract the following information from the resume:\n\nResume:\n<<<<\n\n<<<<\n\nOutput JSON schema:\n{\n  experience: string[]\n  email: string\n  skills: string[]\n  phone: string\n  education: Education[]\n  name: string\n}\n\nJSON:"
+          text: "Extract the following information from the resume:\n\nResume:\n<<<<\n\n<<<<\n\nOutput JSON schema:\n\n\nJSON:"

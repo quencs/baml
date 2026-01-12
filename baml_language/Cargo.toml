@@ -35,6 +35,7 @@ baml_db = { path = "crates/baml_db" }
 baml_ide = { path = "crates/baml_ide" }
 baml_ide_tests = { path = "crates/baml_ide_tests" }
 baml_jinja_runtime = { path = "crates/baml_jinja_runtime" }
+baml_llm_interface = { path = "crates/baml_llm_interface" }
 baml_jsonish = { path = "crates/baml_jsonish" }
 baml_lsp = { path = "crates/baml_lsp" }
 baml_lsp_types = { path = "crates/baml_lsp_types" }

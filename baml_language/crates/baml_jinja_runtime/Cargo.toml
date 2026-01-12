@@ -11,6 +11,7 @@ dead_code = "allow"
 
 [dependencies]
 baml_base.workspace = true
+baml_llm_interface.workspace = true
 ir_stub.workspace = true
 serde.workspace = true
 serde_json.workspace = true
