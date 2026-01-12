@@ -3,7 +3,7 @@
 use std::{fs, path::Path};
 
 use baml_build_request_tests::{
-    derive_function_name, render_prompt_for_fixture, PromptSnapshot, RenderedPromptSnapshot,
+    PromptSnapshot, RenderedPromptSnapshot, derive_function_name, render_prompt_for_fixture,
 };
 use serde::Serialize;
 
@@ -51,10 +51,7 @@ fn render_prompt_snapshots() {
 fn run_render_prompt_fixture(path: &Path, fixture_name: &str) -> anyhow::Result<PromptSnapshot> {
     let contents = fs::read_to_string(path)?;
 
-    // Derive function name from fixture name
     let func_name = derive_function_name(fixture_name);
-
-    // Render prompt using BamlRuntime
     let rendered = render_prompt_for_fixture(&contents, fixture_name)?;
 
     Ok(PromptSnapshot {

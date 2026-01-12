@@ -16,12 +16,13 @@
 
 use std::path::Path;
 
-use baml_db::{SourceFile, Setter};
+use baml_db::{Setter, SourceFile, baml_workspace::Project};
+use baml_program::{
+    BamlMap, BamlProgram,
+    context::DynamicBamlContext,
+    prompt::{MediaContent, MessagePart, RenderedMessage, RenderedPrompt, Role},
+};
 use baml_project::ProjectDatabase as RootDatabase;
-use baml_db::baml_workspace::Project;
-use baml_program::context::DynamicBamlContext;
-use baml_program::prompt::{MediaContent, MessagePart, RenderedMessage, RenderedPrompt, Role};
-use baml_program::{BamlRuntime, BamlMap};
 use serde::Serialize;
 
 /// Load a BAML file and create a database with proper project setup.
@@ -86,9 +87,16 @@ pub struct ChatMessageSnapshot {
 #[derive(Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum ChatMessagePartSnapshot {
-    Text { text: String },
-    Media { media_type: String },
-    WithMeta { inner: Box<ChatMessagePartSnapshot>, meta: serde_json::Value },
+    Text {
+        text: String,
+    },
+    Media {
+        media_type: String,
+    },
+    WithMeta {
+        inner: Box<ChatMessagePartSnapshot>,
+        meta: serde_json::Value,
+    },
 }
 
 impl From<&RenderedPrompt> for RenderedPromptSnapshot {
@@ -117,7 +125,11 @@ impl From<&RenderedMessage> for ChatMessageSnapshot {
     fn from(msg: &RenderedMessage) -> Self {
         ChatMessageSnapshot {
             role: msg.role.as_str().to_string(),
-            content: msg.parts.iter().map(ChatMessagePartSnapshot::from).collect(),
+            content: msg
+                .parts
+                .iter()
+                .map(ChatMessagePartSnapshot::from)
+                .collect(),
         }
     }
 }
@@ -141,7 +153,7 @@ impl From<&MessagePart> for ChatMessagePartSnapshot {
     }
 }
 
-/// Render a prompt for a fixture file using BamlRuntime.
+/// Render a prompt for a fixture file using BamlProgram.
 ///
 /// The function name is derived from the PascalCase fixture name:
 /// - `OutputEnum.baml` -> `FnOutputEnum`
@@ -152,7 +164,7 @@ pub fn render_prompt_for_fixture(
     let (db, _source, project) = load_baml_file(baml_content);
 
     // Create the runtime
-    let runtime = BamlRuntime::with_project(db, project);
+    let runtime = BamlProgram::with_project(db, project);
 
     // Derive function name from fixture name
     let func_name = derive_function_name(fixture_name);
@@ -169,4 +181,3 @@ pub fn render_prompt_for_fixture(
         .render_prompt(&prepared, &dynamic_ctx)
         .map_err(|e| anyhow::anyhow!("Failed to render prompt: {}", e))
 }
-
