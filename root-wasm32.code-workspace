@@ -1,32 +1,7 @@
 {
   "folders": [
     {
-      "name": "baml",
       "path": "."
-    },
-    {
-      "path": ".github"
-    },
-    {
-      "path": "fern"
-    },
-    {
-      "path": "engine"
-    },
-    {
-      "path": "engine/baml-schema-wasm"
-    },
-    {
-      "path": "integ-tests"
-    },
-    {
-      "path": "release"
-    },
-    {
-      "path": "tools"
-    },
-    {
-      "path": "typescript"
     }
   ],
   "settings": {
