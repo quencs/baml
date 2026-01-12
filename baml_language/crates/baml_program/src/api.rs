@@ -34,20 +34,20 @@ use crate::{
 
 /// The BAML runtime - main entry point for executing BAML functions.
 ///
-/// BamlRuntime holds a compiled BAML database and provides methods for:
+/// BamlProgram holds a compiled BAML database and provides methods for:
 /// - Preparing functions for execution
 /// - Rendering prompts
 /// - Building provider requests
 /// - Executing functions (with or without streaming)
-pub struct BamlRuntime {
+pub struct BamlProgram {
     /// The compiled BAML database.
     db: RootDatabase,
     /// The project context (for type resolution).
     project: Project,
 }
 
-impl BamlRuntime {
-    /// Create a new BamlRuntime from a compiled database.
+impl BamlProgram {
+    /// Create a new BamlProgram from a compiled database.
     ///
     /// The database must have a project set (via `set_project_root`).
     pub fn new(db: RootDatabase) -> Result<Self, RuntimeError> {
@@ -57,7 +57,7 @@ impl BamlRuntime {
         Ok(Self { db, project })
     }
 
-    /// Create a BamlRuntime from a database and explicit project.
+    /// Create a BamlProgram from a database and explicit project.
     pub fn with_project(db: RootDatabase, project: Project) -> Self {
         Self { db, project }
     }
@@ -531,12 +531,12 @@ mod tests {
         )
     }
 
-    fn create_test_runtime() -> BamlRuntime {
+    fn create_test_runtime() -> BamlProgram {
         // Create a minimal database for testing
         let mut db = RootDatabase::default();
         let project = db.set_project_root("/tmp/test");
 
-        BamlRuntime::with_project(db, project)
+        BamlProgram::with_project(db, project)
     }
 
     #[test]

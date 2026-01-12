@@ -1,7 +1,7 @@
-mod baml_runtime;
+mod baml_program;
 mod hot_reload_testdata;
 
-pub use baml_runtime::BamlRuntime;
+pub use baml_program::BamlProgram;
 pub use hot_reload_testdata::hot_reload_test_string;
 use wasm_bindgen::prelude::*;
 

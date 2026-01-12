@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 
 /// A basic runtime wrapper around BAML source content.
 #[wasm_bindgen]
-pub struct BamlRuntime {
+pub struct BamlProgram {
     baml_src: String,
     db: ProjectDatabase,
     project: baml_workspace::Project,
@@ -15,9 +15,9 @@ pub struct BamlRuntime {
 }
 
 #[wasm_bindgen]
-impl BamlRuntime {
+impl BamlProgram {
     #[wasm_bindgen(constructor)]
-    pub fn new(baml_src: String) -> BamlRuntime {
+    pub fn new(baml_src: String) -> BamlProgram {
         use baml_db::Setter;
 
         let mut db = ProjectDatabase::new();
@@ -31,7 +31,7 @@ impl BamlRuntime {
         // Wire up the project to include this file
         project.set_files(&mut db).to(vec![source_file]);
 
-        BamlRuntime {
+        BamlProgram {
             baml_src,
             db,
             project,
@@ -164,7 +164,7 @@ impl BamlRuntime {
     }
 }
 
-impl BamlRuntime {
+impl BamlProgram {
     /// Find a FunctionLoc by name, using the shared function_lookup module.
     fn find_function_by_name(&self, name: &str) -> Option<baml_compiler_hir::FunctionLoc<'_>> {
         function_lookup::find_function_by_name(&self.db, self.project, name)
@@ -278,7 +278,7 @@ impl BuildRequestResult {
 }
 
 #[wasm_bindgen]
-impl BamlRuntime {
+impl BamlProgram {
     /// Render a prompt for a function without executing.
     ///
     /// Takes a function name and JSON-encoded arguments.
@@ -312,7 +312,7 @@ impl BamlRuntime {
             baml_program::PromptTemplate::new("{{ input }} and this is more"),
         );
 
-        // TODO: render_prompt is now a method on BamlRuntime, not a free function
+        // TODO: render_prompt is now a method on BamlProgram, not a free function
         // This needs to be updated when the runtime API is finalized
         let _ = prepared;
         RenderPromptResult {
@@ -358,7 +358,7 @@ impl BamlRuntime {
         // Create context
         let ctx = baml_program::context::PerCallContext::new();
 
-        // TODO: render_raw_curl is now a method on BamlRuntime, not a free function
+        // TODO: render_raw_curl is now a method on BamlProgram, not a free function
         // This needs to be updated when the runtime API is finalized
         let _ = (prepared, ctx, expose_secrets);
         RenderCurlResult {
@@ -403,7 +403,7 @@ impl BamlRuntime {
             baml_program::PromptTemplate::new("{{ input }}"),
         );
 
-        // TODO: build_request is now a method on BamlRuntime, not a free function
+        // TODO: build_request is now a method on BamlProgram, not a free function
         // This needs to be updated when the runtime API is finalized
         let _ = (prepared, stream);
         BuildRequestResult {
