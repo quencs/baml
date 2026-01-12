@@ -18,5 +18,5 @@ doctest = false
 workspace = true
 
 [dependencies]
-# No dependencies - this is a pure data crate
+baml_builtins_macros = { workspace = true }
 
