@@ -116,3 +116,78 @@ pub enum Severity {
     Warning,
     Info,
 }
+
+/// The value component of a literal type.
+///
+/// In type theory, literal types (also called singleton types) are types
+/// inhabited by exactly one value. For example, `LiteralValue::Int(42)`
+/// represents the value `42` which defines the literal type `{42}`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum LiteralValue {
+    Int(i64),
+    /// Float literal stored as string to avoid f64's lack of Eq/Hash.
+    Float(String),
+    String(String),
+    Bool(bool),
+}
+
+impl fmt::Display for LiteralValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LiteralValue::Int(v) => write!(f, "{v}"),
+            LiteralValue::Float(v) => write!(f, "{v}"),
+            LiteralValue::String(v) => write!(f, "\"{v}\""),
+            LiteralValue::Bool(v) => write!(f, "{v}"),
+        }
+    }
+}
+
+/// A resolved type in BAML (simplified version for output format).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Ty {
+    // Primitive types
+    Int,
+    Float,
+    String,
+    Bool,
+    Null,
+
+    // Media types
+    Image,
+    Audio,
+    Video,
+    Pdf,
+
+    /// Literal type: a type inhabited by exactly one value.
+    Literal(LiteralValue),
+
+    // User-defined types (resolved by name)
+    Class(Name),
+    Enum(Name),
+
+    /// Named type (unresolved class/enum by name).
+    Named(Name),
+
+    // Type constructors
+    Optional(Box<Ty>),
+    List(Box<Ty>),
+    Map {
+        key: Box<Ty>,
+        value: Box<Ty>,
+    },
+    Union(Vec<Ty>),
+
+    /// Function/arrow type: `(T1, T2, ...) -> R`
+    Function {
+        params: Vec<Ty>,
+        ret: Box<Ty>,
+    },
+
+    // Special types
+    Unknown,
+    Error,
+    Void,
+
+    /// Watch accessor type: represents `x.$watch` on a watched variable.
+    WatchAccessor(Box<Ty>),
+}

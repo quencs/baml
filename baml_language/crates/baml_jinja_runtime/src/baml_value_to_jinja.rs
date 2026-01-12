@@ -171,19 +171,6 @@ impl Object for MinijinjaBamlEnumValue {
         std::fmt::Display::fmt(self, f)
     }
 
-    fn value_cmp(self: &Arc<Self>, other: &minijinja::Value) -> Option<std::cmp::Ordering> {
-        // Compare against value name only (not alias) for backwards compatibility
-        if let Some(other_str) = other.as_str() {
-            return Some(self.value.as_str().cmp(other_str));
-        }
-
-        if let Some(other_obj) = other.as_object() {
-            return self.custom_cmp(other_obj);
-        }
-
-        None
-    }
-
     fn custom_cmp(
         self: &Arc<Self>,
         other: &minijinja::value::DynObject,

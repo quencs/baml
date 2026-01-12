@@ -18,8 +18,10 @@ version = "0.0.0"
 [workspace.dependencies]
 #  Internal dependencies (baml_*)
 baml_base = { path = "crates/baml_base" }
+baml_build_request_tests = { path = "crates/baml_build_request_tests" }
 baml_builtins = { path = "crates/baml_builtins" }
 baml_builtins_macros = { path = "crates/baml_builtins_macros" }
+baml_cli = { path = "crates/baml_cli" }
 baml_compiler_diagnostics = { path = "crates/baml_compiler_diagnostics" }
 baml_compiler_emit = { path = "crates/baml_compiler_emit" }
 baml_compiler_hir = { path = "crates/baml_compiler_hir" }
@@ -31,14 +33,22 @@ baml_compiler_tir = { path = "crates/baml_compiler_tir" }
 baml_compiler_vir = { path = "crates/baml_compiler_vir" }
 baml_db = { path = "crates/baml_db" }
 baml_ide = { path = "crates/baml_ide" }
+baml_ide_tests = { path = "crates/baml_ide_tests" }
+baml_jinja_runtime = { path = "crates/baml_jinja_runtime" }
+baml_jsonish = { path = "crates/baml_jsonish" }
 baml_lsp = { path = "crates/baml_lsp" }
 baml_lsp_types = { path = "crates/baml_lsp_types" }
+baml_output_format = { path = "crates/baml_output_format" }
+baml_playground_wasm = { path = "crates/baml_playground_wasm" }
+baml_program = { path = "crates/baml_program" }
 baml_project = { path = "crates/baml_project" }
 baml_tests = { path = "crates/baml_tests" }
 baml_tools_onionskin = { path = "crates/baml_tools_onionskin" }
+baml_tools_stow = { path = "crates/baml_tools_stow" }
 baml_vm = { path = "crates/baml_vm" }
 baml_vm_types = { path = "crates/baml_vm_types" }
 baml_workspace = { path = "crates/baml_workspace" }
+ir_stub = { path = "crates/ir_stub" }
 
 #  External dependencies
 anyhow = { version = "1" }
@@ -46,6 +56,7 @@ arboard = "3.4"
 ariadne = { version = "0.6" }
 axum = { version = "0.8.4", features = [ "ws" ] }
 cfg-if = "1.0.0"
+chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4.6", features = [ "cargo", "derive" ] }
 clap-cargo = "0.14.1"
 colored = { version = "2.1.0" }
@@ -73,6 +84,7 @@ lsp-server = "0.7.6"
 lsp-types = "0.95.0"
 memchr = { version = "2.7.1" }
 mime_guess = "2.0.5"
+minijinja = { version = "2", features = ["builtins", "debug"] }
 notify = "7.0"
 parking_lot = { version = "0.12", features = [ "deadlock_detection" ] }
 paste = "1.0"
@@ -117,6 +129,7 @@ thiserror = { version = "2.0.0" }
 toml = { version = "0.8" }
 toml_edit = { version = "0.22" }
 tokio = { version = "1.36", features = [ "full", "tracing" ] }
+tokio-util = { version = "0.7" }
 tower = "0.5"
 tower-http = { version = "0.6.6", features = [ "fs", "cors" ] }
 tracing = { version = "0.1.40" }
@@ -126,6 +139,7 @@ tracing-subscriber = { version = "0.3.18", default-features = false, features = 
   "fmt",
 ] }
 url = "2.5.2"
+uuid = { version = "1", features = ["v4", "serde"] }
 walkdir = { version = "2.4" }
 wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3"
