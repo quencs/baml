@@ -650,6 +650,7 @@ dependencies = [
  "baml_program",
  "baml_project",
  "console_error_panic_hook",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "wee_alloc",

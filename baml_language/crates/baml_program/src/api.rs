@@ -11,24 +11,26 @@
 
 use std::collections::HashMap;
 
-use baml_db::baml_workspace::Project;
-use baml_project::ProjectDatabase as RootDatabase;
-use baml_jinja_runtime::{RenderContext, RenderContext_Client};
 use baml_compiler_tir::Ty;
+use baml_db::baml_workspace::Project;
+use baml_jinja_runtime::{RenderContext, RenderContext_Client};
+use baml_project::ProjectDatabase as RootDatabase;
 use ir_stub::{BamlMap, BamlValue};
 
-use crate::context::{DynamicBamlContext, PerCallContext, SharedCallContext};
-use crate::errors::RuntimeError;
-use crate::function_lookup::{find_function_by_name, get_function_info, FunctionBodyInfo};
-use crate::llm_request::openai::{OpenAiClientConfig, OpenAiRequest};
-use crate::orchestrator::{
-    orchestrate_call, orchestrate_stream, ClientConfig, FunctionResultStream, OrchestratorConfig,
-    OrchestratorNode, OrchestrationScope, ProviderType,
+use crate::{
+    context::{DynamicBamlContext, PerCallContext, SharedCallContext},
+    errors::RuntimeError,
+    function_lookup::{FunctionBodyInfo, find_function_by_name, get_function_info},
+    llm_request::openai::{OpenAiClientConfig, OpenAiRequest},
+    orchestrator::{
+        ClientConfig, FunctionResultStream, OrchestrationScope, OrchestratorConfig,
+        OrchestratorNode, ProviderType, orchestrate_call, orchestrate_stream,
+    },
+    prepared_function::PreparedFunction,
+    prompt::{MediaContent, MediaType, MessagePart, RenderedMessage, RenderedPrompt, Role},
+    render_options::RenderOptions,
+    types::{FunctionResult, TestResult},
 };
-use crate::prepared_function::PreparedFunction;
-use crate::prompt::{MediaContent, MediaType, MessagePart, RenderedMessage, RenderedPrompt, Role};
-use crate::render_options::RenderOptions;
-use crate::types::{FunctionResult, TestResult};
 
 /// The BAML runtime - main entry point for executing BAML functions.
 ///
@@ -80,9 +82,8 @@ impl BamlRuntime {
         args: BamlMap,
     ) -> Result<PreparedFunction, RuntimeError> {
         // Find the function by name
-        let func_loc = find_function_by_name(&self.db, self.project, function_name).ok_or_else(
-            || RuntimeError::FunctionNotFound(function_name.to_string()),
-        )?;
+        let func_loc = find_function_by_name(&self.db, self.project, function_name)
+            .ok_or_else(|| RuntimeError::FunctionNotFound(function_name.to_string()))?;
 
         // Get function info with resolved types
         let func_info = get_function_info(&self.db, self.project, func_loc);
@@ -103,19 +104,21 @@ impl BamlRuntime {
                 return Err(RuntimeError::Validation(format!(
                     "Function '{}' is an expression function, not an LLM function",
                     function_name
-                )))
+                )));
             }
             FunctionBodyInfo::Missing => {
                 return Err(RuntimeError::Validation(format!(
                     "Function '{}' has no body",
                     function_name
-                )))
+                )));
             }
         };
 
         // Extract client spec
         let client_name = match &func_info.body {
-            FunctionBodyInfo::Llm(llm) => llm.client.clone().unwrap_or_else(|| "default".to_string()),
+            FunctionBodyInfo::Llm(llm) => {
+                llm.client.clone().unwrap_or_else(|| "default".to_string())
+            }
             _ => "default".to_string(),
         };
         let client_spec = ir_stub::ClientSpec::new(&client_name);
@@ -183,10 +186,7 @@ impl BamlRuntime {
 
         // Convert to FunctionResult
         Ok(FunctionResult {
-            value: result
-                .response
-                .map(|r| r.value)
-                .unwrap_or(BamlValue::Null),
+            value: result.response.map(|r| r.value).unwrap_or(BamlValue::Null),
             attempts: result
                 .attempts
                 .iter()
@@ -236,7 +236,8 @@ impl BamlRuntime {
         per_call_ctx: &PerCallContext,
     ) -> Result<TestResult, RuntimeError> {
         // Execute the function
-        let function_result = self.call_function(prepared, shared_ctx, dynamic_ctx, per_call_ctx)?;
+        let function_result =
+            self.call_function(prepared, shared_ctx, dynamic_ctx, per_call_ctx)?;
 
         // TODO: Evaluate constraints from the function definition
         // For now, return empty constraint results
@@ -338,13 +339,8 @@ fn ty_to_type_ref(ty: &Ty) -> ir_stub::TypeRef {
         Ty::String => ir_stub::TypeRef::string(),
         Ty::Bool => ir_stub::TypeRef::bool(),
         Ty::Null => ir_stub::TypeRef::new("null"),
-        Ty::Image => ir_stub::TypeRef::new("image"),
-        Ty::Audio => ir_stub::TypeRef::new("audio"),
-        Ty::Video => ir_stub::TypeRef::new("video"),
-        Ty::Pdf => ir_stub::TypeRef::new("pdf"),
-        Ty::Named(name) | Ty::Class(name) | Ty::Enum(name) => {
-            ir_stub::TypeRef::new(name.as_str())
-        }
+        Ty::Media(media_kind) => ir_stub::TypeRef::new(media_kind.to_string()),
+        Ty::Named(name) | Ty::Class(name) | Ty::Enum(name) => ir_stub::TypeRef::new(name.as_str()),
         Ty::List(inner) => {
             let inner_ref = ty_to_type_ref(inner);
             ir_stub::TypeRef::new(format!("{}[]", inner_ref.name))
@@ -515,10 +511,12 @@ fn build_orchestrator_config(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use ir_stub::{ClientSpec, PromptTemplate, TypeRef};
+
     use super::*;
     use crate::types::BamlMap;
-    use ir_stub::{ClientSpec, PromptTemplate, TypeRef};
-    use std::collections::HashMap;
 
     fn create_test_prepared() -> PreparedFunction {
         let mut args = BamlMap::new();

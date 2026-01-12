@@ -11,6 +11,7 @@ baml_db = { workspace = true }
 baml_program = { workspace = true }
 baml_project = { workspace = true }
 console_error_panic_hook = { workspace = true, optional = true }
+serde_json.workspace = true
 wasm-bindgen = { workspace = true }
 wee_alloc = { workspace = true, optional = true }
 
