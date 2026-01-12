@@ -646,6 +646,8 @@ dependencies = [
 name = "baml_playground_wasm"
 version = "0.1.0"
 dependencies = [
+ "baml_db",
+ "baml_program",
  "baml_project",
  "console_error_panic_hook",
  "wasm-bindgen",
