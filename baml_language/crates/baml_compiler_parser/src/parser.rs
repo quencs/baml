@@ -165,6 +165,13 @@ pub(crate) struct Parser<'a> {
     tokens: &'a [Token],
     current: usize,
     events: Vec<Event>,
+    /// Track pending '>' tokens from split '>>' (for nested generics like `map<K, map<K2, V>>`).
+    pending_greaters: u8,
+    /// Track the span of the '>>' token that created the pending '>', for error reporting.
+    pending_greater_span: Option<Span>,
+    /// Track nesting depth of generic type arguments (`TYPE_ARGS`, `GENERIC_ARGS`).
+    /// Used to detect unmatched '>' when exiting the outermost generic.
+    type_args_depth: u32,
 }
 
 impl<'a> Parser<'a> {
@@ -173,6 +180,9 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             events: Vec::new(),
+            pending_greaters: 0,
+            pending_greater_span: None,
+            type_args_depth: 0,
         }
     }
 
@@ -573,6 +583,210 @@ impl<'a> Parser<'a> {
                     | TokenKind::TypeBuilder
             )
         )
+    }
+
+    /// Expect a '>' token, but also accept '>>' and consume only one '>'.
+    /// This handles nested generics like `map<K, map<K2, V>>` where the lexer
+    /// tokenizes '>>' as a single token.
+    ///
+    /// Returns true if a '>' was consumed (either standalone or as part of '>>').
+    fn expect_greater(&mut self) -> bool {
+        // First check if we have a pending '>' from a previous '>>' split.
+        // Don't emit anything - the '>>' token is already in the tree.
+        if self.pending_greaters > 0 {
+            self.pending_greaters -= 1;
+            if self.pending_greaters == 0 {
+                self.pending_greater_span = None;
+            }
+            return true;
+        }
+
+        if self.at(TokenKind::Greater) {
+            self.bump();
+            true
+        } else if self.at(TokenKind::GreaterGreater) {
+            // Handle '>>' as two '>':
+            // - Consume the '>>' token (adds it to tree once)
+            // - Track that the second '>' is pending for the outer generic
+            let span = self.current().map(|t| t.span);
+            self.bump();
+            self.pending_greaters += 1;
+            self.pending_greater_span = span;
+            true
+        } else {
+            self.error_unexpected_token("'>'".to_string());
+            false
+        }
+    }
+
+    /// Skip tokens until we find a balanced closing parenthesis.
+    /// Used for error recovery in tuple/parenthesized type expressions.
+    fn skip_to_balanced_paren(&mut self) {
+        let mut paren_depth = 1;
+        let mut bracket_depth = 0;
+        while !self.at_end() && paren_depth > 0 {
+            match self.current().map(|t| t.kind) {
+                Some(TokenKind::LParen) => {
+                    paren_depth += 1;
+                    self.bump();
+                }
+                Some(TokenKind::RParen) => {
+                    paren_depth -= 1;
+                    if paren_depth > 0 {
+                        self.bump();
+                    }
+                    // Don't bump the final ')' - let the caller consume it
+                }
+                Some(TokenKind::LBracket) => {
+                    bracket_depth += 1;
+                    self.bump();
+                }
+                Some(TokenKind::RBracket) => {
+                    if bracket_depth > 0 {
+                        bracket_depth -= 1;
+                        self.bump();
+                    } else {
+                        // Unbalanced ] - stop here
+                        break;
+                    }
+                }
+                Some(TokenKind::RBrace) => {
+                    // Hit a closing brace - likely at a higher level, stop here
+                    break;
+                }
+                _ => self.bump(),
+            }
+        }
+    }
+
+    /// Try to recover from an invalid top-level block like `classs Foo { ... }`.
+    ///
+    /// Recognizes the pattern: identifier identifier { ... } (where the first identifier
+    /// looks like a typo for a keyword like class/enum/function).
+    ///
+    /// Returns true if recovery was performed, false otherwise.
+    fn try_recover_invalid_block(&mut self) -> bool {
+        // Check pattern: Word Word LBrace
+        let is_word = self.at(TokenKind::Word);
+        let next_is_word = self
+            .peek(1)
+            .map(|t| t.kind == TokenKind::Word)
+            .unwrap_or(false);
+        let then_lbrace = self
+            .peek(2)
+            .map(|t| t.kind == TokenKind::LBrace)
+            .unwrap_or(false);
+
+        if !is_word || !next_is_word || !then_lbrace {
+            return false;
+        }
+
+        // Get the invalid keyword text for the error message
+        let invalid_keyword = self.current().map(|t| t.text.clone()).unwrap_or_default();
+        let span = self.current().map(|t| t.span).unwrap_or_default();
+
+        // Emit a helpful error message
+        self.error(
+            format!(
+                "Unknown keyword '{invalid_keyword}'. Expected 'class', 'enum', 'function', 'client', 'generator', 'test', or 'type'."
+            ),
+            span,
+        );
+
+        // Wrap the invalid block in an ERROR node
+        self.start_node(SyntaxKind::ERROR);
+
+        // Skip the invalid keyword and name
+        self.bump(); // invalid keyword (e.g., "classs")
+        self.bump(); // name (e.g., "WrongClass")
+
+        // Skip to matching closing brace
+        if self.at(TokenKind::LBrace) {
+            self.bump(); // consume '{'
+            let mut brace_depth = 1;
+
+            while !self.at_end() && brace_depth > 0 {
+                match self.current().map(|t| t.kind) {
+                    Some(TokenKind::LBrace) => {
+                        brace_depth += 1;
+                        self.bump();
+                    }
+                    Some(TokenKind::RBrace) => {
+                        brace_depth -= 1;
+                        self.bump();
+                    }
+                    _ => self.bump(),
+                }
+            }
+        }
+
+        self.finish_node();
+        true
+    }
+
+    /// Try to recover from an invalid type alias declaration like "typpe Name = expr".
+    /// Returns true if recovery was performed.
+    fn try_recover_invalid_type_alias(&mut self) -> bool {
+        // Check pattern: Word Word Equals
+        let is_word = self.at(TokenKind::Word);
+        let next_is_word = self
+            .peek(1)
+            .map(|t| t.kind == TokenKind::Word)
+            .unwrap_or(false);
+        let then_equals = self
+            .peek(2)
+            .map(|t| t.kind == TokenKind::Equals)
+            .unwrap_or(false);
+
+        if !is_word || !next_is_word || !then_equals {
+            return false;
+        }
+
+        // Get the invalid keyword text for the error message
+        let invalid_keyword = self.current().map(|t| t.text.clone()).unwrap_or_default();
+        let span = self.current().map(|t| t.span).unwrap_or_default();
+
+        // Emit a helpful error message
+        self.error(
+            format!(
+                "Unknown keyword '{invalid_keyword}'. Did you mean 'type'? Usage: type Name = expression"
+            ),
+            span,
+        );
+
+        // Wrap the invalid type alias in an ERROR node
+        self.start_node(SyntaxKind::ERROR);
+
+        // Skip the invalid keyword, name, and = sign
+        self.bump(); // invalid keyword (e.g., "typpe")
+        self.bump(); // name (e.g., "Two")
+        self.bump(); // =
+
+        // Skip to end of line (type alias expressions are typically one line)
+        while !self.at_end()
+            && !self.at(TokenKind::Newline)
+            && !self.at(TokenKind::LBrace)
+            && !self.at(TokenKind::RBrace)
+        {
+            // Stop at keywords that would start a new declaration
+            if matches!(
+                self.current().map(|t| t.kind),
+                Some(
+                    TokenKind::Class
+                        | TokenKind::Enum
+                        | TokenKind::Function
+                        | TokenKind::Client
+                        | TokenKind::Generator
+                        | TokenKind::Test
+                )
+            ) {
+                break;
+            }
+            self.bump();
+        }
+
+        self.finish_node();
+        true
     }
 
     // ============ Consumption ============
@@ -1147,6 +1361,7 @@ impl<'a> Parser<'a> {
 
             // Check for generic arguments: map<K, V>
             if self.at(TokenKind::Less) {
+                self.type_args_depth += 1;
                 self.with_node(SyntaxKind::TYPE_ARGS, |p| {
                     p.bump(); // <
 
@@ -1156,8 +1371,24 @@ impl<'a> Parser<'a> {
                         p.parse_type();
                     }
 
-                    p.expect(TokenKind::Greater);
+                    p.expect_greater();
                 });
+                self.type_args_depth -= 1;
+
+                // If we just exited the outermost generic and have pending '>', report error
+                if self.type_args_depth == 0 && self.pending_greaters > 0 {
+                    if let Some(span) = self.pending_greater_span {
+                        self.error(
+                            format!(
+                                "Unmatched '>' in type expression (found {} extra)",
+                                self.pending_greaters
+                            ),
+                            span,
+                        );
+                    }
+                    self.pending_greaters = 0;
+                    self.pending_greater_span = None;
+                }
             }
         } else if self.at(TokenKind::LParen) {
             // Tuple type or parenthesized type
@@ -1165,6 +1396,19 @@ impl<'a> Parser<'a> {
             self.parse_type();
             while self.eat(TokenKind::Comma) {
                 self.parse_type();
+            }
+            // Error recovery: if we're not at ')' yet, skip tokens until we find ')' or reach a recovery point
+            if !self.at(TokenKind::RParen) {
+                if let Some(token) = self.current() {
+                    let message = if token.kind == TokenKind::Dot {
+                        "Path identifiers (e.g., 'a.b') are not supported in type expressions"
+                            .to_string()
+                    } else {
+                        format!("Unexpected '{}' in type expression", token.text)
+                    };
+                    self.error(message, token.span);
+                }
+                self.skip_to_balanced_paren();
             }
             self.expect(TokenKind::RParen);
         } else {
@@ -1330,6 +1574,22 @@ impl<'a> Parser<'a> {
                 {
                     p.bump();
                 }
+            }
+
+            // Check for old-style function syntax: `function Name {` (without parens and return type)
+            // If we see '{' directly after the name, emit a single helpful error and skip to body
+            if p.at(TokenKind::LBrace) {
+                let span = p.current().map(|t| t.span).unwrap_or_default();
+                p.error(
+                    "Old-style function syntax. Use: function Name(params...) -> ReturnType { ... }".to_string(),
+                    span,
+                );
+                // Create empty parameter list node for AST consistency
+                p.start_node(SyntaxKind::PARAMETER_LIST);
+                p.finish_node();
+                // Parse the body
+                p.parse_function_body();
+                return;
             }
 
             // Parameters
@@ -2426,6 +2686,7 @@ impl<'a> Parser<'a> {
 
     /// Parse generic arguments: <Type1, Type2, ...>
     fn parse_generic_args(&mut self) {
+        self.type_args_depth += 1;
         self.with_node(SyntaxKind::GENERIC_ARGS, |p| {
             p.expect(TokenKind::Less);
 
@@ -2442,8 +2703,24 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            p.expect(TokenKind::Greater);
+            p.expect_greater();
         });
+        self.type_args_depth -= 1;
+
+        // If we just exited the outermost generic and have pending '>', report error
+        if self.type_args_depth == 0 && self.pending_greaters > 0 {
+            if let Some(span) = self.pending_greater_span {
+                self.error(
+                    format!(
+                        "Unmatched '>' in type expression (found {} extra)",
+                        self.pending_greaters
+                    ),
+                    span,
+                );
+            }
+            self.pending_greaters = 0;
+            self.pending_greater_span = None;
+        }
     }
 
     /// Check if the current position looks like a map literal rather than a block
@@ -2781,7 +3058,7 @@ impl<'a> Parser<'a> {
                     if p.at(TokenKind::Word) {
                         p.bump(); // type name
                     }
-                    p.expect(TokenKind::Greater); // >
+                    p.expect_greater(); // >
                 });
             }
 
@@ -3234,6 +3511,12 @@ fn parse_impl(tokens: &[Token], cache: Option<&mut NodeCache>) -> (GreenNode, Ve
             parser.parse_let_stmt();
         } else if parser.at_header_comment_start() {
             parser.consume_header_comment();
+        } else if parser.try_recover_invalid_block() {
+            // Successfully recovered from invalid block like "classs Foo { ... }"
+            // Continue parsing
+        } else if parser.try_recover_invalid_type_alias() {
+            // Successfully recovered from invalid type alias like "typpe Foo = int"
+            // Continue parsing
         } else {
             parser.error_unexpected_token("top-level declaration".to_string());
             parser.bump(); // Skip unknown token
