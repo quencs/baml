@@ -1,6 +1,6 @@
 //! Execution context types.
 //!
-//! The runtime uses three context types to manage execution state:
+//! The executor uses three context types to manage execution state:
 //!
 //! - `SharedCallContext` - Session-scoped context, shared across multiple calls
 //! - `DynamicBamlContext` - Optional schema extensions (dynamic types, client overrides)

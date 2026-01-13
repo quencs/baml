@@ -1,0 +1,52 @@
+[package]
+name = "baml_executor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = [ "cdylib", "rlib" ]
+
+[dependencies]
+baml_base.workspace = true
+baml_compiler_hir.workspace = true
+baml_compiler_tir.workspace = true
+baml_db.workspace = true
+baml_jinja_runtime.workspace = true
+baml_jsonish.workspace = true
+baml_llm_interface.workspace = true
+# Internal dependencies
+baml_program.workspace = true
+baml_program_compile.workspace = true
+baml_project.workspace = true
+baml_type_reflection.workspace = true
+chrono.workspace = true
+indexmap.workspace = true
+reqwest = { workspace = true, optional = true }
+
+# External dependencies
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
+uuid.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [ "console" ] }
+getrandom = { version = "0.2", features = [ "js" ] }
+uuid = { version = "1", features = [ "v4", "serde", "js" ] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = [ "rt", "macros" ] }
+wasm-bindgen-test = { workspace = true }
+
+[features]
+default = [ "native" ]
+native = [ "tokio", "reqwest", "tokio-util" ]
+wasm = [  ]

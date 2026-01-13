@@ -7,8 +7,9 @@
 //! - `Name` - Name with optional alias
 
 use std::sync::Arc;
-use indexmap::{IndexMap, IndexSet};
+
 use baml_base::Ty;
+use indexmap::{IndexMap, IndexSet};
 
 /// A name that may have a different rendered form (alias).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -288,8 +289,7 @@ mod tests {
         use baml_base::Name as BaseName;
 
         let e = Enum::new("Status").with_variant("Active", None);
-        let c = Class::new("Person")
-            .with_field("name", Ty::String, None, true);
+        let c = Class::new("Person").with_field("name", Ty::String, None, true);
 
         let of = OutputFormatBuilder::new()
             .with_enum(e)

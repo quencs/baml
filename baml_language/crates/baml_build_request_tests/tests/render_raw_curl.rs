@@ -21,7 +21,7 @@ fn render_raw_curl_snapshots() {
                 .unwrap_or_default()
                 .to_string();
 
-            let _snapshot = run_render_raw_curl_fixture(&fixture).expect("fixture run");
+            run_render_raw_curl_fixture(&fixture).expect("fixture run");
 
             let snapshot_name = format!("{}_render_raw_curl", fixture_name.replace('-', "_"));
             // insta::assert_yaml_snapshot!(snapshot_name, &snapshot);

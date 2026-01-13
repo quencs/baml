@@ -6,7 +6,7 @@ use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_node_experimental);
 
-use baml_playground_wasm::{BamlProject, hot_reload_test_string, version};
+use baml_playground_wasm::{BamlProgram, hot_reload_test_string, version};
 
 #[wasm_bindgen_test]
 fn test_version_returns_string() {
@@ -24,15 +24,15 @@ fn test_hot_reload_test_string() {
 }
 
 #[wasm_bindgen_test]
-fn test_baml_project_new() {
-    let project = BamlProject::new("".to_string());
-    let names = project.function_names();
+fn test_baml_program_new() {
+    let program = BamlProgram::new("".to_string());
+    let names = program.function_names();
     assert!(names.is_empty(), "empty source should have no functions");
 }
 
 #[wasm_bindgen_test]
-fn test_baml_project_function_names() {
-    let project = BamlProject::new(
+fn test_baml_program_function_names() {
+    let program = BamlProgram::new(
         r##"
         function MyFunc(input: string) -> string {
             client "openai/gpt-4o"
@@ -41,16 +41,16 @@ fn test_baml_project_function_names() {
     "##
         .to_string(),
     );
-    let names = project.function_names();
+    let names = program.function_names();
     assert!(names.contains(&"MyFunc".to_string()), "should find MyFunc");
 }
 
 #[wasm_bindgen_test]
-fn test_baml_project_set_source() {
-    let mut project = BamlProject::new("".to_string());
-    assert!(project.function_names().is_empty());
+fn test_baml_program_set_source() {
+    let mut program = BamlProgram::new("".to_string());
+    assert!(program.function_names().is_empty());
 
-    project.set_source(
+    program.set_source(
         r##"
         function AnotherFunc(x: int) -> int {
             client "openai/gpt-4o"
@@ -60,7 +60,7 @@ fn test_baml_project_set_source() {
         .to_string(),
     );
 
-    let names = project.function_names();
+    let names = program.function_names();
     assert!(
         names.contains(&"AnotherFunc".to_string()),
         "should find AnotherFunc after set_source"

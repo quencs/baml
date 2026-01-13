@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use baml_db::{baml_compiler_hir, baml_compiler_tir, baml_workspace, SourceFile};
+use baml_db::{SourceFile, baml_compiler_hir, baml_compiler_tir, baml_workspace};
+use baml_executor::function_lookup;
 use baml_project::ProjectDatabase;
-use baml_program::function_lookup;
 use wasm_bindgen::prelude::*;
 
 /// A basic runtime wrapper around BAML source content.
@@ -289,27 +289,26 @@ impl BamlProgram {
         args_json: &str,
     ) -> RenderPromptResult {
         // Parse arguments
-        let args: baml_program::BamlMap =
-            match serde_json::from_str(args_json) {
-                Ok(args) => args,
-                Err(e) => {
-                    return RenderPromptResult {
-                        success: false,
-                        error: Some(format!("Failed to parse arguments: {}", e)),
-                        prompt: None,
-                        messages_json: None,
-                    };
-                }
-            };
+        let args: baml_executor::BamlMap = match serde_json::from_str(args_json) {
+            Ok(args) => args,
+            Err(e) => {
+                return RenderPromptResult {
+                    success: false,
+                    error: Some(format!("Failed to parse arguments: {}", e)),
+                    prompt: None,
+                    messages_json: None,
+                };
+            }
+        };
 
         // Create a stub prepared function
         // TODO: Get actual prompt template from function definition
-        let prepared = baml_program::PreparedFunction::new_stub(
+        let prepared = baml_executor::PreparedFunction::new_stub(
             function_name,
             args,
-            baml_program::TypeRef::string(),
-            baml_program::ClientSpec::new("openai/gpt-4"),
-            baml_program::PromptTemplate::new("{{ input }} and this is more"),
+            baml_program::Ty::String,
+            "openai/gpt-4",
+            "{{ input }} and this is more",
         );
 
         // TODO: render_prompt is now a method on BamlProgram, not a free function
@@ -334,29 +333,28 @@ impl BamlProgram {
         expose_secrets: bool,
     ) -> RenderCurlResult {
         // Parse arguments
-        let args: baml_program::BamlMap =
-            match serde_json::from_str(args_json) {
-                Ok(args) => args,
-                Err(e) => {
-                    return RenderCurlResult {
-                        success: false,
-                        error: Some(format!("Failed to parse arguments: {}", e)),
-                        curl: None,
-                    };
-                }
-            };
+        let args: baml_executor::BamlMap = match serde_json::from_str(args_json) {
+            Ok(args) => args,
+            Err(e) => {
+                return RenderCurlResult {
+                    success: false,
+                    error: Some(format!("Failed to parse arguments: {}", e)),
+                    curl: None,
+                };
+            }
+        };
 
         // Create a stub prepared function
-        let prepared = baml_program::PreparedFunction::new_stub(
+        let prepared = baml_executor::PreparedFunction::new_stub(
             function_name,
             args,
-            baml_program::TypeRef::string(),
-            baml_program::ClientSpec::new("openai/gpt-4"),
-            baml_program::PromptTemplate::new("{{ input }}"),
+            baml_program::Ty::String,
+            "openai/gpt-4",
+            "{{ input }}",
         );
 
         // Create context
-        let ctx = baml_program::context::PerCallContext::new();
+        let ctx = baml_executor::context::PerCallContext::new();
 
         // TODO: render_raw_curl is now a method on BamlProgram, not a free function
         // This needs to be updated when the runtime API is finalized
@@ -379,28 +377,27 @@ impl BamlProgram {
         stream: bool,
     ) -> BuildRequestResult {
         // Parse arguments
-        let args: baml_program::BamlMap =
-            match serde_json::from_str(args_json) {
-                Ok(args) => args,
-                Err(e) => {
-                    return BuildRequestResult {
-                        success: false,
-                        error: Some(format!("Failed to parse arguments: {}", e)),
-                        url: None,
-                        method: None,
-                        headers_json: None,
-                        body_json: None,
-                    };
-                }
-            };
+        let args: baml_executor::BamlMap = match serde_json::from_str(args_json) {
+            Ok(args) => args,
+            Err(e) => {
+                return BuildRequestResult {
+                    success: false,
+                    error: Some(format!("Failed to parse arguments: {}", e)),
+                    url: None,
+                    method: None,
+                    headers_json: None,
+                    body_json: None,
+                };
+            }
+        };
 
         // Create a stub prepared function
-        let prepared = baml_program::PreparedFunction::new_stub(
+        let prepared = baml_executor::PreparedFunction::new_stub(
             function_name,
             args,
-            baml_program::TypeRef::string(),
-            baml_program::ClientSpec::new("openai/gpt-4"),
-            baml_program::PromptTemplate::new("{{ input }}"),
+            baml_program::Ty::String,
+            "openai/gpt-4",
+            "{{ input }}",
         );
 
         // TODO: build_request is now a method on BamlProgram, not a free function

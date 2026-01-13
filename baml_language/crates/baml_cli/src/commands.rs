@@ -24,46 +24,11 @@ pub(crate) struct RuntimeCli {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Commands {
-    // TODO: All other commands are disabled for now as they depend on baml_runtime
-    // #[command(about = "Initialize a new BAML project.")]
-    // Init(baml_runtime::cli::init::InitArgs),
+    #[command(about = "Run BAML tests")]
+    Test(crate::test::TestArgs),
 
-    // #[command(about = "Runs all generators in the baml_src directory")]
-    // Generate(baml_runtime::cli::generate::GenerateArgs),
-
-    // #[command(about = "Checks for errors and warnings in the baml_src directory")]
-    // Check(baml_runtime::cli::check::CheckArgs),
-
-    // #[command(about = "Starts a server that translates LLM responses to BAML responses")]
-    // Serve(baml_runtime::cli::serve::ServeArgs),
-
-    // #[command(about = "Starts a development server")]
-    // Dev(baml_runtime::cli::dev::DevArgs),
-
-    // #[command(subcommand, about = "Authenticate with Boundary Cloud", hide = true)]
-    // Auth(crate::auth::AuthCommands),
-
-    // #[command(about = "Login to Boundary Cloud (alias for `baml auth login`)", hide = true)]
-    // Login(crate::auth::LoginArgs),
-
-    // #[command(about = "Format BAML source files", name = "fmt", hide = true)]
-    // Format(crate::format::FormatArgs),
-
-    // #[command(about = "Run BAML tests")]
-    // Test(baml_runtime::cli::testing::TestArgs),
-
-    // #[command(about = "Print HIR from BAML files", hide = true)]
-    // DumpHIR(baml_runtime::cli::dump_intermediate::DumpIntermediateArgs),
-
-    // #[command(about = "Print Bytecode from BAML files", hide = true)]
-    // DumpBytecode(baml_runtime::cli::dump_intermediate::DumpIntermediateArgs),
     #[command(about = "Starts a language server", name = "lsp")]
     LanguageServer(crate::lsp::LanguageServerArgs),
-    // #[command(about = "Start an interactive REPL for BAML expressions", hide = true)]
-    // Repl(baml_runtime::cli::repl::ReplArgs),
-
-    // #[command(about = "Optimize prompts using GEPA algorithm")]
-    // Optimize(baml_runtime::cli::optimize::OptimizeArgs),
 }
 
 impl RuntimeCli {
@@ -109,6 +74,7 @@ impl RuntimeCli {
 
     pub fn run(&self) -> Result<crate::ExitCode> {
         match &self.command {
+            Commands::Test(args) => args.run(),
             Commands::LanguageServer(args) => match args.run() {
                 Ok(()) => Ok(crate::ExitCode::Success),
                 Err(e) => {

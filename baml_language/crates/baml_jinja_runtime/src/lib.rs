@@ -10,9 +10,9 @@ use std::collections::HashMap;
 
 // Re-export LLM interface types
 pub use baml_llm_interface::{ChatMessagePart, LlmClientSpec, RenderedChatMessage, RenderedPrompt};
+use baml_program::{BamlMedia, BamlValue, JinjaExpression};
 pub use baml_value_to_jinja::IntoMiniJinjaValue;
 use baml_value_to_jinja::MAGIC_MEDIA_DELIMITER;
-use ir_stub::{BamlMedia, BamlValue};
 use minijinja::{ErrorKind, context, value::Kwargs};
 use serde::Deserialize;
 
@@ -23,21 +23,12 @@ const MAGIC_CHAT_ROLE_DELIMITER: &str = "BAML_CHAT_ROLE_MAGIC_STRING_DELIMITER";
 // ============================================================================
 
 /// Context for rendering a prompt.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RenderContext {
     /// Client configuration.
     pub client: LlmClientSpec,
     /// Tags available in the template.
     pub tags: HashMap<String, BamlValue>,
-}
-
-impl Default for RenderContext {
-    fn default() -> Self {
-        Self {
-            client: LlmClientSpec::default(),
-            tags: HashMap::new(),
-        }
-    }
 }
 
 // ============================================================================
@@ -255,7 +246,9 @@ fn render_minijinja(
                         }
                     }
                 } else if !part.trim().is_empty() {
-                    Some(ChatMessagePart::Text { text: part.trim().to_string() })
+                    Some(ChatMessagePart::Text {
+                        text: part.trim().to_string(),
+                    })
                 } else {
                     None
                 };
@@ -290,7 +283,9 @@ fn render_minijinja(
         }
     }
 
-    Ok(RenderedPrompt::Chat { messages: chat_messages })
+    Ok(RenderedPrompt::Chat {
+        messages: chat_messages,
+    })
 }
 
 /// Evaluate a Jinja expression on a BamlValue.
@@ -298,7 +293,7 @@ fn render_minijinja(
 /// Used for constraint evaluation.
 pub fn evaluate_predicate(
     value: &BamlValue,
-    expression: &ir_stub::JinjaExpression,
+    expression: &JinjaExpression,
 ) -> Result<bool, RenderError> {
     let mut env = minijinja::Environment::new();
 
@@ -323,7 +318,7 @@ pub fn evaluate_predicate(
 
 #[cfg(test)]
 mod tests {
-    use ir_stub::BamlMap;
+    use baml_program::BamlMap;
 
     use super::*;
 
@@ -416,7 +411,7 @@ Hello"#;
     #[test]
     fn test_evaluate_predicate() {
         let value = BamlValue::Int(42);
-        let expr = ir_stub::JinjaExpression("this > 10".to_string());
+        let expr = JinjaExpression("this > 10".to_string());
 
         let result = evaluate_predicate(&value, &expr);
         assert!(result.is_ok());
@@ -426,7 +421,7 @@ Hello"#;
     #[test]
     fn test_evaluate_predicate_false() {
         let value = BamlValue::Int(5);
-        let expr = ir_stub::JinjaExpression("this > 10".to_string());
+        let expr = JinjaExpression("this > 10".to_string());
 
         let result = evaluate_predicate(&value, &expr);
         assert!(result.is_ok());
@@ -436,7 +431,7 @@ Hello"#;
     #[test]
     fn test_evaluate_predicate_string() {
         let value = BamlValue::String("hello world".to_string());
-        let expr = ir_stub::JinjaExpression("this | length > 5".to_string());
+        let expr = JinjaExpression("this | length > 5".to_string());
 
         let result = evaluate_predicate(&value, &expr);
         assert!(result.is_ok());

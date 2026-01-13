@@ -12,12 +12,12 @@ dead_code = "allow"
 [dependencies]
 baml_base.workspace = true
 baml_llm_interface.workspace = true
-ir_stub.workspace = true
+baml_program.workspace = true
+indexmap.workspace = true
+minijinja.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-indexmap.workspace = true
-minijinja.workspace = true
 
 [features]
-default = []
+default = [  ]

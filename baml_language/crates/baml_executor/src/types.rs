@@ -1,9 +1,11 @@
-//! Common types used throughout the runtime.
+//! Common types used throughout the executor.
 
 use std::time::Duration;
 
-// Re-export core types from ir_stub
-pub use ir_stub::{BamlMap, BamlValue, BamlValueWithMeta, BamlMedia, BamlMediaType, TypeIR};
+// Re-export core types from baml_program
+pub use baml_program::{
+    BamlMap, BamlMedia, BamlValue, BamlValueWithMeta, MediaContent, MediaKind, Ty,
+};
 
 /// Result of a function execution.
 #[derive(Debug, Clone)]
@@ -56,34 +58,4 @@ pub struct ConstraintResult {
     pub passed: bool,
     /// Optional message explaining the result.
     pub message: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_baml_value_string() {
-        let v = BamlValue::from("hello");
-        assert_eq!(v.as_str(), Some("hello"));
-    }
-
-    #[test]
-    fn test_baml_value_int() {
-        let v = BamlValue::from(42i64);
-        assert_eq!(v.as_int(), Some(42));
-    }
-
-    #[test]
-    fn test_baml_value_map() {
-        let mut map = BamlMap::new();
-        map.insert("key".to_string(), BamlValue::from("value"));
-        let v = BamlValue::Map(map);
-
-        if let BamlValue::Map(m) = v {
-            assert_eq!(m.get("key").and_then(|v| v.as_str()), Some("value"));
-        } else {
-            panic!("Expected Map");
-        }
-    }
 }

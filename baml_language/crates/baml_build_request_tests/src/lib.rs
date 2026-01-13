@@ -17,11 +17,8 @@
 use std::path::Path;
 
 use baml_db::{Setter, SourceFile, baml_workspace::Project};
+use baml_executor::{BamlExecutor, BamlMap, context::DynamicBamlContext};
 use baml_llm_interface::RenderedPrompt;
-use baml_program::{
-    BamlMap, BamlProgram,
-    context::DynamicBamlContext,
-};
 use baml_project::ProjectDatabase as RootDatabase;
 use serde::Serialize;
 
@@ -68,7 +65,7 @@ pub struct PromptSnapshot {
     pub prompt: RenderedPrompt,
 }
 
-/// Render a prompt for a fixture file using BamlProgram.
+/// Render a prompt for a fixture file using BamlExecutor.
 ///
 /// The function name is derived from the PascalCase fixture name:
 /// - `OutputEnum.baml` -> `FnOutputEnum`
@@ -78,21 +75,21 @@ pub fn render_prompt_for_fixture(
 ) -> anyhow::Result<RenderedPrompt> {
     let (db, _source, project) = load_baml_file(baml_content);
 
-    // Create the runtime
-    let runtime = BamlProgram::with_project(db, project);
+    // Create the executor
+    let executor = BamlExecutor::with_project(db, project);
 
     // Derive function name from fixture name
     let func_name = derive_function_name(fixture_name);
 
     // Prepare the function with empty args
     let args = BamlMap::new();
-    let prepared = runtime
+    let prepared = executor
         .prepare_function(&func_name, args)
         .map_err(|e| anyhow::anyhow!("Failed to prepare function '{}': {}", func_name, e))?;
 
-    // Render the prompt through the runtime (now returns baml_llm_interface::RenderedPrompt directly)
+    // Render the prompt through the executor (now returns baml_llm_interface::RenderedPrompt directly)
     let dynamic_ctx = DynamicBamlContext::new();
-    runtime
+    executor
         .render_prompt(&prepared, &dynamic_ctx)
         .map_err(|e| anyhow::anyhow!("Failed to render prompt: {}", e))
 }

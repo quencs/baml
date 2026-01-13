@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use ir_stub::{BamlMedia, BamlMediaContent};
+use baml_program::{BamlMedia, MediaContent};
 use serde::Serialize;
 
 /// A part of a chat message.
@@ -37,7 +37,10 @@ impl ChatMessagePart {
                 meta.extend(new_meta);
                 ChatMessagePart::WithMeta { inner, meta }
             }
-            _ => ChatMessagePart::WithMeta { inner: Box::new(self), meta: new_meta },
+            _ => ChatMessagePart::WithMeta {
+                inner: Box::new(self),
+                meta: new_meta,
+            },
         }
     }
 
@@ -82,14 +85,19 @@ impl std::fmt::Display for ChatMessagePart {
         match self {
             ChatMessagePart::Text { text } => write!(f, "{text}"),
             ChatMessagePart::Media { media } => match &media.content {
-                BamlMediaContent::Url(url) => {
-                    write!(f, "<{}_placeholder: {}>", media.media_type, url.url)
+                MediaContent::Url(url) => {
+                    write!(f, "<{:?}_placeholder: {}>", media.media_type, url)
                 }
-                BamlMediaContent::Base64(_) => {
-                    write!(f, "<{}_placeholder base64>", media.media_type)
+                MediaContent::Base64(_) => {
+                    write!(f, "<{:?}_placeholder base64>", media.media_type)
                 }
-                BamlMediaContent::File(file) => {
-                    write!(f, "<{}_placeholder: {}>", media.media_type, file.path)
+                MediaContent::File(path) => {
+                    write!(
+                        f,
+                        "<{:?}_placeholder: {}>",
+                        media.media_type,
+                        path.display()
+                    )
                 }
             },
             ChatMessagePart::WithMeta { inner, meta } => write!(f, "{meta:?}::{inner}"),

@@ -9,10 +9,9 @@
 
 use std::sync::Arc;
 
+use baml_program::{BamlMedia, BamlValue};
 use indexmap::IndexMap;
 use minijinja::value::{Enumerator, Object, ObjectRepr};
-
-use ir_stub::{BamlMedia, BamlValue};
 
 /// Trait for converting BAML values to minijinja values.
 pub trait IntoMiniJinjaValue {
@@ -27,9 +26,7 @@ impl IntoMiniJinjaValue for BamlValue {
             BamlValue::Float(n) => minijinja::Value::from(*n),
             BamlValue::Bool(b) => minijinja::Value::from(*b),
             BamlValue::Map(m) => {
-                let map = m
-                    .iter()
-                    .map(|(k, v)| (k.as_str(), v.to_minijinja_value()));
+                let map = m.iter().map(|(k, v)| (k.as_str(), v.to_minijinja_value()));
                 minijinja::Value::from_iter(map)
             }
             BamlValue::List(l) => {
@@ -37,7 +34,9 @@ impl IntoMiniJinjaValue for BamlValue {
                     l.iter().map(|v| v.to_minijinja_value()).collect();
                 minijinja::Value::from_object(MinijinjaBamlList { list })
             }
-            BamlValue::Media(m) => minijinja::Value::from_object(MinijinjaBamlMedia::from(m.clone())),
+            BamlValue::Media(m) => {
+                minijinja::Value::from_object(MinijinjaBamlMedia::from(m.clone()))
+            }
             BamlValue::Enum(name, value) => {
                 // Without IR access, we can't resolve aliases
                 // Just use the value as-is
@@ -359,8 +358,9 @@ impl Object for BamlNull {
 
 #[cfg(test)]
 mod tests {
+    use baml_program::BamlMap;
+
     use super::*;
-    use ir_stub::BamlMap;
 
     #[test]
     fn test_string_conversion() {

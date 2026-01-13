@@ -6,11 +6,14 @@
     clippy::pedantic,
     clippy::nursery,
     clippy::empty_structs_with_brackets,
-    clippy::exit
+    clippy::exit,
+    clippy::print_stdout,
+    clippy::print_stderr
 )]
 
 pub(crate) mod commands;
 pub(crate) mod lsp;
+pub(crate) mod test;
 
 // TODO: These modules are disabled for now as they depend on baml_runtime
 // pub(crate) mod api_client;

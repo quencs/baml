@@ -2,9 +2,7 @@
 
 use std::{fs, path::Path};
 
-use baml_build_request_tests::{
-    PromptSnapshot, derive_function_name, render_prompt_for_fixture,
-};
+use baml_build_request_tests::{PromptSnapshot, derive_function_name, render_prompt_for_fixture};
 use serde::Serialize;
 
 /// Result of attempting to render a fixture.

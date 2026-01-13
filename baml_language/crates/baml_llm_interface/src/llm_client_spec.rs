@@ -1,8 +1,9 @@
 //! LLM client specification types.
 
+use std::collections::HashMap;
+
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::collections::HashMap;
 
 /// Specification for an LLM client.
 ///

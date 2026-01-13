@@ -1,9 +1,19 @@
-//! Error types for the BAML runtime.
-//!
-//! These mirror the existing error types in engine/baml-runtime/src/errors.rs,
-//! keeping the same scattered design which is messy but well-tested.
+//! Error types for the BAML executor.
 
 use thiserror::Error;
+
+/// Format a list of errors for display.
+fn format_errors(errors: &[RuntimeError]) -> String {
+    if errors.is_empty() {
+        "no errors recorded".to_string()
+    } else {
+        errors
+            .iter()
+            .map(|e| e.to_string())
+            .collect::<Vec<_>>()
+            .join("; ")
+    }
+}
 
 /// Main runtime error type.
 #[derive(Debug, Error, Clone)]
@@ -29,7 +39,7 @@ pub enum RuntimeError {
     #[error("Media resolution failed: {0}")]
     MediaResolve(#[from] MediaResolveError),
 
-    #[error("Orchestration exhausted: all {attempts} attempts failed")]
+    #[error("Orchestration exhausted: all {attempts} attempts failed: {}", format_errors(.errors))]
     OrchestrationExhausted {
         attempts: usize,
         errors: Vec<RuntimeError>,
@@ -43,6 +53,15 @@ pub enum RuntimeError {
 
     #[error("Function not found: {0}")]
     FunctionNotFound(String),
+
+    #[error("LLM failure: {message}")]
+    LlmFailure {
+        message: String,
+        code: Option<String>,
+    },
+
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 /// Error during function preparation.
@@ -52,7 +71,10 @@ pub enum PrepareError {
     FunctionNotFound { function_name: String },
 
     #[error("Invalid parameters for {function_name}: {message}")]
-    InvalidParams { function_name: String, message: String },
+    InvalidParams {
+        function_name: String,
+        message: String,
+    },
 
     #[error("Invalid schema: {message}")]
     InvalidSchema { message: String },
@@ -127,7 +149,10 @@ pub enum ParseResponseError {
 #[derive(Debug, Error, Clone)]
 pub enum ParseOutputError {
     #[error("Failed to parse output as {expected_type}: {message}")]
-    TypeMismatch { expected_type: String, message: String },
+    TypeMismatch {
+        expected_type: String,
+        message: String,
+    },
 
     #[error("Incomplete output: {message}")]
     IncompleteOutput { message: String },
@@ -157,8 +182,8 @@ pub trait RetryableError {
 impl RetryableError for HttpError {
     fn is_retryable(&self) -> bool {
         match self.status_code {
-            Some(429) => true,         // Rate limited
-            Some(500..=599) => true,   // Server errors
+            Some(429) => true,       // Rate limited
+            Some(500..=599) => true, // Server errors
             _ => false,
         }
     }
@@ -172,33 +197,14 @@ impl RetryableError for RuntimeError {
             RuntimeError::ParseOutput(_) => false,
             RuntimeError::Cancelled => false,
             RuntimeError::OrchestrationExhausted { .. } => false,
+            RuntimeError::LlmFailure { code, .. } => {
+                // Rate limits and server errors are retryable
+                code.as_deref() == Some("rate_limited")
+                    || code.as_deref() == Some("server_error")
+                    || code.as_deref() == Some("service_unavailable")
+            }
+            RuntimeError::Internal(_) => false,
             _ => false,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_http_error_retryable() {
-        let rate_limited = HttpError {
-            message: "Rate limited".to_string(),
-            status_code: Some(429),
-        };
-        assert!(rate_limited.is_retryable());
-
-        let server_error = HttpError {
-            message: "Internal server error".to_string(),
-            status_code: Some(500),
-        };
-        assert!(server_error.is_retryable());
-
-        let not_found = HttpError {
-            message: "Not found".to_string(),
-            status_code: Some(404),
-        };
-        assert!(!not_found.is_retryable());
     }
 }

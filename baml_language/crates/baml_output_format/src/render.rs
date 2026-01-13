@@ -6,8 +6,10 @@
 use baml_base::{LiteralValue, Ty};
 use thiserror::Error;
 
-use crate::render_options::{HoistClasses, MapStyle, OutputFormatOptions, RenderSetting};
-use crate::types::OutputFormatContent;
+use crate::{
+    render_options::{HoistClasses, MapStyle, OutputFormatOptions, RenderSetting},
+    types::OutputFormatContent,
+};
 
 /// Error during output format rendering.
 #[derive(Debug, Error)]
@@ -188,28 +190,28 @@ fn render_hoisted_definitions(ctx: &mut RenderContext) -> Result<String, RenderE
 
     // Hoist classes that need it
     for name in ctx.content.recursive_classes.iter() {
-        if let Some(class) = ctx.content.find_class(name) {
-            if !ctx.rendered_classes.contains(name) {
-                ctx.rendered_classes.insert(name.clone());
+        if let Some(class) = ctx.content.find_class(name)
+            && !ctx.rendered_classes.contains(name)
+        {
+            ctx.rendered_classes.insert(name.clone());
 
-                if let Some(prefix) = ctx.hoisted_class_prefix() {
-                    result.push_str(&prefix);
-                    result.push(' ');
-                }
-                result.push_str(&class.name.rendered_name());
-                result.push_str(" {\n");
-
-                for field in &class.fields {
-                    let field_type = render_type_inline(&field.field_type, ctx)?;
-                    result.push_str(&format!("  {}: {}", field.name.rendered_name(), field_type));
-                    if let Some(desc) = &field.description {
-                        result.push_str(&format!(" // {}", desc));
-                    }
-                    result.push('\n');
-                }
-
-                result.push_str("}\n");
+            if let Some(prefix) = ctx.hoisted_class_prefix() {
+                result.push_str(&prefix);
+                result.push(' ');
             }
+            result.push_str(class.name.rendered_name());
+            result.push_str(" {\n");
+
+            for field in &class.fields {
+                let field_type = render_type_inline(&field.field_type, ctx)?;
+                result.push_str(&format!("  {}: {}", field.name.rendered_name(), field_type));
+                if let Some(desc) = &field.description {
+                    result.push_str(&format!(" // {}", desc));
+                }
+                result.push('\n');
+            }
+
+            result.push_str("}\n");
         }
     }
 
@@ -217,7 +219,11 @@ fn render_hoisted_definitions(ctx: &mut RenderContext) -> Result<String, RenderE
 }
 
 /// Render a type, potentially with full schema expansion.
-fn render_type(ty: &Ty, ctx: &mut RenderContext, is_top_level: bool) -> Result<String, RenderError> {
+fn render_type(
+    ty: &Ty,
+    ctx: &mut RenderContext,
+    is_top_level: bool,
+) -> Result<String, RenderError> {
     match ty {
         Ty::Int => Ok("int".to_string()),
         Ty::Float => Ok("float".to_string()),
@@ -259,13 +265,9 @@ fn render_type(ty: &Ty, ctx: &mut RenderContext, is_top_level: bool) -> Result<S
             Ok(rendered.join(&or_splitter))
         }
 
-        Ty::Class(name) | Ty::Named(name) => {
-            render_class(name.as_str(), ctx, is_top_level)
-        }
+        Ty::Class(name) | Ty::Named(name) => render_class(name.as_str(), ctx, is_top_level),
 
-        Ty::Enum(name) => {
-            render_enum(name.as_str(), ctx, is_top_level)
-        }
+        Ty::Enum(name) => render_enum(name.as_str(), ctx, is_top_level),
 
         // Special types - just render as string
         Ty::Unknown | Ty::Error | Ty::Void => Ok("string".to_string()),
@@ -326,7 +328,8 @@ fn render_type_inline(ty: &Ty, ctx: &RenderContext) -> Result<String, RenderErro
             // For inline enum in a class field, render as choices
             if let Some(enum_def) = ctx.content.find_enum(name.as_str()) {
                 let or_splitter = ctx.or_splitter();
-                let variants: Vec<String> = enum_def.variants
+                let variants: Vec<String> = enum_def
+                    .variants
                     .iter()
                     .map(|v| format!("'{}'", v.name.rendered_name()))
                     .collect();
@@ -354,7 +357,11 @@ fn render_literal(lit: &LiteralValue) -> String {
 }
 
 /// Render a class definition.
-fn render_class(name: &str, ctx: &mut RenderContext, _is_top_level: bool) -> Result<String, RenderError> {
+fn render_class(
+    name: &str,
+    ctx: &mut RenderContext,
+    _is_top_level: bool,
+) -> Result<String, RenderError> {
     // Check if this class is recursive and already rendered
     if ctx.content.recursive_classes.contains(name) {
         if ctx.rendered_classes.contains(name) {
@@ -399,7 +406,11 @@ fn render_class(name: &str, ctx: &mut RenderContext, _is_top_level: bool) -> Res
 }
 
 /// Render an enum definition.
-fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Result<String, RenderError> {
+fn render_enum(
+    name: &str,
+    ctx: &mut RenderContext,
+    is_top_level: bool,
+) -> Result<String, RenderError> {
     let enum_def = match ctx.content.find_enum(name) {
         Some(e) => e,
         None => return Ok(name.to_string()), // Unknown enum, just return name
@@ -409,7 +420,7 @@ fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Resul
 
     if is_top_level {
         // Full format with name and variants on separate lines
-        result.push_str(&enum_def.name.rendered_name());
+        result.push_str(enum_def.name.rendered_name());
         result.push('\n');
 
         let prefix = ctx.enum_value_prefix();
@@ -423,7 +434,8 @@ fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Resul
     } else {
         // Inline format: 'variant1' or 'variant2' or ...
         let or_splitter = ctx.or_splitter();
-        let variants: Vec<String> = enum_def.variants
+        let variants: Vec<String> = enum_def
+            .variants
             .iter()
             .map(|v| format!("'{}'", v.name.rendered_name()))
             .collect();
@@ -435,15 +447,14 @@ fn render_enum(name: &str, ctx: &mut RenderContext, is_top_level: bool) -> Resul
 
 #[cfg(test)]
 mod tests {
+    use baml_base::Name as BaseName;
+
     use super::*;
     use crate::types::{Class, Enum, OutputFormatBuilder};
-    use baml_base::Name as BaseName;
 
     #[test]
     fn test_render_int() {
-        let content = OutputFormatBuilder::new()
-            .with_target(Ty::Int)
-            .build();
+        let content = OutputFormatBuilder::new().with_target(Ty::Int).build();
 
         let result = render(&content, &OutputFormatOptions::default()).unwrap();
         assert!(result.is_some());
@@ -452,9 +463,7 @@ mod tests {
 
     #[test]
     fn test_render_string() {
-        let content = OutputFormatBuilder::new()
-            .with_target(Ty::String)
-            .build();
+        let content = OutputFormatBuilder::new().with_target(Ty::String).build();
 
         let result = render(&content, &OutputFormatOptions::default()).unwrap();
         assert!(result.is_some());
@@ -464,7 +473,12 @@ mod tests {
     #[test]
     fn test_render_class() {
         let person_class = Class::new("Person")
-            .with_field("name", Ty::String, Some("The person's name".to_string()), true)
+            .with_field(
+                "name",
+                Ty::String,
+                Some("The person's name".to_string()),
+                true,
+            )
             .with_field("age", Ty::Int, None, true);
 
         let content = OutputFormatBuilder::new()
@@ -475,9 +489,21 @@ mod tests {
         let result = render(&content, &OutputFormatOptions::default()).unwrap();
         assert!(result.is_some());
         let rendered = result.unwrap();
-        assert!(rendered.contains("name: string"), "Expected 'name: string' but got: {}", rendered);
-        assert!(rendered.contains("age: int"), "Expected 'age: int' but got: {}", rendered);
-        assert!(rendered.contains("The person's name"), "Expected description but got: {}", rendered);
+        assert!(
+            rendered.contains("name: string"),
+            "Expected 'name: string' but got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("age: int"),
+            "Expected 'age: int' but got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("The person's name"),
+            "Expected description but got: {}",
+            rendered
+        );
     }
 
     #[test]
@@ -506,8 +532,16 @@ mod tests {
         let result = render(&content, &options).unwrap();
         assert!(result.is_some());
         let rendered = result.unwrap();
-        assert!(rendered.contains("Color"), "Expected 'Color' but got: {}", rendered);
-        assert!(rendered.contains("- red"), "Expected '- red' but got: {}", rendered);
+        assert!(
+            rendered.contains("Color"),
+            "Expected 'Color' but got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("- red"),
+            "Expected '- red' but got: {}",
+            rendered
+        );
     }
 
     #[test]
@@ -516,8 +550,8 @@ mod tests {
             .with_variant("pending", None)
             .with_variant("done", None);
 
-        let task_class = Class::new("Task")
-            .with_field("status", Ty::Enum(BaseName::from("Status")), None, true);
+        let task_class =
+            Class::new("Task").with_field("status", Ty::Enum(BaseName::from("Status")), None, true);
 
         let content = OutputFormatBuilder::new()
             .with_enum(status_enum)
@@ -539,6 +573,10 @@ mod tests {
         let result = render(&content, &options).unwrap();
         assert!(result.is_some());
         let rendered = result.unwrap();
-        assert!(rendered.contains("'pending' | 'done'"), "Expected custom or_splitter but got: {}", rendered);
+        assert!(
+            rendered.contains("'pending' | 'done'"),
+            "Expected custom or_splitter but got: {}",
+            rendered
+        );
     }
 }

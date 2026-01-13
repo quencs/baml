@@ -8,6 +8,7 @@ crate-type = [ "cdylib", "rlib" ]
 
 [dependencies]
 baml_db = { workspace = true }
+baml_executor = { workspace = true }
 baml_program = { workspace = true }
 baml_project = { workspace = true }
 console_error_panic_hook = { workspace = true, optional = true }

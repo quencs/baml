@@ -1,7 +1,8 @@
 //! JSON-ish value type.
 
 use std::hash::{Hash, Hasher};
-use ir_stub::CompletionState;
+
+use baml_program::CompletionState;
 
 /// Fixes applied during parsing.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,7 +102,10 @@ impl Value {
             Value::Markdown(_, _, s) => *s,
             Value::FixedJson(inner, _) => inner.completion_state(),
             Value::AnyOf(choices, _) => {
-                if choices.iter().any(|c| c.completion_state() == CompletionState::Incomplete) {
+                if choices
+                    .iter()
+                    .any(|c| c.completion_state() == CompletionState::Incomplete)
+                {
                     CompletionState::Incomplete
                 } else {
                     CompletionState::Complete
@@ -234,7 +238,10 @@ mod tests {
 
     #[test]
     fn test_value_type_name() {
-        assert_eq!(Value::String("test".into(), CompletionState::Complete).type_name(), "string");
+        assert_eq!(
+            Value::String("test".into(), CompletionState::Complete).type_name(),
+            "string"
+        );
         assert_eq!(Value::Boolean(true).type_name(), "boolean");
         assert_eq!(Value::Null.type_name(), "null");
     }

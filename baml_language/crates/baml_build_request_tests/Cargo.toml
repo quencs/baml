@@ -10,14 +10,14 @@ doctest = false
 
 [dependencies]
 baml_db = { workspace = true }
-baml_llm_interface = { workspace = true }
-baml_project = { workspace = true }
+baml_executor = { workspace = true }
 baml_jinja_runtime = { workspace = true }
+baml_llm_interface = { workspace = true }
 baml_program = { workspace = true }
-ir_stub = { workspace = true }
+baml_project = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-insta = { workspace = true, features = ["glob", "yaml"] }
+insta = { workspace = true, features = [ "glob", "yaml" ] }

@@ -336,12 +336,12 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "baml_db",
+ "baml_executor",
  "baml_jinja_runtime",
  "baml_llm_interface",
  "baml_program",
  "baml_project",
  "insta",
- "ir_stub",
  "serde",
  "serde_json",
 ]
@@ -367,12 +367,18 @@ name = "baml_cli"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "baml_compiler_hir",
+ "baml_db",
+ "baml_executor",
  "baml_lsp",
+ "baml_project",
  "cfg-if 1.0.4",
  "clap",
  "clap-cargo",
  "colored",
  "ctrlc",
+ "tokio",
+ "walkdir",
 ]
 
 [[package]]
@@ -519,6 +525,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml_executor"
+version = "0.0.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_hir",
+ "baml_compiler_tir",
+ "baml_db",
+ "baml_jinja_runtime",
+ "baml_jsonish",
+ "baml_llm_interface",
+ "baml_program",
+ "baml_program_compile",
+ "baml_project",
+ "baml_type_reflection",
+ "chrono",
+ "getrandom 0.2.16",
+ "indexmap 2.13.0",
+ "js-sys",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "tokio",
+ "tokio-util",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test",
+ "web-sys",
+]
+
+[[package]]
 name = "baml_ide"
 version = "0.0.0"
 dependencies = [
@@ -550,8 +588,8 @@ version = "0.0.0"
 dependencies = [
  "baml_base",
  "baml_llm_interface",
+ "baml_program",
  "indexmap 2.13.0",
- "ir_stub",
  "minijinja",
  "serde",
  "serde_json",
@@ -562,8 +600,8 @@ dependencies = [
 name = "baml_jsonish"
 version = "0.0.0"
 dependencies = [
+ "baml_program",
  "indexmap 2.13.0",
- "ir_stub",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -573,8 +611,8 @@ dependencies = [
 name = "baml_llm_interface"
 version = "0.0.0"
 dependencies = [
+ "baml_program",
  "indexmap 2.13.0",
- "ir_stub",
  "serde",
  "serde_json",
 ]
@@ -660,6 +698,7 @@ name = "baml_playground_wasm"
 version = "0.1.0"
 dependencies = [
  "baml_db",
+ "baml_executor",
  "baml_program",
  "baml_project",
  "console_error_panic_hook",
@@ -673,31 +712,21 @@ dependencies = [
 name = "baml_program"
 version = "0.0.0"
 dependencies = [
+ "indexmap 2.13.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "baml_program_compile"
+version = "0.0.0"
+dependencies = [
  "baml_base",
  "baml_compiler_hir",
  "baml_compiler_tir",
  "baml_db",
- "baml_jinja_runtime",
- "baml_jsonish",
- "baml_llm_interface",
+ "baml_program",
  "baml_project",
- "baml_type_reflection",
- "chrono",
- "getrandom 0.2.16",
- "indexmap 2.13.0",
- "ir_stub",
- "js-sys",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tokio-util",
- "uuid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "web-sys",
 ]
 
 [[package]]
@@ -2362,15 +2391,6 @@ name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
-
-[[package]]
-name = "ir_stub"
-version = "0.0.0"
-dependencies = [
- "indexmap 2.13.0",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "iri-string"

@@ -4,20 +4,20 @@
 //! - JSON wrapped in markdown code blocks
 //! - Some tolerance for malformed JSON
 
-use crate::value::{Fixes, Value};
-use ir_stub::CompletionState;
+use baml_program::CompletionState;
 use thiserror::Error;
 
+use crate::value::{Fixes, Value};
+
 /// Options for parsing.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ParseOptions {
     /// Whether to try extracting JSON from markdown.
     pub extract_markdown: bool,
 }
 
-impl ParseOptions {
-    /// Create default options that try to extract JSON from markdown.
-    pub fn default() -> Self {
+impl Default for ParseOptions {
+    fn default() -> Self {
         Self {
             extract_markdown: true,
         }
@@ -43,11 +43,7 @@ pub enum ParseError {
 /// - Standard JSON
 /// - JSON wrapped in markdown code blocks
 /// - Partial JSON (when `is_done` is false)
-pub fn parse(
-    input: &str,
-    options: ParseOptions,
-    is_done: bool,
-) -> Result<Value, ParseError> {
+pub fn parse(input: &str, options: ParseOptions, is_done: bool) -> Result<Value, ParseError> {
     let input = input.trim();
 
     if input.is_empty() {
@@ -55,20 +51,20 @@ pub fn parse(
     }
 
     // Try to extract JSON from markdown code blocks
-    if options.extract_markdown {
-        if let Some((tag, extracted)) = extract_markdown_json(input) {
-            match parse_json(extracted, is_done) {
-                Ok(value) => {
-                    let completion = if is_done {
-                        CompletionState::Complete
-                    } else {
-                        value.completion_state()
-                    };
-                    return Ok(Value::Markdown(tag, Box::new(value), completion));
-                }
-                Err(_) => {
-                    // Fall through to try parsing the whole input
-                }
+    if options.extract_markdown
+        && let Some((tag, extracted)) = extract_markdown_json(input)
+    {
+        match parse_json(extracted, is_done) {
+            Ok(value) => {
+                let completion = if is_done {
+                    CompletionState::Complete
+                } else {
+                    value.completion_state()
+                };
+                return Ok(Value::Markdown(tag, Box::new(value), completion));
+            }
+            Err(_) => {
+                // Fall through to try parsing the whole input
             }
         }
     }
@@ -99,10 +95,24 @@ fn extract_markdown_json(input: &str) -> Option<(String, &str)> {
     let remaining = &input[content_start..];
     if let Some(close_pos) = remaining.rfind("```") {
         let content = &remaining[..close_pos].trim();
-        Some((if tag.is_empty() { "json".to_string() } else { tag }, content))
+        Some((
+            if tag.is_empty() {
+                "json".to_string()
+            } else {
+                tag
+            },
+            content,
+        ))
     } else {
         // No closing fence - might be streaming
-        Some((if tag.is_empty() { "json".to_string() } else { tag }, remaining.trim()))
+        Some((
+            if tag.is_empty() {
+                "json".to_string()
+            } else {
+                tag
+            },
+            remaining.trim(),
+        ))
     }
 }
 
@@ -126,10 +136,8 @@ fn parse_json(input: &str, is_done: bool) -> Result<Value, ParseError> {
         }
         Err(e) => {
             // If not done, try to parse partial JSON
-            if !is_done {
-                if let Some(partial) = try_parse_partial(input) {
-                    return Ok(partial);
-                }
+            if !is_done && let Some(partial) = try_parse_partial(input) {
+                return Ok(partial);
             }
             Err(ParseError::InvalidJson(e))
         }
@@ -144,13 +152,15 @@ fn json_to_value(json: serde_json::Value, completion: CompletionState) -> Value 
         serde_json::Value::Number(n) => Value::Number(n, completion),
         serde_json::Value::String(s) => Value::String(s, completion),
         serde_json::Value::Array(arr) => {
-            let items = arr.into_iter()
+            let items = arr
+                .into_iter()
                 .map(|v| json_to_value(v, completion))
                 .collect();
             Value::Array(items, completion)
         }
         serde_json::Value::Object(obj) => {
-            let pairs = obj.into_iter()
+            let pairs = obj
+                .into_iter()
                 .map(|(k, v)| (k, json_to_value(v, completion)))
                 .collect();
             Value::Object(pairs, completion)
@@ -168,7 +178,10 @@ fn try_parse_partial(input: &str) -> Option<Value> {
     let fixed = fix_partial_json(input);
     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&fixed) {
         let value = json_to_value(json, CompletionState::Incomplete);
-        return Some(Value::FixedJson(Box::new(value), vec![Fixes::RemovedTrailingComma]));
+        return Some(Value::FixedJson(
+            Box::new(value),
+            vec![Fixes::RemovedTrailingComma],
+        ));
     }
 
     // If it looks like the start of an object or array, return a partial
@@ -181,7 +194,10 @@ fn try_parse_partial(input: &str) -> Option<Value> {
     if input.starts_with('"') {
         // Partial string
         let content = input.trim_start_matches('"');
-        return Some(Value::String(content.to_string(), CompletionState::Incomplete));
+        return Some(Value::String(
+            content.to_string(),
+            CompletionState::Incomplete,
+        ));
     }
 
     None

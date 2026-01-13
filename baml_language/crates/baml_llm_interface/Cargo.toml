@@ -10,10 +10,10 @@ license.workspace = true
 dead_code = "allow"
 
 [dependencies]
+baml_program.workspace = true
 indexmap.workspace = true
-ir_stub.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
 [features]
-default = []
+default = [  ]

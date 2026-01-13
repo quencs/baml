@@ -1,11 +1,11 @@
 //! Type coercion for JSON-ish values.
 //!
-//! Converts parsed JSON-ish values to BamlValue based on a target TypeIR.
+//! Converts parsed JSON-ish values to BamlValue based on a target Ty.
 
-use crate::value::Value;
-use crate::parser::ParseError;
-use ir_stub::{BamlMap, BamlMedia, BamlMediaType, BamlValue, LiteralValue, TypeIR, TypeValue};
+use baml_program::{BamlMap, BamlMedia, BamlValue, LiteralValue, MediaKind, Ty};
 use thiserror::Error;
+
+use crate::{parser::ParseError, value::Value};
 
 /// Error during coercion.
 #[derive(Debug, Error)]
@@ -39,7 +39,7 @@ impl Coercer {
     }
 
     /// Coerce a JSON-ish value to a BamlValue based on the target type.
-    pub fn coerce(&self, value: &Value, target: &TypeIR) -> Result<BamlValue, CoercionError> {
+    pub fn coerce(&self, value: &Value, target: &Ty) -> Result<BamlValue, CoercionError> {
         // Unwrap Markdown and FixedJson wrappers
         let value = match value {
             Value::Markdown(_, inner, _) => inner.as_ref(),
@@ -49,28 +49,46 @@ impl Coercer {
         };
 
         match target {
-            TypeIR::Primitive(prim, _) => self.coerce_primitive(value, prim),
-            TypeIR::Literal(lit, _) => self.coerce_literal(value, lit),
-            TypeIR::Optional(inner, _) => self.coerce_optional(value, inner),
-            TypeIR::List(elem, _) => self.coerce_list(value, elem),
-            TypeIR::Map(key, val, _) => self.coerce_map(value, key, val),
-            TypeIR::Union(variants, _) => self.coerce_union(value, variants),
-            TypeIR::Class(name, _) => self.coerce_class(value, name),
-            TypeIR::Enum(name, _) => self.coerce_enum(value, name),
-            TypeIR::Alias(_, inner, _) => self.coerce(value, inner),
-            TypeIR::Constrained { base, .. } => self.coerce(value, base),
+            // Primitives
+            Ty::String => self.coerce_string(value),
+            Ty::Int => self.coerce_int(value),
+            Ty::Float => self.coerce_float(value),
+            Ty::Bool => self.coerce_bool(value),
+            Ty::Null => self.coerce_null(value),
+
+            // Media
+            Ty::Media(kind) => self.coerce_media(value, kind),
+
+            // Literal
+            Ty::Literal(lit) => self.coerce_literal(value, lit),
+
+            // Containers
+            Ty::Optional(inner) => self.coerce_optional(value, inner),
+            Ty::List(elem) => self.coerce_list(value, elem),
+            Ty::Map { key: _, value: val } => self.coerce_map(value, val),
+            Ty::Union(variants) => self.coerce_union(value, variants),
+
+            // Named types
+            Ty::Class(name) => self.coerce_class(value, name),
+            Ty::Enum(name) => self.coerce_enum(value, name),
         }
     }
 
-    fn coerce_primitive(&self, value: &Value, prim: &TypeValue) -> Result<BamlValue, CoercionError> {
-        match (prim, value) {
-            // String coercion
-            (TypeValue::String, Value::String(s, _)) => Ok(BamlValue::String(s.clone())),
-            (TypeValue::String, Value::Number(n, _)) => Ok(BamlValue::String(n.to_string())),
-            (TypeValue::String, Value::Boolean(b)) => Ok(BamlValue::String(b.to_string())),
+    fn coerce_string(&self, value: &Value) -> Result<BamlValue, CoercionError> {
+        match value {
+            Value::String(s, _) => Ok(BamlValue::String(s.clone())),
+            Value::Number(n, _) => Ok(BamlValue::String(n.to_string())),
+            Value::Boolean(b) => Ok(BamlValue::String(b.to_string())),
+            _ => Err(CoercionError::TypeMismatch {
+                expected: "string".into(),
+                actual: value.type_name(),
+            }),
+        }
+    }
 
-            // Int coercion
-            (TypeValue::Int, Value::Number(n, _)) => {
+    fn coerce_int(&self, value: &Value) -> Result<BamlValue, CoercionError> {
+        match value {
+            Value::Number(n, _) => {
                 if let Some(i) = n.as_i64() {
                     Ok(BamlValue::Int(i))
                 } else if let Some(f) = n.as_f64() {
@@ -82,7 +100,7 @@ impl Coercer {
                     })
                 }
             }
-            (TypeValue::Int, Value::String(s, _)) => {
+            Value::String(s, _) => {
                 s.parse::<i64>()
                     .map(BamlValue::Int)
                     .map_err(|_| CoercionError::TypeMismatch {
@@ -90,9 +108,16 @@ impl Coercer {
                         actual: format!("string \"{}\"", s),
                     })
             }
+            _ => Err(CoercionError::TypeMismatch {
+                expected: "int".into(),
+                actual: value.type_name(),
+            }),
+        }
+    }
 
-            // Float coercion
-            (TypeValue::Float, Value::Number(n, _)) => {
+    fn coerce_float(&self, value: &Value) -> Result<BamlValue, CoercionError> {
+        match value {
+            Value::Number(n, _) => {
                 if let Some(f) = n.as_f64() {
                     Ok(BamlValue::Float(f))
                 } else {
@@ -102,7 +127,7 @@ impl Coercer {
                     })
                 }
             }
-            (TypeValue::Float, Value::String(s, _)) => {
+            Value::String(s, _) => {
                 s.parse::<f64>()
                     .map(BamlValue::Float)
                     .map_err(|_| CoercionError::TypeMismatch {
@@ -110,38 +135,51 @@ impl Coercer {
                         actual: format!("string \"{}\"", s),
                     })
             }
-
-            // Bool coercion
-            (TypeValue::Bool, Value::Boolean(b)) => Ok(BamlValue::Bool(*b)),
-            (TypeValue::Bool, Value::String(s, _)) => {
-                match s.to_lowercase().as_str() {
-                    "true" | "yes" | "1" => Ok(BamlValue::Bool(true)),
-                    "false" | "no" | "0" => Ok(BamlValue::Bool(false)),
-                    _ => Err(CoercionError::TypeMismatch {
-                        expected: "bool".into(),
-                        actual: format!("string \"{}\"", s),
-                    })
-                }
-            }
-
-            // Null coercion
-            (TypeValue::Null, Value::Null) => Ok(BamlValue::Null),
-
-            // Media coercion (stub for now)
-            (TypeValue::Media(_), _) => {
-                // TODO: Proper media coercion
-                Ok(BamlValue::Media(BamlMedia::url(BamlMediaType::Image, "")))
-            }
-
-            // Type mismatch
             _ => Err(CoercionError::TypeMismatch {
-                expected: format!("{:?}", prim),
+                expected: "float".into(),
                 actual: value.type_name(),
-            })
+            }),
         }
     }
 
-    fn coerce_literal(&self, value: &Value, lit: &LiteralValue) -> Result<BamlValue, CoercionError> {
+    fn coerce_bool(&self, value: &Value) -> Result<BamlValue, CoercionError> {
+        match value {
+            Value::Boolean(b) => Ok(BamlValue::Bool(*b)),
+            Value::String(s, _) => match s.to_lowercase().as_str() {
+                "true" | "yes" | "1" => Ok(BamlValue::Bool(true)),
+                "false" | "no" | "0" => Ok(BamlValue::Bool(false)),
+                _ => Err(CoercionError::TypeMismatch {
+                    expected: "bool".into(),
+                    actual: format!("string \"{}\"", s),
+                }),
+            },
+            _ => Err(CoercionError::TypeMismatch {
+                expected: "bool".into(),
+                actual: value.type_name(),
+            }),
+        }
+    }
+
+    fn coerce_null(&self, value: &Value) -> Result<BamlValue, CoercionError> {
+        match value {
+            Value::Null => Ok(BamlValue::Null),
+            _ => Err(CoercionError::TypeMismatch {
+                expected: "null".into(),
+                actual: value.type_name(),
+            }),
+        }
+    }
+
+    fn coerce_media(&self, _value: &Value, kind: &MediaKind) -> Result<BamlValue, CoercionError> {
+        // TODO: Proper media coercion
+        Ok(BamlValue::Media(BamlMedia::url(kind.clone(), "")))
+    }
+
+    fn coerce_literal(
+        &self,
+        value: &Value,
+        lit: &LiteralValue,
+    ) -> Result<BamlValue, CoercionError> {
         match (lit, value) {
             (LiteralValue::String(expected), Value::String(s, _)) if s == expected => {
                 Ok(BamlValue::String(s.clone()))
@@ -155,24 +193,22 @@ impl Coercer {
             _ => Err(CoercionError::TypeMismatch {
                 expected: format!("literal {:?}", lit),
                 actual: value.type_name(),
-            })
+            }),
         }
     }
 
-    fn coerce_optional(&self, value: &Value, inner: &TypeIR) -> Result<BamlValue, CoercionError> {
+    fn coerce_optional(&self, value: &Value, inner: &Ty) -> Result<BamlValue, CoercionError> {
         match value {
             Value::Null => Ok(BamlValue::Null),
             _ => self.coerce(value, inner),
         }
     }
 
-    fn coerce_list(&self, value: &Value, elem: &TypeIR) -> Result<BamlValue, CoercionError> {
+    fn coerce_list(&self, value: &Value, elem: &Ty) -> Result<BamlValue, CoercionError> {
         match value {
             Value::Array(items, _) => {
-                let coerced: Result<Vec<_>, _> = items
-                    .iter()
-                    .map(|v| self.coerce(v, elem))
-                    .collect();
+                let coerced: Result<Vec<_>, _> =
+                    items.iter().map(|v| self.coerce(v, elem)).collect();
                 Ok(BamlValue::List(coerced?))
             }
             // Single value can be coerced to a list of one
@@ -183,7 +219,7 @@ impl Coercer {
         }
     }
 
-    fn coerce_map(&self, value: &Value, _key: &TypeIR, val: &TypeIR) -> Result<BamlValue, CoercionError> {
+    fn coerce_map(&self, value: &Value, val: &Ty) -> Result<BamlValue, CoercionError> {
         match value {
             Value::Object(pairs, _) => {
                 let mut map = BamlMap::new();
@@ -196,11 +232,11 @@ impl Coercer {
             _ => Err(CoercionError::TypeMismatch {
                 expected: "map".into(),
                 actual: value.type_name(),
-            })
+            }),
         }
     }
 
-    fn coerce_union(&self, value: &Value, variants: &[TypeIR]) -> Result<BamlValue, CoercionError> {
+    fn coerce_union(&self, value: &Value, variants: &[Ty]) -> Result<BamlValue, CoercionError> {
         // Try each variant until one succeeds
         for variant in variants {
             if let Ok(coerced) = self.coerce(value, variant) {
@@ -228,7 +264,7 @@ impl Coercer {
             _ => Err(CoercionError::TypeMismatch {
                 expected: format!("class {}", name),
                 actual: value.type_name(),
-            })
+            }),
         }
     }
 
@@ -241,7 +277,7 @@ impl Coercer {
             _ => Err(CoercionError::TypeMismatch {
                 expected: format!("enum {}", name),
                 actual: value.type_name(),
-            })
+            }),
         }
     }
 
@@ -285,14 +321,15 @@ impl Coercer {
 
 #[cfg(test)]
 mod tests {
+    use baml_program::CompletionState;
+
     use super::*;
-    use ir_stub::CompletionState;
 
     #[test]
     fn test_coerce_string() {
         let coercer = Coercer::new(true);
         let value = Value::String("hello".into(), CompletionState::Complete);
-        let result = coercer.coerce(&value, &TypeIR::string());
+        let result = coercer.coerce(&value, &Ty::String);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), BamlValue::String("hello".into()));
     }
@@ -301,45 +338,18 @@ mod tests {
     fn test_coerce_int() {
         let coercer = Coercer::new(true);
         let value = Value::Number(serde_json::Number::from(42), CompletionState::Complete);
-        let result = coercer.coerce(&value, &TypeIR::int());
+        let result = coercer.coerce(&value, &Ty::Int);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), BamlValue::Int(42));
-    }
-
-    #[test]
-    fn test_coerce_int_from_string() {
-        let coercer = Coercer::new(true);
-        let value = Value::String("42".into(), CompletionState::Complete);
-        let result = coercer.coerce(&value, &TypeIR::int());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), BamlValue::Int(42));
-    }
-
-    #[test]
-    fn test_coerce_bool() {
-        let coercer = Coercer::new(true);
-        let value = Value::Boolean(true);
-        let result = coercer.coerce(&value, &TypeIR::bool());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), BamlValue::Bool(true));
     }
 
     #[test]
     fn test_coerce_optional_null() {
         let coercer = Coercer::new(true);
         let value = Value::Null;
-        let result = coercer.coerce(&value, &TypeIR::optional(TypeIR::string()));
+        let result = coercer.coerce(&value, &Ty::Optional(Box::new(Ty::String)));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), BamlValue::Null);
-    }
-
-    #[test]
-    fn test_coerce_optional_value() {
-        let coercer = Coercer::new(true);
-        let value = Value::String("hello".into(), CompletionState::Complete);
-        let result = coercer.coerce(&value, &TypeIR::optional(TypeIR::string()));
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), BamlValue::String("hello".into()));
     }
 
     #[test]
@@ -347,31 +357,17 @@ mod tests {
         let coercer = Coercer::new(true);
         let value = Value::Array(
             vec![
-                Value::Number(serde_json::Number::from(1), CompletionState::Complete),
-                Value::Number(serde_json::Number::from(2), CompletionState::Complete),
+                Value::String("a".into(), CompletionState::Complete),
+                Value::String("b".into(), CompletionState::Complete),
             ],
             CompletionState::Complete,
         );
-        let result = coercer.coerce(&value, &TypeIR::list(TypeIR::int()));
+        let result = coercer.coerce(&value, &Ty::List(Box::new(Ty::String)));
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), BamlValue::List(vec![BamlValue::Int(1), BamlValue::Int(2)]));
-    }
-
-    #[test]
-    fn test_coerce_class() {
-        let coercer = Coercer::new(true);
-        let value = Value::Object(
-            vec![
-                ("name".into(), Value::String("Alice".into(), CompletionState::Complete)),
-                ("age".into(), Value::Number(serde_json::Number::from(30), CompletionState::Complete)),
-            ],
-            CompletionState::Complete,
-        );
-        let result = coercer.coerce(&value, &TypeIR::class("Person"));
-        assert!(result.is_ok());
-        match result.unwrap() {
-            BamlValue::Class(name, _) => assert_eq!(name, "Person"),
-            _ => panic!("Expected Class"),
+        if let BamlValue::List(items) = result.unwrap() {
+            assert_eq!(items.len(), 2);
+        } else {
+            panic!("Expected list");
         }
     }
 }

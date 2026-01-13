@@ -1,0 +1,24 @@
+[package]
+name = "baml_program_compile"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = [ "rlib" ]
+
+[dependencies]
+baml_base.workspace = true
+baml_compiler_hir.workspace = true
+baml_compiler_tir.workspace = true
+# Compiler dependencies
+baml_db.workspace = true
+
+# Target: the data-only BamlProgram
+baml_program.workspace = true
+baml_project.workspace = true
+
+[features]
+default = [  ]

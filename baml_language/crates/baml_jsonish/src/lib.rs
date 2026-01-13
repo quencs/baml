@@ -12,22 +12,17 @@ mod coercer;
 mod parser;
 mod value;
 
+use baml_program::{BamlValue, Ty};
 pub use coercer::{Coercer, CoercionError};
-pub use parser::{parse, ParseOptions, ParseError};
-pub use value::{Value, Fixes};
-
-use ir_stub::{BamlValue, TypeIR};
+pub use parser::{ParseError, ParseOptions, parse};
+pub use value::{Fixes, Value};
 
 /// Parse a JSON-ish string and coerce it to the target type.
 ///
 /// This is the main entry point for parsing LLM responses.
-pub fn from_str(
-    target: &TypeIR,
-    raw_string: &str,
-    is_done: bool,
-) -> Result<BamlValue, CoercionError> {
+pub fn from_str(target: &Ty, raw_string: &str, is_done: bool) -> Result<BamlValue, CoercionError> {
     // Handle simple string type - don't try to parse as JSON
-    if target.is_string() {
+    if matches!(target, Ty::String) {
         return Ok(BamlValue::String(raw_string.to_string()));
     }
 
@@ -42,10 +37,7 @@ pub fn from_str(
 /// Parse a JSON-ish string and coerce it, allowing partial results.
 ///
 /// This is used during streaming to get partial values.
-pub fn from_str_partial(
-    target: &TypeIR,
-    raw_string: &str,
-) -> Result<BamlValue, CoercionError> {
+pub fn from_str_partial(target: &Ty, raw_string: &str) -> Result<BamlValue, CoercionError> {
     from_str(target, raw_string, false)
 }
 
@@ -55,15 +47,18 @@ mod tests {
 
     #[test]
     fn test_from_str_string_type() {
-        let result = from_str(&TypeIR::string(), "hello world", true);
+        let result = from_str(&Ty::String, "hello world", true);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), BamlValue::String("hello world".to_string()));
+        assert_eq!(
+            result.unwrap(),
+            BamlValue::String("hello world".to_string())
+        );
     }
 
     #[test]
     fn test_from_str_json_object() {
         let json = r#"{"name": "Alice", "age": 30}"#;
-        let result = from_str(&TypeIR::class("Person"), json, true);
+        let result = from_str(&Ty::Class("Person".to_string()), json, true);
         assert!(result.is_ok());
     }
 
@@ -72,7 +67,7 @@ mod tests {
         let json = r#"```json
 {"name": "Alice"}
 ```"#;
-        let result = from_str(&TypeIR::class("Person"), json, true);
+        let result = from_str(&Ty::Class("Person".to_string()), json, true);
         assert!(result.is_ok());
     }
 }

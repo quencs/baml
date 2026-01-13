@@ -22,17 +22,13 @@ impl DynamicBamlContext {
     }
 }
 
-/// Placeholder for TypeBuilder - will integrate with real implementation later.
+/// Placeholder for `TypeBuilder` - will integrate with real implementation later.
 #[derive(Debug, Clone)]
-pub struct TypeBuilderStub {
-    // TODO: Define interface
-}
+pub struct TypeBuilderStub;
 
-/// Placeholder for ClientRegistry - will integrate with real implementation later.
+/// Placeholder for `ClientRegistry` - will integrate with real implementation later.
 #[derive(Debug, Clone)]
-pub struct ClientRegistryStub {
-    // TODO: Define interface
-}
+pub struct ClientRegistryStub;
 
 #[cfg(test)]
 mod tests {

@@ -5,10 +5,12 @@
 
 use std::sync::Arc;
 
-use baml_db::{baml_workspace::Project, SourceFile};
-use baml_project::ProjectDatabase as RootDatabase;
-use baml_compiler_hir::{self, file_item_tree, FunctionBody, FunctionLoc, FunctionSignature, ItemId};
+use baml_compiler_hir::{
+    self, FunctionBody, FunctionLoc, FunctionSignature, ItemId, file_item_tree,
+};
 use baml_compiler_tir::{Ty, TypeResolutionContext};
+use baml_db::{SourceFile, baml_workspace::Project};
+use baml_project::ProjectDatabase as RootDatabase;
 
 /// Information about an LLM function's body.
 #[derive(Debug, Clone)]
@@ -105,7 +107,10 @@ pub fn find_function_in_file<'db>(
 }
 
 /// Get the first function in a source file.
-pub fn get_first_function<'db>(db: &'db RootDatabase, source: SourceFile) -> Option<FunctionLoc<'db>> {
+pub fn get_first_function<'db>(
+    db: &'db RootDatabase,
+    source: SourceFile,
+) -> Option<FunctionLoc<'db>> {
     let items = baml_compiler_hir::file_items(db, source);
 
     for item in items.items(db) {
@@ -135,10 +140,10 @@ pub fn get_first_function_name(db: &RootDatabase, source: SourceFile) -> Option<
 /// Returns None if the function is not an LLM function or has no prompt.
 pub fn get_function_prompt(db: &RootDatabase, func_loc: FunctionLoc<'_>) -> Option<String> {
     let body = baml_compiler_hir::function_body(db, func_loc);
-    if let FunctionBody::Llm(llm) = body.as_ref() {
-        if let Some(ref prompt) = llm.prompt {
-            return Some(prompt.text.clone());
-        }
+    if let FunctionBody::Llm(llm) = body.as_ref()
+        && let Some(ref prompt) = llm.prompt
+    {
+        return Some(prompt.text.clone());
     }
     None
 }
@@ -148,21 +153,27 @@ pub fn get_function_prompt(db: &RootDatabase, func_loc: FunctionLoc<'_>) -> Opti
 /// Returns None if the function is not an LLM function or has no client.
 pub fn get_function_client(db: &RootDatabase, func_loc: FunctionLoc<'_>) -> Option<String> {
     let body = baml_compiler_hir::function_body(db, func_loc);
-    if let FunctionBody::Llm(llm) = body.as_ref() {
-        if let Some(ref client) = llm.client {
-            return Some(client.to_string());
-        }
+    if let FunctionBody::Llm(llm) = body.as_ref()
+        && let Some(ref client) = llm.client
+    {
+        return Some(client.to_string());
     }
     None
 }
 
 /// Get the function signature from a function location.
-pub fn get_function_signature(db: &RootDatabase, func_loc: FunctionLoc<'_>) -> Arc<FunctionSignature> {
+pub fn get_function_signature(
+    db: &RootDatabase,
+    func_loc: FunctionLoc<'_>,
+) -> Arc<FunctionSignature> {
     baml_compiler_hir::function_signature(db, func_loc)
 }
 
 /// Get the function body from a function location.
-pub fn get_function_body(db: &RootDatabase, func_loc: FunctionLoc<'_>) -> std::sync::Arc<FunctionBody> {
+pub fn get_function_body(
+    db: &RootDatabase,
+    func_loc: FunctionLoc<'_>,
+) -> std::sync::Arc<FunctionBody> {
     baml_compiler_hir::function_body(db, func_loc)
 }
 
@@ -195,7 +206,8 @@ pub fn get_function_info(
         .collect();
 
     // Resolve return type
-    let (return_type, _errors) = resolution_ctx.lower_type_ref(&signature.return_type, Default::default());
+    let (return_type, _errors) =
+        resolution_ctx.lower_type_ref(&signature.return_type, Default::default());
 
     let resolved_signature = ResolvedSignature {
         name: func.name.to_string(),
