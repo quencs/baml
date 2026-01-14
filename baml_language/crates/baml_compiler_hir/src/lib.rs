@@ -129,6 +129,11 @@ impl LoweringContext {
         }
     }
 
+    /// Get the file ID.
+    pub(crate) fn file_id(&self) -> FileId {
+        self.file_id
+    }
+
     /// Create a span for the given text range in this file.
     fn span(&self, range: TextRange) -> Span {
         Span::new(self.file_id, range)
@@ -518,7 +523,10 @@ pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<Fu
             _ => vec![],
         })
         .find(|function_def| {
-            function_def.name().as_ref().map(SyntaxToken::text) == Some(&func_name)
+            function_def
+                .name()
+                .as_ref()
+                .is_some_and(|n| n.text() == func_name.as_str())
         });
 
     // Lower the function with file_id for span tracking.

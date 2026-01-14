@@ -4,4 +4,7 @@ expression: "&result"
 input_file: crates/baml_build_request_tests/testdata/InputNamedMapStringToMap.baml
 ---
 fixture: InputNamedMapStringToMap.baml
-error: "Failed to prepare function 'FnInputNamedMapStringToMap': Validation error: Function 'FnInputNamedMapStringToMap' has no body"
+function: FnInputNamedMapStringToMap
+prompt:
+  type: Completion
+  text: "Return this value back to me: "

@@ -165,6 +165,12 @@ pub(crate) struct Parser<'a> {
     tokens: &'a [Token],
     current: usize,
     events: Vec<Event>,
+    /// Tracks if we have a pending `>` from splitting a `>>` token.
+    /// When parsing nested generics like `map<string, map<string, string>>`,
+    /// the lexer produces `>>` as a single token. We split it by consuming
+    /// the first `>` and setting this flag, which is then consumed for the
+    /// second `>`.
+    pending_gt: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -173,6 +179,7 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             events: Vec::new(),
+            pending_gt: false,
         }
     }
 
@@ -636,6 +643,85 @@ impl<'a> Parser<'a> {
             self.bump();
             true
         } else {
+            false
+        }
+    }
+
+    /// Eat a `>` token, with special handling for `>>` splitting.
+    ///
+    /// When parsing nested generics like `map<string, map<string, string>>`,
+    /// the lexer produces `>>` as a single token. This method handles that
+    /// by consuming the first `>` from `>>` and leaving the second for the
+    /// next call to `eat_gt`.
+    fn eat_gt(&mut self) -> bool {
+        // First check if we have a pending > from a previous >> split
+        if self.pending_gt {
+            // Emit the synthetic > token
+            self.events.push(Event::Token {
+                kind: SyntaxKind::GREATER,
+                text: ">".to_string(),
+            });
+            self.pending_gt = false;
+            return true;
+        }
+
+        // Regular > token
+        if self.at(TokenKind::Greater) {
+            self.bump();
+            return true;
+        }
+
+        // Check for >> token - split it
+        if self.at(TokenKind::GreaterGreater) {
+            // Emit trivia before the token first
+            while self.current < self.tokens.len() {
+                let kind = self.tokens[self.current].kind;
+                if !self.is_basic_trivia(kind) {
+                    break;
+                }
+                self.events.push(Event::Token {
+                    kind: token_kind_to_syntax_kind(kind),
+                    text: self.tokens[self.current].text.clone(),
+                });
+                self.current += 1;
+            }
+
+            // Emit the first > from >>
+            self.events.push(Event::Token {
+                kind: SyntaxKind::GREATER,
+                text: ">".to_string(),
+            });
+
+            // Skip the >> token but mark that we have a pending >
+            self.current += 1;
+            self.pending_gt = true;
+            return true;
+        }
+
+        false
+    }
+
+    /// Expect a `>` token, with special handling for `>>` splitting.
+    fn expect_gt(&mut self) -> bool {
+        if self.eat_gt() {
+            true
+        } else {
+            let found = self
+                .current()
+                .map(|t| format!("{}", t.kind))
+                .unwrap_or_else(|| "EOF".to_string());
+
+            let span = self.current().map(|t| t.span).unwrap_or_else(|| {
+                self.tokens.last().map(|t| t.span).unwrap_or_else(|| {
+                    baml_base::Span::new(baml_base::FileId::new(0), TextRange::default())
+                })
+            });
+
+            self.events.push(Event::UnexpectedToken {
+                expected: "'>'".to_string(),
+                found,
+                span,
+            });
             false
         }
     }
@@ -1156,7 +1242,8 @@ impl<'a> Parser<'a> {
                         p.parse_type();
                     }
 
-                    p.expect(TokenKind::Greater);
+                    // Use expect_gt() to handle >> splitting for nested generics
+                    p.expect_gt();
                 });
             }
         } else if self.at(TokenKind::LParen) {

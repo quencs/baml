@@ -29,7 +29,7 @@ use crate::{
 ///
 /// **Collision handling:** IDs pack a 16-bit hash and 16-bit collision index.
 /// The `next_index` map tracks the next available index per `(ItemKind, hash)`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ItemTree {
     pub(crate) functions: FxHashMap<LocalItemId<FunctionMarker>, Function>,
     pub(crate) classes: FxHashMap<LocalItemId<ClassMarker>, Class>,
@@ -188,12 +188,16 @@ pub struct Client {
 }
 
 /// Test definition.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Test {
     pub name: Name,
 
     /// Unresolved function references.
     pub function_refs: Vec<Name>,
+
+    /// Test arguments as an expression body.
+    /// The root expression is an `Expr::Map` containing the argument key-value pairs.
+    pub args: crate::body::ExprBody,
 
     /// Type builder block containing dynamic type definitions.
     pub type_builder: Option<TypeBuilderBlock>,

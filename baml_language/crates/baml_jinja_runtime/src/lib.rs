@@ -29,6 +29,8 @@ pub struct RenderContext {
     pub client: LlmClientSpec,
     /// Tags available in the template.
     pub tags: HashMap<String, BamlValue>,
+    /// Rendered output format schema (available as ctx.output_format in templates).
+    pub output_format: Option<String>,
 }
 
 // ============================================================================
@@ -113,11 +115,13 @@ fn render_minijinja(
     // Add ctx global
     let client = ctx.client.clone();
     let tags = ctx.tags.clone();
+    let output_format = ctx.output_format.clone().unwrap_or_default();
     env.add_global(
         "ctx",
         context! {
             client => client,
             tags => tags,
+            output_format => output_format,
         },
     );
 

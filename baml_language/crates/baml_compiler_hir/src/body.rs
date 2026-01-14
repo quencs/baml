@@ -2944,3 +2944,249 @@ impl LoweringContext {
         self.alloc_stmt(Stmt::HeaderComment { name, level }, node.text_range())
     }
 }
+
+/// Lower a config block (like test args) to an `ExprBody`.
+///
+/// The resulting `ExprBody` has a root `Expr::Map` containing the key-value pairs
+/// from the config block. This allows test args to be treated as expressions
+/// that can be compiled to bytecode and evaluated.
+///
+/// # Arguments
+/// * `config_block` - The config block AST node to lower
+/// * `file_id` - The file ID for span tracking
+pub fn lower_config_block_to_expr_body(
+    config_block: &baml_compiler_syntax::ast::ConfigBlock,
+    file_id: FileId,
+) -> ExprBody {
+    let mut ctx = LoweringContext::new(file_id);
+    let root_expr = ctx.lower_config_block_as_map(config_block);
+    ctx.finish(Some(root_expr))
+}
+
+/// Lower a config block to an `ExprBody`, creating an empty map if None.
+pub fn lower_optional_config_block_to_expr_body(
+    config_block: Option<&baml_compiler_syntax::ast::ConfigBlock>,
+    file_id: FileId,
+) -> ExprBody {
+    let mut ctx = LoweringContext::new(file_id);
+    let root_expr = if let Some(block) = config_block {
+        ctx.lower_config_block_as_map(block)
+    } else {
+        // Empty map for missing args
+        ctx.alloc_expr(Expr::Map { entries: vec![] }, TextRange::empty(0.into()))
+    };
+    ctx.finish(Some(root_expr))
+}
+
+impl LoweringContext {
+    /// Lower a config block to an `Expr::Map`.
+    fn lower_config_block_as_map(
+        &mut self,
+        block: &baml_compiler_syntax::ast::ConfigBlock,
+    ) -> ExprId {
+        use rowan::ast::AstNode;
+
+        let mut entries = Vec::new();
+        let block_range = block.syntax().text_range();
+
+        for item in block.items() {
+            if let Some(key_token) = item.key() {
+                let key_str = key_token.text();
+                let key_span = key_token.text_range();
+
+                // Key is a string literal
+                let key_expr = self.alloc_expr(
+                    Expr::Literal(Literal::String(key_str.to_string())),
+                    key_span,
+                );
+
+                // Lower the value
+                let value_expr = self.lower_config_item_value(&item);
+
+                entries.push((key_expr, value_expr));
+            }
+        }
+
+        self.alloc_expr(Expr::Map { entries }, block_range)
+    }
+
+    /// Lower a config item value to an expression.
+    fn lower_config_item_value(&mut self, item: &baml_compiler_syntax::ast::ConfigItem) -> ExprId {
+        use baml_compiler_syntax::SyntaxKind;
+        use rowan::ast::AstNode;
+
+        let syntax = item.syntax();
+        let item_range = syntax.text_range();
+
+        // Check for nested config block (object literal)
+        if let Some(nested_block) = syntax
+            .children()
+            .find(|child| child.kind() == SyntaxKind::CONFIG_BLOCK)
+        {
+            if let Some(block) = baml_compiler_syntax::ast::ConfigBlock::cast(nested_block) {
+                return self.lower_config_block_as_map(&block);
+            }
+        }
+
+        // Check for CONFIG_VALUE node
+        if let Some(config_value) = syntax
+            .children()
+            .find(|child| child.kind() == SyntaxKind::CONFIG_VALUE)
+        {
+            return self.lower_config_value_as_expr(&config_value);
+        }
+
+        // Fallback to null
+        self.alloc_expr(Expr::Literal(Literal::Null), item_range)
+    }
+
+    /// Lower a `CONFIG_VALUE` node to an expression.
+    fn lower_config_value_as_expr(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let node_range = node.text_range();
+
+        // Check for array literal [item1, item2]
+        if let Some(array_node) = node
+            .children()
+            .find(|child| child.kind() == SyntaxKind::ARRAY_LITERAL)
+        {
+            return self.lower_array_literal_as_expr(&array_node);
+        }
+
+        // Check for nested config block (object in value position)
+        if let Some(block_node) = node
+            .children()
+            .find(|child| child.kind() == SyntaxKind::CONFIG_BLOCK)
+        {
+            if let Some(block) = baml_compiler_syntax::ast::ConfigBlock::cast(block_node) {
+                return self.lower_config_block_as_map(&block);
+            }
+        }
+
+        // Check for string literal
+        if let Some(string_node) = node.children().find(|child| {
+            matches!(
+                child.kind(),
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL
+            )
+        }) {
+            let content = Self::extract_string_content(&string_node);
+            return self.alloc_expr(
+                Expr::Literal(Literal::String(content)),
+                string_node.text_range(),
+            );
+        }
+
+        // Check for tokens directly in the CONFIG_VALUE
+        for token in node
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+        {
+            let token_span = token.text_range();
+            match token.kind() {
+                SyntaxKind::INTEGER_LITERAL => {
+                    if let Ok(i) = token.text().parse::<i64>() {
+                        return self.alloc_expr(Expr::Literal(Literal::Int(i)), token_span);
+                    }
+                }
+                SyntaxKind::FLOAT_LITERAL => {
+                    return self.alloc_expr(
+                        Expr::Literal(Literal::Float(token.text().to_string())),
+                        token_span,
+                    );
+                }
+                SyntaxKind::WORD => {
+                    let text = token.text();
+                    return match text {
+                        "true" => self.alloc_expr(Expr::Literal(Literal::Bool(true)), token_span),
+                        "false" => self.alloc_expr(Expr::Literal(Literal::Bool(false)), token_span),
+                        "null" => self.alloc_expr(Expr::Literal(Literal::Null), token_span),
+                        // Treat as a path reference (variable, enum, etc.)
+                        _ => self.alloc_expr(Expr::Path(vec![Name::new(text)]), token_span),
+                    };
+                }
+                _ => {}
+            }
+        }
+
+        self.alloc_expr(Expr::Literal(Literal::Null), node_range)
+    }
+
+    /// Lower an array literal to an `Expr::Array`.
+    fn lower_array_literal_as_expr(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let mut elements = Vec::new();
+        let array_range = node.text_range();
+
+        for child in node.children() {
+            match child.kind() {
+                SyntaxKind::CONFIG_VALUE => {
+                    elements.push(self.lower_config_value_as_expr(&child));
+                }
+                SyntaxKind::CONFIG_BLOCK => {
+                    // Nested object in array
+                    if let Some(block) = baml_compiler_syntax::ast::ConfigBlock::cast(child) {
+                        elements.push(self.lower_config_block_as_map(&block));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Also check for direct tokens (for simple arrays like [1, 2, 3])
+        for token in node
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+        {
+            let token_span = token.text_range();
+            match token.kind() {
+                SyntaxKind::INTEGER_LITERAL => {
+                    if let Ok(i) = token.text().parse::<i64>() {
+                        elements.push(self.alloc_expr(Expr::Literal(Literal::Int(i)), token_span));
+                    }
+                }
+                SyntaxKind::FLOAT_LITERAL => {
+                    elements.push(self.alloc_expr(
+                        Expr::Literal(Literal::Float(token.text().to_string())),
+                        token_span,
+                    ));
+                }
+                SyntaxKind::WORD => {
+                    let text = token.text();
+                    if text == "true" {
+                        elements
+                            .push(self.alloc_expr(Expr::Literal(Literal::Bool(true)), token_span));
+                    } else if text == "false" {
+                        elements
+                            .push(self.alloc_expr(Expr::Literal(Literal::Bool(false)), token_span));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        self.alloc_expr(Expr::Array { elements }, array_range)
+    }
+
+    /// Extract string content from a string literal node.
+    fn extract_string_content(node: &baml_compiler_syntax::SyntaxNode) -> String {
+        use baml_compiler_syntax::SyntaxKind;
+
+        // Collect all non-delimiter tokens inside the string
+        node.descendants_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .filter(|token| {
+                !matches!(
+                    token.kind(),
+                    SyntaxKind::QUOTE
+                        | SyntaxKind::HASH
+                        | SyntaxKind::WHITESPACE
+                        | SyntaxKind::NEWLINE
+                )
+            })
+            .map(|token| token.text().to_string())
+            .collect()
+    }
+}

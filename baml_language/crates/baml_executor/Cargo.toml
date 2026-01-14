@@ -17,6 +17,7 @@ baml_db.workspace = true
 baml_jinja_runtime.workspace = true
 baml_jsonish.workspace = true
 baml_llm_interface.workspace = true
+baml_output_format.workspace = true
 # Internal dependencies
 baml_program.workspace = true
 baml_program_compile.workspace = true

@@ -4,14 +4,16 @@
 //! - Property name validation
 //! - Required property checking
 //! - Type builder block lowering
+//! - Test argument lowering (as expressions)
 
 use baml_base::Name;
 use baml_compiler_diagnostics::HirDiagnostic;
-use baml_compiler_syntax::SyntaxNode;
+use baml_compiler_syntax::{SyntaxKind, SyntaxNode};
 use rowan::ast::AstNode;
 
 use crate::{
     LoweringContext,
+    body::lower_optional_config_block_to_expr_body,
     item_tree::{Test, TypeBuilderBlock, TypeBuilderEntry},
     lower_class, lower_enum, lower_type_alias,
 };
@@ -21,7 +23,7 @@ pub(crate) const VALID_TEST_PROPERTIES: &[&str] = &["functions", "args", "type_b
 
 /// Extract test definition from CST with validation.
 pub(crate) fn lower_test(node: &SyntaxNode, ctx: &mut LoweringContext) -> Option<Test> {
-    use baml_compiler_syntax::ast::TestDef;
+    use baml_compiler_syntax::ast::{ConfigBlock, TestDef};
 
     let test = TestDef::cast(node.clone())?;
 
@@ -33,6 +35,7 @@ pub(crate) fn lower_test(node: &SyntaxNode, ctx: &mut LoweringContext) -> Option
     // Track for required property check
     let mut has_functions = false;
     let mut has_args = false;
+    let mut args_block: Option<ConfigBlock> = None;
 
     // Process config block if present
     if let Some(config_block) = test.config_block() {
@@ -60,6 +63,12 @@ pub(crate) fn lower_test(node: &SyntaxNode, ctx: &mut LoweringContext) -> Option
                 }
                 "args" => {
                     has_args = true;
+                    // Extract the nested CONFIG_BLOCK from the args item
+                    args_block = item
+                        .syntax()
+                        .children()
+                        .find(|child| child.kind() == SyntaxKind::CONFIG_BLOCK)
+                        .and_then(ConfigBlock::cast);
                 }
                 _ => {}
             }
@@ -100,6 +109,9 @@ pub(crate) fn lower_test(node: &SyntaxNode, ctx: &mut LoweringContext) -> Option
         // But we don't emit this if there are no properties at all (covered by missing args)
     }
 
+    // Lower args to ExprBody (expression-based representation)
+    let args = lower_optional_config_block_to_expr_body(args_block.as_ref(), ctx.file_id());
+
     // Lower type_builder block if present
     let type_builder = test
         .config_block()
@@ -109,6 +121,7 @@ pub(crate) fn lower_test(node: &SyntaxNode, ctx: &mut LoweringContext) -> Option
     Some(Test {
         name,
         function_refs,
+        args,
         type_builder,
     })
 }

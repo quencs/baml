@@ -27,6 +27,7 @@ pub mod function_lookup;
 pub mod llm_request;
 pub mod llm_response;
 pub mod orchestrator;
+pub mod output_format;
 pub mod parsing;
 
 mod prepared_function;

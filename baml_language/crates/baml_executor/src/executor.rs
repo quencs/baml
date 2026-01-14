@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use baml_db::baml_workspace::Project;
 use baml_jinja_runtime::{LlmClientSpec, RenderContext};
 use baml_llm_interface::RenderedPrompt;
-use baml_program::Ty;
+use baml_output_format::{OutputFormatContent, OutputFormatOptions};
+use baml_program::{BamlProgram, Ty};
 use baml_program_compile::convert_tir_ty;
 use baml_project::ProjectDatabase as RootDatabase;
 
@@ -18,6 +19,7 @@ use crate::{
         ClientConfig, FunctionResultStream, OrchestrationScope, OrchestratorConfig,
         OrchestratorNode, ProviderType, orchestrate_call, orchestrate_stream,
     },
+    output_format::build_output_format,
     prepared_function::PreparedFunction,
     render_options::RenderOptions,
     types::{BamlMap, BamlValue, FunctionResult, TestResult},
@@ -33,6 +35,8 @@ use crate::{
 pub struct BamlExecutor {
     db: RootDatabase,
     project: Project,
+    /// Compiled BamlProgram for output format building.
+    program: BamlProgram,
 }
 
 impl BamlExecutor {
@@ -40,15 +44,37 @@ impl BamlExecutor {
         let project = db
             .project()
             .ok_or_else(|| RuntimeError::Validation("Database has no project set".to_string()))?;
-        Ok(Self { db, project })
+        let program = baml_program_compile::compile_program(&db, project);
+        Ok(Self {
+            db,
+            project,
+            program,
+        })
     }
 
     pub fn with_project(db: RootDatabase, project: Project) -> Self {
-        Self { db, project }
+        let program = baml_program_compile::compile_program(&db, project);
+        Self {
+            db,
+            project,
+            program,
+        }
+    }
+
+    pub fn with_program(db: RootDatabase, project: Project, program: BamlProgram) -> Self {
+        Self {
+            db,
+            project,
+            program,
+        }
     }
 
     pub fn db(&self) -> &RootDatabase {
         &self.db
+    }
+
+    pub fn program(&self) -> &BamlProgram {
+        &self.program
     }
 
     pub fn project(&self) -> Project {
@@ -246,6 +272,9 @@ impl BamlExecutor {
         let client_name = prepared.client_name.clone();
         let (provider, default_role, allowed_roles) = parse_client_config(&client_name);
 
+        // Build output format from the return type
+        let output_format = self.build_output_format_string(&prepared.return_ty);
+
         Ok(RenderContext {
             client: LlmClientSpec {
                 name: client_name,
@@ -255,7 +284,27 @@ impl BamlExecutor {
                 ..Default::default()
             },
             tags: HashMap::new(),
+            output_format,
         })
+    }
+
+    /// Build the output format string for a given return type.
+    fn build_output_format_string(&self, return_ty: &Ty) -> Option<String> {
+        let output_format_content = build_output_format(&self.program, return_ty);
+        let options = OutputFormatOptions::default();
+
+        match baml_output_format::render(&output_format_content, &options) {
+            Ok(Some(rendered)) => Some(rendered),
+            Ok(None) => None,
+            Err(_) => None,
+        }
+    }
+
+    /// Get the OutputFormatContent for a given return type.
+    ///
+    /// This is useful for response parsing and validation.
+    pub fn get_output_format_content(&self, return_ty: &Ty) -> OutputFormatContent {
+        build_output_format(&self.program, return_ty)
     }
 }
 

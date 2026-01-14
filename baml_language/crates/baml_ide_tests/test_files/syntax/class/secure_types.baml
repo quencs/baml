@@ -82,30 +82,3 @@ class ComplexTypes {
 //    │ 
 //    │ Note: Error code: E0010
 // ───╯
-// Error: Expected '>', found '>>'
-//     ╭─[ class_secure_types.baml:16:62 ]
-//     │
-//  16 │   n map<complex_key_type[], map<another_key, (int | string[])>>
-//     │                                                              ─┬  
-//     │                                                               ╰── Expected '>', found '>>'
-//     │ 
-//     │ Note: Error code: E0010
-// ────╯
-// Error: Expected '>', found '>>'
-//     ╭─[ class_secure_types.baml:16:62 ]
-//     │
-//  16 │   n map<complex_key_type[], map<another_key, (int | string[])>>
-//     │                                                              ─┬  
-//     │                                                               ╰── Expected '>', found '>>'
-//     │ 
-//     │ Note: Error code: E0010
-// ────╯
-// Error: Expected Unexpected token in class body, found '>>'
-//     ╭─[ class_secure_types.baml:16:62 ]
-//     │
-//  16 │   n map<complex_key_type[], map<another_key, (int | string[])>>
-//     │                                                              ─┬  
-//     │                                                               ╰── Expected Unexpected token in class body, found '>>'
-//     │ 
-//     │ Note: Error code: E0010
-// ────╯

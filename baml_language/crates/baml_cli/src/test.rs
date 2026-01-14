@@ -3,7 +3,7 @@
 use std::{collections::HashMap, path::PathBuf, time::Instant};
 
 use anyhow::{Context, Result};
-use baml_compiler_hir::{ItemId, Test, file_items};
+use baml_compiler_hir::{Expr, ExprBody, ExprId, ItemId, Literal, Test, file_items};
 use baml_db::{Setter, baml_workspace::Project};
 use baml_executor::{
     BamlExecutor, BamlMap, BamlValue,
@@ -248,9 +248,8 @@ fn discover_tests(
                         continue;
                     }
 
-                    // For MVP, use empty args - test args parsing will need more work
-                    // TODO: Parse test args from syntax tree
-                    let args = BamlMap::new();
+                    // Convert test args from ExprBody to BamlMap
+                    let args = convert_expr_body_to_args(&test.args);
 
                     tests.push(TestCase {
                         function_name,
@@ -311,4 +310,103 @@ async fn run_single_test(
         .with_context(|| format!("Failed to execute function {}", test.function_name))?;
 
     Ok(result.value)
+}
+
+/// Convert ExprBody (HIR expression tree) to test args map.
+fn convert_expr_body_to_args(body: &ExprBody) -> BamlMap {
+    let Some(root_id) = body.root_expr else {
+        return BamlMap::new();
+    };
+
+    let root_expr = &body.exprs[root_id];
+
+    // The root should be an Expr::Map
+    if let Expr::Map { entries } = root_expr {
+        entries
+            .iter()
+            .filter_map(|(key_id, value_id)| {
+                // Key should be a string literal
+                let key = match &body.exprs[*key_id] {
+                    Expr::Literal(Literal::String(s)) => s.clone(),
+                    _ => return None, // Skip non-string keys
+                };
+
+                // Convert value expression to BamlValue
+                let value = convert_expr_to_baml_value(body, *value_id);
+                Some((key, value))
+            })
+            .collect()
+    } else {
+        BamlMap::new()
+    }
+}
+
+/// Convert a single expression to BamlValue.
+fn convert_expr_to_baml_value(body: &ExprBody, expr_id: ExprId) -> BamlValue {
+    let expr = &body.exprs[expr_id];
+
+    match expr {
+        Expr::Literal(lit) => match lit {
+            Literal::String(s) => BamlValue::String(s.clone()),
+            Literal::Int(i) => BamlValue::Int(*i),
+            Literal::Float(f) => {
+                // Parse float string to f64
+                f.parse::<f64>()
+                    .map(BamlValue::Float)
+                    .unwrap_or(BamlValue::Null)
+            }
+            Literal::Bool(b) => BamlValue::Bool(*b),
+            Literal::Null => BamlValue::Null,
+        },
+        Expr::Array { elements } => {
+            let items: Vec<BamlValue> = elements
+                .iter()
+                .map(|e| convert_expr_to_baml_value(body, *e))
+                .collect();
+            BamlValue::List(items)
+        }
+        Expr::Map { entries } => {
+            let map: BamlMap = entries
+                .iter()
+                .filter_map(|(key_id, value_id)| {
+                    // Key should be a string literal
+                    let key = match &body.exprs[*key_id] {
+                        Expr::Literal(Literal::String(s)) => s.clone(),
+                        _ => return None,
+                    };
+                    let value = convert_expr_to_baml_value(body, *value_id);
+                    Some((key, value))
+                })
+                .collect();
+            BamlValue::Map(map)
+        }
+        Expr::Object { fields, .. } => {
+            // Convert object to map
+            let map: BamlMap = fields
+                .iter()
+                .map(|(name, value_id)| {
+                    let value = convert_expr_to_baml_value(body, *value_id);
+                    (name.to_string(), value)
+                })
+                .collect();
+            BamlValue::Map(map)
+        }
+        Expr::Path(path) => {
+            // For simple paths (variable references), convert to string
+            // This handles enum values and identifiers
+            if path.len() == 1 {
+                BamlValue::String(path[0].to_string())
+            } else {
+                // For multi-segment paths like Status.Active, join with "."
+                let path_str = path
+                    .iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<_>>()
+                    .join(".");
+                BamlValue::String(path_str)
+            }
+        }
+        // For other expression types, return null
+        _ => BamlValue::Null,
+    }
 }
