@@ -1,12 +1,12 @@
 //! VM debugging utilities & helpers.
 //!
 //! NOTE: Functions here should not take an entire reference to the
-//! [`crate::Vm`] because then it will be hard to circumvent the borrow checker
-//! in the [`crate::Vm::exec`] loop (which is where we want to use this).
+//! [`crate::BexVm`] because then it will be hard to circumvent the borrow checker
+//! in the [`crate::BexVm::exec`] loop (which is where we want to use this).
 //!
-//! Instead, they take read only references to the parts of the [`crate::Vm`]
+//! Instead, they take read only references to the parts of the [`crate::BexVm`]
 //! that they need, that way inside the loop we can "destructure" the
-//! [`crate::Vm`] and let the compiler know exactly which properties we're
+//! [`crate::BexVm`] and let the compiler know exactly which properties we're
 //! using as mutable and which properties we're using as immutable.
 //!
 //! Reference structs can be created if needed:
@@ -49,11 +49,11 @@ use crate::indexable::EvalStack;
 /// If there's no relevant metadata to attach to the instruction, then this
 /// function returns an empty string.
 #[allow(clippy::cast_sign_loss)] // instruction_ptr is always non-negative in valid bytecode
-pub fn display_instruction<NativeFunction>(
+pub fn display_instruction<F>(
     instruction_ptr: isize,
-    function: &Function<NativeFunction>,
+    function: &Function<F>,
     stack: &EvalStack,
-    objects: &ObjectPool<NativeFunction>,
+    objects: &ObjectPool<F>,
     globals: &GlobalPool,
 ) -> (String, String) {
     let instruction = &function.bytecode.instructions[instruction_ptr as usize];
@@ -162,10 +162,7 @@ pub fn display_instruction<NativeFunction>(
 /// The default display for objects is just a reference number. If we want
 /// all the information, we have to dereference the object and call it's
 /// `to_string` implementation.
-pub fn display_value<NativeFunction>(
-    value: &Value,
-    objects: &ObjectPool<NativeFunction>,
-) -> String {
+pub fn display_value<F>(value: &Value, objects: &ObjectPool<F>) -> String {
     match value {
         Value::Object(index) => display_object(objects, *index),
 
@@ -173,10 +170,7 @@ pub fn display_value<NativeFunction>(
     }
 }
 
-fn display_object<NativeFunction>(
-    objects: &ObjectPool<NativeFunction>,
-    index: ObjectIndex,
-) -> String {
+fn display_object<F>(objects: &ObjectPool<F>, index: ObjectIndex) -> String {
     match &objects[index] {
         // This one's a bit tricky to print.
         Object::Instance(instance) => match &objects[instance.class] {
@@ -287,10 +281,10 @@ impl Col {
 ///
 /// Takes care of calculating how many whitespaces we need to make the table
 /// symmetric and returns the entire table.
-pub fn display_bytecode<NativeFunction>(
-    function: &Function<NativeFunction>,
+pub fn display_bytecode<F>(
+    function: &Function<F>,
     stack: &EvalStack,
-    objects: &ObjectPool<NativeFunction>,
+    objects: &ObjectPool<F>,
     globals: &GlobalPool,
     use_colors: bool,
 ) -> String {
@@ -395,10 +389,10 @@ pub fn display_bytecode<NativeFunction>(
 
 /// Prints the dissassembly of a function.
 #[allow(clippy::print_stderr)] // intentional debug output for disassembly
-pub fn disassemble<NativeFunction>(
-    function: &Function<NativeFunction>,
+pub fn disassemble<F>(
+    function: &Function<F>,
     stack: &EvalStack,
-    objects: &ObjectPool<NativeFunction>,
+    objects: &ObjectPool<F>,
     globals: &GlobalPool,
 ) {
     let use_colors = std::io::stdout().is_terminal();

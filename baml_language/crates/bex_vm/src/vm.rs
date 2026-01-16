@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use bex_vm_types::{
-    BinOp, CmpOp, FunctionKind, FutureKind, GlobalPool, Instruction, Object, ObjectIndex,
-    ObjectPool, ObjectType, StackIndex, UnaryOp, Value, Variant,
+    BinOp, CmpOp, FunctionKind, GlobalPool, Instruction, Object, ObjectIndex, ObjectPool,
+    ObjectType, StackIndex, UnaryOp, Value, Variant,
     bytecode::{self, BlockNotification},
     types::{FunctionType, Future, FutureType, Instance, PendingFuture, Type},
 };
@@ -24,7 +24,7 @@ pub const MAX_FRAMES: usize = 256;
 /// This is what gets pushed onto the call stack every time we call a function.
 ///
 /// As with [`Value`], this struct should not own allocated objects (like
-/// functions) but instead use references to index into [`Vm::objects`]. Should
+/// functions) but instead use references to index into [`BexVm::objects`]. Should
 /// be [`Copy`].
 #[derive(Clone, Copy, Debug)]
 pub struct Frame {
@@ -152,7 +152,7 @@ pub struct Frame {
 /// Other than that, pretty much everything is better in a stack VM, especially
 /// simplicity (we don't even need to figure out which registers to use and when
 /// to use them).
-pub struct Vm {
+pub struct BexVm {
     /// Call stack.
     ///
     /// On each function call we create a new [`Frame`] and push it on this
@@ -169,7 +169,7 @@ pub struct Vm {
     ///
     /// For now, since we don't have a garbage collector yet, this is basically
     /// an arena of objects. **Every object** is allocated here and will be
-    /// destroyed when the lifetime of the [`Vm`] ends. Do not allocate objects
+    /// destroyed when the lifetime of the [`BexVm`] ends. Do not allocate objects
     /// elsewhere since that will make adding a garbage collector harder.
     /// Only allocate objects here and use indices to reference them, don't
     /// bother with Rust references because they will introduce lifetime issues.
@@ -183,7 +183,7 @@ pub struct Vm {
     /// Offset of the first runtime allocated object.
     ///
     /// This is used to track the index of the first runtime allocated object.
-    /// When the embedder calls [`Vm::collect_garbage`] it will drop all values
+    /// When the embedder calls [`BexVm::collect_garbage`] it will drop all values
     /// after this offset.
     pub runtime_allocs_offset: ObjectIndex,
 
@@ -240,12 +240,55 @@ pub enum WatchNotification {
 }
 
 #[derive(Clone, Debug)]
-pub struct BamlVmProgram {
+pub struct BytecodeProgram {
     pub objects: ObjectPool<NativeFunction>,
     pub globals: GlobalPool,
     pub resolved_function_names: HashMap<String, (ObjectIndex, FunctionKind<NativeFunction>)>,
     pub resolved_class_names: HashMap<String, ObjectIndex>,
     pub resolved_enums_names: HashMap<String, ObjectIndex>,
+}
+
+/// Convert a compiled `Program<()>` to a `BytecodeProgram` with native functions attached.
+///
+/// This is the bridge between compilation output and VM execution. It:
+/// 1. Attaches native function implementations to builtin functions
+/// 2. Builds resolved name lookups for functions, classes, and enums
+pub fn convert_program(program: bex_vm_types::Program<()>) -> Result<BytecodeProgram, VmError> {
+    // Convert objects, attaching native functions
+    let objects: Vec<Object<NativeFunction>> = program
+        .objects
+        .into_iter()
+        .map(|o| crate::native::attach_builtins(o))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // Build resolved name maps by scanning objects
+    let mut resolved_function_names = HashMap::new();
+    let mut resolved_class_names = HashMap::new();
+    let mut resolved_enums_names = HashMap::new();
+
+    for (idx, obj) in objects.iter().enumerate() {
+        let obj_idx = ObjectIndex::from_raw(idx);
+        match obj {
+            Object::Function(func) => {
+                resolved_function_names.insert(func.name.clone(), (obj_idx, func.kind));
+            }
+            Object::Class(class) => {
+                resolved_class_names.insert(class.name.clone(), obj_idx);
+            }
+            Object::Enum(enum_def) => {
+                resolved_enums_names.insert(enum_def.name.clone(), obj_idx);
+            }
+            _ => {}
+        }
+    }
+
+    Ok(BytecodeProgram {
+        objects: ObjectPool::from_vec(objects),
+        globals: program.globals,
+        resolved_function_names,
+        resolved_class_names,
+        resolved_enums_names,
+    })
 }
 
 /// Get the type tag for any runtime value.
@@ -282,11 +325,11 @@ fn value_type_tag(value: &Value, objects: &ObjectPool<NativeFunction>) -> i64 {
     }
 }
 
-impl Vm {
+impl BexVm {
     pub fn new(
-        BamlVmProgram {
+        BytecodeProgram {
             objects, globals, ..
-        }: BamlVmProgram,
+        }: BytecodeProgram,
         env_vars: HashMap<String, String>,
     ) -> Self {
         Self {
@@ -304,23 +347,8 @@ impl Vm {
 
     /// Creates a VM from a compiled [`bex_vm_types::Program`].
     pub fn from_program(program: bex_vm_types::Program<()>) -> Result<Self, VmError> {
-        Ok(Self {
-            frames: Vec::new(),
-            stack: EvalStack::new(),
-            runtime_allocs_offset: ObjectIndex::from_raw(program.objects.len()),
-            objects: ObjectPool::from_vec(
-                program
-                    .objects
-                    .into_iter()
-                    .map(|o| crate::native::attach_builtins(o))
-                    .collect::<Result<Vec<_>, _>>()?,
-            ),
-            globals: program.globals,
-            env_vars: HashMap::new(),
-            watch: Watch::new(),
-            watched_vars: HashMap::new(),
-            interrupt_frame: None,
-        })
+        let bytecode = convert_program(program)?;
+        Ok(Self::new(bytecode, HashMap::new()))
     }
 
     /// Bootstraps the VM preparing the given function to run.
@@ -1543,7 +1571,7 @@ impl Vm {
                 Instruction::DispatchFuture(arg_count) => {
                     let args_offset = self.stack.ensure_slot_from_top(arg_count)?;
 
-                    let expected_type = FunctionType::Llm;
+                    let expected_type = FunctionType::External;
 
                     let index = self
                         .objects
@@ -1567,29 +1595,21 @@ impl Vm {
                         }));
                     }
 
-                    // Not a future.
-                    if !matches!(
-                        callable_future.kind,
-                        FunctionKind::Llm | FunctionKind::Future
-                    ) {
+                    // Must be an external operation - extract the ExternalOp.
+                    let FunctionKind::External(external_op) = callable_future.kind else {
                         return Err(VmError::from(InternalError::TypeError {
-                            expected: FunctionType::Llm.into(), // TODO: Fix this
+                            expected: FunctionType::External.into(),
                             got: FunctionType::from(&callable_future.kind).into(),
                         }));
-                    }
+                    };
 
                     // Collect the function call args and cleanup the call.
-                    let future_args = self.stack.drain(args_offset..).skip(1).collect();
+                    let future_args: Vec<Value> = self.stack.drain(args_offset..).skip(1).collect();
 
-                    // Create the pending future.
+                    // Create the pending future with the ExternalOp enum.
                     let pending_future = PendingFuture {
-                        function: callable_future.name.clone(),
+                        operation: external_op,
                         args: future_args,
-                        kind: match callable_future.kind {
-                            FunctionKind::Llm => FutureKind::Llm,
-                            FunctionKind::Future => FutureKind::Net,
-                            _ => unreachable!(),
-                        },
                     };
 
                     // Allocate the future.
@@ -1807,7 +1827,7 @@ impl Vm {
                             function = self.objects[frame.function].as_function()?;
                         }
 
-                        FunctionKind::Exec => {
+                        FunctionKind::Bytecode => {
                             // Otherwise push the new frame.
                             self.frames.push(Frame {
                                 function: index,
@@ -1825,7 +1845,7 @@ impl Vm {
                             function = self.objects[frame.function].as_function()?;
                         }
 
-                        FunctionKind::Llm | FunctionKind::Future => {
+                        FunctionKind::External(_) => {
                             return Err(InternalError::TypeError {
                                 expected: FunctionType::Callable.into(),
                                 got: FunctionType::from(&callee.kind).into(),

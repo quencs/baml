@@ -3,7 +3,7 @@
 //! This crate implements a stack based virtual machine similar to the `CPython`
 //! VM or Lox VM from [Crafting Interpreters](https://craftinginterpreters.com/).
 //!
-//! Main entry point is [`Vm::exec`] which runs the VM cycle:
+//! Main entry point is [`BexVm::exec`] which runs the VM cycle:
 //! 1. Decode Instruction.
 //! 2. Execute Instruction.
 //! 3. Increment instruction pointer and repeat loop.
@@ -25,4 +25,4 @@ pub use builtins::{BuiltinSignature, TypePattern, functions, get_native_fn};
 pub use errors::{InternalError, RuntimeError, StackTrace};
 pub use indexable::EvalStack;
 pub use native::NativeFunction;
-pub use vm::{BamlVmProgram, Frame, Vm, VmExecState};
+pub use vm::{BexVm, BytecodeProgram, Frame, VmExecState, convert_program};
