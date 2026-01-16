@@ -1,5 +1,6 @@
 ---
 source: target/debug/build/baml_tests-0a6cb66c091c7c00/out/generated_tests.rs
+assertion_line: 6292
 expression: output
 ---
 === DIAGNOSTICS ===
@@ -254,45 +255,34 @@ expression: output
 ───╯
 
   [type] Error: Unknown type `str`. Did you mean one of these: `User`?
-   ╭─[ partial_input.baml:3:3 ]
+   ╭─[ partial_input.baml:3:10 ]
    │
  3 │   field1 str  // Incomplete type name
-   │   ───┬──  
-   │      ╰──── Unknown type `str`. Did you mean one of these: `User`?
+   │          ─┬─  
+   │           ╰─── Unknown type `str`. Did you mean one of these: `User`?
    │ 
    │ Note: Error code: E0002
 ───╯
 
   [type] Error: Unknown type `(  // Unclosed attribute
   field5string`
-   ╭─[ partial_input.baml:6:18 ]
+   ╭─[ partial_input.baml:6:23 ]
    │
- 6 │   field4 string @alias(  // Unclosed attribute
-   │                  ──┬──  
-   │                    ╰──── Unknown type `(  // Unclosed attribute
+ 6 │ ╭─▶   field4 string @alias(  // Unclosed attribute
+ 7 │ ├─▶   field5 string  // This should parse correctly
+   │ │                                                     
+   │ ╰───────────────────────────────────────────────────── Unknown type `(  // Unclosed attribute
   field5string`
-   │ 
-   │ Note: Error code: E0002
+   │     
+   │     Note: Error code: E0002
 ───╯
 
   [type] Error: Unknown type `closed`
-   ╭─[ unclosed_string.baml:4:25 ]
+   ╭─[ unclosed_string.baml:4:33 ]
    │
  4 │   field3 string @alias("another closed string")  // Should still parse this
-   │                         ───┬───  
-   │                            ╰───── Unknown type `closed`
-   │ 
-   │ Note: Error code: E0002
-───╯
-
-  [type] Error: Unknown type `")  // Should still parse this
-}`
-   ╭─[ unclosed_string.baml:4:40 ]
-   │
- 4 │   field3 string @alias("another closed string")  // Should still parse this
-   │                                        ───┬──  
-   │                                           ╰──── Unknown type `")  // Should still parse this
-}`
+   │                                 ───┬──  
+   │                                    ╰──── Unknown type `closed`
    │ 
    │ Note: Error code: E0002
 ───╯

@@ -18,7 +18,11 @@ pub enum TypeError<T> {
         info_span: Option<Span>,
     },
     /// Reference to an unknown type name.
-    UnknownType { name: String, span: Span },
+    UnknownType {
+        name: String,
+        span: Span,
+        suggestions: Vec<String>,
+    },
     /// Reference to an unknown variable.
     UnknownVariable { name: String, span: Span },
     /// Invalid binary operation.
@@ -79,9 +83,14 @@ impl<T> TypeError<T> {
                 span: *span,
                 info_span: *info_span,
             },
-            TypeError::UnknownType { name, span } => TypeError::UnknownType {
+            TypeError::UnknownType {
+                name,
+                span,
+                suggestions,
+            } => TypeError::UnknownType {
                 name: name.clone(),
                 span: *span,
+                suggestions: suggestions.clone(),
             },
             TypeError::UnknownVariable { name, span } => TypeError::UnknownVariable {
                 name: name.clone(),

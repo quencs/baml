@@ -66,9 +66,24 @@ impl<T: std::fmt::Display> ToDiagnostic for TypeError<T> {
                     diag
                 }
             }
-            TypeError::UnknownType { name, span } => {
-                Diagnostic::error(DiagnosticId::UnknownType, format!("Unknown type `{name}`"))
-                    .with_primary_span(*span)
+            TypeError::UnknownType {
+                name,
+                span,
+                suggestions,
+            } => {
+                let message = if suggestions.is_empty() {
+                    format!("Unknown type `{name}`")
+                } else {
+                    format!(
+                        "Unknown type `{name}`. Did you mean {}?",
+                        suggestions
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                };
+                Diagnostic::error(DiagnosticId::UnknownType, message).with_primary_span(*span)
             }
 
             TypeError::UnknownVariable { name, span } => Diagnostic::error(

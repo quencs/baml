@@ -5,7 +5,7 @@
 //! items in the current project. There are also some paths that begin with the
 //! "baml" segment, a builtin pseudomodule.
 
-use baml_base::Name;
+use baml_base::{Name, Span};
 
 /// A path to an item (`foo.bar.Baz`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -15,6 +15,11 @@ pub struct Path {
 
     /// Path kind (absolute vs relative).
     pub kind: PathKind,
+
+    /// Optional span for error reporting.
+    /// This is not used for equality/hashing since it's just for diagnostics.
+    #[allow(dead_code)]
+    pub span: Option<Span>,
 }
 
 /// The kind of path resolution.
@@ -33,6 +38,16 @@ impl Path {
         Path {
             segments: vec![name],
             kind: PathKind::Plain,
+            span: None,
+        }
+    }
+
+    /// Create a simple single-segment path with a span for error reporting.
+    pub fn single_with_span(name: Name, span: Span) -> Self {
+        Path {
+            segments: vec![name],
+            kind: PathKind::Plain,
+            span: Some(span),
         }
     }
 
@@ -41,6 +56,7 @@ impl Path {
         Path {
             segments,
             kind: PathKind::Plain,
+            span: None,
         }
     }
 

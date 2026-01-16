@@ -829,7 +829,7 @@ pub(crate) fn lower_class(node: &SyntaxNode, ctx: &mut LoweringContext) -> Optio
 
             let type_ref = field_node
                 .ty()
-                .map(|t| TypeRef::from_ast(&t))
+                .map(|t| TypeRef::from_ast_with_spans(&t, ctx.file_id))
                 .unwrap_or(TypeRef::Unknown);
 
             fields.push(crate::Field {
@@ -2097,6 +2097,64 @@ pub fn class_field_name_span(
                             for field in class.fields() {
                                 if let Some(field_name_token) = field.name() {
                                     if field_name_token.text() == field_name {
+                                        return Some(Span::new(
+                                            file_id,
+                                            field_name_token.text_range(),
+                                        ));
+                                    }
+                                }
+                            }
+                            return None; // Class found but field not found
+                        }
+                        matches_found += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Returns the span of a field's type expression in a class.
+///
+/// Walks the AST to find the class definition and then the field within it.
+/// Returns the text range of the field's type expression.
+pub fn class_field_type_span(
+    db: &dyn Db,
+    class_loc: ClassLoc<'_>,
+    field_name: &str,
+) -> Option<Span> {
+    use baml_compiler_syntax::{SyntaxKind, ast::ClassDef};
+
+    let file = class_loc.file(db);
+    let file_id = file.file_id(db);
+    let item_tree = file_item_tree(db, file);
+    let class_data = &item_tree[class_loc.id(db)];
+    let class_name = class_data.name.as_str();
+    let occurrence = class_loc.id(db).index();
+
+    let tree = baml_compiler_parser::syntax_tree(db, file);
+    let mut matches_found: u16 = 0;
+
+    for node in tree.children() {
+        if node.kind() == SyntaxKind::CLASS_DEF {
+            if let Some(class) = ClassDef::cast(node) {
+                if let Some(name_token) = class.name() {
+                    if name_token.text() == class_name {
+                        if matches_found == occurrence {
+                            // Found the right class, now find the field
+                            for field in class.fields() {
+                                if let Some(field_name_token) = field.name() {
+                                    if field_name_token.text() == field_name {
+                                        // Return the type span instead of the name span
+                                        if let Some(type_expr) = field.ty() {
+                                            return Some(Span::new(
+                                                file_id,
+                                                type_expr.syntax().text_range(),
+                                            ));
+                                        }
+                                        // Fall back to field name if no type
                                         return Some(Span::new(
                                             file_id,
                                             field_name_token.text_range(),

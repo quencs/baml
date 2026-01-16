@@ -1,14 +1,15 @@
 ---
 source: target/debug/build/baml_tests-0a6cb66c091c7c00/out/generated_tests.rs
+assertion_line: 13759
 expression: output
 ---
 === DIAGNOSTICS ===
   [type] Error: Unknown type `name`
-   ╭─[ type_aliases_json.baml:4:3 ]
+   ╭─[ type_aliases_json.baml:4:9 ]
    │
  4 │   inner name
-   │   ──┬──  
-   │     ╰──── Unknown type `name`
+   │         ──┬─  
+   │           ╰─── Unknown type `name`
    │ 
    │ Note: Error code: E0002
 ───╯

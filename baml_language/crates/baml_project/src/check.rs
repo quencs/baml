@@ -18,7 +18,7 @@ use baml_compiler_diagnostics::{Diagnostic, ToDiagnostic};
 use baml_compiler_hir::{
     self, FunctionBody, ItemId, file_items, file_lowering, function_body, function_signature,
 };
-use baml_compiler_tir::{self, class_field_types, enum_variants, type_aliases, typing_context};
+use baml_compiler_tir::{self, class_field_type_errors, class_field_types, enum_variants, type_aliases, typing_context};
 use baml_db::{FileId, SourceFile, baml_compiler_parser};
 use baml_workspace::Project;
 
@@ -80,7 +80,13 @@ pub fn collect_diagnostics(
         diagnostics.push(error.to_diagnostic());
     }
 
-    // 4. Collect type errors from function inference
+    // 4. Collect type errors from class field type resolution
+    let class_field_errors = class_field_type_errors(db, project);
+    for type_error in class_field_errors.errors(db) {
+        diagnostics.push(type_error.to_diagnostic());
+    }
+
+    // 5. Collect type errors from function inference
     let globals = typing_context(db, project).functions(db).clone();
     let class_fields = class_field_types(db, project).classes(db).clone();
     let type_aliases_map = type_aliases(db, project).aliases(db).clone();

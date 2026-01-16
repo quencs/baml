@@ -103,10 +103,24 @@ impl<'a> TypeLoweringContextResolved<'a> {
         self.known_types.contains(name)
     }
 
-    fn unknown_type_error(&mut self, name: &Name) -> Ty {
+    fn unknown_type_error(&mut self, name: &Name, span_override: Option<Span>) -> Ty {
+        // Include user-defined types, primitive types, and boolean literals in suggestions
+        const BUILTIN_TYPES: &[&str] = &[
+            "int", "float", "string", "bool", "null", "image", "audio", "video", "pdf",
+            "true", "false", // boolean literals that can be used as types
+        ];
+        let all_candidates = self
+            .known_types
+            .iter()
+            .map(|n| n.as_str())
+            .chain(BUILTIN_TYPES.iter().copied());
+        let suggestions = baml_base::find_similar_names(name.as_str(), all_candidates, 3);
+        // Use the span from Path if available, otherwise fall back to context span
+        let span = span_override.unwrap_or(self.span);
         self.errors.push(TypeError::UnknownType {
             name: name.to_string(),
-            span: self.span,
+            span,
+            suggestions,
         });
         Ty::Error
     }
@@ -222,7 +236,8 @@ fn lower_path_type_resolved_with_ctx(
                     if ctx.is_known_type(name) {
                         Ty::TypeAlias(FullyQualifiedName::local(name.clone()))
                     } else {
-                        ctx.unknown_type_error(name)
+                        // Use span from Path if available for precise error location
+                        ctx.unknown_type_error(name, path.span)
                     }
                 }
             }
@@ -240,7 +255,8 @@ fn lower_path_type_resolved_with_ctx(
             if !is_simple_type_name(&full_path) || ctx.is_known_type(&name) {
                 Ty::TypeAlias(FullyQualifiedName::local(name))
             } else {
-                ctx.unknown_type_error(&name)
+                // Use span from Path if available for precise error location
+                ctx.unknown_type_error(&name, path.span)
             }
         }
     }

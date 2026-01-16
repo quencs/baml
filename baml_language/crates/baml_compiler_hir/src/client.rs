@@ -214,49 +214,7 @@ fn find_similar_field(field_name: &str, valid_fields: &[&str]) -> Option<String>
         return Some(valid_fields[0].to_string());
     }
 
-    let mut best_match: Option<(&str, usize)> = None;
-
-    for valid in valid_fields {
-        let distance = edit_distance(field_name, valid);
-        // Only suggest if edit distance is at most 3 (for reasonable typos)
-        if distance <= 3 {
-            if best_match.is_none() || distance < best_match.unwrap().1 {
-                best_match = Some((valid, distance));
-            }
-        }
-    }
-
-    best_match.map(|(s, _)| s.to_string())
-}
-
-/// Compute Levenshtein edit distance between two strings.
-fn edit_distance(a: &str, b: &str) -> usize {
-    let a_chars: Vec<char> = a.chars().collect();
-    let b_chars: Vec<char> = b.chars().collect();
-    let m = a_chars.len();
-    let n = b_chars.len();
-
-    if m == 0 {
-        return n;
-    }
-    if n == 0 {
-        return m;
-    }
-
-    // Use two rows for space efficiency
-    let mut prev = (0..=n).collect::<Vec<_>>();
-    let mut curr = vec![0; n + 1];
-
-    for i in 1..=m {
-        curr[0] = i;
-        for j in 1..=n {
-            let cost = usize::from(a_chars[i - 1] != b_chars[j - 1]);
-            curr[j] = (prev[j] + 1) // deletion
-                .min(curr[j - 1] + 1) // insertion
-                .min(prev[j - 1] + cost); // substitution
-        }
-        std::mem::swap(&mut prev, &mut curr);
-    }
-
-    prev[n]
+    baml_base::find_similar_names(field_name, valid_fields.iter().copied(), 1)
+        .into_iter()
+        .next()
 }

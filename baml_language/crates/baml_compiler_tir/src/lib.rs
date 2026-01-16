@@ -179,6 +179,14 @@ pub struct KnownTypesSet<'db> {
     pub names: HashSet<Name>,
 }
 
+/// Tracked struct holding type errors from class field type resolution.
+#[salsa::tracked]
+pub struct ClassFieldTypeErrorsVec<'db> {
+    #[tracked]
+    #[returns(ref)]
+    pub errors: Vec<TypeError<Ty>>,
+}
+
 // ============================================================================
 // TIR Queries
 // ============================================================================
@@ -279,6 +287,30 @@ pub fn class_field_types(db: &dyn Db, project: Project) -> ClassFieldTypesMap<'_
         .collect();
 
     ClassFieldTypesMap::new(db, classes)
+}
+
+/// Query: Get type errors from class field type resolution.
+///
+/// This collects unknown type errors for class fields with precise spans.
+/// TypeRef now carries span information, so errors during TIR lowering
+/// will have the correct source locations.
+#[salsa::tracked]
+pub fn class_field_type_errors(db: &dyn Db, project: Project) -> ClassFieldTypeErrorsVec<'_> {
+    let hir_fields = baml_compiler_hir::project_class_fields(db, project);
+    let resolution_ctx = TypeResolutionContext::new(db, project);
+    let fallback_span = Span::default();
+    let mut all_errors = Vec::new();
+
+    for (_class_name, fields) in hir_fields.classes(db).iter() {
+        for (_field_name, type_ref) in fields {
+            // Lower the type, collecting any unknown type errors
+            // TypeRef::Path now carries span information for precise error locations
+            let (_ty, errors) = resolution_ctx.lower_type_ref(type_ref, fallback_span);
+            all_errors.extend(errors);
+        }
+    }
+
+    ClassFieldTypeErrorsVec::new(db, all_errors)
 }
 
 /// Query: Get type alias definitions for a project.

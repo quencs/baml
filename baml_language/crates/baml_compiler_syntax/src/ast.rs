@@ -134,6 +134,61 @@ impl TypeExpr {
     pub fn text_range(&self) -> rowan::TextRange {
         self.syntax.text_range()
     }
+
+    /// Get the text parts of this type expression with their spans, split by PIPE separators.
+    ///
+    /// For union types like `A | B | C`, returns `[("A", span_a), ("B", span_b), ("C", span_c)]`.
+    /// For non-union types like `string?`, returns `[("string?", span)]`.
+    ///
+    /// Each part's span covers from the start of that part's tokens to the end.
+    pub fn parts_with_spans(&self) -> Vec<(String, rowan::TextRange)> {
+        let mut parts = Vec::new();
+        let mut current_text = String::new();
+        let mut current_start: Option<rowan::TextSize> = None;
+        let mut current_end: rowan::TextSize = self.syntax.text_range().start();
+
+        for child in self.syntax.children_with_tokens() {
+            match child {
+                rowan::NodeOrToken::Token(token) => {
+                    // Skip trivia tokens (whitespace, comments)
+                    if token.kind().is_trivia() {
+                        continue;
+                    }
+                    if token.kind() == SyntaxKind::PIPE {
+                        let trimmed = current_text.trim().to_string();
+                        if !trimmed.is_empty() {
+                            let start = current_start.unwrap_or(current_end);
+                            parts.push((trimmed, rowan::TextRange::new(start, current_end)));
+                        }
+                        current_text = String::new();
+                        current_start = None;
+                    } else {
+                        if current_start.is_none() {
+                            current_start = Some(token.text_range().start());
+                        }
+                        current_end = token.text_range().end();
+                        current_text.push_str(token.text());
+                    }
+                }
+                rowan::NodeOrToken::Node(child_node) => {
+                    if current_start.is_none() {
+                        current_start = Some(child_node.text_range().start());
+                    }
+                    current_end = child_node.text_range().end();
+                    current_text.push_str(&child_node.text().to_string());
+                }
+            }
+        }
+
+        // Include the final part
+        let trimmed = current_text.trim().to_string();
+        if !trimmed.is_empty() {
+            let start = current_start.unwrap_or(current_end);
+            parts.push((trimmed, rowan::TextRange::new(start, current_end)));
+        }
+
+        parts
+    }
 }
 ast_node!(BlockAttribute, BLOCK_ATTRIBUTE);
 
