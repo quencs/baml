@@ -102,15 +102,27 @@ fn track_walk(node: &ast::Stmt<'_>, state: &mut PredefinedTypes) {
 
             // Record variables in each branch and their types (fuse them if they are the same)
             state.start_branch();
+
+            // Use a narrowing scope for type guards in the true branch.
+            // This ensures narrowed types are visible in the branch body but don't
+            // participate in branch merging (they should revert after the branch).
+            state.start_narrowing_scope();
             true_bindings
                 .into_iter()
-                .for_each(|(k, v)| state.add_variable(k.as_str(), v));
+                .for_each(|(k, v)| state.add_narrowing(k.as_str(), v));
             stmt.true_body.iter().for_each(|x| track_walk(x, state));
+            state.end_narrowing_scope();
+
             state.start_else_branch();
+
+            // Same for the false/else branch
+            state.start_narrowing_scope();
             false_bindings
                 .into_iter()
-                .for_each(|(k, v)| state.add_variable(k.as_str(), v));
+                .for_each(|(k, v)| state.add_narrowing(k.as_str(), v));
             stmt.false_body.iter().for_each(|x| track_walk(x, state));
+            state.end_narrowing_scope();
+
             state.resolve_branch();
         }
         ast::Stmt::WithBlock(_) => todo!(),
@@ -202,6 +214,44 @@ pub fn predicate_implications<'a>(
                 let right_implications = predicate_implications(&binary_op.right, context, branch);
                 left_implications.extend(right_implications);
                 left_implications
+            }
+
+            ast::BinOpKind::ScOr => {
+                if branch {
+                    // For `A or B` being TRUE: at least one is true
+                    // We need to union the narrowed types for each variable
+                    let left_implications = predicate_implications(&binary_op.left, context, true);
+                    let right_implications =
+                        predicate_implications(&binary_op.right, context, true);
+
+                    // Merge implications by variable name, creating unions where needed
+                    let mut merged: std::collections::HashMap<String, Type> =
+                        std::collections::HashMap::new();
+
+                    for (var_name, var_type) in left_implications {
+                        merged.insert(var_name, var_type);
+                    }
+
+                    for (var_name, var_type) in right_implications {
+                        merged
+                            .entry(var_name)
+                            .and_modify(|existing| {
+                                *existing = Type::merge([existing.clone(), var_type.clone()]);
+                            })
+                            .or_insert(var_type);
+                    }
+
+                    merged.into_iter().collect()
+                } else {
+                    // For `A or B` being FALSE: both must be false
+                    // This is like AND on the false branches
+                    let mut left_implications =
+                        predicate_implications(&binary_op.left, context, false);
+                    let right_implications =
+                        predicate_implications(&binary_op.right, context, false);
+                    left_implications.extend(right_implications);
+                    left_implications
+                }
             }
 
             ast::BinOpKind::Ne => {
