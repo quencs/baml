@@ -467,7 +467,8 @@ pub fn track_watch_dependencies<NF>(watch: &mut Watch, value: Value, heap: &bex_
         // Now traverse the object's contents
         // SAFETY: We access the heap directly using unsafe code here to avoid
         // borrow checker issues. This is safe because we're only reading immutably.
-        let obj = unsafe { &(&(*heap.objects_ptr()))[index.into_raw()] };
+        // The heap's get_object handles compile-time vs runtime dispatch.
+        let obj = unsafe { heap.get_object(index) };
         match obj {
             Object::Instance(instance) => {
                 // For each field in the instance, build edges

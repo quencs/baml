@@ -320,8 +320,9 @@ fn value_type_tag(value: &Value, heap: &BexHeap<NativeFunction>) -> i64 {
         Value::Bool(_) => type_tags::BOOL,
         Value::Null => type_tags::NULL,
         Value::Object(object_idx) => {
-            // SAFETY: Reading type information from objects
-            let obj = unsafe { &(&(*heap.objects_ptr()))[object_idx.into_raw()] };
+            // SAFETY: Reading type information from objects. The heap's get_object
+            // handles compile-time vs runtime dispatch.
+            let obj = unsafe { heap.get_object(*object_idx) };
             match obj {
                 Object::String(_) => type_tags::STRING,
                 Object::Variant(_) => type_tags::ENUM,
@@ -333,7 +334,7 @@ fn value_type_tag(value: &Value, heap: &BexHeap<NativeFunction>) -> i64 {
                 Object::Media(_) => type_tags::MEDIA,
                 Object::Class(_) => type_tags::UNKNOWN,
                 Object::Instance(instance) => {
-                    let class_obj = unsafe { &(&(*heap.objects_ptr()))[instance.class.into_raw()] };
+                    let class_obj = unsafe { heap.get_object(instance.class) };
                     let Object::Class(class) = class_obj else {
                         unreachable!("Instance.class does not point to a Class object")
                     };
@@ -383,7 +384,8 @@ impl BexVm {
     pub fn get_object(&self, idx: ObjectIndex) -> &Object<NativeFunction> {
         // SAFETY: Single-threaded execution within a VM. Objects are only
         // written during allocation or field writes, both controlled by this VM.
-        unsafe { &(&(*self.heap.objects_ptr()))[idx.into_raw()] }
+        // The heap's get_object handles compile-time vs runtime dispatch.
+        unsafe { self.heap.get_object(idx) }
     }
 
     /// Get mutable access to an object.
@@ -391,12 +393,20 @@ impl BexVm {
     /// # Safety
     ///
     /// Caller must ensure exclusive access (typically via TLAB ownership
-    /// or single-threaded execution).
+    /// or single-threaded execution). Only runtime objects can be mutated.
     #[inline]
     pub fn get_object_mut(&mut self, idx: ObjectIndex) -> &mut Object<NativeFunction> {
         // SAFETY: We have &mut self, so no other code can access the VM.
         // The TLAB ensures this VM has exclusive access to its allocated objects.
-        unsafe { &mut (&mut (*self.heap.objects_ptr()))[idx.into_raw()] }
+        // Only runtime objects (those after compile_time_len) can be mutated.
+        let global_idx = idx.into_raw();
+        let ct_len = self.heap.compile_time_len();
+        assert!(
+            global_idx >= ct_len,
+            "Cannot mutate compile-time object at index {global_idx}"
+        );
+        let runtime_idx = global_idx - ct_len;
+        unsafe { &mut (&mut (*self.heap.objects_ptr()))[runtime_idx] }
     }
 
     /// Helper method to get `ObjectIndex` from a Value, with type checking.

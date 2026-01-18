@@ -117,19 +117,22 @@ impl<F> Tlab<F> {
             self.refill();
         }
 
-        let idx_raw = self.alloc_ptr;
+        let global_idx = self.alloc_ptr;
         self.alloc_ptr += 1;
+
+        // Convert global index to runtime-relative index for writing to active space
+        let runtime_idx = global_idx - self.heap.compile_time_len();
 
         // SAFETY: This TLAB has exclusive access to indices in [chunk.start, chunk.end)
         // and we've ensured alloc_ptr < alloc_limit after potential refill.
         unsafe {
-            (&mut *self.heap.objects_ptr())[idx_raw] = obj;
+            (&mut *self.heap.objects_ptr())[runtime_idx] = obj;
         }
 
         // Track allocation for GC heuristic
         self.heap.record_alloc();
 
-        ObjectIndex::from_raw(idx_raw)
+        ObjectIndex::from_raw(global_idx)
     }
 
     /// Allocate a string object.
@@ -182,6 +185,18 @@ impl<F> Tlab<F> {
         &self.heap
     }
 
+    /// Invalidate this TLAB, forcing a refill on next allocation.
+    /// Called by GC after swapping spaces.
+    pub fn invalidate(&mut self) {
+        self.alloc_limit = 0;
+        self.alloc_ptr = 0;
+    }
+
+    /// Check if this TLAB is valid (has an allocated chunk).
+    pub fn is_valid(&self) -> bool {
+        self.alloc_limit > self.alloc_ptr
+    }
+
     /// Read an object by index.
     ///
     /// # Safety
@@ -189,7 +204,8 @@ impl<F> Tlab<F> {
     /// Caller must ensure no concurrent writes to this index.
     pub unsafe fn get_object(&self, idx: ObjectIndex) -> &Object<F> {
         // SAFETY: Caller ensures no concurrent writes
-        unsafe { &(&*self.heap.objects_ptr())[idx.into_raw()] }
+        // Delegate to heap's get_object which handles compile-time vs runtime
+        unsafe { self.heap.get_object(idx) }
     }
 
     /// Write an object by index.
@@ -199,8 +215,14 @@ impl<F> Tlab<F> {
     /// Caller must ensure exclusive access to this index.
     pub unsafe fn set_object(&mut self, idx: ObjectIndex, obj: Object<F>) {
         // SAFETY: Caller ensures exclusive access
-        unsafe {
-            (&mut *self.heap.objects_ptr())[idx.into_raw()] = obj;
+        // Only runtime objects can be written (compile-time objects are immutable)
+        let global_idx = idx.into_raw();
+        let ct_len = self.heap.compile_time_len();
+        if global_idx >= ct_len {
+            let runtime_idx = global_idx - ct_len;
+            unsafe {
+                (&mut *self.heap.objects_ptr())[runtime_idx] = obj;
+            }
         }
     }
 }

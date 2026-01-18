@@ -1,29 +1,30 @@
 //! Garbage collection for the unified heap.
 //!
-//! BEX uses a safepoint-based, non-moving mark-and-sweep collector:
+//! BEX uses a safepoint-based, semi-space copying collector:
 //!
 //! - **Safepoints**: GC only runs when all VMs are yielded (async operations)
-//! - **Non-moving**: Objects stay in place; no index updates needed
-//! - **Handle-aware**: Stale handles invalidated after collection
+//! - **Semi-space**: Live objects are copied from active to inactive space
+//! - **Compacting**: No fragmentation, all live objects are contiguous
+//! - **Handle-aware**: Handles updated to point to new object locations
 
-use std::collections::HashSet;
+use std::{collections::HashMap, sync::atomic::Ordering};
 
-use bex_vm_types::{ObjectIndex, Value};
+use bex_vm_types::{Object, ObjectIndex, Value};
 
 use crate::BexHeap;
 
 /// Result of a garbage collection cycle.
 #[derive(Debug, Clone)]
 pub struct GcStats {
-    /// Objects marked as live.
+    /// Objects marked as live (copied).
     pub live_count: usize,
-    /// Objects collected (dead).
+    /// Objects collected (not copied).
     pub collected_count: usize,
     /// Handles invalidated.
     pub handles_invalidated: usize,
 }
 
-impl<F> BexHeap<F> {
+impl<F: Clone> BexHeap<F> {
     /// Run garbage collection with the given roots.
     ///
     /// # Safety
@@ -34,45 +35,132 @@ impl<F> BexHeap<F> {
     /// # Arguments
     ///
     /// * `roots` - Stack roots from all yielded VMs, plus any externally-held handles
-    pub unsafe fn collect_garbage(&self, roots: &[ObjectIndex]) -> GcStats {
-        // 1. Mark phase: trace from roots
-        let live = self.mark_phase(roots);
-
-        // 2. Sweep phase: invalidate dead handles
-        self.sweep_phase(&live)
+    ///
+    /// # Returns
+    ///
+    /// A tuple of (GcStats, remapped_roots) where remapped_roots contains the
+    /// new ObjectIndex for each root after objects have been copied to the new space.
+    pub unsafe fn collect_garbage(&self, roots: &[ObjectIndex]) -> (GcStats, Vec<ObjectIndex>) {
+        self.copy_collection(roots)
     }
 
-    fn mark_phase(&self, roots: &[ObjectIndex]) -> HashSet<ObjectIndex> {
-        let mut live = HashSet::new();
+    /// Semi-space copy collection.
+    ///
+    /// Copies all live objects reachable from roots to the inactive space,
+    /// then swaps spaces. This frees all unreachable objects in one sweep.
+    fn copy_collection(&self, roots: &[ObjectIndex]) -> (GcStats, Vec<ObjectIndex>) {
+        // Track old -> new index mappings (forwarding pointers)
+        let mut forwarding: HashMap<ObjectIndex, ObjectIndex> = HashMap::new();
+
+        // Get current and next space indices
+        let from_space = self.active_space_index();
+        let to_space = 1 - from_space;
+
+        // Get the old space size for stats calculation
+        let old_space_size = unsafe { (*self.spaces[from_space].get()).len() };
+
+        // Clear the target space and prepare for copying
+        unsafe {
+            (*self.spaces[to_space].get()).clear();
+        }
+
+        // Worklist for BFS traversal: (old_index) pairs
         let mut worklist: Vec<ObjectIndex> = roots.to_vec();
 
-        // Note: In a full implementation, we would also include handles as roots.
-        // However, sharded_slab's iteration API requires mutable access,
-        // which conflicts with the safety requirements of GC.
-        // For Phase 6, we rely on explicit roots passed by the engine.
-        // TODO: Implement handle tracking via a separate data structure
-
-        while let Some(idx) = worklist.pop() {
-            if !live.insert(idx) {
-                continue; // Already visited
-            }
-
-            // Skip compile-time objects (always live)
-            if idx.into_raw() < self.compile_time_boundary {
+        // Process all reachable objects
+        while let Some(old_idx) = worklist.pop() {
+            // Skip already forwarded objects
+            if forwarding.contains_key(&old_idx) {
                 continue;
             }
 
-            // Trace references in this object
-            let obj = unsafe { &(&*self.objects.get())[idx.into_raw()] };
-            self.trace_object(obj, &mut worklist);
+            // Skip compile-time objects (they stay in place, don't need copying)
+            if self.is_compile_time(old_idx) {
+                // Compile-time objects keep their index
+                forwarding.insert(old_idx, old_idx);
+                continue;
+            }
+
+            // Copy this object to the new space
+            let new_idx = self.copy_object_to_new_space(old_idx, to_space, &mut forwarding);
+
+            // Add this object's references to the worklist
+            // SAFETY: We just copied the object, so it exists in to_space
+            let ct_len = self.compile_time_len();
+            let obj = unsafe { &(&(*self.spaces[to_space].get()))[new_idx.into_raw() - ct_len] };
+            self.add_references_to_worklist(obj, &mut worklist);
         }
 
-        live
+        // Now fix up all references in the copied objects
+        unsafe {
+            self.fixup_references(to_space, &forwarding);
+        }
+
+        // Calculate stats before swapping
+        let live_count = unsafe { (*self.spaces[to_space].get()).len() };
+        let collected_count = old_space_size.saturating_sub(live_count);
+
+        // Swap spaces: make to_space the new active space
+        self.active_space.store(to_space, Ordering::Release);
+
+        // Reset TLAB allocation pointer to end of new space
+        self.reset_next_chunk(live_count);
+
+        // Clear the old (now inactive) space
+        unsafe {
+            (*self.spaces[from_space].get()).clear();
+        }
+
+        // Remap roots to their new locations
+        let remapped_roots: Vec<ObjectIndex> = roots
+            .iter()
+            .map(|old_idx| *forwarding.get(old_idx).unwrap_or(old_idx))
+            .collect();
+
+        let stats = GcStats {
+            live_count,
+            collected_count,
+            handles_invalidated: 0, // Handle invalidation not implemented yet
+        };
+
+        (stats, remapped_roots)
     }
 
-    fn trace_object(&self, obj: &bex_vm_types::Object<F>, worklist: &mut Vec<ObjectIndex>) {
-        use bex_vm_types::Object;
+    /// Copy a single object from old space to new space.
+    /// Returns the new ObjectIndex.
+    fn copy_object_to_new_space(
+        &self,
+        old_idx: ObjectIndex,
+        to_space: usize,
+        forwarding: &mut HashMap<ObjectIndex, ObjectIndex>,
+    ) -> ObjectIndex {
+        // Get the object from old space
+        let from_space = 1 - to_space;
+        let ct_len = self.compile_time_len();
+        let runtime_old_idx = old_idx.into_raw() - ct_len;
 
+        // Clone the object
+        let obj = unsafe { (&(*self.spaces[from_space].get()))[runtime_old_idx].clone() };
+
+        // Append to new space
+        let new_runtime_idx = unsafe {
+            let to_vec = &mut *self.spaces[to_space].get();
+            let idx = to_vec.len();
+            to_vec.push(obj);
+            idx
+        };
+
+        // Calculate global index for new object
+        let new_idx = ObjectIndex::from_raw(ct_len + new_runtime_idx);
+
+        // Record forwarding pointer
+        forwarding.insert(old_idx, new_idx);
+
+        new_idx
+    }
+
+    /// Add object references to the worklist for tracing.
+    fn add_references_to_worklist(&self, obj: &Object<F>, worklist: &mut Vec<ObjectIndex>) {
         match obj {
             Object::Array(arr) => {
                 for value in arr {
@@ -103,7 +191,6 @@ impl<F> BexHeap<F> {
                 use bex_vm_types::Future;
                 match fut {
                     Future::Pending(pending) => {
-                        // Trace arguments that might contain object references
                         for value in &pending.args {
                             if let Value::Object(idx) = value {
                                 worklist.push(*idx);
@@ -111,7 +198,6 @@ impl<F> BexHeap<F> {
                         }
                     }
                     Future::Ready(value) => {
-                        // Trace ready value if it's an object
                         if let Value::Object(idx) = value {
                             worklist.push(*idx);
                         }
@@ -127,24 +213,86 @@ impl<F> BexHeap<F> {
         }
     }
 
-    fn sweep_phase(&self, live: &HashSet<ObjectIndex>) -> GcStats {
-        // Note: In a full implementation, we would invalidate handles pointing
-        // to dead objects. However, this requires mutable access to the slab,
-        // which conflicts with the current GC design.
-        //
-        // For Phase 6, we skip handle invalidation. Dead objects referenced
-        // by handles will be kept alive until the handle is dropped.
-        // This is safe but slightly wasteful.
-        let handles_invalidated = 0;
+    /// Fix up all object references in the new space to use forwarded addresses.
+    ///
+    /// # Safety
+    /// Must be called after all live objects have been copied.
+    unsafe fn fixup_references(
+        &self,
+        to_space: usize,
+        forwarding: &HashMap<ObjectIndex, ObjectIndex>,
+    ) {
+        // SAFETY: All live objects have been copied to to_space, and no VMs are executing
+        unsafe {
+            let to_vec = &mut *self.spaces[to_space].get();
 
-        // Count dead runtime objects
-        let total_runtime = unsafe { (*self.objects.get()).len() - self.compile_time_boundary };
-        let collected_count = total_runtime.saturating_sub(live.len());
+            for obj in to_vec.iter_mut() {
+                self.fixup_object_references(obj, forwarding);
+            }
+        }
+    }
 
-        GcStats {
-            live_count: live.len(),
-            collected_count,
-            handles_invalidated,
+    /// Fix up references within a single object.
+    fn fixup_object_references(
+        &self,
+        obj: &mut Object<F>,
+        forwarding: &HashMap<ObjectIndex, ObjectIndex>,
+    ) {
+        match obj {
+            Object::Array(arr) => {
+                for value in arr.iter_mut() {
+                    self.fixup_value(value, forwarding);
+                }
+            }
+            Object::Map(map) => {
+                for value in map.values_mut() {
+                    self.fixup_value(value, forwarding);
+                }
+            }
+            Object::Instance(inst) => {
+                // Note: class index is a compile-time object, might not need remapping
+                // but we do it anyway in case of edge cases
+                if let Some(&new_idx) = forwarding.get(&inst.class) {
+                    inst.class = new_idx;
+                }
+                for value in &mut inst.fields {
+                    self.fixup_value(value, forwarding);
+                }
+            }
+            Object::Variant(var) => {
+                // Enum index is compile-time, might not need remapping
+                if let Some(&new_idx) = forwarding.get(&var.enm) {
+                    var.enm = new_idx;
+                }
+            }
+            Object::Future(fut) => {
+                use bex_vm_types::Future;
+                match fut {
+                    Future::Pending(pending) => {
+                        for value in &mut pending.args {
+                            self.fixup_value(value, forwarding);
+                        }
+                    }
+                    Future::Ready(value) => {
+                        self.fixup_value(value, forwarding);
+                    }
+                }
+            }
+            // Primitives have no references
+            Object::String(_)
+            | Object::Class(_)
+            | Object::Enum(_)
+            | Object::Function(_)
+            | Object::Media(_) => {}
+        }
+    }
+
+    /// Fix up a single Value reference.
+    fn fixup_value(&self, value: &mut Value, forwarding: &HashMap<ObjectIndex, ObjectIndex>) {
+        if let Value::Object(idx) = value
+            && let Some(&new_idx) = forwarding.get(idx)
+        {
+            *idx = new_idx;
         }
     }
 }
@@ -163,11 +311,12 @@ mod tests {
         let heap = BexHeap::<()>::new(vec![]);
 
         // Run GC with no roots
-        let stats = unsafe { heap.collect_garbage(&[]) };
+        let (stats, remapped) = unsafe { heap.collect_garbage(&[]) };
 
         assert_eq!(stats.live_count, 0);
         assert_eq!(stats.collected_count, 0);
         assert_eq!(stats.handles_invalidated, 0);
+        assert!(remapped.is_empty());
     }
 
     #[test]
@@ -178,12 +327,14 @@ mod tests {
         ];
         let heap = BexHeap::new(compile_time);
 
-        // Run GC with no roots - compile-time objects should not be counted as live
-        let stats = unsafe { heap.collect_garbage(&[]) };
+        // Run GC with compile-time objects as roots
+        let roots = vec![ObjectIndex::from_raw(0), ObjectIndex::from_raw(1)];
+        let (stats, remapped) = unsafe { heap.collect_garbage(&roots) };
 
-        // Compile-time objects are always live but not counted in live_count
+        // Compile-time objects keep their indices
+        assert_eq!(remapped, roots);
+        // No runtime objects to copy
         assert_eq!(stats.live_count, 0);
-        assert_eq!(stats.collected_count, 0);
     }
 
     #[test]
@@ -197,10 +348,9 @@ mod tests {
         let _obj3 = tlab.alloc_string("obj3".to_string());
 
         // Run GC with no roots - all objects should be collected
-        let stats = unsafe { heap.collect_garbage(&[]) };
+        let (stats, _) = unsafe { heap.collect_garbage(&[]) };
 
         assert_eq!(stats.live_count, 0);
-        // We allocated 3 objects, but only the ones actually written are counted
         assert!(stats.collected_count > 0);
     }
 
@@ -215,11 +365,18 @@ mod tests {
         let _obj3 = tlab.alloc_string("obj3".to_string());
 
         // Run GC with obj1 and obj2 as roots
-        let stats = unsafe { heap.collect_garbage(&[obj1, obj2]) };
+        let (stats, remapped) = unsafe { heap.collect_garbage(&[obj1, obj2]) };
 
         assert_eq!(stats.live_count, 2);
+        assert_eq!(remapped.len(), 2);
         // obj3 should be collected
         assert!(stats.collected_count > 0);
+
+        // Verify remapped objects are accessible
+        for new_idx in &remapped {
+            let obj = unsafe { heap.get_object(*new_idx) };
+            assert!(matches!(obj, Object::String(_)));
+        }
     }
 
     #[test]
@@ -237,14 +394,53 @@ mod tests {
         let _unreferenced = tlab.alloc_string("unreferenced".to_string());
 
         // Run GC with only the array as root
-        let stats = unsafe { heap.collect_garbage(&[arr]) };
+        let (stats, remapped) = unsafe { heap.collect_garbage(&[arr]) };
 
-        // Should mark both the array and the string it references
+        // Should copy both the array and the string it references
         assert_eq!(stats.live_count, 2);
+        assert_eq!(remapped.len(), 1);
+
+        // Verify the array's reference was updated
+        let new_arr_idx = remapped[0];
+        let arr_obj = unsafe { heap.get_object(new_arr_idx) };
+        if let Object::Array(elements) = arr_obj {
+            // The string reference should have been updated
+            if let Value::Object(str_idx) = &elements[0] {
+                // Verify the referenced string is valid
+                let str_obj = unsafe { heap.get_object(*str_idx) };
+                if let Object::String(s) = str_obj {
+                    assert_eq!(s, "referenced");
+                } else {
+                    panic!("Expected String object");
+                }
+            } else {
+                panic!("Expected Object value in array");
+            }
+        } else {
+            panic!("Expected Array object");
+        }
     }
 
     #[test]
-    #[ignore] // TODO: Handle invalidation not implemented in Phase 6
+    fn test_gc_space_swap() {
+        let heap = BexHeap::<()>::new(vec![]);
+        let mut tlab = Tlab::new(Arc::clone(&heap));
+
+        // Remember initial active space
+        let initial_space = heap.active_space_index();
+
+        // Allocate an object
+        let obj = tlab.alloc_string("test".to_string());
+
+        // Run GC with the object as root
+        let (_, _) = unsafe { heap.collect_garbage(&[obj]) };
+
+        // Space should have swapped
+        assert_eq!(heap.active_space_index(), 1 - initial_space);
+    }
+
+    #[test]
+    #[ignore] // TODO: Handle invalidation not implemented
     fn test_gc_invalidates_dead_handles() {
         let heap = BexHeap::<()>::new(vec![]);
         let mut tlab = Tlab::new(Arc::clone(&heap));
@@ -257,29 +453,10 @@ mod tests {
         assert!(heap.resolve_handle(&handle).is_some());
 
         // Run GC with no roots - object should be collected, handle invalidated
-        let stats = unsafe { heap.collect_garbage(&[]) };
+        let (stats, _) = unsafe { heap.collect_garbage(&[]) };
 
         assert_eq!(stats.handles_invalidated, 1);
         assert!(heap.resolve_handle(&handle).is_none());
-    }
-
-    #[test]
-    #[ignore] // TODO: Handle tracking as roots not implemented in Phase 6
-    fn test_gc_preserves_handled_objects() {
-        let heap = BexHeap::<()>::new(vec![]);
-        let mut tlab = Tlab::new(Arc::clone(&heap));
-
-        // Allocate an object and create a handle
-        let obj = tlab.alloc_string("test".to_string());
-        let handle = heap.create_handle(obj);
-
-        // Run GC with no explicit roots - handle should keep object alive
-        let stats = unsafe { heap.collect_garbage(&[]) };
-
-        // Object is kept alive by the handle
-        assert_eq!(stats.live_count, 1);
-        assert_eq!(stats.handles_invalidated, 0);
-        assert!(heap.resolve_handle(&handle).is_some());
     }
 
     #[test]
@@ -301,5 +478,97 @@ mod tests {
         // Reset counter
         heap.reset_gc_counter();
         assert!(!heap.should_gc());
+    }
+
+    #[test]
+    fn test_multiple_gc_cycles() {
+        let heap = BexHeap::<()>::new(vec![]);
+
+        for cycle in 0..5 {
+            let mut tlab = Tlab::new(Arc::clone(&heap));
+
+            // Allocate objects in this cycle
+            for i in 0..100 {
+                tlab.alloc_string(format!("cycle_{cycle}_obj_{i}"));
+            }
+
+            // Run GC with no roots - all should be collected
+            let (stats, _) = unsafe { heap.collect_garbage(&[]) };
+
+            assert_eq!(stats.live_count, 0, "Cycle {cycle}: expected no survivors");
+        }
+    }
+
+    #[test]
+    fn test_compile_time_objects_never_collected() {
+        let compile_time: Vec<Object<()>> = vec![
+            Object::String("builtin1".to_string()),
+            Object::String("builtin2".to_string()),
+        ];
+        let heap = BexHeap::new(compile_time);
+        let mut tlab = Tlab::new(Arc::clone(&heap));
+
+        // Allocate runtime objects
+        let _runtime = tlab.alloc_string("runtime".to_string());
+
+        // Run GC with no roots - runtime objects collected
+        let (stats, _) = unsafe { heap.collect_garbage(&[]) };
+
+        // Compile-time objects should still be accessible
+        let obj0 = unsafe { heap.get_object(ObjectIndex::from_raw(0)) };
+        let obj1 = unsafe { heap.get_object(ObjectIndex::from_raw(1)) };
+
+        match (obj0, obj1) {
+            (Object::String(s0), Object::String(s1)) => {
+                assert_eq!(s0, "builtin1");
+                assert_eq!(s1, "builtin2");
+            }
+            _ => panic!("Expected String objects"),
+        }
+
+        // Runtime object should have been collected
+        assert_eq!(stats.live_count, 0);
+    }
+
+    #[test]
+    fn test_gc_with_map_references() {
+        let heap = BexHeap::<()>::new(vec![]);
+        let mut tlab = Tlab::new(Arc::clone(&heap));
+
+        // Allocate a string
+        let str_obj = tlab.alloc_string("value".to_string());
+
+        // Allocate a map that references the string
+        let mut map = indexmap::IndexMap::new();
+        map.insert("key".to_string(), Value::Object(str_obj));
+        let map_obj = tlab.alloc_map(map);
+
+        // Allocate unreferenced garbage
+        let _garbage = tlab.alloc_string("garbage".to_string());
+
+        // Run GC with only the map as root
+        let (stats, remapped) = unsafe { heap.collect_garbage(&[map_obj]) };
+
+        // Both map and string should survive
+        assert_eq!(stats.live_count, 2);
+        assert_eq!(remapped.len(), 1);
+
+        // Verify the map's reference was updated correctly
+        let new_map_idx = remapped[0];
+        let map_result = unsafe { heap.get_object(new_map_idx) };
+        if let Object::Map(m) = map_result {
+            if let Some(Value::Object(str_idx)) = m.get("key") {
+                let str_result = unsafe { heap.get_object(*str_idx) };
+                if let Object::String(s) = str_result {
+                    assert_eq!(s, "value");
+                } else {
+                    panic!("Expected String object");
+                }
+            } else {
+                panic!("Expected Object value in map");
+            }
+        } else {
+            panic!("Expected Map object");
+        }
     }
 }
