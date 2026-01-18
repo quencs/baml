@@ -16,6 +16,7 @@ bex_vm_types = { workspace = true }
 indexmap = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 baml_tests = { workspace = true }

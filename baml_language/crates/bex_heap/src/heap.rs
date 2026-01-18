@@ -73,13 +73,13 @@ pub struct BexHeap<F> {
     /// - Each VM has exclusive write access to its TLAB region
     /// - BAML has no global mutable state
     /// - GC only runs at safepoints when no VMs are executing
-    objects: UnsafeCell<Vec<Object<F>>>,
+    pub(crate) objects: UnsafeCell<Vec<Object<F>>>,
 
     /// Index of first runtime-allocated object.
     ///
     /// Objects at 0..compile_time_boundary are permanent (never collected).
     /// Objects at compile_time_boundary.. are runtime (collectible by GC).
-    compile_time_boundary: usize,
+    pub(crate) compile_time_boundary: usize,
 
     /// Next TLAB chunk start index.
     ///
@@ -91,7 +91,7 @@ pub struct BexHeap<F> {
     ///
     /// Maps slab keys to ObjectIndex values. Handles provide safe,
     /// validated access to heap objects from external code.
-    handles: Slab<ObjectIndex>,
+    pub(crate) handles: Slab<ObjectIndex>,
 
     /// TLAB chunk size for new allocations.
     tlab_size: usize,
@@ -102,6 +102,9 @@ pub struct BexHeap<F> {
     /// the backing storage. This doesn't affect fast-path allocation which is
     /// lock-free within a TLAB.
     growth_lock: Mutex<()>,
+
+    /// Allocations since last GC (for triggering heuristic).
+    allocs_since_gc: AtomicUsize,
 
     /// Phantom data to hold the type parameter.
     _marker: PhantomData<F>,
@@ -147,6 +150,7 @@ impl<F> BexHeap<F> {
             handles: Slab::new(),
             tlab_size,
             growth_lock: Mutex::new(()),
+            allocs_since_gc: AtomicUsize::new(0),
             _marker: PhantomData,
         })
     }
@@ -270,6 +274,25 @@ impl<F> BexHeap<F> {
             active_handles: 0, // sharded_slab doesn't expose count
             tlab_chunks,
         }
+    }
+
+    /// Check if GC should run based on allocation pressure.
+    ///
+    /// Simple heuristic: trigger GC after N allocations since last collection.
+    /// This can be tuned based on workload characteristics.
+    pub fn should_gc(&self) -> bool {
+        const GC_THRESHOLD: usize = 10_000; // Tune based on profiling
+        self.allocs_since_gc.load(Ordering::Relaxed) >= GC_THRESHOLD
+    }
+
+    /// Reset the allocation counter after GC.
+    pub fn reset_gc_counter(&self) {
+        self.allocs_since_gc.store(0, Ordering::Relaxed);
+    }
+
+    /// Increment allocation counter (called by TLAB on alloc).
+    pub(crate) fn record_alloc(&self) {
+        self.allocs_since_gc.fetch_add(1, Ordering::Relaxed);
     }
 }
 

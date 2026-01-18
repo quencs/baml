@@ -304,6 +304,41 @@ impl BexEngine {
             })
     }
 
+    /// Collect roots from a yielded VM.
+    fn collect_vm_roots(vm: &BexVm) -> Vec<ObjectIndex> {
+        let mut roots = Vec::new();
+
+        // Stack values
+        for value in &vm.stack.0 {
+            if let Value::Object(idx) = value {
+                roots.push(*idx);
+            }
+        }
+
+        // Note: Frame locals are stored in the stack at the locals_offset position,
+        // so they're already included in the stack iteration above.
+
+        roots
+    }
+
+    /// Run GC if conditions are met (called at safepoints).
+    fn maybe_run_gc(&self, vm: &BexVm) {
+        if self.heap.should_gc() {
+            let roots = Self::collect_vm_roots(vm);
+            #[allow(unsafe_code)]
+            unsafe {
+                let stats = self.heap.collect_garbage(&roots);
+                self.heap.reset_gc_counter();
+                tracing::debug!(
+                    "GC completed: {} live, {} collected, {} handles invalidated",
+                    stats.live_count,
+                    stats.collected_count,
+                    stats.handles_invalidated
+                );
+            }
+        }
+    }
+
     /// Run the VM event loop until completion.
     async fn run_event_loop(
         &self,
@@ -372,6 +407,9 @@ impl BexEngine {
                 }
 
                 VmExecState::Await(future_id) => {
+                    // VM is at a safepoint (yielded) - check if GC should run
+                    self.maybe_run_gc(vm);
+
                     // First, drain any already-completed futures.
                     while let Ok(future) = processed_futures.try_recv() {
                         // TODO: When there's an error in the future, we must handle somehow.

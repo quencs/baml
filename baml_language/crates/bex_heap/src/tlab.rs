@@ -126,6 +126,9 @@ impl<F> Tlab<F> {
             (&mut *self.heap.objects_ptr())[idx_raw] = obj;
         }
 
+        // Track allocation for GC heuristic
+        self.heap.record_alloc();
+
         ObjectIndex::from_raw(idx_raw)
     }
 
