@@ -16,7 +16,7 @@ use std::{
     cell::UnsafeCell,
     marker::PhantomData,
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
     },
 };
@@ -96,16 +96,24 @@ pub struct BexHeap<F> {
     /// TLAB chunk size for new allocations.
     tlab_size: usize,
 
+    /// Lock for growing the objects vector (rare operation).
+    ///
+    /// Only held during Vec resizing when a TLAB chunk allocation needs to grow
+    /// the backing storage. This doesn't affect fast-path allocation which is
+    /// lock-free within a TLAB.
+    growth_lock: Mutex<()>,
+
     /// Phantom data to hold the type parameter.
     _marker: PhantomData<F>,
 }
 
 // SAFETY: BexHeap<F> is Send + Sync when F is Send + Sync because:
-// - objects: UnsafeCell is accessed safely via TLAB exclusivity
+// - objects: UnsafeCell is accessed safely via TLAB exclusivity and growth_lock
 // - compile_time_boundary: immutable after construction
 // - next_chunk: AtomicUsize is thread-safe
 // - handles: sharded_slab::Slab is thread-safe
 // - tlab_size: immutable after construction
+// - growth_lock: Mutex is thread-safe
 unsafe impl<F: Send + Sync> Send for BexHeap<F> {}
 unsafe impl<F: Send + Sync> Sync for BexHeap<F> {}
 
@@ -138,6 +146,7 @@ impl<F> BexHeap<F> {
             next_chunk: AtomicUsize::new(boundary),
             handles: Slab::new(),
             tlab_size,
+            growth_lock: Mutex::new(()),
             _marker: PhantomData,
         })
     }
@@ -179,15 +188,29 @@ impl<F> BexHeap<F> {
 
     /// Allocate a new TLAB chunk.
     ///
+    /// This method is thread-safe. Multiple VMs can request chunks
+    /// concurrently - each gets a unique, non-overlapping region.
+    ///
+    /// # Thread Safety
+    ///
+    /// Uses `fetch_add` with `SeqCst` ordering to ensure each caller
+    /// gets a unique chunk range, even under concurrent access. The
+    /// growth_lock protects the rare Vec resize operation.
+    ///
     /// Returns a `TlabChunk` describing the exclusive region for the VM.
     /// The VM can then allocate objects within this region without locks.
     pub fn alloc_tlab_chunk(&self) -> TlabChunk {
+        // Atomically reserve a chunk range
         let start = self.next_chunk.fetch_add(self.tlab_size, Ordering::SeqCst);
         let end = start + self.tlab_size;
 
-        // Ensure backing storage is large enough
-        // SAFETY: We're growing the vec, which may reallocate. This is safe
-        // because TLABs work with indices, not pointers, and we only grow.
+        // Lock only for growth (rare operation)
+        let _guard = self.growth_lock.lock().unwrap();
+
+        // Grow backing storage if needed
+        // SAFETY: Multiple threads may call this concurrently. The growth_lock
+        // ensures only one thread resizes at a time. TLABs work with indices,
+        // not pointers, so reallocation is safe.
         unsafe {
             let objects = &mut *self.objects.get();
             if objects.len() < end {
@@ -212,10 +235,7 @@ impl<F> BexHeap<F> {
     }
 
     /// Get statistics about heap usage.
-    pub fn stats(&self) -> HeapStats
-    where
-        F: Default,
-    {
+    pub fn stats(&self) -> HeapStats {
         let total = self.len();
         let tlab_chunks = self
             .next_chunk
@@ -265,6 +285,16 @@ impl<F> std::fmt::Debug for BexHeap<F> {
             .finish()
     }
 }
+
+// Static assertions to verify thread safety
+const _: () = {
+    const fn assert_send<T: Send>() {}
+    const fn assert_sync<T: Sync>() {}
+
+    // BexHeap must be Send + Sync for Arc<BexHeap> to work across threads
+    assert_send::<BexHeap<()>>();
+    assert_sync::<BexHeap<()>>();
+};
 
 #[cfg(test)]
 mod tests {

@@ -72,6 +72,37 @@ pub enum EngineError {
 ///
 /// `BexEngine` is the main entry point for executing BAML programs.
 /// It owns the compiled program and the unified heap.
+///
+/// # Thread Safety
+///
+/// `BexEngine` supports concurrent execution of multiple function calls.
+/// Each call creates its own `BexVm` with an exclusive `Tlab` (Thread-Local
+/// Allocation Buffer), so concurrent calls never contend for allocation.
+///
+/// ## Safety Guarantees
+///
+/// - **No global mutable state**: BAML has no global variables, so independent
+///   function calls cannot race with each other.
+///
+/// - **TLAB isolation**: Each VM allocates into its own exclusive heap region.
+///   The only synchronization is for TLAB chunk allocation (rare, ~1 per 1024 objects),
+///   which uses atomic operations and a growth lock.
+///
+/// - **Handle sharing**: If you pass the same `Handle` to multiple concurrent
+///   calls that both mutate the object, you may observe a race. This requires
+///   deliberate action (getting a handle, sharing it, mutating in parallel).
+///
+/// ## Usage Example
+///
+/// ```ignore
+/// let engine = Arc::new(BexEngine::new(snapshot, env_vars)?);
+///
+/// // Concurrent calls are safe
+/// let (result1, result2) = tokio::join!(
+///     engine.call_function("func_a", &[]),
+///     engine.call_function("func_b", &[]),
+/// );
+/// ```
 pub struct BexEngine {
     /// The original snapshot (for metadata access)
     snapshot: BamlSnapshot,
@@ -123,6 +154,13 @@ impl BexEngine {
     /// Get a reference to the shared heap.
     pub fn heap(&self) -> &Arc<BexHeap<NativeFunction>> {
         &self.heap
+    }
+
+    /// Get statistics about heap usage.
+    ///
+    /// Useful for monitoring concurrent execution and debugging.
+    pub fn heap_stats(&self) -> bex_heap::HeapStats {
+        self.heap.stats()
     }
 
     /// Execute a function by name.
