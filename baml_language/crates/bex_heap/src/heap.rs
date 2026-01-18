@@ -168,9 +168,29 @@ impl<F> BexHeap<F> {
     ///
     /// # Safety
     ///
-    /// Caller must ensure no data races:
-    /// - Only write to indices within your TLAB's exclusive region
-    /// - Only read compile-time objects or objects you own
+    /// This method is `unsafe` to call because the returned pointer gives
+    /// mutable access to all heap objects. Callers must ensure:
+    ///
+    /// 1. **Write exclusivity**: Only write to indices within your TLAB's
+    ///    exclusive region (`tlab.alloc_ptr..tlab.alloc_limit`)
+    ///
+    /// 2. **Read consistency**: Only read compile-time objects (always safe)
+    ///    or objects allocated by your own TLAB (no concurrent writes)
+    ///
+    /// 3. **No reallocation during access**: Do not hold the pointer across
+    ///    operations that might grow the heap (TLAB refills)
+    ///
+    /// # Why UnsafeCell?
+    ///
+    /// Production VMs (JVM, CLR, V8, Go) all use direct memory access for
+    /// field writes. The "lock-free" property comes from:
+    ///
+    /// - **TLABs**: Each VM has exclusive write access to its allocation region
+    /// - **No globals**: BAML has no global mutable state, preventing races
+    /// - **Safepoint GC**: Collection only runs when no VMs are executing
+    ///
+    /// Using `RwLock` or `Mutex` for field writes would make BEX unacceptably
+    /// slow - every `x.field = value` would require lock acquisition.
     pub unsafe fn objects_ptr(&self) -> *mut Vec<Object<F>> {
         self.objects.get()
     }

@@ -34,13 +34,46 @@ impl TlabChunk {
     }
 }
 
-/// Thread-Local Allocation Buffer for a VM.
+/// Thread-Local Allocation Buffer for a BEX VM.
 ///
-/// Provides fast, lock-free allocation within an exclusive heap region.
-/// When the current chunk is exhausted, a new chunk is obtained from
-/// the heap via `refill()`.
+/// A TLAB provides fast, lock-free allocation within an exclusive heap region.
+/// This is the same strategy used by the JVM, CLR, and Go runtime.
 ///
-/// The type parameter `F` must match the heap's native function type.
+/// # Allocation Strategy
+///
+/// ```text
+/// TLAB Memory Layout:
+///
+/// ┌────────────────────────────────────────────────────────────┐
+/// │ [used] [used] [used] [free] [free] [free] ... [free]      │
+/// │ ◄─── allocated ────► ◄────── available ─────────────►     │
+/// │                      ▲                               ▲     │
+/// │                 alloc_ptr                      alloc_limit │
+/// └────────────────────────────────────────────────────────────┘
+/// ```
+///
+/// # Performance
+///
+/// - **Fast path**: `alloc()` is a single pointer increment + write
+/// - **No atomics**: Each VM owns its TLAB exclusively
+/// - **No locks**: Direct memory access via `UnsafeCell`
+/// - **Refill cost**: One `AtomicUsize::fetch_add` per ~1024 allocations
+///
+/// # Example
+///
+/// ```ignore
+/// let heap = BexHeap::new(compile_time_objects);
+/// let mut tlab = Tlab::new(Arc::clone(&heap));
+///
+/// // Fast allocation - just bumps pointer
+/// let idx1 = tlab.alloc_string("hello".to_string());
+/// let idx2 = tlab.alloc_array(vec![Value::Int(1), Value::Int(2)]);
+///
+/// // When chunk exhausted, refill gets a new region
+/// for _ in 0..2000 {
+///     tlab.alloc_string("item".to_string()); // Auto-refills as needed
+/// }
+/// ```
 pub struct Tlab<F> {
     /// Next allocation index within current chunk.
     alloc_ptr: usize,

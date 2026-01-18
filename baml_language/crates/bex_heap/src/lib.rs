@@ -3,24 +3,60 @@
 //! This crate provides the unified heap for the BEX virtual machine,
 //! implementing a CLR/JVM-style architecture with:
 //!
-//! - Lock-free field writes via `UnsafeCell<Vec<Object>>`
-//! - Per-VM Thread-Local Allocation Buffers (TLABs)
-//! - Handle table for FFI/external boundary
+//! - **Lock-free field writes**: `UnsafeCell<Vec<Object>>` enables direct memory access
+//! - **Per-VM TLABs**: Thread-Local Allocation Buffers prevent allocation contention
+//! - **Handle table**: `sharded_slab` provides lock-free handle management for FFI
 //!
-//! # Architecture
+//! # Architecture Overview
 //!
 //! ```text
-//! BexEngine owns Arc<BexHeap>
-//!     │
-//!     ├── BexVm1 has Tlab (exclusive allocation region)
-//!     ├── BexVm2 has Tlab (exclusive allocation region)
-//!     └── BexVm3 has Tlab (exclusive allocation region)
+//! ┌─────────────────────────────────────────────────────────────────┐
+//! │                         BexEngine                                │
+//! │                     owns Arc<BexHeap>                           │
+//! └───────────────────────┬─────────────────────────────────────────┘
+//!                         │ Arc::clone() per call_function
+//!         ┌───────────────┼───────────────────┐
+//!         ▼               ▼                   ▼
+//!    ┌─────────┐     ┌─────────┐         ┌─────────┐
+//!    │  BexVm  │     │  BexVm  │         │  BexVm  │  (concurrent)
+//!    │  (VM1)  │     │  (VM2)  │         │  (VM3)  │
+//!    └────┬────┘     └────┬────┘         └────┬────┘
+//!         │ owns          │ owns              │ owns
+//!         ▼               ▼                   ▼
+//!    ┌─────────┐     ┌─────────┐         ┌─────────┐
+//!    │  Tlab1  │     │  Tlab2  │         │  Tlab3  │  (exclusive)
+//!    └─────────┘     └─────────┘         └─────────┘
 //! ```
 //!
-//! Each VM allocates into its own TLAB without contention. The heap
-//! stores all objects in a single `Vec<Object>` with a boundary
-//! separating compile-time objects (permanent) from runtime objects
-//! (collectible by GC).
+//! # Memory Layout
+//!
+//! The heap maintains a single contiguous `Vec<Object>` with a boundary
+//! separating compile-time objects (permanent) from runtime objects (collectible):
+//!
+//! ```text
+//! ┌──────────────────────────────────────────────────────────────────┐
+//! │  [0] [1] [2] ... [N-1] ║ [N] [N+1] ... [M-1] [M] ...            │
+//! │  ◄─ Compile-Time ────► ║ ◄────── Runtime (TLAB regions) ──────► │
+//! │     (permanent)        ║        (collectible by GC)              │
+//! │                        ▲                                         │
+//! │               compile_time_boundary                              │
+//! └──────────────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! # Thread Safety
+//!
+//! The heap uses `UnsafeCell` for lock-free access. Safety is ensured by:
+//!
+//! - **TLAB exclusivity**: Each VM allocates into its own reserved region
+//! - **No shared mutation**: BAML has no global mutable variables
+//! - **Safepoint GC**: Collection only runs when all VMs are yielded
+//!
+//! # Crate Dependencies
+//!
+//! ```text
+//! bex_vm_types ◄── bex_external_types ◄── bex_heap ◄── bex_vm ◄── bex_engine
+//! (internal)       (FFI boundary)         (memory)     (exec)     (async)
+//! ```
 
 mod heap;
 mod tlab;

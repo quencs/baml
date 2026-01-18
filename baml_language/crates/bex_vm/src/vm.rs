@@ -236,6 +236,25 @@ pub enum WatchNotification {
     },
 }
 
+/// Intermediate representation of a compiled BAML program.
+///
+/// `BytecodeProgram` holds compile-time objects in an `ObjectPool` which are
+/// transferred to the unified `BexHeap` when creating a `BexEngine`.
+///
+/// # Lifecycle
+///
+/// 1. **Creation**: `convert_program()` builds `BytecodeProgram` from raw bytecode
+/// 2. **Object Transfer**: `BexEngine::new()` extracts `objects` into `BexHeap`
+/// 3. **Discard**: The `ObjectPool` is consumed; runtime uses `BexHeap` exclusively
+///
+/// # Why `ObjectPool` Here?
+///
+/// `ObjectPool` is used here (not `Vec`) because:
+/// - `convert_program()` builds objects incrementally with type-safe indexing
+/// - Preserves phantom-typed `ObjectIndex` semantics during construction
+/// - After transfer to `BexHeap`, runtime allocation uses TLABs instead
+///
+/// See `BexEngine::new()` for the handoff to unified heap architecture.
 #[derive(Clone, Debug)]
 pub struct BytecodeProgram {
     pub objects: ObjectPool<NativeFunction>,
