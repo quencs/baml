@@ -91,7 +91,7 @@ pub enum Object {
 
 impl Object {
     pub fn from_vm_object(index: ObjectIndex, vm: &BexVm) -> anyhow::Result<Self> {
-        let obj = &vm.objects[index];
+        let obj = vm.get_object(index);
         match obj {
             VmObject::String(s) => Ok(Object::String(s.clone())),
 
@@ -110,7 +110,7 @@ impl Object {
                 .map(Object::Map),
 
             VmObject::Instance(instance) => {
-                let VmObject::Class(vm_class) = &vm.objects[instance.class] else {
+                let VmObject::Class(vm_class) = vm.get_object(instance.class) else {
                     anyhow::bail!("Class not found for instance: {instance:?}");
                 };
 
@@ -128,7 +128,7 @@ impl Object {
             }
 
             VmObject::Variant(variant) => {
-                let VmObject::Enum(vm_enum) = &vm.objects[variant.enm] else {
+                let VmObject::Enum(vm_enum) = vm.get_object(variant.enm) else {
                     anyhow::bail!("Enum not found for variant: {variant:?}");
                 };
 

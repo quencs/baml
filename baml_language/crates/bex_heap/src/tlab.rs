@@ -52,7 +52,7 @@ pub struct Tlab<F> {
     heap: Arc<BexHeap<F>>,
 }
 
-impl<F: Default> Tlab<F> {
+impl<F> Tlab<F> {
     /// Create a new TLAB with an initial chunk from the heap.
     pub fn new(heap: Arc<BexHeap<F>>) -> Self {
         let chunk = heap.alloc_tlab_chunk();

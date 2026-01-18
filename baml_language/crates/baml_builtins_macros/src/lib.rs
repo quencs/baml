@@ -1287,7 +1287,7 @@ fn generate_single_extraction(
     if is_generic {
         return if is_mut {
             quote! {
-                let #var_name = vm.objects.as_value_mut(&args[#idx])?;
+                let #var_name = vm.as_value_mut(&args[#idx])?;
             }
         } else {
             quote! {
@@ -1300,12 +1300,12 @@ fn generate_single_extraction(
         "String" => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_string_mut(&args[#idx])?;
+                    let #var_name = vm.as_string_mut(&args[#idx])?;
                 }
             } else {
-                // Clone string to release borrow on vm.objects
+                // Clone string to release borrow on vm
                 quote! {
-                    let #var_name = vm.objects.as_string(&args[#idx])?.clone();
+                    let #var_name = vm.as_string(&args[#idx])?.clone();
                 }
             }
         }
@@ -1314,7 +1314,7 @@ fn generate_single_extraction(
                 Value::Int(i) => i,
                 _ => return Err(InternalError::TypeError {
                     expected: Type::Int,
-                    got: vm.objects.type_of(&args[#idx]),
+                    got: vm.type_of(&args[#idx]),
                 }.into()),
             };
         },
@@ -1323,7 +1323,7 @@ fn generate_single_extraction(
                 Value::Float(f) => f,
                 _ => return Err(InternalError::TypeError {
                     expected: Type::Float,
-                    got: vm.objects.type_of(&args[#idx]),
+                    got: vm.type_of(&args[#idx]),
                 }.into()),
             };
         },
@@ -1332,47 +1332,47 @@ fn generate_single_extraction(
                 Value::Bool(b) => b,
                 _ => return Err(InternalError::TypeError {
                     expected: Type::Bool,
-                    got: vm.objects.type_of(&args[#idx]),
+                    got: vm.type_of(&args[#idx]),
                 }.into()),
             };
         },
         "Media" => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_media_mut(&args[#idx], MediaKind::Generic)?;
+                    let #var_name = vm.as_media_mut(&args[#idx], MediaKind::Generic)?;
                 }
             } else {
                 quote! {
-                    let #var_name = vm.objects.as_media(&args[#idx], MediaKind::Generic)?.clone();
+                    let #var_name = vm.as_media(&args[#idx], MediaKind::Generic)?.clone();
                 }
             }
         }
         t if t.starts_with("Array") => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_array_mut(&args[#idx])?;
+                    let #var_name = vm.as_array_mut(&args[#idx])?;
                 }
             } else {
                 quote! {
-                    let #var_name = vm.objects.as_array(&args[#idx])?.to_vec();
+                    let #var_name = vm.as_array(&args[#idx])?.to_vec();
                 }
             }
         }
         t if t.starts_with("Map") => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_map_mut(&args[#idx])?;
+                    let #var_name = vm.as_map_mut(&args[#idx])?;
                 }
             } else {
                 quote! {
-                    let #var_name = vm.objects.as_map(&args[#idx])?.clone();
+                    let #var_name = vm.as_map(&args[#idx])?.clone();
                 }
             }
         }
         _ => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_value_mut(&args[#idx])?;
+                    let #var_name = vm.as_value_mut(&args[#idx])?;
                 }
             } else {
                 quote! {

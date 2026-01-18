@@ -6,6 +6,7 @@ use bex_vm_types::{
 
 use crate::{InternalError, NativeFunction, types::ObjectTrait};
 
+#[allow(dead_code)]
 pub(crate) trait ObjectPoolTrait {
     fn as_object(
         &self,

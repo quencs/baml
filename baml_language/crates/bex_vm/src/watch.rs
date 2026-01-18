@@ -1,3 +1,5 @@
+#![allow(unsafe_code)]
+
 //! Implementation of the infamous @watch syntax in Baml.
 //!
 //! This module implements a reachability algorithm that tracks which nodes need
@@ -141,9 +143,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use bex_vm_types::{Object, ObjectIndex, ObjectPool, StackIndex, Value};
-
-use crate::NativeFunction;
+use bex_vm_types::{Object, ObjectIndex, StackIndex, Value};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum WatchFilter {
@@ -321,18 +321,10 @@ impl Watch {
     /// Links parent.path -> child in the graph.
     ///
     /// Updates reachability incrementally for all affected roots.
-    pub fn link_edge(
-        &mut self,
-        parent: NodeId,
-        path: Path,
-        child: NodeId,
-        objects: &ObjectPool<NativeFunction>,
-    ) {
-        // If pointing to an object, recursively build the dependency graph.
-        if let NodeId::HeapObject(index) = child {
-            self.track_dependencies(Value::Object(index), objects);
-        }
-
+    ///
+    /// Note: Caller should call `track_dependencies` separately before this
+    /// if the child is a `HeapObject` that needs dependency tracking.
+    pub fn link_edge(&mut self, parent: NodeId, path: Path, child: NodeId) {
         self.add_edge(parent, path, child);
 
         // For each root that reaches parent, update reachability to include
@@ -448,79 +440,79 @@ impl Watch {
             .map(|root_ids| root_ids.iter().copied().collect())
             .unwrap_or_default()
     }
+}
 
-    /// Traverses an object graph and builds emit edges from parent to all
-    /// children.
-    ///
-    /// This is used when an object is marked as @watch to establish all the
-    /// dependency edges. It does not declare any root, call
-    /// [`Self::register_root`] separately.
-    pub fn track_dependencies(&mut self, value: Value, objects: &ObjectPool<NativeFunction>) {
-        let mut stack = vec![value];
-        let mut visited = HashSet::new();
+/// Helper function to traverse an object graph and build emit edges.
+///
+/// This is used when an object is marked as @watch to establish all the
+/// dependency edges. It does not declare any root, call `Watch::register_root` separately.
+///
+/// This is a free function to avoid borrow checker issues when calling from `BexVm`.
+/// Takes a reference to the heap for object access to allow split borrows.
+pub fn track_watch_dependencies<NF>(watch: &mut Watch, value: Value, heap: &bex_heap::BexHeap<NF>) {
+    let mut stack = vec![value];
+    let mut visited = HashSet::new();
 
-        while let Some(v) = stack.pop() {
-            let Value::Object(index) = v else {
-                continue;
-            };
+    while let Some(v) = stack.pop() {
+        let Value::Object(index) = v else {
+            continue;
+        };
 
-            if !visited.insert(index) {
-                continue;
+        if !visited.insert(index) {
+            continue;
+        }
+
+        let node = NodeId::HeapObject(index);
+
+        // Now traverse the object's contents
+        // SAFETY: We access the heap directly using unsafe code here to avoid
+        // borrow checker issues. This is safe because we're only reading immutably.
+        let obj = unsafe { &(&(*heap.objects_ptr()))[index.into_raw()] };
+        match obj {
+            Object::Instance(instance) => {
+                // For each field in the instance, build edges
+                for (field_idx, field_value) in instance.fields.iter().enumerate() {
+                    if let Value::Object(child_obj) = field_value {
+                        watch.add_edge(
+                            node,
+                            Path::InstanceField(field_idx),
+                            NodeId::HeapObject(*child_obj),
+                        );
+
+                        stack.push(*field_value);
+                    }
+                }
             }
 
-            let node = NodeId::HeapObject(index);
+            Object::Array(array) => {
+                // For each element in the array, build edges
+                for (idx, elem_value) in array.iter().enumerate() {
+                    if let Value::Object(child_obj) = elem_value {
+                        watch.add_edge(node, Path::ArrayIndex(idx), NodeId::HeapObject(*child_obj));
 
-            // Now traverse the object's contents
-            match &objects[index] {
-                Object::Instance(instance) => {
-                    // For each field in the instance, build edges
-                    for (field_idx, field_value) in instance.fields.iter().enumerate() {
-                        if let Value::Object(child_obj) = field_value {
-                            self.add_edge(
-                                node,
-                                Path::InstanceField(field_idx),
-                                NodeId::HeapObject(*child_obj),
-                            );
-
-                            stack.push(*field_value);
-                        }
+                        stack.push(*elem_value);
                     }
                 }
+            }
 
-                Object::Array(array) => {
-                    // For each element in the array, build edges
-                    for (idx, elem_value) in array.iter().enumerate() {
-                        if let Value::Object(child_obj) = elem_value {
-                            self.add_edge(
-                                node,
-                                Path::ArrayIndex(idx),
-                                NodeId::HeapObject(*child_obj),
-                            );
+            Object::Map(map) => {
+                // For each entry in the map, build edges
+                for (key, map_value) in map {
+                    if let Value::Object(child_obj) = map_value {
+                        watch.add_edge(
+                            node,
+                            Path::MapKey(key.clone()),
+                            NodeId::HeapObject(*child_obj),
+                        );
 
-                            stack.push(*elem_value);
-                        }
+                        stack.push(*map_value);
                     }
                 }
+            }
 
-                Object::Map(map) => {
-                    // For each entry in the map, build edges
-                    for (key, map_value) in map {
-                        if let Value::Object(child_obj) = map_value {
-                            self.add_edge(
-                                node,
-                                Path::MapKey(key.clone()),
-                                NodeId::HeapObject(*child_obj),
-                            );
-
-                            stack.push(*map_value);
-                        }
-                    }
-                }
-
-                _ => {
-                    // Other object types (strings, functions, etc.) don't have
-                    // nested structure
-                }
+            _ => {
+                // Other object types (strings, functions, etc.) don't have
+                // nested structure
             }
         }
     }
@@ -538,11 +530,6 @@ mod tests {
             channel: "Test".to_string(),
             filter: WatchFilter::Default,
         }
-    }
-
-    // TODO: fix this nonsense
-    fn dummy_object_pool(n: usize) -> ObjectPool<NativeFunction> {
-        ObjectPool::from_vec(vec![bex_vm_types::Object::String(String::new()); n])
     }
 
     #[test]
@@ -571,7 +558,7 @@ mod tests {
         emit.register_root(var, test_root_state());
 
         // Link var -> obj
-        emit.link_edge(var, Path::Binding, obj, &dummy_object_pool(1));
+        emit.link_edge(var, Path::Binding, obj);
 
         // Both should be covered
         assert_eq!(emit.copy_roots_reaching(var).len(), 1);
@@ -594,14 +581,14 @@ mod tests {
         let root_node = NodeId::LocalVar(StackIndex::from_raw(0));
 
         // Create cycle: A -> B -> A
-        emit.link_edge(a, Path::InstanceField(0), b, &dummy_object_pool(2));
-        emit.link_edge(b, Path::InstanceField(0), a, &dummy_object_pool(2));
+        emit.link_edge(a, Path::InstanceField(0), b);
+        emit.link_edge(b, Path::InstanceField(0), a);
 
         // Register root at root_node
         emit.register_root(root_node, test_root_state());
 
         // Link root -> A (brings cycle into reachability)
-        emit.link_edge(root_node, Path::Binding, a, &dummy_object_pool(2));
+        emit.link_edge(root_node, Path::Binding, a);
 
         // Both A and B should be covered
         assert_eq!(emit.copy_roots_reaching(a).len(), 1);
@@ -628,8 +615,8 @@ mod tests {
         emit.register_root(var2, test_root_state());
 
         // Link both to the same object
-        emit.link_edge(var1, Path::Binding, obj, &dummy_object_pool(1));
-        emit.link_edge(var2, Path::Binding, obj, &dummy_object_pool(1));
+        emit.link_edge(var1, Path::Binding, obj);
+        emit.link_edge(var2, Path::Binding, obj);
 
         // Object should be covered by both roots
         assert_eq!(emit.copy_roots_reaching(obj).len(), 2);
@@ -658,9 +645,9 @@ mod tests {
 
         // Create chain: var -> obj1 -> obj2 -> obj3
         emit.register_root(var, test_root_state());
-        emit.link_edge(var, Path::Binding, obj1, &dummy_object_pool(3));
-        emit.link_edge(obj1, Path::InstanceField(0), obj2, &dummy_object_pool(3));
-        emit.link_edge(obj2, Path::InstanceField(0), obj3, &dummy_object_pool(3));
+        emit.link_edge(var, Path::Binding, obj1);
+        emit.link_edge(obj1, Path::InstanceField(0), obj2);
+        emit.link_edge(obj2, Path::InstanceField(0), obj3);
 
         // All should be covered
         assert_eq!(emit.copy_roots_reaching(obj1).len(), 1);

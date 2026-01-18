@@ -1,5 +1,8 @@
-use std::collections::HashMap;
+#![allow(unsafe_code)]
 
+use std::{collections::HashMap, sync::Arc};
+
+use bex_heap::{BexHeap, Tlab};
 use bex_vm_types::{
     BinOp, CmpOp, FunctionKind, GlobalPool, Instruction, Object, ObjectIndex, ObjectPool,
     ObjectType, StackIndex, UnaryOp, Value, Variant,
@@ -11,7 +14,7 @@ use indexmap::IndexMap;
 use crate::{
     NativeFunction, StackTrace,
     errors::{ErrorLocation, InternalError, RuntimeError, VmError},
-    indexable::{EvalStack, EvalStackTrait, ObjectPoolTrait},
+    indexable::{EvalStack, EvalStackTrait},
     types::ObjectTrait,
     watch::{self, NodeId, RootState, Watch, WatchFilter},
 };
@@ -165,15 +168,11 @@ pub struct BexVm {
     /// This stack only stores values.
     pub stack: EvalStack,
 
-    /// Object pool.
-    ///
-    /// For now, since we don't have a garbage collector yet, this is basically
-    /// an arena of objects. **Every object** is allocated here and will be
-    /// destroyed when the lifetime of the [`BexVm`] ends. Do not allocate objects
-    /// elsewhere since that will make adding a garbage collector harder.
-    /// Only allocate objects here and use indices to reference them, don't
-    /// bother with Rust references because they will introduce lifetime issues.
-    pub objects: ObjectPool<NativeFunction>,
+    /// Reference to the shared heap (long-lived, shared across VMs).
+    pub heap: Arc<BexHeap<NativeFunction>>,
+
+    /// Thread-local allocation buffer (exclusive to this VM).
+    pub tlab: Tlab<NativeFunction>,
 
     /// Global variables.
     ///
@@ -182,9 +181,7 @@ pub struct BexVm {
 
     /// Offset of the first runtime allocated object.
     ///
-    /// This is used to track the index of the first runtime allocated object.
-    /// When the embedder calls [`BexVm::collect_garbage`] it will drop all values
-    /// after this offset.
+    /// Used by GC to know which objects are compile-time vs runtime.
     pub runtime_allocs_offset: ObjectIndex,
 
     /// Environment variables available during execution.
@@ -295,7 +292,7 @@ pub fn convert_program(program: bex_vm_types::Program<()>) -> Result<BytecodePro
 ///
 /// This is a free function to avoid borrow checker issues when called
 /// from within the instruction dispatch loop.
-fn value_type_tag(value: &Value, objects: &ObjectPool<NativeFunction>) -> i64 {
+fn value_type_tag(value: &Value, heap: &BexHeap<NativeFunction>) -> i64 {
     use bex_vm_types::types::type_tags;
 
     match value {
@@ -303,41 +300,51 @@ fn value_type_tag(value: &Value, objects: &ObjectPool<NativeFunction>) -> i64 {
         Value::Float(_) => type_tags::FLOAT,
         Value::Bool(_) => type_tags::BOOL,
         Value::Null => type_tags::NULL,
-        Value::Object(object_idx) => match &objects[*object_idx] {
-            Object::String(_) => type_tags::STRING,
-            Object::Variant(_) => type_tags::ENUM,
-            Object::Array(_) => type_tags::LIST,
-            Object::Map(_) => type_tags::MAP,
-            Object::Function(_) => type_tags::FUNCTION,
-            Object::Future(_) => type_tags::FUTURE,
-            Object::Enum(_) => type_tags::ENUM,
-            Object::Media(_) => type_tags::MEDIA,
-            Object::Class(_) => type_tags::UNKNOWN,
-            Object::Instance(instance) => {
-                // Instance.class must always point to a Class object.
-                // If not, there's a bug in the VM's instance allocation.
-                let Object::Class(class) = &objects[instance.class] else {
-                    unreachable!("Instance.class does not point to a Class object")
-                };
-                class.type_tag
+        Value::Object(object_idx) => {
+            // SAFETY: Reading type information from objects
+            let obj = unsafe { &(&(*heap.objects_ptr()))[object_idx.into_raw()] };
+            match obj {
+                Object::String(_) => type_tags::STRING,
+                Object::Variant(_) => type_tags::ENUM,
+                Object::Array(_) => type_tags::LIST,
+                Object::Map(_) => type_tags::MAP,
+                Object::Function(_) => type_tags::FUNCTION,
+                Object::Future(_) => type_tags::FUTURE,
+                Object::Enum(_) => type_tags::ENUM,
+                Object::Media(_) => type_tags::MEDIA,
+                Object::Class(_) => type_tags::UNKNOWN,
+                Object::Instance(instance) => {
+                    let class_obj = unsafe { &(&(*heap.objects_ptr()))[instance.class.into_raw()] };
+                    let Object::Class(class) = class_obj else {
+                        unreachable!("Instance.class does not point to a Class object")
+                    };
+                    class.type_tag
+                }
             }
-        },
+        }
     }
 }
 
 impl BexVm {
+    /// Create a new VM with a shared heap.
+    ///
+    /// The heap is shared across all VMs. Each VM gets its own TLAB
+    /// for contention-free allocation.
     pub fn new(
-        BytecodeProgram {
-            objects, globals, ..
-        }: BytecodeProgram,
+        heap: Arc<BexHeap<NativeFunction>>,
+        globals: GlobalPool,
         env_vars: HashMap<String, String>,
     ) -> Self {
+        let runtime_allocs_offset = ObjectIndex::from_raw(heap.compile_time_boundary());
+        let tlab = Tlab::new(Arc::clone(&heap));
+
         Self {
             frames: Vec::new(),
             stack: EvalStack::new(),
-            runtime_allocs_offset: ObjectIndex::from_raw(objects.len()),
-            objects,
+            heap,
+            tlab,
             globals,
+            runtime_allocs_offset,
             env_vars,
             watch: Watch::new(),
             watched_vars: HashMap::new(),
@@ -345,23 +352,204 @@ impl BexVm {
         }
     }
 
+    /// Read an object from the heap.
+    ///
+    /// # Safety
+    ///
+    /// This is safe for:
+    /// - Compile-time objects (immutable)
+    /// - Objects allocated by this VM's TLAB
+    /// - Objects from other VMs when they're not being mutated
+    #[inline]
+    pub fn get_object(&self, idx: ObjectIndex) -> &Object<NativeFunction> {
+        // SAFETY: Single-threaded execution within a VM. Objects are only
+        // written during allocation or field writes, both controlled by this VM.
+        unsafe { &(&(*self.heap.objects_ptr()))[idx.into_raw()] }
+    }
+
+    /// Get mutable access to an object.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure exclusive access (typically via TLAB ownership
+    /// or single-threaded execution).
+    #[inline]
+    pub fn get_object_mut(&mut self, idx: ObjectIndex) -> &mut Object<NativeFunction> {
+        // SAFETY: We have &mut self, so no other code can access the VM.
+        // The TLAB ensures this VM has exclusive access to its allocated objects.
+        unsafe { &mut (&mut (*self.heap.objects_ptr()))[idx.into_raw()] }
+    }
+
+    /// Helper method to get `ObjectIndex` from a Value, with type checking.
+    fn as_object_index(
+        &self,
+        value: &Value,
+        object_type: ObjectType,
+    ) -> Result<ObjectIndex, InternalError> {
+        let Value::Object(index) = value else {
+            return Err(InternalError::TypeError {
+                expected: object_type.into(),
+                got: self.type_of(value),
+            });
+        };
+        Ok(*index)
+    }
+
+    /// Get string from a Value.
+    pub fn as_string(&self, value: &Value) -> Result<&String, InternalError> {
+        let index = self.as_object_index(value, ObjectType::String)?;
+        self.get_object(index).as_string()
+    }
+
+    /// Get type of a value.
+    pub fn type_of(&self, value: &Value) -> Type {
+        Type::of(value, |index| ObjectType::of(self.get_object(index)))
+    }
+
+    /// Get mutable string from a Value.
+    pub fn as_string_mut(&mut self, value: &Value) -> Result<&mut String, InternalError> {
+        let index = self.as_object_index(value, ObjectType::String)?;
+        self.get_object_mut(index).as_string_mut()
+    }
+
+    /// Get array from a Value.
+    pub fn as_array(&self, value: &Value) -> Result<&[Value], InternalError> {
+        let index = self.as_object_index(value, ObjectType::Array)?;
+        let obj = self.get_object(index);
+        match obj {
+            Object::Array(arr) => Ok(arr.as_slice()),
+            _ => Err(InternalError::TypeError {
+                expected: ObjectType::Array.into(),
+                got: ObjectType::of(obj).into(),
+            }),
+        }
+    }
+
+    /// Get mutable array from a Value.
+    pub fn as_array_mut(&mut self, value: &Value) -> Result<&mut Vec<Value>, InternalError> {
+        let index = self.as_object_index(value, ObjectType::Array)?;
+        // Check type first to avoid borrow issues
+        if !matches!(self.get_object(index), Object::Array(_)) {
+            return Err(InternalError::TypeError {
+                expected: ObjectType::Array.into(),
+                got: ObjectType::of(self.get_object(index)).into(),
+            });
+        }
+        match self.get_object_mut(index) {
+            Object::Array(arr) => Ok(arr),
+            _ => unreachable!("type was just checked"),
+        }
+    }
+
+    /// Get map from a Value.
+    pub fn as_map(&self, value: &Value) -> Result<&IndexMap<String, Value>, InternalError> {
+        let index = self.as_object_index(value, ObjectType::Map)?;
+        let obj = self.get_object(index);
+        match obj {
+            Object::Map(map) => Ok(map),
+            _ => Err(InternalError::TypeError {
+                expected: ObjectType::Map.into(),
+                got: ObjectType::of(obj).into(),
+            }),
+        }
+    }
+
+    /// Get mutable map from a Value.
+    pub fn as_map_mut(
+        &mut self,
+        value: &Value,
+    ) -> Result<&mut IndexMap<String, Value>, InternalError> {
+        let index = self.as_object_index(value, ObjectType::Map)?;
+        // Check type first to avoid borrow issues
+        if !matches!(self.get_object(index), Object::Map(_)) {
+            return Err(InternalError::TypeError {
+                expected: ObjectType::Map.into(),
+                got: ObjectType::of(self.get_object(index)).into(),
+            });
+        }
+        match self.get_object_mut(index) {
+            Object::Map(map) => Ok(map),
+            _ => unreachable!("type was just checked"),
+        }
+    }
+
+    /// Get media from a Value.
+    pub fn as_media(
+        &self,
+        value: &Value,
+        media_kind: bex_vm_types::types::MediaKind,
+    ) -> Result<&bex_vm_types::types::MediaValue, InternalError> {
+        let index = self.as_object_index(value, ObjectType::Media(media_kind))?;
+        let obj = self.get_object(index);
+        match obj {
+            Object::Media(media) => Ok(media),
+            _ => Err(InternalError::TypeError {
+                expected: ObjectType::Media(media_kind).into(),
+                got: ObjectType::of(obj).into(),
+            }),
+        }
+    }
+
+    /// Get mutable media from a Value (not currently used but required by macro).
+    #[allow(dead_code)]
+    pub fn as_media_mut(
+        &mut self,
+        value: &Value,
+        media_kind: bex_vm_types::types::MediaKind,
+    ) -> Result<&mut bex_vm_types::types::MediaValue, InternalError> {
+        let index = self.as_object_index(value, ObjectType::Media(media_kind))?;
+        // Check type first to avoid borrow issues
+        if !matches!(self.get_object(index), Object::Media(_)) {
+            return Err(InternalError::TypeError {
+                expected: ObjectType::Media(media_kind).into(),
+                got: ObjectType::of(self.get_object(index)).into(),
+            });
+        }
+        match self.get_object_mut(index) {
+            Object::Media(media) => Ok(media),
+            _ => unreachable!("type was just checked"),
+        }
+    }
+
+    /// Get Value reference (for generic types).
+    #[allow(dead_code)]
+    pub fn as_value_mut(&mut self, value: &Value) -> Result<&mut Value, InternalError> {
+        // This is used by macro-generated code for generic type parameters.
+        // For now, we don't support mutable access to generic values.
+        let Value::Object(index) = value else {
+            return Err(InternalError::InvalidObjectRef(0));
+        };
+        Err(InternalError::InvalidObjectRef(index.into_raw()))
+    }
+
     /// Creates a VM from a compiled [`bex_vm_types::Program`].
+    ///
+    /// This is primarily for testing. In production, use `BexEngine` which
+    /// manages the heap across multiple VM instances.
     pub fn from_program(program: bex_vm_types::Program<()>) -> Result<Self, VmError> {
         let bytecode = convert_program(program)?;
-        Ok(Self::new(bytecode, HashMap::new()))
+
+        // Extract compile-time objects for the heap
+        let compile_time_objects: Vec<Object<NativeFunction>> =
+            bytecode.objects.into_iter().collect();
+
+        // Create heap with compile-time objects
+        let heap = BexHeap::new(compile_time_objects);
+
+        Ok(Self::new(heap, bytecode.globals, HashMap::new()))
     }
 
     /// Bootstraps the VM preparing the given function to run.
     #[allow(clippy::print_stderr)] // intentional debug warning for developer feedback
     pub fn set_entry_point(&mut self, function: ObjectIndex, args: &[Value]) {
         debug_assert!(
-            matches!(self.objects[function], Object::Function(_)),
+            matches!(self.get_object(function), Object::Function(_)),
             "expect function as entry point, got {:?}",
-            self.objects[function]
+            self.get_object(function)
         );
 
         // TODO: Run collect_garbage in codegen after each function call.
-        if self.objects.len() != self.runtime_allocs_offset.into_raw() {
+        if self.heap.len() != self.runtime_allocs_offset.into_raw() {
             eprintln!("WARNING: garbage collection did not run before setting a new entry point");
         }
 
@@ -390,7 +578,7 @@ impl BexVm {
     ///
     /// Returns [`InternalError::TypeError`] if the future is not pending, or not a future.
     pub fn pending_future(&self, future: ObjectIndex) -> Result<&PendingFuture, InternalError> {
-        match &self.objects[future] {
+        match self.get_object(future) {
             Object::Future(Future::Pending(future)) => Ok(future),
             other => Err(InternalError::TypeError {
                 expected: FutureType::Pending.into(),
@@ -404,10 +592,10 @@ impl BexVm {
         future_index: ObjectIndex,
         value: Value,
     ) -> Result<(), InternalError> {
-        let Object::Future(future) = &mut self.objects[future_index] else {
+        let Object::Future(future) = self.get_object_mut(future_index) else {
             return Err(InternalError::TypeError {
                 expected: FutureType::Any.into(),
-                got: ObjectType::of(&self.objects[future_index]).into(),
+                got: ObjectType::of(self.get_object(future_index)).into(),
             });
         };
 
@@ -429,38 +617,46 @@ impl BexVm {
         Ok(())
     }
 
-    /// Keeps only compile time necessary objects.
+    /// Stub for garbage collection.
     ///
-    /// Everything allocated while the program run is dropped.
+    /// In the unified heap architecture, GC is coordinated by the engine
+    /// at safepoints (when all VMs are yielded). This method is kept for
+    /// API compatibility but is a no-op.
     pub fn collect_garbage(&mut self) {
-        self.objects.drain(self.runtime_allocs_offset..);
+        // GC is now coordinated by the engine at safepoints.
+        // This is a no-op in the unified heap architecture.
     }
 
     /// Allocates an array on the heap and returns it to the caller.
     pub fn alloc_array(&mut self, values: Vec<Value>) -> Value {
-        Value::Object(self.objects.insert(Object::Array(values)))
+        Value::Object(self.tlab.alloc(Object::Array(values)))
     }
 
     pub fn alloc_map(&mut self, values: IndexMap<String, Value>) -> Value {
-        Value::Object(self.objects.insert(Object::Map(values)))
+        Value::Object(self.tlab.alloc(Object::Map(values)))
     }
 
     pub fn alloc_string(&mut self, s: String) -> Value {
-        Value::Object(self.objects.insert(Object::String(s)))
+        Value::Object(self.tlab.alloc(Object::String(s)))
     }
 
     /// TODO: Seems to low level for an embedder, provide an API that takes
     /// class name and mapping of field name => value instead.
     pub fn alloc_instance(&mut self, class: ObjectIndex, fields: Vec<Value>) -> Value {
         Value::Object(
-            self.objects
-                .insert(Object::Instance(Instance { class, fields })),
+            self.tlab
+                .alloc(Object::Instance(Instance { class, fields })),
         )
     }
 
     // TODO: Same problem as above. Ideally takes (&str, &str) instead.
     pub fn alloc_variant(&mut self, enm: ObjectIndex, index: usize) -> Value {
-        Value::Object(self.objects.insert(Object::Variant(Variant { enm, index })))
+        Value::Object(self.tlab.alloc(Object::Variant(Variant { enm, index })))
+    }
+
+    /// Allocate a future object.
+    pub fn alloc_future(&mut self, future: Future) -> Value {
+        Value::Object(self.tlab.alloc(Object::Future(future)))
     }
 
     // pub fn alloc_media(&mut self, media: BamlMedia) -> Value {
@@ -480,7 +676,7 @@ impl BexVm {
             .frames
             .iter()
             .map(|frame| {
-                let function = self.objects[frame.function].as_function()?;
+                let function = self.get_object(frame.function).as_function()?.clone();
 
                 // VM increments instruction pointer as soon as it reads the
                 // instruction. So in reality the error ocurred on the previous
@@ -516,7 +712,7 @@ impl BexVm {
         function_index: ObjectIndex,
         args: &[Value],
     ) -> Result<VmExecState, VmError> {
-        if !matches!(&self.objects[function_index], Object::Function(_)) {
+        if !matches!(self.get_object(function_index), Object::Function(_)) {
             return Err(RuntimeError::Other("Invalid interrupt function".to_string()).into());
         }
 
@@ -635,8 +831,11 @@ impl BexVm {
         }
 
         if let Value::Object(new) = new_value {
+            // Track dependencies first (using closure to avoid borrow conflicts)
+            watch::track_watch_dependencies(&mut self.watch, Value::Object(new), &self.heap);
+            // Then link the edge
             self.watch
-                .link_edge(watched_node, path, NodeId::HeapObject(new), &self.objects);
+                .link_edge(watched_node, path, NodeId::HeapObject(new));
         }
 
         // Copy previous values.
@@ -677,27 +876,30 @@ impl BexVm {
         // It's a similar trick to what we've implemented in the cycle detection
         // algorithm. Take a look at the `strong_connect` function in the
         // `tarjan.rs` file.
-        let Some(mut frame) = self.frames.last_mut() else {
-            // This should actually return "Void" or () like Rust.
+        // Check if we have frames to execute
+        if self.frames.is_empty() {
             return Ok(VmExecState::Complete(Value::Null));
-        };
+        }
 
-        // Grab a reference to the function object. We do this before the loop
-        // because there's no need to run this on every single iteration. Read
-        // the implementations of `Instruction::Call` and `Instruction::Return`
-        // below.
-        //
-        // We do run into some issues/boilerplate, take a look at the impl of
-        // `Instruction::AllocArray`. We can write a macro or something.
-        let mut function = self.objects[frame.function].as_function()?;
+        // Get the frame index (we'll use indexing instead of holding a mutable reference
+        // to avoid borrow checker issues). This is mutable so we can update it when
+        // pushing new frames during function calls.
+        let mut frame_idx = self.frames.len() - 1;
+
+        // Clone the function object to avoid borrow checker issues with the new heap architecture.
+        // We clone because we need to access the function's bytecode throughout the loop
+        // while also mutating self (stack, frames, etc.). This is a trade-off for the
+        // unified heap architecture - the cost of cloning is acceptable for now.
+        let function_obj_idx = self.frames[frame_idx].function;
+        let mut function = self.get_object(function_obj_idx).as_function()?.clone();
 
         loop {
-            // Current instruction pointer.
-            let instruction_ptr = frame.instruction_ptr;
+            // Current instruction pointer (read from frame).
+            let instruction_ptr = self.frames[frame_idx].instruction_ptr;
 
             // Move the frame's IP to the next instruction. We'll deal with
             // jump offsets later.
-            frame.instruction_ptr += 1;
+            self.frames[frame_idx].instruction_ptr += 1;
 
             // NOTE: `core::intrinsics::unlikely` is only available on nightly.
             // This branch is a big annoyance for small functions (like pushing the frame)
@@ -782,13 +984,13 @@ impl BexVm {
                 }
 
                 Instruction::LoadVar(index) => {
-                    let value = self.stack[frame.locals_offset + index];
+                    let value = self.stack[self.frames[frame_idx].locals_offset + index];
                     self.stack.push(value);
                 }
 
                 Instruction::StoreVar(index) => {
                     // Absolute index of the local variable.
-                    let local_var_index = frame.locals_offset + index;
+                    let local_var_index = self.frames[frame_idx].locals_offset + index;
 
                     // New value.
                     let value = self.stack.ensure_pop()?;
@@ -813,11 +1015,13 @@ impl BexVm {
 
                         // If we have a new binding, link it so it emits.
                         if let Value::Object(new_node) = value {
+                            // Track dependencies first (using closure to avoid borrow conflicts)
+                            watch::track_watch_dependencies(&mut self.watch, value, &self.heap);
+                            // Then link the edge
                             self.watch.link_edge(
                                 watched_node,
                                 watch::Path::Binding,
                                 NodeId::HeapObject(new_node),
-                                &self.objects,
                             );
                         }
 
@@ -831,9 +1035,11 @@ impl BexVm {
 
                         let notifications = self.process_notifications(watched_node)?;
 
-                        // borrow checker.
-                        frame = self.frames.last_mut().expect("last_mut() must exist");
-                        function = self.objects[frame.function].as_function()?;
+                        // borrow checker - update frame index and function.
+                        function = self
+                            .get_object(self.frames[frame_idx].function)
+                            .as_function()?
+                            .clone();
 
                         if !notifications.is_empty() {
                             return Ok(VmExecState::Notify(WatchNotification::Variables(
@@ -858,18 +1064,22 @@ impl BexVm {
                 Instruction::LoadField(index) => {
                     let top = self.stack.ensure_pop()?;
 
-                    let reference = self.objects.as_object(&top, ObjectType::Instance)?;
+                    let reference = self.as_object_index(&top, ObjectType::Instance)?;
 
-                    let Object::Instance(instance) = &self.objects[reference] else {
-                        return Err(InternalError::TypeError {
-                            expected: ObjectType::Instance.into(),
-                            got: ObjectType::of(&self.objects[reference]).into(),
-                        }
-                        .into());
+                    // Extract the field value before pushing to stack
+                    let field_value = {
+                        let Object::Instance(instance) = self.get_object(reference) else {
+                            return Err(InternalError::TypeError {
+                                expected: ObjectType::Instance.into(),
+                                got: ObjectType::of(self.get_object(reference)).into(),
+                            }
+                            .into());
+                        };
+                        instance.fields[index]
                     };
 
                     // Push the value on top of the stack.
-                    self.stack.push(instance.fields[index]);
+                    self.stack.push(field_value);
                 }
 
                 Instruction::StoreField(index) => {
@@ -877,12 +1087,12 @@ impl BexVm {
                     let new_value = self.stack.ensure_pop()?;
 
                     // Consume the instance value from the stack.
-                    let instance_index = self
-                        .objects
-                        .as_object(&self.stack.ensure_pop()?, ObjectType::Instance)?;
+                    let instance_value = self.stack.ensure_pop()?;
+                    let instance_index =
+                        self.as_object_index(&instance_value, ObjectType::Instance)?;
 
                     // Read old value (and typecheck).
-                    let old_value = match &self.objects[instance_index] {
+                    let old_value = match self.get_object(instance_index) {
                         Object::Instance(instance) => instance.fields[index],
 
                         other => {
@@ -904,15 +1114,17 @@ impl BexVm {
                     )?;
 
                     // Set the new value.
-                    if let Object::Instance(instance) = &mut self.objects[instance_index] {
+                    if let Object::Instance(instance) = self.get_object_mut(instance_index) {
                         instance.fields[index] = new_value;
                     }
 
                     let notifications = self.process_notifications(watched_node)?;
 
-                    // Borrow checker.
-                    frame = self.frames.last_mut().expect("last_mut() must exist");
-                    function = self.objects[frame.function].as_function()?;
+                    // Borrow checker - update function.
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
 
                     if !notifications.is_empty() {
                         return Ok(VmExecState::Notify(WatchNotification::Variables(
@@ -994,7 +1206,7 @@ impl BexVm {
                     // Reassign the frame's IP to the new instruction.
                     // Remember that offset can be negative here, so even though
                     // we're adding it can still jump backwards.
-                    frame.instruction_ptr = instruction_ptr + offset;
+                    self.frames[frame_idx].instruction_ptr = instruction_ptr + offset;
                 }
 
                 Instruction::PopJumpIfFalse(offset) => {
@@ -1005,7 +1217,7 @@ impl BexVm {
                         // Reassign only if the condition is false.
                         Value::Bool(value) => {
                             if !value {
-                                frame.instruction_ptr = instruction_ptr + offset;
+                                self.frames[frame_idx].instruction_ptr = instruction_ptr + offset;
                             }
                         }
 
@@ -1014,7 +1226,7 @@ impl BexVm {
                         other => {
                             return Err(VmError::from(InternalError::TypeError {
                                 expected: Type::Bool,
-                                got: self.objects.type_of(&other),
+                                got: self.type_of(&other),
                             }));
                         }
                     }
@@ -1079,25 +1291,27 @@ impl BexVm {
                         }
 
                         (Value::Object(_), Value::Object(_)) if op == BinOp::Add => {
-                            let left = self.objects.as_string(&left)?;
-                            let right = self.objects.as_string(&right)?;
+                            let left = self.as_string(&left)?;
+                            let right = self.as_string(&right)?;
 
                             let mut concat = left.clone();
                             concat.push_str(right);
 
-                            let concat_str_object =
-                                Value::Object(self.objects.insert(Object::String(concat)));
+                            let concat_str_object = self.alloc_string(concat);
 
                             // Borrow check.
-                            function = self.objects[frame.function].as_function()?;
+                            function = self
+                                .get_object(self.frames[frame_idx].function)
+                                .as_function()?
+                                .clone();
 
                             concat_str_object
                         }
 
                         _ => {
                             return Err(VmError::from(InternalError::CannotApplyBinOp {
-                                left: self.objects.type_of(&left),
-                                right: self.objects.type_of(&right),
+                                left: self.type_of(&left),
+                                right: self.type_of(&right),
                                 op,
                             }));
                         }
@@ -1150,11 +1364,11 @@ impl BexVm {
                         }),
 
                         (Value::Object(left_index), Value::Object(right_index))
-                            if matches!(self.objects[left_index], Object::String(_))
-                                && matches!(self.objects[right_index], Object::String(_)) =>
+                            if matches!(self.get_object(left_index), Object::String(_))
+                                && matches!(self.get_object(right_index), Object::String(_)) =>
                         {
-                            let left = self.objects.as_string(&left)?;
-                            let right = self.objects.as_string(&right)?;
+                            let left = self.as_string(&left)?;
+                            let right = self.as_string(&right)?;
 
                             Value::Bool(match op {
                                 CmpOp::Eq => left == right,
@@ -1176,13 +1390,13 @@ impl BexVm {
 
                         // Variant comparison: compare by enum type and variant index
                         (Value::Object(left_index), Value::Object(right_index))
-                            if matches!(self.objects[left_index], Object::Variant(_))
-                                && matches!(self.objects[right_index], Object::Variant(_)) =>
+                            if matches!(self.get_object(left_index), Object::Variant(_))
+                                && matches!(self.get_object(right_index), Object::Variant(_)) =>
                         {
-                            let Object::Variant(left_var) = &self.objects[left_index] else {
+                            let Object::Variant(left_var) = self.get_object(left_index) else {
                                 unreachable!()
                             };
-                            let Object::Variant(right_var) = &self.objects[right_index] else {
+                            let Object::Variant(right_var) = self.get_object(right_index) else {
                                 unreachable!()
                             };
 
@@ -1211,25 +1425,25 @@ impl BexVm {
                             CmpOp::NotEq => left != right,
 
                             CmpOp::InstanceOf => {
-                                let left = self.objects.as_object(&left, ObjectType::Instance)?;
+                                let left = self.as_object_index(&left, ObjectType::Instance)?;
 
-                                let Object::Instance(instance) = &self.objects[left] else {
+                                let Object::Instance(instance) = self.get_object(left) else {
                                     return Err(InternalError::TypeError {
                                         expected: ObjectType::Instance.into(),
-                                        got: ObjectType::of(&self.objects[left]).into(),
+                                        got: ObjectType::of(self.get_object(left)).into(),
                                     }
                                     .into());
                                 };
 
-                                let right = self.objects.as_object(&right, ObjectType::Class)?;
+                                let right = self.as_object_index(&right, ObjectType::Class)?;
 
                                 instance.class == right
                             }
 
                             _ => {
                                 return Err(VmError::from(InternalError::CannotApplyCmpOp {
-                                    left: self.objects.type_of(&left),
-                                    right: self.objects.type_of(&right),
+                                    left: self.type_of(&left),
+                                    right: self.type_of(&right),
                                     op,
                                 }));
                             }
@@ -1249,7 +1463,7 @@ impl BexVm {
                         _ => {
                             return Err(VmError::from(InternalError::CannotApplyUnaryOp {
                                 op,
-                                value: self.objects.type_of(&value),
+                                value: self.type_of(&value),
                             }));
                         }
                     };
@@ -1263,15 +1477,17 @@ impl BexVm {
                     let array = self.stack.drain(drain_range).collect();
 
                     // Allocate it on the heap.
-                    self.objects.push(Object::Array(array));
+                    let array_index = self.tlab.alloc(Object::Array(array));
 
                     // Push the array object on top of the stack.
-                    self.stack
-                        .push(Value::Object(ObjectIndex::from_raw(self.objects.len() - 1)));
+                    self.stack.push(Value::Object(array_index));
 
                     // objects.push() above might've reallocated the vector so
                     // borrow checker complains. Restore the reference.
-                    function = self.objects[frame.function].as_function()?;
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
                 }
 
                 Instruction::LoadArrayElement => {
@@ -1280,15 +1496,7 @@ impl BexVm {
                     let index_value = self.stack.ensure_pop()?;
                     let array_value = self.stack.ensure_pop()?;
 
-                    let array_obj_index =
-                        self.objects.as_object(&array_value, ObjectType::Array)?;
-
-                    let Object::Array(array) = &self.objects[array_obj_index] else {
-                        return Err(VmError::from(InternalError::TypeError {
-                            expected: ObjectType::Array.into(),
-                            got: ObjectType::of(&self.objects[array_obj_index]).into(),
-                        }));
-                    };
+                    let array_obj_index = self.as_object_index(&array_value, ObjectType::Array)?;
 
                     // Get the index
                     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -1303,22 +1511,34 @@ impl BexVm {
                         _ => {
                             return Err(InternalError::TypeError {
                                 expected: Type::Int,
-                                got: self.objects.type_of(&index_value),
+                                got: self.type_of(&index_value),
                             }
                             .into());
                         }
                     };
 
-                    // Check bounds
-                    if index >= array.len() {
-                        return Err(VmError::from(InternalError::ArrayIndexOutOfBounds {
-                            index,
-                            length: array.len(),
-                        }));
-                    }
+                    // Extract the array element before pushing to stack
+                    let element = {
+                        let Object::Array(array) = self.get_object(array_obj_index) else {
+                            return Err(VmError::from(InternalError::TypeError {
+                                expected: ObjectType::Array.into(),
+                                got: ObjectType::of(self.get_object(array_obj_index)).into(),
+                            }));
+                        };
+
+                        // Check bounds
+                        if index >= array.len() {
+                            return Err(VmError::from(InternalError::ArrayIndexOutOfBounds {
+                                index,
+                                length: array.len(),
+                            }));
+                        }
+
+                        array[index]
+                    };
 
                     // Push the element onto the stack
-                    self.stack.push(array[index]);
+                    self.stack.push(element);
                 }
 
                 Instruction::LoadMapElement => {
@@ -1342,18 +1562,18 @@ impl BexVm {
                     let key_value = self.stack.ensure_pop()?;
                     let map_value = self.stack.ensure_pop()?;
 
-                    let map_index = self.objects.as_object(&map_value, ObjectType::Map)?;
+                    let map_index = self.as_object_index(&map_value, ObjectType::Map)?;
 
-                    let Object::Map(map) = &self.objects[map_index] else {
+                    let Object::Map(map) = self.get_object(map_index) else {
                         return Err(VmError::from(InternalError::TypeError {
                             expected: ObjectType::Map.into(),
-                            got: ObjectType::of(&self.objects[map_index]).into(),
+                            got: ObjectType::of(self.get_object(map_index)).into(),
                         }));
                     };
 
                     // Get the string key from the objects pool
-                    let key_index = self.objects.as_object(&key_value, ObjectType::String)?;
-                    let key = self.objects[key_index].as_string()?;
+                    let key_index = self.as_object_index(&key_value, ObjectType::String)?;
+                    let key = self.get_object(key_index).as_string()?;
 
                     // Look up the value in the map
                     let value = map.get(key).copied().ok_or(RuntimeError::NoSuchKeyInMap)?;
@@ -1366,9 +1586,9 @@ impl BexVm {
                     // Instruction args.
                     let new_value = self.stack.ensure_pop()?;
                     let index_value = self.stack.ensure_pop()?;
-                    let array_object_index = self
-                        .objects
-                        .as_object(&self.stack.ensure_pop()?, ObjectType::Array)?;
+                    let array_value = self.stack.ensure_pop()?;
+                    let array_object_index =
+                        self.as_object_index(&array_value, ObjectType::Array)?;
 
                     // Verify index.
                     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -1383,13 +1603,13 @@ impl BexVm {
                         other => {
                             return Err(VmError::from(InternalError::TypeError {
                                 expected: Type::Int,
-                                got: self.objects.type_of(&other),
+                                got: self.type_of(&other),
                             }));
                         }
                     };
 
                     // Read old value (and typecheck).
-                    let old_value = match &self.objects[array_object_index] {
+                    let old_value = match self.get_object(array_object_index) {
                         Object::Array(array) => {
                             // Check bounds.
                             if index >= array.len() {
@@ -1420,15 +1640,18 @@ impl BexVm {
                     )?;
 
                     // Set the new value.
-                    if let Object::Array(array) = &mut self.objects[array_object_index] {
+                    if let Object::Array(array) = self.get_object_mut(array_object_index) {
                         array[index] = new_value;
                     }
 
                     let notifications = self.process_notifications(watched_node)?;
 
                     // borrow checker.
-                    frame = self.frames.last_mut().expect("last_mut() must exist");
-                    function = self.objects[frame.function].as_function()?;
+                    // No need to reassign frame since we're using frame_idx
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
 
                     if !notifications.is_empty() {
                         return Ok(VmExecState::Notify(WatchNotification::Variables(
@@ -1444,16 +1667,16 @@ impl BexVm {
                     let map_value = self.stack.ensure_pop()?;
 
                     // Get the string key from the objects pool.
-                    let key_index = self.objects.as_object(&key_value, ObjectType::String)?;
-                    let key = self.objects[key_index].as_string()?.clone();
+                    let key_index = self.as_object_index(&key_value, ObjectType::String)?;
+                    let key = self.get_object(key_index).as_string()?.clone();
 
-                    let map_index = self.objects.as_object(&map_value, ObjectType::Map)?;
+                    let map_index = self.as_object_index(&map_value, ObjectType::Map)?;
 
                     // Read old value (and typecheck).
                     //
                     // If the map didn't contain any value we'll use null so
                     // there's not watch graph edge to update.
-                    let old_value = match &self.objects[map_index] {
+                    let old_value = match self.get_object(map_index) {
                         Object::Map(map) => map.get(&key).copied().unwrap_or(Value::Null),
 
                         other => {
@@ -1475,15 +1698,18 @@ impl BexVm {
                     )?;
 
                     // Set the new value.
-                    if let Object::Map(map) = &mut self.objects[map_index] {
+                    if let Object::Map(map) = self.get_object_mut(map_index) {
                         map.insert(key, new_value);
                     }
 
                     let notifications = self.process_notifications(watched_node)?;
 
                     // borrow checker.
-                    frame = self.frames.last_mut().expect("last_mut() must exist");
-                    function = self.objects[frame.function].as_function()?;
+                    // No need to reassign frame since we're using frame_idx
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
 
                     if !notifications.is_empty() {
                         return Ok(VmExecState::Notify(WatchNotification::Variables(
@@ -1493,10 +1719,10 @@ impl BexVm {
                 }
 
                 Instruction::AllocInstance(index) => {
-                    let Object::Class(class) = &self.objects[index] else {
+                    let Object::Class(class) = self.get_object(index) else {
                         return Err(InternalError::TypeError {
                             expected: ObjectType::Class.into(),
-                            got: ObjectType::of(&self.objects[index]).into(),
+                            got: ObjectType::of(self.get_object(index)).into(),
                         }
                         .into());
                     };
@@ -1506,28 +1732,34 @@ impl BexVm {
                     fields.resize(class.field_names.len(), Value::Null);
 
                     // Allocate an instance of the class.
-                    self.objects.push(Object::Instance(Instance {
+                    let instance_index = self.tlab.alloc(Object::Instance(Instance {
                         class: index,
                         fields,
                     }));
 
                     // Push the instance object on top of the stack.
-                    self.stack
-                        .push(Value::Object(ObjectIndex::from_raw(self.objects.len() - 1)));
+                    self.stack.push(Value::Object(instance_index));
 
                     // borrow check.
-                    function = self.objects[frame.function].as_function()?;
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
                 }
 
                 // TODO: Contains a lot of typechecking, we know at compile time
                 // that all this stuff is right. Should do something about it.
                 Instruction::AllocVariant(enum_index) => {
-                    let Object::Enum(enm) = &self.objects[enum_index] else {
-                        return Err(InternalError::TypeError {
-                            expected: ObjectType::Enum.into(),
-                            got: ObjectType::of(&self.objects[enum_index]).into(),
-                        }
-                        .into());
+                    // Extract the variant count before popping from stack to avoid borrow conflicts
+                    let variant_count = {
+                        let Object::Enum(enm) = self.get_object(enum_index) else {
+                            return Err(InternalError::TypeError {
+                                expected: ObjectType::Enum.into(),
+                                got: ObjectType::of(self.get_object(enum_index)).into(),
+                            }
+                            .into());
+                        };
+                        enm.variant_names.len()
                     };
 
                     let variant = self.stack.ensure_pop()?;
@@ -1535,7 +1767,7 @@ impl BexVm {
                     let Value::Int(variant_index) = variant else {
                         return Err(InternalError::TypeError {
                             expected: Type::Int,
-                            got: self.objects.type_of(&variant),
+                            got: self.type_of(&variant),
                         }
                         .into());
                     };
@@ -1548,15 +1780,15 @@ impl BexVm {
                     // checked non-negative above
                     let variant_usize = variant_index as usize;
 
-                    if variant_usize >= enm.variant_names.len() {
+                    if variant_usize >= variant_count {
                         return Err(InternalError::ArrayIndexOutOfBounds {
                             index: variant_usize,
-                            length: enm.variant_names.len(),
+                            length: variant_count,
                         }
                         .into());
                     }
 
-                    let object_index = self.objects.insert(Object::Variant(Variant {
+                    let object_index = self.tlab.alloc(Object::Variant(Variant {
                         enm: enum_index,
                         index: variant_usize,
                     }));
@@ -1565,7 +1797,10 @@ impl BexVm {
                     self.stack.push(Value::Object(object_index));
 
                     // borrow check.
-                    function = self.objects[frame.function].as_function()?;
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
                 }
 
                 Instruction::DispatchFuture(arg_count) => {
@@ -1573,15 +1808,14 @@ impl BexVm {
 
                     let expected_type = FunctionType::External;
 
-                    let index = self
-                        .objects
-                        .as_object(&self.stack[args_offset], expected_type.into())?;
+                    let index =
+                        self.as_object_index(&self.stack[args_offset], expected_type.into())?;
 
                     // Can't call a function if it's not a function ¯\_(ツ)_/¯
-                    let Object::Function(callable_future) = &self.objects[index] else {
+                    let Object::Function(callable_future) = self.get_object(index) else {
                         return Err(InternalError::TypeError {
                             expected: expected_type.into(),
-                            got: ObjectType::of(&self.objects[index]).into(),
+                            got: ObjectType::of(self.get_object(index)).into(),
                         }
                         .into());
                     };
@@ -1613,12 +1847,15 @@ impl BexVm {
                     };
 
                     // Allocate the future.
-                    let object_index = self
-                        .objects
-                        .insert(Object::Future(Future::Pending(pending_future)));
+                    let future_value = self.alloc_future(Future::Pending(pending_future));
+
+                    // Extract the index
+                    let Value::Object(object_index) = future_value else {
+                        unreachable!("alloc_future returns Value::Object")
+                    };
 
                     // Now leave the future on top of the stack.
-                    self.stack.push(Value::Object(object_index));
+                    self.stack.push(future_value);
 
                     // Yield control flow back to the embedder.
                     return Ok(VmExecState::ScheduleFuture(object_index));
@@ -1629,30 +1866,31 @@ impl BexVm {
 
                     let wanted_type = FutureType::Any;
 
-                    let index = self
-                        .objects
-                        .as_object(&self.stack[value], wanted_type.into())?;
+                    let index = self.as_object_index(&self.stack[value], wanted_type.into())?;
 
-                    let Object::Future(awaiting) = &self.objects[index] else {
-                        return Err(VmError::from(InternalError::TypeError {
-                            expected: wanted_type.into(),
-                            got: ObjectType::of(&self.objects[index]).into(),
-                        }));
+                    // Check if future is ready and extract value if so
+                    let ready_value = {
+                        let Object::Future(awaiting) = self.get_object(index) else {
+                            return Err(VmError::from(InternalError::TypeError {
+                                expected: wanted_type.into(),
+                                got: ObjectType::of(self.get_object(index)).into(),
+                            }));
+                        };
+
+                        match awaiting {
+                            // Can't do nothing, handle control flow back to embedder.
+                            Future::Pending(_) => {
+                                return Ok(VmExecState::Await(index));
+                            }
+
+                            // Return the ready value
+                            Future::Ready(value) => *value,
+                        }
                     };
 
-                    match awaiting {
-                        // Can't do nothing, handle control flow back to embedder.
-                        Future::Pending(_) => {
-                            return Ok(VmExecState::Await(index));
-                        }
-
-                        // Replace the future on the eval stack with the ready
-                        // value.
-                        Future::Ready(value) => {
-                            self.stack.pop();
-                            self.stack.push(*value);
-                        }
-                    }
+                    // Replace the future on the eval stack with the ready value
+                    self.stack.pop();
+                    self.stack.push(ready_value);
                 }
 
                 Instruction::Watch(index) => {
@@ -1661,7 +1899,7 @@ impl BexVm {
                     // Consume filter.
                     let filter = match self.stack.ensure_pop()? {
                         Value::Null => WatchFilter::Default,
-                        Value::Object(object_index) => match &self.objects[object_index] {
+                        Value::Object(object_index) => match self.get_object(object_index) {
                             Object::Function(_) => WatchFilter::Function(object_index),
                             Object::String(mode) if mode == "manual" => WatchFilter::Manual,
                             Object::String(mode) if mode == "never" => WatchFilter::Paused,
@@ -1675,12 +1913,11 @@ impl BexVm {
                     };
 
                     // Consume channel.
-                    let channel = self
-                        .objects
-                        .as_string(&self.stack.ensure_pop()?)?
-                        .to_owned();
+                    let channel_value = self.stack.ensure_pop()?;
+                    let channel = self.as_string(&channel_value)?.to_owned();
 
-                    let local_var_index = StackIndex::from_raw(frame.locals_offset.raw() + index);
+                    let local_var_index =
+                        StackIndex::from_raw(self.frames[frame_idx].locals_offset.raw() + index);
                     let value = self.stack[local_var_index];
 
                     // The variable index should be the same as where the value is stored
@@ -1710,19 +1947,21 @@ impl BexVm {
                     // If it's an object, build the entire dependency graph
                     if let Value::Object(object_index) = value {
                         // Build the graph.
+                        // Track dependencies first (using closure to avoid borrow conflicts)
+                        watch::track_watch_dependencies(&mut self.watch, value, &self.heap);
 
                         // Link the root emittable variable to the object
                         self.watch.link_edge(
                             var_node,
                             watch::Path::Binding,
                             NodeId::HeapObject(object_index),
-                            &self.objects,
                         );
                     }
                 }
 
                 Instruction::Unwatch(index) => {
-                    let local_var_index = StackIndex::from_raw(frame.locals_offset.raw() + index);
+                    let local_var_index =
+                        StackIndex::from_raw(self.frames[frame_idx].locals_offset.raw() + index);
 
                     // Remove from watched_vars tracking
                     if self.watched_vars.remove(&local_var_index).is_some() {
@@ -1743,7 +1982,8 @@ impl BexVm {
                 }
 
                 Instruction::Notify(index) => {
-                    let local_var_index = StackIndex::from_raw(frame.locals_offset.raw() + index);
+                    let local_var_index =
+                        StackIndex::from_raw(self.frames[frame_idx].locals_offset.raw() + index);
                     let var_node = NodeId::LocalVar(local_var_index);
 
                     let notifications = self.watch.copy_roots_reaching(var_node);
@@ -1775,13 +2015,13 @@ impl BexVm {
 
                     let function_type = FunctionType::Callable;
 
-                    let index = self.objects.as_object(local, function_type.into())?;
+                    let index = self.as_object_index(local, function_type.into())?;
 
                     // Can't call a function if it's not a function ¯\_(ツ)_/¯
-                    let Object::Function(callee) = &self.objects[index] else {
+                    let Object::Function(callee) = self.get_object(index) else {
                         return Err(InternalError::TypeError {
                             expected: function_type.into(),
-                            got: ObjectType::of(&self.objects[index]).into(),
+                            got: ObjectType::of(self.get_object(index)).into(),
                         }
                         .into());
                     };
@@ -1815,34 +2055,33 @@ impl BexVm {
                             self.stack.drain(locals_offset..);
                             self.stack.push(result);
 
-                            // Rust borrow check workaround because we're passing VM as
-                            // mut and technically the frame pointer could be
-                            // invalidated. Frame is Copy so we can maintain a
-                            // local owned copy to avoid this but then we'd need
-                            // to presist changes when moving to a new frame.
-                            //
-                            // We use `ObjectIndex` constructor directly because we know it's a
-                            // valid reference (we are executing instructions inside of it).
-                            frame = self.frames.last_mut().expect("last_mut() was pushed above");
-                            function = self.objects[frame.function].as_function()?;
+                            // No need to update frame_idx since we didn't push a new frame.
+                            // Just update the function reference.
+                            function = self
+                                .get_object(self.frames[frame_idx].function)
+                                .as_function()?
+                                .clone();
                         }
 
                         FunctionKind::Bytecode => {
-                            // Otherwise push the new frame.
+                            // Push the new frame.
                             self.frames.push(Frame {
                                 function: index,
                                 instruction_ptr: 0,
                                 locals_offset,
                             });
 
-                            // Point to next frame.
-                            frame = self.frames.last_mut().expect("last_mut() was pushed above");
+                            // Update frame_idx to point to the new frame.
+                            frame_idx = self.frames.len() - 1;
 
                             // Grab function ref. We do this to avoid running this
                             // code at the beginning of each iteration since it's
-                            // totaly unnecessary. The function only changes when the
+                            // totally unnecessary. The function only changes when the
                             // frame changes.
-                            function = self.objects[frame.function].as_function()?;
+                            function = self
+                                .get_object(self.frames[frame_idx].function)
+                                .as_function()?
+                                .clone();
                         }
 
                         FunctionKind::External(_) => {
@@ -1860,7 +2099,7 @@ impl BexVm {
                     let result = self.stack.ensure_pop()?;
 
                     // Clean up any emittable variables in the function's scope
-                    for i in frame.locals_offset.into_raw()..self.stack.len() {
+                    for i in self.frames[frame_idx].locals_offset.into_raw()..self.stack.len() {
                         let index = StackIndex::from_raw(i);
                         if self.watched_vars.remove(&index).is_some() {
                             let var_node = NodeId::LocalVar(index);
@@ -1883,7 +2122,7 @@ impl BexVm {
 
                     // Restore the eval stack to the state before the function
                     // was called and leave the result on top.
-                    self.stack.drain(frame.locals_offset..);
+                    self.stack.drain(self.frames[frame_idx].locals_offset..);
                     self.stack.push(result);
 
                     // Pop from the call stack.
@@ -1900,21 +2139,24 @@ impl BexVm {
                     }
 
                     // If there are no more frames, we're done.
-                    let Some(previous_frame) = self.frames.last_mut() else {
+                    if self.frames.is_empty() {
                         return self
                             .stack
                             .ensure_pop()
                             .map(VmExecState::Complete)
                             .map_err(Into::into);
-                    };
+                    }
 
                     // Resume previous frame execution.
-                    frame = previous_frame;
+                    frame_idx = self.frames.len() - 1;
 
                     // Point to the previous frame's function. Read the
                     // implementation of `Instruction::Call` above this one for
                     // more information about this piece.
-                    function = self.objects[frame.function].as_function()?;
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
                 }
 
                 Instruction::Assert => {
@@ -1923,7 +2165,7 @@ impl BexVm {
                     let Value::Bool(condition_result) = value else {
                         return Err(InternalError::TypeError {
                             expected: Type::Bool,
-                            got: self.objects.type_of(&value),
+                            got: self.type_of(&value),
                         }
                         .into());
                     };
@@ -1949,9 +2191,9 @@ impl BexVm {
                         // branches which is not ideal for performance. Might want to consider this
                         // in map accesses.
                         let keys = self.stack[idx_of_last_key..].iter().map(|k| {
-                            let obj_index = self.objects.as_object(k, ObjectType::String)?;
+                            let obj_index = self.as_object_index(k, ObjectType::String)?;
 
-                            self.objects[obj_index].as_string().cloned()
+                            self.get_object(obj_index).as_string().cloned()
                         });
 
                         let pairs = values
@@ -1969,12 +2211,15 @@ impl BexVm {
                         IndexMap::new()
                     };
 
-                    let obj_index = self.objects.insert(Object::Map(map));
+                    let obj_index = self.tlab.alloc(Object::Map(map));
 
                     self.stack.push(Value::Object(obj_index));
 
                     // borrow check.
-                    function = self.objects[frame.function].as_function()?;
+                    function = self
+                        .get_object(self.frames[frame_idx].function)
+                        .as_function()?
+                        .clone();
                 }
 
                 // ============================================================
@@ -1988,7 +2233,7 @@ impl BexVm {
                     let Value::Int(value) = discriminant else {
                         return Err(InternalError::TypeError {
                             expected: Type::Int,
-                            got: self.objects.type_of(&discriminant),
+                            got: self.type_of(&discriminant),
                         }
                         .into());
                     };
@@ -1998,7 +2243,7 @@ impl BexVm {
                     let offset = table.lookup(value).unwrap_or(default);
 
                     // Jump
-                    frame.instruction_ptr = instruction_ptr + offset;
+                    self.frames[frame_idx].instruction_ptr = instruction_ptr + offset;
                 }
 
                 Instruction::Discriminant => {
@@ -2009,28 +2254,31 @@ impl BexVm {
                     let Value::Object(object_idx) = value else {
                         return Err(InternalError::TypeError {
                             expected: ObjectType::Variant.into(),
-                            got: self.objects.type_of(&value),
+                            got: self.type_of(&value),
                         }
                         .into());
                     };
 
                     // Must be a Variant object
-                    let Object::Variant(variant) = &self.objects[object_idx] else {
-                        return Err(InternalError::TypeError {
-                            expected: ObjectType::Variant.into(),
-                            got: ObjectType::of(&self.objects[object_idx]).into(),
-                        }
-                        .into());
+                    let variant_index = {
+                        let Object::Variant(variant) = self.get_object(object_idx) else {
+                            return Err(InternalError::TypeError {
+                                expected: ObjectType::Variant.into(),
+                                got: ObjectType::of(self.get_object(object_idx)).into(),
+                            }
+                            .into());
+                        };
+                        variant.index
                     };
 
                     // Variant.index is the discriminant we need
                     #[allow(clippy::cast_possible_wrap)]
-                    self.stack.push(Value::Int(variant.index as i64));
+                    self.stack.push(Value::Int(variant_index as i64));
                 }
 
                 Instruction::TypeTag => {
                     let value = self.stack.ensure_pop()?;
-                    let tag = value_type_tag(&value, &self.objects);
+                    let tag = value_type_tag(&value, &self.heap);
                     self.stack.push(Value::Int(tag));
                 }
 

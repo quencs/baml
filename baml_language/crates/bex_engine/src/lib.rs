@@ -24,13 +24,14 @@
 use std::{collections::HashMap, sync::Arc};
 
 use baml_snapshot::BamlSnapshot;
+use bex_heap::BexHeap;
 // Re-export bex_sys types for convenience
 pub use bex_sys::{
     FileHandle, OpContext, OpError, ResolvedArgs, ResolvedValue, ResourceId, ResourceKind,
     ResourceRegistry, SocketHandle, SysOpResult, ops,
 };
-use bex_vm::{BexVm, BytecodeProgram, VmExecState};
-use bex_vm_types::{ExternalOp, Object, ObjectIndex, SysOp, Value};
+use bex_vm::{BexVm, NativeFunction, VmExecState};
+use bex_vm_types::{ExternalOp, GlobalPool, Object, ObjectIndex, SysOp, Value};
 use thiserror::Error;
 use tokio::sync::mpsc;
 
@@ -70,27 +71,46 @@ pub enum EngineError {
 /// The async runtime that drives VM execution.
 ///
 /// `BexEngine` is the main entry point for executing BAML programs.
-/// It owns the compiled program.
+/// It owns the compiled program and the unified heap.
 pub struct BexEngine {
     /// The original snapshot (for metadata access)
     snapshot: BamlSnapshot,
-    /// The converted bytecode program with native functions attached (for VM execution)
-    bytecode: BytecodeProgram,
+    /// The unified heap (shared across all VM instances)
+    heap: Arc<BexHeap<NativeFunction>>,
+    /// Global variables pool
+    globals: GlobalPool,
+    /// Resolved function/class/enum names for lookup
+    resolved_function_names:
+        HashMap<String, (ObjectIndex, bex_vm_types::FunctionKind<NativeFunction>)>,
     /// Environment variables passed to VM.
     env_vars: HashMap<String, String>,
 }
 
 impl BexEngine {
     /// Create a new engine with the given program.
+    ///
+    /// The engine creates a unified heap containing compile-time objects
+    /// (functions, classes, enums). Each function call creates a VM that
+    /// shares this heap and allocates runtime objects into its own TLAB.
     pub fn new(
         snapshot: BamlSnapshot,
         env_vars: HashMap<String, String>,
     ) -> Result<Self, EngineError> {
         // Convert the pure bytecode to a VM-ready program with native functions attached
         let bytecode = bex_vm::convert_program(snapshot.bytecode.clone())?;
+
+        // Extract compile-time objects for the heap
+        let compile_time_objects: Vec<Object<NativeFunction>> =
+            bytecode.objects.into_iter().collect();
+
+        // Create the unified heap with compile-time objects
+        let heap = BexHeap::new(compile_time_objects);
+
         Ok(Self {
             snapshot,
-            bytecode,
+            heap,
+            globals: bytecode.globals,
+            resolved_function_names: bytecode.resolved_function_names,
             env_vars,
         })
     }
@@ -100,13 +120,15 @@ impl BexEngine {
         &self.snapshot
     }
 
+    /// Get a reference to the shared heap.
+    pub fn heap(&self) -> &Arc<BexHeap<NativeFunction>> {
+        &self.heap
+    }
+
     /// Execute a function by name.
     ///
-    /// This method is `&self` because:
-    /// - VM is created as a local variable (cloned from self.bytecode)
-    /// - Each call gets its own VM instance (like legacy)
-    ///
-    /// Concurrent calls work naturally - each gets its own VM.
+    /// This method is `&self` because each call creates its own VM with a TLAB.
+    /// Concurrent calls work naturally - each gets its own VM and TLAB.
     ///
     /// Args are VM `Value` types. Return value is `ResolvedValue` which contains
     /// the actual data (strings, arrays, etc.) since the VM is dropped after execution.
@@ -118,8 +140,12 @@ impl BexEngine {
         // Look up the function to verify it exists
         let function_index = self.lookup_function(function_name)?;
 
-        // Create VM by cloning bytecode (like legacy async_vm_runtime.rs)
-        let mut vm = BexVm::new(self.bytecode.clone(), self.env_vars.clone());
+        // Create VM with shared heap (each VM gets its own TLAB)
+        let mut vm = BexVm::new(
+            Arc::clone(&self.heap),
+            self.globals.clone(),
+            self.env_vars.clone(),
+        );
 
         // Set entry point with args
         vm.set_entry_point(function_index, args);
@@ -133,8 +159,7 @@ impl BexEngine {
 
     /// Look up a function by name and return its bytecode index.
     fn lookup_function(&self, function_name: &str) -> Result<ObjectIndex, EngineError> {
-        self.bytecode
-            .resolved_function_names
+        self.resolved_function_names
             .get(function_name)
             .map(|(idx, _kind)| *idx)
             .ok_or_else(|| EngineError::FunctionNotFound {
@@ -269,24 +294,27 @@ impl BexEngine {
             Value::Int(i) => ResolvedValue::Int(*i),
             Value::Float(f) => ResolvedValue::Float(*f),
             Value::Bool(b) => ResolvedValue::Bool(*b),
-            Value::Object(idx) => match &vm.objects[*idx] {
-                Object::String(s) => ResolvedValue::String(s.clone()),
-                Object::Array(arr) => {
-                    let resolved: Vec<ResolvedValue> =
-                        arr.iter().map(|v| Self::resolve_value(vm, v)).collect();
-                    ResolvedValue::Array(resolved)
+            Value::Object(idx) => {
+                let obj = vm.get_object(*idx);
+                match obj {
+                    Object::String(s) => ResolvedValue::String(s.clone()),
+                    Object::Array(arr) => {
+                        let resolved: Vec<ResolvedValue> =
+                            arr.iter().map(|v| Self::resolve_value(vm, v)).collect();
+                        ResolvedValue::Array(resolved)
+                    }
+                    Object::Map(map) => {
+                        let resolved: indexmap::IndexMap<String, ResolvedValue> = map
+                            .iter()
+                            .map(|(k, v)| (k.clone(), Self::resolve_value(vm, v)))
+                            .collect();
+                        ResolvedValue::Map(resolved)
+                    }
+                    other => {
+                        panic!("Cannot resolve object type to ResolvedValue: {other:?}")
+                    }
                 }
-                Object::Map(map) => {
-                    let resolved: indexmap::IndexMap<String, ResolvedValue> = map
-                        .iter()
-                        .map(|(k, v)| (k.clone(), Self::resolve_value(vm, v)))
-                        .collect();
-                    ResolvedValue::Map(resolved)
-                }
-                other => {
-                    panic!("Cannot resolve object type to ResolvedValue: {other:?}")
-                }
-            },
+            }
         }
     }
 

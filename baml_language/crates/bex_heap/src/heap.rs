@@ -181,10 +181,7 @@ impl<F> BexHeap<F> {
     ///
     /// Returns a `TlabChunk` describing the exclusive region for the VM.
     /// The VM can then allocate objects within this region without locks.
-    pub fn alloc_tlab_chunk(&self) -> TlabChunk
-    where
-        F: Default,
-    {
+    pub fn alloc_tlab_chunk(&self) -> TlabChunk {
         let start = self.next_chunk.fetch_add(self.tlab_size, Ordering::SeqCst);
         let end = start + self.tlab_size;
 
