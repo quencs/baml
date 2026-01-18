@@ -829,6 +829,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bex_external_types"
+version = "0.0.0"
+dependencies = [
+ "bex_vm_types",
+ "indexmap 2.13.0",
+]
+
+[[package]]
+name = "bex_heap"
+version = "0.0.0"
+dependencies = [
+ "bex_external_types",
+ "bex_vm_types",
+ "crossbeam-queue",
+ "indexmap 2.13.0",
+ "sharded-slab",
+]
+
+[[package]]
 name = "bex_sys"
 version = "0.0.0"
 dependencies = [
