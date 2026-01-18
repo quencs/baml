@@ -240,3 +240,67 @@ async fn test_concurrent_array_allocations() {
         assert_eq!(actual, expected, "Array mismatch for size {size}");
     }
 }
+
+/// Test that `ExternalValue::Snapshot` arguments are properly allocated on the heap.
+#[tokio::test]
+async fn test_call_function_with_snapshot_args() {
+    use bex_engine::{ExternalValue, Snapshot};
+
+    // Create a BAML program with a function that takes arguments
+    let source = r#"
+        function concat_strings(a: string, b: string) -> string {
+            a + " " + b
+        }
+
+        function sum_array(arr: int[]) -> int {
+            let total = 0;
+            for (let item in arr) {
+                total += item;
+            }
+            total
+        }
+
+        function add_numbers(x: int, y: int) -> int {
+            x + y
+        }
+    "#;
+
+    let snapshot = compile_for_engine(source);
+    let engine = BexEngine::new(snapshot, HashMap::new()).expect("Failed to create engine");
+
+    // Test passing strings via Snapshot
+    let result = engine
+        .call_function("concat_strings", &["Hello".into(), "World".into()])
+        .await
+        .expect("call_function failed");
+
+    let actual = value_from_resolved(&result);
+    assert_eq!(actual, Value::string("Hello World"));
+
+    // Test passing an array via Snapshot
+    let arr = Snapshot::Array(vec![
+        Snapshot::Int(1),
+        Snapshot::Int(2),
+        Snapshot::Int(3),
+        Snapshot::Int(4),
+    ]);
+    let result = engine
+        .call_function("sum_array", &[arr.into()])
+        .await
+        .expect("call_function failed");
+
+    let actual = value_from_resolved(&result);
+    assert_eq!(actual, Value::Int(10)); // 1 + 2 + 3 + 4
+
+    // Test passing primitives via ExternalValue
+    let result = engine
+        .call_function(
+            "add_numbers",
+            &[ExternalValue::Int(15), ExternalValue::Int(27)],
+        )
+        .await
+        .expect("call_function failed");
+
+    let actual = value_from_resolved(&result);
+    assert_eq!(actual, Value::Int(42));
+}

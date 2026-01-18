@@ -819,6 +819,7 @@ dependencies = [
  "anyhow",
  "baml_snapshot",
  "baml_tests",
+ "bex_external_types",
  "bex_heap",
  "bex_sys",
  "bex_vm",

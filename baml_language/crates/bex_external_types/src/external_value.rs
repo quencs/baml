@@ -4,7 +4,7 @@
 //! across the FFI boundary without requiring heap access to inspect.
 //! Primitives are inlined, heap objects use opaque `Handle`.
 
-use crate::Handle;
+use crate::{Handle, Snapshot};
 
 /// A value that can cross the FFI boundary.
 ///
@@ -54,6 +54,26 @@ pub enum ExternalValue {
     /// Handle to any heap-allocated object (string, array, map, instance, variant, etc.).
     /// Resolve via `BexEngine::get_object()` to inspect.
     Object(Handle),
+
+    /// Owned data to be allocated on the heap when passed to `call_function`.
+    ///
+    /// Use this variant when you want to pass complex data (strings, arrays, maps)
+    /// to a function without needing to pre-allocate handles. The engine will
+    /// allocate the snapshot data onto the heap when processing arguments.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use bex_external_types::{ExternalValue, Snapshot};
+    ///
+    /// // Pass a string argument
+    /// let args = vec![
+    ///     ExternalValue::Snapshot(Snapshot::String("hello".into())),
+    ///     ExternalValue::Int(42),
+    /// ];
+    /// let result = engine.call_function("my_func", &args).await?;
+    /// ```
+    Snapshot(Snapshot),
 }
 
 impl ExternalValue {
@@ -105,6 +125,15 @@ impl ExternalValue {
             ExternalValue::Float(_) => "float",
             ExternalValue::Bool(_) => "bool",
             ExternalValue::Object(_) => "object",
+            ExternalValue::Snapshot(s) => s.type_name(),
+        }
+    }
+
+    /// Try to get as a snapshot reference.
+    pub fn as_snapshot(&self) -> Option<&Snapshot> {
+        match self {
+            ExternalValue::Snapshot(s) => Some(s),
+            _ => None,
         }
     }
 }
@@ -133,6 +162,24 @@ impl From<Handle> for ExternalValue {
     }
 }
 
+impl From<Snapshot> for ExternalValue {
+    fn from(value: Snapshot) -> Self {
+        ExternalValue::Snapshot(value)
+    }
+}
+
+impl From<String> for ExternalValue {
+    fn from(value: String) -> Self {
+        ExternalValue::Snapshot(Snapshot::String(value))
+    }
+}
+
+impl From<&str> for ExternalValue {
+    fn from(value: &str) -> Self {
+        ExternalValue::Snapshot(Snapshot::String(value.to_string()))
+    }
+}
+
 impl PartialEq for ExternalValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -142,6 +189,8 @@ impl PartialEq for ExternalValue {
             (ExternalValue::Bool(a), ExternalValue::Bool(b)) => a == b,
             // Object handles compare by slab_key (identity)
             (ExternalValue::Object(a), ExternalValue::Object(b)) => a.slab_key() == b.slab_key(),
+            // Snapshots compare by value
+            (ExternalValue::Snapshot(a), ExternalValue::Snapshot(b)) => a == b,
             _ => false,
         }
     }

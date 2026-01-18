@@ -24,6 +24,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use baml_snapshot::BamlSnapshot;
+pub use bex_external_types::{ExternalValue, Snapshot};
 use bex_heap::BexHeap;
 // Re-export bex_sys types for convenience
 pub use bex_sys::{
@@ -168,12 +169,26 @@ impl BexEngine {
     /// This method is `&self` because each call creates its own VM with a TLAB.
     /// Concurrent calls work naturally - each gets its own VM and TLAB.
     ///
-    /// Args are VM `Value` types. Return value is `ResolvedValue` which contains
-    /// the actual data (strings, arrays, etc.) since the VM is dropped after execution.
+    /// # Arguments
+    ///
+    /// Arguments are passed as `ExternalValue` types:
+    /// - Primitives (`Int`, `Float`, `Bool`, `Null`) are passed directly
+    /// - `Object(Handle)` references existing heap objects
+    /// - `Snapshot(...)` allocates new objects on the heap
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // Pass primitives and strings easily
+    /// let result = engine.call_function("greet", &[
+    ///     "Alice".into(),  // String -> Snapshot -> allocated on heap
+    ///     42i64.into(),    // Int
+    /// ]).await?;
+    /// ```
     pub async fn call_function(
         &self,
         function_name: &str,
-        args: &[Value],
+        args: &[ExternalValue],
     ) -> Result<ResolvedValue, EngineError> {
         // Look up the function to verify it exists
         let function_index = self.lookup_function(function_name)?;
@@ -185,14 +200,71 @@ impl BexEngine {
             self.env_vars.clone(),
         );
 
-        // Set entry point with args
-        vm.set_entry_point(function_index, args);
+        // Convert ExternalValue args to Value, allocating Snapshots on the heap
+        let vm_args: Vec<Value> = args
+            .iter()
+            .map(|arg| Self::externalize_to_value(&mut vm, arg))
+            .collect();
+
+        // Set entry point with converted args
+        vm.set_entry_point(function_index, &vm_args);
 
         // Create a resource registry for this call
         let ctx = Arc::new(OpContext::new());
 
         // Run the event loop
         self.run_event_loop(&mut vm, ctx).await
+    }
+
+    /// Convert an `ExternalValue` to a VM `Value`.
+    ///
+    /// - Primitives convert directly
+    /// - `Object(Handle)` extracts the `ObjectIndex`
+    /// - `Snapshot(...)` recursively allocates on the heap
+    fn externalize_to_value(vm: &mut BexVm, external: &ExternalValue) -> Value {
+        match external {
+            ExternalValue::Null => Value::Null,
+            ExternalValue::Int(i) => Value::Int(*i),
+            ExternalValue::Float(f) => Value::Float(*f),
+            ExternalValue::Bool(b) => Value::Bool(*b),
+            ExternalValue::Object(handle) => Value::Object(handle.object_index()),
+            ExternalValue::Snapshot(snapshot) => Self::allocate_snapshot(vm, snapshot),
+        }
+    }
+
+    /// Recursively allocate a `Snapshot` onto the heap, returning a `Value`.
+    fn allocate_snapshot(vm: &mut BexVm, snapshot: &Snapshot) -> Value {
+        match snapshot {
+            Snapshot::Null => Value::Null,
+            Snapshot::Int(i) => Value::Int(*i),
+            Snapshot::Float(f) => Value::Float(*f),
+            Snapshot::Bool(b) => Value::Bool(*b),
+            Snapshot::String(s) => vm.alloc_string(s.clone()),
+            Snapshot::Array(arr) => {
+                let values: Vec<Value> = arr
+                    .iter()
+                    .map(|item| Self::allocate_snapshot(vm, item))
+                    .collect();
+                vm.alloc_array(values)
+            }
+            Snapshot::Map(map) => {
+                let values: indexmap::IndexMap<String, Value> = map
+                    .iter()
+                    .map(|(k, v): (&String, &Snapshot)| (k.clone(), Self::allocate_snapshot(vm, v)))
+                    .collect();
+                vm.alloc_map(values)
+            }
+            Snapshot::Instance { .. } => {
+                // Instance allocation requires class lookup - not supported from external
+                // External callers should use the class constructor functions
+                panic!("Cannot allocate Instance from Snapshot - use class constructor functions")
+            }
+            Snapshot::Variant { .. } => {
+                // Variant allocation requires enum lookup - not supported from external
+                // External callers should use enum variant values
+                panic!("Cannot allocate Variant from Snapshot - use enum values")
+            }
+        }
     }
 
     /// Look up a function by name and return its bytecode index.
