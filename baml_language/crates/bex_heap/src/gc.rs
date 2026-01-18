@@ -117,10 +117,13 @@ impl<F: Clone> BexHeap<F> {
             .map(|old_idx| *forwarding.get(old_idx).unwrap_or(old_idx))
             .collect();
 
+        // Update handle table entries to point to new object locations
+        self.update_handles(&forwarding);
+
         let stats = GcStats {
             live_count,
             collected_count,
-            handles_invalidated: 0, // Handle invalidation not implemented yet
+            handles_invalidated: 0, // Handles are updated, not invalidated
         };
 
         (stats, remapped_roots)

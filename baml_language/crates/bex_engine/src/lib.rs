@@ -89,6 +89,9 @@ pub enum EngineError {
 
     #[error("Internal VM error: {0}")]
     InternalVmError(#[from] bex_vm::InternalError),
+
+    #[error("Cannot snapshot object of type {type_name}")]
+    CannotSnapshot { type_name: String },
 }
 
 // ============================================================================
@@ -234,6 +237,173 @@ impl BexEngine {
         self.heap.stats()
     }
 
+    /// Convert an `ExternalValue` to a `Snapshot` (owned data).
+    ///
+    /// - For `Snapshot` variants: returns the snapshot directly
+    /// - For `Object(Handle)`: resolves the handle and deep-copies the object graph
+    ///
+    /// # Supported Object Types
+    ///
+    /// - `String` → `Snapshot::String`
+    /// - `Array` → `Snapshot::Array` (recursively converts elements)
+    /// - `Map` → `Snapshot::Map` (recursively converts values)
+    /// - `Instance` → `Snapshot::Instance` (includes class name and field names)
+    /// - `Variant` → `Snapshot::Variant` (includes enum and variant names)
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError::CannotSnapshot` for object types that cannot be
+    /// converted (Function, Class, Enum, Future, Media).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the handle is invalid (should never happen - handles are GC roots).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let result = engine.call_function("get_user", &[]).await?;
+    /// let snapshot = engine.to_snapshot(result)?;
+    /// match snapshot {
+    ///     Snapshot::Instance { class_name, fields } => {
+    ///         println!("Got {} with {} fields", class_name, fields.len());
+    ///     }
+    ///     _ => {}
+    /// }
+    /// ```
+    pub fn to_snapshot(&self, external: ExternalValue) -> Result<Snapshot, EngineError> {
+        match external {
+            ExternalValue::Snapshot(s) => Ok(s),
+            ExternalValue::Object(handle) => self.snapshot_handle(&handle),
+        }
+    }
+
+    /// Convert a handle to a snapshot.
+    fn snapshot_handle(
+        &self,
+        handle: &bex_external_types::Handle,
+    ) -> Result<Snapshot, EngineError> {
+        let idx = self
+            .heap()
+            .resolve_handle(handle)
+            .expect("Handle is a GC root - object should never be collected");
+        self.snapshot_object(idx)
+    }
+
+    /// Convert an object at the given index to a snapshot.
+    ///
+    /// # Safety
+    ///
+    /// This method uses unsafe calls to `heap.get_object()`. It is safe because:
+    /// - We only read objects, never write
+    /// - The caller ensures the index is valid (from a handle which is a GC root)
+    fn snapshot_object(&self, idx: ObjectIndex) -> Result<Snapshot, EngineError> {
+        // SAFETY: We only read objects, and the index comes from a valid handle.
+        // No concurrent writes can occur while we hold a reference to the heap.
+        #[allow(unsafe_code)]
+        let obj = unsafe { self.heap().get_object(idx) };
+        match obj {
+            Object::String(s) => Ok(Snapshot::String(s.clone())),
+            Object::Array(arr) => {
+                let items: Result<Vec<_>, _> = arr.iter().map(|v| self.snapshot_value(v)).collect();
+                Ok(Snapshot::Array(items?))
+            }
+            Object::Map(map) => {
+                let entries: Result<indexmap::IndexMap<String, Snapshot>, EngineError> = map
+                    .iter()
+                    .map(|(k, v)| Ok((k.clone(), self.snapshot_value(v)?)))
+                    .collect();
+                Ok(Snapshot::Map(entries?))
+            }
+            Object::Instance(instance) => {
+                // Get class name and field names from the Class object
+                // SAFETY: Same as above - read-only access to a valid object
+                #[allow(unsafe_code)]
+                let class_obj = unsafe { self.heap().get_object(instance.class) };
+                let (class_name, field_names) = match class_obj {
+                    Object::Class(class) => (class.name.clone(), &class.field_names),
+                    _ => panic!("Instance.class should point to a Class object"),
+                };
+
+                // Convert fields with their names
+                let fields: Result<indexmap::IndexMap<String, Snapshot>, EngineError> = field_names
+                    .iter()
+                    .zip(instance.fields.iter())
+                    .map(|(name, value)| Ok((name.clone(), self.snapshot_value(value)?)))
+                    .collect();
+
+                Ok(Snapshot::Instance {
+                    class_name,
+                    fields: fields?,
+                })
+            }
+            Object::Variant(variant) => {
+                // Get enum name and variant name from the Enum object
+                // SAFETY: Same as above - read-only access to a valid object
+                #[allow(unsafe_code)]
+                let enum_obj = unsafe { self.heap().get_object(variant.enm) };
+                let (enum_name, variant_name) = match enum_obj {
+                    Object::Enum(enm) => {
+                        let variant_name = enm
+                            .variant_names
+                            .get(variant.index)
+                            .cloned()
+                            .unwrap_or_else(|| format!("variant_{}", variant.index));
+                        (enm.name.clone(), variant_name)
+                    }
+                    _ => panic!("Variant.enm should point to an Enum object"),
+                };
+
+                Ok(Snapshot::Variant {
+                    enum_name,
+                    variant_name,
+                })
+            }
+            Object::Function(_) => Err(EngineError::CannotSnapshot {
+                type_name: "function".to_string(),
+            }),
+            Object::Class(_) => Err(EngineError::CannotSnapshot {
+                type_name: "class".to_string(),
+            }),
+            Object::Enum(_) => Err(EngineError::CannotSnapshot {
+                type_name: "enum".to_string(),
+            }),
+            Object::Future(_) => Err(EngineError::CannotSnapshot {
+                type_name: "future".to_string(),
+            }),
+            Object::Media(_) => Err(EngineError::CannotSnapshot {
+                type_name: "media".to_string(),
+            }),
+        }
+    }
+
+    /// Convert a VM Value to a Snapshot.
+    fn snapshot_value(&self, value: &Value) -> Result<Snapshot, EngineError> {
+        match value {
+            Value::Null => Ok(Snapshot::Null),
+            Value::Int(i) => Ok(Snapshot::Int(*i)),
+            Value::Float(f) => Ok(Snapshot::Float(*f)),
+            Value::Bool(b) => Ok(Snapshot::Bool(*b)),
+            Value::Object(idx) => self.snapshot_object(*idx),
+        }
+    }
+
+    /// Convert a VM Value to an `ExternalValue`.
+    ///
+    /// Primitives are wrapped in Snapshot, heap objects get a Handle.
+    fn value_to_external(&self, value: Value) -> ExternalValue {
+        match value {
+            Value::Null => ExternalValue::Snapshot(Snapshot::Null),
+            Value::Int(i) => ExternalValue::Snapshot(Snapshot::Int(i)),
+            Value::Float(f) => ExternalValue::Snapshot(Snapshot::Float(f)),
+            Value::Bool(b) => ExternalValue::Snapshot(Snapshot::Bool(b)),
+            Value::Object(idx) => {
+                let handle = self.heap().create_handle(idx);
+                ExternalValue::Object(handle)
+            }
+        }
+    }
+
     /// Explicitly trigger garbage collection.
     ///
     /// This method:
@@ -273,13 +443,19 @@ impl BexEngine {
             self.epoch_drained.notified().await;
         }
 
-        // Note: For a complete implementation, we would collect roots from parked VMs.
-        // For now, we run GC with no explicit roots, which collects all unreachable objects.
-        // Parked VMs will have their stacks invalidated, but they're at safepoints.
+        // Collect roots from handles (objects returned to external code)
+        // These must be preserved during GC.
+        let handle_roots = self.heap.collect_handle_roots();
 
-        // Run GC with empty roots (conservative - collects everything unreachable)
+        tracing::debug!("GC: {} handle roots collected", handle_roots.len());
+
+        // Note: For a complete implementation, we would also collect roots from parked VMs.
+        // For now, we only use handle roots. Parked VMs would need their stacks updated
+        // with remapped indices after GC.
+
+        // Run GC with handle roots
         #[allow(unsafe_code)]
-        let (stats, _remapped_roots) = unsafe { self.heap.collect_garbage(&[]) };
+        let (stats, _remapped_roots) = unsafe { self.heap.collect_garbage(&handle_roots) };
 
         // Reset epoch state for reuse
         self.epoch_states[slot].active.store(0, Ordering::Release);
@@ -305,24 +481,34 @@ impl BexEngine {
     /// # Arguments
     ///
     /// Arguments are passed as `ExternalValue` types:
-    /// - Primitives (`Int`, `Float`, `Bool`, `Null`) are passed directly
+    /// - Primitives convert to `Snapshot` via `From` impls
     /// - `Object(Handle)` references existing heap objects
     /// - `Snapshot(...)` allocates new objects on the heap
+    ///
+    /// # Returns
+    ///
+    /// Returns `ExternalValue`:
+    /// - Primitives return as `Snapshot(Snapshot::Int/Float/Bool/Null)`
+    /// - Heap objects return as `Object(Handle)` - a reference, not a deep copy
+    ///
+    /// Use `to_snapshot()` to convert handles to owned data when needed.
     ///
     /// # Example
     ///
     /// ```ignore
-    /// // Pass primitives and strings easily
-    /// let result = engine.call_function("greet", &[
-    ///     "Alice".into(),  // String -> Snapshot -> allocated on heap
-    ///     42i64.into(),    // Int
+    /// let result = engine.call_function("get_user", &[
+    ///     "Alice".into(),
+    ///     42i64.into(),
     /// ]).await?;
+    ///
+    /// // Get owned data
+    /// let snapshot = engine.to_snapshot(result)?;
     /// ```
     pub async fn call_function(
         &self,
         function_name: &str,
         args: &[ExternalValue],
-    ) -> Result<ResolvedValue, EngineError> {
+    ) -> Result<ExternalValue, EngineError> {
         // Look up the function to verify it exists
         let function_index = self.lookup_function(function_name)?;
 
@@ -370,15 +556,10 @@ impl BexEngine {
 
     /// Convert an `ExternalValue` to a VM `Value`.
     ///
-    /// - Primitives convert directly
     /// - `Object(Handle)` extracts the `ObjectIndex`
     /// - `Snapshot(...)` recursively allocates on the heap
     fn externalize_to_value(vm: &mut BexVm, external: &ExternalValue) -> Value {
         match external {
-            ExternalValue::Null => Value::Null,
-            ExternalValue::Int(i) => Value::Int(*i),
-            ExternalValue::Float(f) => Value::Float(*f),
-            ExternalValue::Bool(b) => Value::Bool(*b),
             ExternalValue::Object(handle) => Value::Object(handle.object_index()),
             ExternalValue::Snapshot(snapshot) => Self::allocate_snapshot(vm, snapshot),
         }
@@ -474,14 +655,14 @@ impl BexEngine {
         vm: &mut BexVm,
         ctx: Arc<OpContext>,
         my_epoch: u64,
-    ) -> Result<ResolvedValue, EngineError> {
+    ) -> Result<ExternalValue, EngineError> {
         let (pending_futures, mut processed_futures) = mpsc::unbounded_channel::<FutureResult>();
 
         'vm_exec: loop {
             match vm.exec()? {
                 VmExecState::Complete(value) => {
-                    // Resolve the value before returning (VM will be dropped after this)
-                    return Ok(Self::resolve_value(vm, &value));
+                    // Convert to ExternalValue (handles for objects, snapshots for primitives)
+                    return Ok(self.value_to_external(value));
                 }
 
                 VmExecState::ScheduleFuture(id) => {

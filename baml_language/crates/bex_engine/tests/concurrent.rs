@@ -15,8 +15,8 @@ use std::{
 };
 
 use baml_tests::vm::Value;
-use bex_engine::BexEngine;
-use common::{compile_for_engine, value_from_resolved};
+use bex_engine::{BexEngine, ExternalValue, Snapshot};
+use common::{compile_for_engine, value_from_snapshot};
 
 #[tokio::test]
 async fn test_concurrent_calls_no_race() {
@@ -38,8 +38,10 @@ async fn test_concurrent_calls_no_race() {
     for _ in 0..10 {
         let engine = Arc::clone(&engine);
         handles.push(tokio::spawn(async move {
-            // Each call is independent
-            engine.call_function("test_function", &[]).await
+            let result = engine.call_function("test_function", &[]).await?;
+            // Convert to snapshot while still having access to engine
+            let snapshot = engine.to_snapshot(result)?;
+            Ok::<_, bex_engine::EngineError>(snapshot)
         }));
     }
 
@@ -49,8 +51,8 @@ async fn test_concurrent_calls_no_race() {
         assert!(result.is_ok(), "concurrent call {i} failed: {result:?}");
 
         // Verify the result
-        let value = result.unwrap();
-        let actual = value_from_resolved(&value);
+        let snapshot = result.unwrap();
+        let actual = value_from_snapshot(&snapshot);
         let expected = Value::Int(22); // (10 + 1) * 2
         assert_eq!(actual, expected, "Result mismatch for call {i}");
     }
@@ -80,9 +82,10 @@ async fn test_concurrent_allocations_no_overlap() {
         handles.push(tokio::spawn(async move {
             // Function that allocates many objects
             let result = engine.call_function("allocate_many", &[]).await?;
+            let snapshot = engine.to_snapshot(result)?;
 
             count.fetch_add(1, Ordering::SeqCst);
-            Ok::<_, bex_engine::EngineError>(result)
+            Ok::<_, bex_engine::EngineError>(snapshot)
         }));
     }
 
@@ -91,8 +94,8 @@ async fn test_concurrent_allocations_no_overlap() {
         assert!(result.is_ok(), "call failed: {result:?}");
 
         // Verify the result is correct
-        let value = result.unwrap();
-        let actual = value_from_resolved(&value);
+        let snapshot = result.unwrap();
+        let actual = value_from_snapshot(&snapshot);
         let expected = Value::array(vec![
             Value::string("a"),
             Value::string("b"),
@@ -179,14 +182,15 @@ async fn test_concurrent_string_allocations() {
         let func = (*func_name).to_string();
         handles.push(tokio::spawn(async move {
             let result = engine.call_function(&func, &[]).await?;
-            Ok::<_, bex_engine::EngineError>((func, result))
+            let snapshot = engine.to_snapshot(result)?;
+            Ok::<_, bex_engine::EngineError>((func, snapshot))
         }));
     }
 
     // Collect all results
     for handle in handles {
-        let (func_name, value) = handle.await.expect("task panicked").expect("call failed");
-        let actual = value_from_resolved(&value);
+        let (func_name, snapshot) = handle.await.expect("task panicked").expect("call failed");
+        let actual = value_from_snapshot(&snapshot);
 
         // Extract expected suffix from function name
         let suffix = func_name.strip_prefix("create_string_").unwrap();
@@ -226,14 +230,15 @@ async fn test_concurrent_array_allocations() {
         let engine = Arc::clone(&engine);
         handles.push(tokio::spawn(async move {
             let result = engine.call_function(func_name, &[]).await?;
-            Ok::<_, bex_engine::EngineError>((size, result))
+            let snapshot = engine.to_snapshot(result)?;
+            Ok::<_, bex_engine::EngineError>((size, snapshot))
         }));
     }
 
     // Verify all arrays are correct
     for handle in handles {
-        let (size, value) = handle.await.expect("task panicked").expect("call failed");
-        let actual = value_from_resolved(&value);
+        let (size, snapshot) = handle.await.expect("task panicked").expect("call failed");
+        let actual = value_from_snapshot(&snapshot);
 
         // Build expected array [0, 1, 2, ..., size-1]
         let expected = Value::array((0..size).map(Value::Int).collect());
@@ -244,8 +249,6 @@ async fn test_concurrent_array_allocations() {
 /// Test that `ExternalValue::Snapshot` arguments are properly allocated on the heap.
 #[tokio::test]
 async fn test_call_function_with_snapshot_args() {
-    use bex_engine::{ExternalValue, Snapshot};
-
     // Create a BAML program with a function that takes arguments
     let source = r#"
         function concat_strings(a: string, b: string) -> string {
@@ -273,8 +276,9 @@ async fn test_call_function_with_snapshot_args() {
         .call_function("concat_strings", &["Hello".into(), "World".into()])
         .await
         .expect("call_function failed");
+    let result_snapshot = engine.to_snapshot(result).expect("to_snapshot failed");
 
-    let actual = value_from_resolved(&result);
+    let actual = value_from_snapshot(&result_snapshot);
     assert_eq!(actual, Value::string("Hello World"));
 
     // Test passing an array via Snapshot
@@ -288,19 +292,21 @@ async fn test_call_function_with_snapshot_args() {
         .call_function("sum_array", &[arr.into()])
         .await
         .expect("call_function failed");
+    let result_snapshot = engine.to_snapshot(result).expect("to_snapshot failed");
 
-    let actual = value_from_resolved(&result);
+    let actual = value_from_snapshot(&result_snapshot);
     assert_eq!(actual, Value::Int(10)); // 1 + 2 + 3 + 4
 
     // Test passing primitives via ExternalValue
     let result = engine
         .call_function(
             "add_numbers",
-            &[ExternalValue::Int(15), ExternalValue::Int(27)],
+            &[ExternalValue::from(15i64), ExternalValue::from(27i64)],
         )
         .await
         .expect("call_function failed");
+    let result_snapshot = engine.to_snapshot(result).expect("to_snapshot failed");
 
-    let actual = value_from_resolved(&result);
+    let actual = value_from_snapshot(&result_snapshot);
     assert_eq!(actual, Value::Int(42));
 }

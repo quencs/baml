@@ -14,16 +14,16 @@
 
 use std::{
     cell::UnsafeCell,
+    collections::HashMap,
     marker::PhantomData,
     sync::{
-        Arc, Mutex,
+        Arc, Mutex, RwLock,
         atomic::{AtomicUsize, Ordering},
     },
 };
 
 use bex_external_types::{Handle, WeakHeapRef};
 use bex_vm_types::{Object, ObjectIndex};
-use sharded_slab::Slab;
 
 use crate::tlab::TlabChunk;
 
@@ -100,9 +100,15 @@ pub struct BexHeap<F> {
 
     /// Handle table for external/FFI boundary.
     ///
-    /// Maps slab keys to ObjectIndex values. Handles provide safe,
+    /// Maps handle keys to ObjectIndex values. Handles provide safe,
     /// validated access to heap objects from external code.
-    pub(crate) handles: Slab<ObjectIndex>,
+    ///
+    /// Uses RwLock<HashMap> instead of sharded_slab to allow in-place
+    /// updates after GC moves objects.
+    pub(crate) handles: RwLock<HashMap<usize, ObjectIndex>>,
+
+    /// Next handle key to allocate.
+    next_handle_key: AtomicUsize,
 
     /// TLAB chunk size for new allocations.
     tlab_size: usize,
@@ -126,6 +132,7 @@ pub struct BexHeap<F> {
 // - compile_time_boundary: immutable after construction
 // - next_chunk: AtomicUsize is thread-safe
 // - handles: sharded_slab::Slab is thread-safe
+// - handle_keys: RwLock<HashSet> is thread-safe
 // - tlab_size: immutable after construction
 // - growth_lock: Mutex is thread-safe
 unsafe impl<F: Send + Sync> Send for BexHeap<F> {}
@@ -136,8 +143,10 @@ impl<F> WeakHeapRef for BexHeap<F>
 where
     F: Send + Sync,
 {
-    fn release_handle(&self, slab_key: usize) {
-        self.handles.remove(slab_key);
+    fn release_handle(&self, handle_key: usize) {
+        if let Ok(mut handles) = self.handles.write() {
+            handles.remove(&handle_key);
+        }
     }
 }
 
@@ -157,7 +166,8 @@ impl<F> BexHeap<F> {
             spaces: [UnsafeCell::new(Vec::new()), UnsafeCell::new(Vec::new())],
             active_space: AtomicUsize::new(0),
             next_chunk: AtomicUsize::new(0), // Starts at 0 within active space
-            handles: Slab::new(),
+            handles: RwLock::new(HashMap::new()),
+            next_handle_key: AtomicUsize::new(0),
             tlab_size,
             growth_lock: Mutex::new(()),
             allocs_since_gc: AtomicUsize::new(0),
@@ -349,7 +359,7 @@ impl<F> BexHeap<F> {
             total_objects: total,
             compile_time_objects: ct_len,
             runtime_objects: runtime_len,
-            active_handles: 0, // sharded_slab doesn't expose count
+            active_handles: self.handles.read().map(|h| h.len()).unwrap_or(0),
             tlab_chunks,
         }
     }
@@ -377,6 +387,20 @@ impl<F> BexHeap<F> {
     pub(crate) fn reset_next_chunk(&self, new_value: usize) {
         self.next_chunk.store(new_value, Ordering::Release);
     }
+
+    /// Update handle entries after GC with new object indices.
+    ///
+    /// Called by GC after copying objects to update handle table entries
+    /// to point to the new locations.
+    pub fn update_handles(&self, forwarding: &HashMap<ObjectIndex, ObjectIndex>) {
+        if let Ok(mut handles) = self.handles.write() {
+            for idx in handles.values_mut() {
+                if let Some(&new_idx) = forwarding.get(idx) {
+                    *idx = new_idx;
+                }
+            }
+        }
+    }
 }
 
 impl<F> BexHeap<F>
@@ -386,19 +410,41 @@ where
     /// Create a handle to an object.
     ///
     /// Handles are used at the FFI boundary to give external code safe
-    /// access to heap objects.
+    /// access to heap objects. Handles are GC roots - objects reachable
+    /// from handles will not be collected.
     pub fn create_handle(self: &Arc<Self>, idx: ObjectIndex) -> Handle {
-        let slab_key = self.handles.insert(idx).expect("handle table full");
+        // Get a unique key for this handle
+        let handle_key = self.next_handle_key.fetch_add(1, Ordering::Relaxed);
+
+        // Insert into the handle table
+        if let Ok(mut handles) = self.handles.write() {
+            handles.insert(handle_key, idx);
+        }
 
         // Use Handle::new from bex_external_types, passing self as WeakHeapRef
-        Handle::new(slab_key, idx, Arc::clone(self) as Arc<dyn WeakHeapRef>)
+        Handle::new(handle_key, idx, Arc::clone(self) as Arc<dyn WeakHeapRef>)
     }
 
     /// Resolve a handle to its ObjectIndex.
     ///
     /// Returns None if the handle has been invalidated (e.g., by GC).
     pub fn resolve_handle(&self, handle: &Handle) -> Option<ObjectIndex> {
-        self.handles.get(handle.slab_key()).map(|entry| *entry)
+        self.handles
+            .read()
+            .ok()
+            .and_then(|handles| handles.get(&handle.slab_key()).copied())
+    }
+
+    /// Collect all handle roots for garbage collection.
+    ///
+    /// Returns a Vec of ObjectIndex values for all live handles.
+    /// These should be treated as GC roots - objects reachable from
+    /// handles must not be collected.
+    pub fn collect_handle_roots(&self) -> Vec<ObjectIndex> {
+        self.handles
+            .read()
+            .map(|handles| handles.values().copied().collect())
+            .unwrap_or_default()
     }
 }
 
