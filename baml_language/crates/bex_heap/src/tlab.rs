@@ -39,7 +39,9 @@ impl TlabChunk {
 /// Provides fast, lock-free allocation within an exclusive heap region.
 /// When the current chunk is exhausted, a new chunk is obtained from
 /// the heap via `refill()`.
-pub struct Tlab {
+///
+/// The type parameter `F` must match the heap's native function type.
+pub struct Tlab<F> {
     /// Next allocation index within current chunk.
     alloc_ptr: usize,
 
@@ -47,12 +49,12 @@ pub struct Tlab {
     alloc_limit: usize,
 
     /// Reference to the shared heap.
-    heap: Arc<BexHeap>,
+    heap: Arc<BexHeap<F>>,
 }
 
-impl Tlab {
+impl<F: Default> Tlab<F> {
     /// Create a new TLAB with an initial chunk from the heap.
-    pub fn new(heap: Arc<BexHeap>) -> Self {
+    pub fn new(heap: Arc<BexHeap<F>>) -> Self {
         let chunk = heap.alloc_tlab_chunk();
         Self {
             alloc_ptr: chunk.start,
@@ -64,7 +66,7 @@ impl Tlab {
     /// Create a TLAB without allocating an initial chunk.
     ///
     /// The first allocation will trigger a refill.
-    pub fn new_empty(heap: Arc<BexHeap>) -> Self {
+    pub fn new_empty(heap: Arc<BexHeap<F>>) -> Self {
         Self {
             alloc_ptr: 0,
             alloc_limit: 0,
@@ -77,7 +79,7 @@ impl Tlab {
     /// This is the fast path - just bump the pointer and write.
     /// If the current chunk is exhausted, refill from the heap.
     #[inline]
-    pub fn alloc(&mut self, obj: Object<()>) -> ObjectIndex {
+    pub fn alloc(&mut self, obj: Object<F>) -> ObjectIndex {
         if self.alloc_ptr >= self.alloc_limit {
             self.refill();
         }
@@ -131,14 +133,16 @@ impl Tlab {
         self.alloc_ptr = chunk.start;
         self.alloc_limit = chunk.end;
     }
+}
 
+impl<F> Tlab<F> {
     /// Get the remaining capacity in the current chunk.
     pub fn remaining(&self) -> usize {
         self.alloc_limit.saturating_sub(self.alloc_ptr)
     }
 
     /// Get a reference to the heap.
-    pub fn heap(&self) -> &Arc<BexHeap> {
+    pub fn heap(&self) -> &Arc<BexHeap<F>> {
         &self.heap
     }
 
@@ -147,7 +151,7 @@ impl Tlab {
     /// # Safety
     ///
     /// Caller must ensure no concurrent writes to this index.
-    pub unsafe fn get_object(&self, idx: ObjectIndex) -> &Object<()> {
+    pub unsafe fn get_object(&self, idx: ObjectIndex) -> &Object<F> {
         // SAFETY: Caller ensures no concurrent writes
         unsafe { &(&*self.heap.objects_ptr())[idx.into_raw()] }
     }
@@ -157,7 +161,7 @@ impl Tlab {
     /// # Safety
     ///
     /// Caller must ensure exclusive access to this index.
-    pub unsafe fn set_object(&mut self, idx: ObjectIndex, obj: Object<()>) {
+    pub unsafe fn set_object(&mut self, idx: ObjectIndex, obj: Object<F>) {
         // SAFETY: Caller ensures exclusive access
         unsafe {
             (&mut *self.heap.objects_ptr())[idx.into_raw()] = obj;
@@ -165,7 +169,7 @@ impl Tlab {
     }
 }
 
-impl std::fmt::Debug for Tlab {
+impl<F> std::fmt::Debug for Tlab<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Tlab")
             .field("alloc_ptr", &self.alloc_ptr)
@@ -181,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_tlab_alloc_single() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         let idx = tlab.alloc(Object::String("hello".to_string()));
@@ -191,7 +195,7 @@ mod tests {
 
     #[test]
     fn test_tlab_alloc_multiple() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         for i in 0..10 {
@@ -203,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_tlab_refill() {
-        let heap = BexHeap::with_tlab_size(vec![], 5);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 5);
         let mut tlab = Tlab::new(heap);
 
         // Allocate 5 objects (fills first chunk)
@@ -221,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_tlab_with_compile_time_objects() {
-        let compile_time = vec![
+        let compile_time: Vec<Object<()>> = vec![
             Object::String("builtin1".to_string()),
             Object::String("builtin2".to_string()),
         ];
@@ -235,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_multiple_tlabs_no_overlap() {
-        let heap = BexHeap::with_tlab_size(vec![], 10);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 10);
         let heap2 = Arc::clone(&heap);
 
         let mut tlab1 = Tlab::new(Arc::clone(&heap));
@@ -252,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_tlab_read_object() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         let idx = tlab.alloc(Object::String("test_value".to_string()));
@@ -269,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_alloc_string() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         let idx = tlab.alloc_string("hello world".to_string());
@@ -284,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_alloc_array() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         let values = vec![Value::Int(1), Value::Int(2), Value::Int(3)];
@@ -303,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_alloc_map() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         let mut map = IndexMap::new();
@@ -325,7 +329,7 @@ mod tests {
         use bex_vm_types::types::Class;
 
         // First allocate a class object
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         // Simulate a class at index 0
@@ -355,7 +359,7 @@ mod tests {
     fn test_alloc_variant() {
         use bex_vm_types::types::Enum;
 
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
         let mut tlab = Tlab::new(heap);
 
         // Simulate an enum at index 0

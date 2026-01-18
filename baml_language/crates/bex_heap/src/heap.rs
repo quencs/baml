@@ -14,6 +14,7 @@
 
 use std::{
     cell::UnsafeCell,
+    marker::PhantomData,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
@@ -47,8 +48,23 @@ pub struct HeapStats {
 /// Unified heap for the BEX virtual machine.
 ///
 /// All heap-allocated objects live here. The heap is shared across
-/// all VM instances via `Arc<BexHeap>`.
-pub struct BexHeap {
+/// all VM instances via `Arc<BexHeap<F>>`.
+///
+/// The type parameter `F` represents the native function type stored
+/// in `Object::Function` variants. This allows the heap to be generic
+/// over the native function implementation without creating circular
+/// dependencies between crates.
+///
+/// # Example
+///
+/// ```ignore
+/// // In bex_engine, instantiate with concrete NativeFunction type:
+/// let heap: Arc<BexHeap<NativeFunction>> = BexHeap::new(compile_time_objects);
+///
+/// // In tests or when native functions aren't needed:
+/// let heap: Arc<BexHeap<()>> = BexHeap::new(vec![]);
+/// ```
+pub struct BexHeap<F> {
     /// Object storage. Uses UnsafeCell for lock-free field writes.
     ///
     /// # Safety
@@ -57,7 +73,7 @@ pub struct BexHeap {
     /// - Each VM has exclusive write access to its TLAB region
     /// - BAML has no global mutable state
     /// - GC only runs at safepoints when no VMs are executing
-    objects: UnsafeCell<Vec<Object<()>>>,
+    objects: UnsafeCell<Vec<Object<F>>>,
 
     /// Index of first runtime-allocated object.
     ///
@@ -79,35 +95,41 @@ pub struct BexHeap {
 
     /// TLAB chunk size for new allocations.
     tlab_size: usize,
+
+    /// Phantom data to hold the type parameter.
+    _marker: PhantomData<F>,
 }
 
-// SAFETY: BexHeap is Send + Sync because:
+// SAFETY: BexHeap<F> is Send + Sync when F is Send + Sync because:
 // - objects: UnsafeCell is accessed safely via TLAB exclusivity
 // - compile_time_boundary: immutable after construction
 // - next_chunk: AtomicUsize is thread-safe
 // - handles: sharded_slab::Slab is thread-safe
 // - tlab_size: immutable after construction
-unsafe impl Send for BexHeap {}
-unsafe impl Sync for BexHeap {}
+unsafe impl<F: Send + Sync> Send for BexHeap<F> {}
+unsafe impl<F: Send + Sync> Sync for BexHeap<F> {}
 
 // Implement WeakHeapRef trait from bex_external_types
-impl WeakHeapRef for BexHeap {
+impl<F> WeakHeapRef for BexHeap<F>
+where
+    F: Send + Sync,
+{
     fn release_handle(&self, slab_key: usize) {
         self.handles.remove(slab_key);
     }
 }
 
-impl BexHeap {
+impl<F> BexHeap<F> {
     /// Create a new heap with compile-time objects.
     ///
     /// The provided objects become permanent (never garbage collected).
     /// Runtime allocations will start after these objects.
-    pub fn new(compile_time_objects: Vec<Object<()>>) -> Arc<Self> {
+    pub fn new(compile_time_objects: Vec<Object<F>>) -> Arc<Self> {
         Self::with_tlab_size(compile_time_objects, DEFAULT_TLAB_SIZE)
     }
 
     /// Create a new heap with custom TLAB size.
-    pub fn with_tlab_size(compile_time_objects: Vec<Object<()>>, tlab_size: usize) -> Arc<Self> {
+    pub fn with_tlab_size(compile_time_objects: Vec<Object<F>>, tlab_size: usize) -> Arc<Self> {
         let boundary = compile_time_objects.len();
 
         Arc::new(Self {
@@ -116,6 +138,7 @@ impl BexHeap {
             next_chunk: AtomicUsize::new(boundary),
             handles: Slab::new(),
             tlab_size,
+            _marker: PhantomData,
         })
     }
 
@@ -139,7 +162,7 @@ impl BexHeap {
     /// Caller must ensure no data races:
     /// - Only write to indices within your TLAB's exclusive region
     /// - Only read compile-time objects or objects you own
-    pub unsafe fn objects_ptr(&self) -> *mut Vec<Object<()>> {
+    pub unsafe fn objects_ptr(&self) -> *mut Vec<Object<F>> {
         self.objects.get()
     }
 
@@ -158,7 +181,10 @@ impl BexHeap {
     ///
     /// Returns a `TlabChunk` describing the exclusive region for the VM.
     /// The VM can then allocate objects within this region without locks.
-    pub fn alloc_tlab_chunk(&self) -> TlabChunk {
+    pub fn alloc_tlab_chunk(&self) -> TlabChunk
+    where
+        F: Default,
+    {
         let start = self.next_chunk.fetch_add(self.tlab_size, Ordering::SeqCst);
         let end = start + self.tlab_size;
 
@@ -178,36 +204,21 @@ impl BexHeap {
         TlabChunk { start, end }
     }
 
-    /// Create a handle to an object.
-    ///
-    /// Handles are used at the FFI boundary to give external code safe
-    /// access to heap objects.
-    pub fn create_handle(self: &Arc<Self>, idx: ObjectIndex) -> Handle {
-        let slab_key = self.handles.insert(idx).expect("handle table full");
-
-        // Use Handle::new from bex_external_types, passing self as WeakHeapRef
-        Handle::new(slab_key, idx, Arc::clone(self) as Arc<dyn WeakHeapRef>)
-    }
-
-    /// Resolve a handle to its ObjectIndex.
-    ///
-    /// Returns None if the handle has been invalidated (e.g., by GC).
-    pub fn resolve_handle(&self, handle: &Handle) -> Option<ObjectIndex> {
-        self.handles.get(handle.slab_key()).map(|entry| *entry)
-    }
-
     /// Read an object by index (safe for compile-time objects).
     ///
     /// # Safety
     ///
     /// For runtime objects, caller must ensure no concurrent writes.
-    pub unsafe fn get_object(&self, idx: ObjectIndex) -> &Object<()> {
+    pub unsafe fn get_object(&self, idx: ObjectIndex) -> &Object<F> {
         // SAFETY: Caller ensures no concurrent writes
         unsafe { &(&*self.objects.get())[idx.into_raw()] }
     }
 
     /// Get statistics about heap usage.
-    pub fn stats(&self) -> HeapStats {
+    pub fn stats(&self) -> HeapStats
+    where
+        F: Default,
+    {
         let total = self.len();
         let tlab_chunks = self
             .next_chunk
@@ -225,7 +236,30 @@ impl BexHeap {
     }
 }
 
-impl std::fmt::Debug for BexHeap {
+impl<F> BexHeap<F>
+where
+    F: Send + Sync + 'static,
+{
+    /// Create a handle to an object.
+    ///
+    /// Handles are used at the FFI boundary to give external code safe
+    /// access to heap objects.
+    pub fn create_handle(self: &Arc<Self>, idx: ObjectIndex) -> Handle {
+        let slab_key = self.handles.insert(idx).expect("handle table full");
+
+        // Use Handle::new from bex_external_types, passing self as WeakHeapRef
+        Handle::new(slab_key, idx, Arc::clone(self) as Arc<dyn WeakHeapRef>)
+    }
+
+    /// Resolve a handle to its ObjectIndex.
+    ///
+    /// Returns None if the handle has been invalidated (e.g., by GC).
+    pub fn resolve_handle(&self, handle: &Handle) -> Option<ObjectIndex> {
+        self.handles.get(handle.slab_key()).map(|entry| *entry)
+    }
+}
+
+impl<F> std::fmt::Debug for BexHeap<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BexHeap")
             .field("len", &self.len())
@@ -241,14 +275,14 @@ mod tests {
 
     #[test]
     fn test_new_heap_empty() {
-        let heap = BexHeap::new(vec![]);
+        let heap = BexHeap::<()>::new(vec![]);
         assert_eq!(heap.len(), 0);
         assert_eq!(heap.compile_time_boundary(), 0);
     }
 
     #[test]
     fn test_new_heap_with_objects() {
-        let objects = vec![
+        let objects: Vec<Object<()>> = vec![
             Object::String("hello".to_string()),
             Object::String("world".to_string()),
         ];
@@ -259,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_alloc_tlab_chunk() {
-        let heap = BexHeap::with_tlab_size(vec![], 100);
+        let heap = BexHeap::<()>::with_tlab_size(vec![], 100);
 
         let chunk1 = heap.alloc_tlab_chunk();
         assert_eq!(chunk1.start, 0);
@@ -275,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_handle_create_resolve() {
-        let objects = vec![Object::String("test".to_string())];
+        let objects: Vec<Object<()>> = vec![Object::String("test".to_string())];
         let heap = BexHeap::new(objects);
 
         let handle = heap.create_handle(ObjectIndex::from_raw(0));
@@ -285,7 +319,7 @@ mod tests {
 
     #[test]
     fn test_handle_clone_and_drop() {
-        let objects = vec![Object::String("test".to_string())];
+        let objects: Vec<Object<()>> = vec![Object::String("test".to_string())];
         let heap = BexHeap::new(objects);
 
         let handle1 = heap.create_handle(ObjectIndex::from_raw(0));
@@ -310,7 +344,7 @@ mod tests {
 
     #[test]
     fn test_heap_stats() {
-        let compile_time = vec![Object::String("builtin".to_string())];
+        let compile_time: Vec<Object<()>> = vec![Object::String("builtin".to_string())];
         let heap = BexHeap::with_tlab_size(compile_time, 50);
 
         let stats = heap.stats();
