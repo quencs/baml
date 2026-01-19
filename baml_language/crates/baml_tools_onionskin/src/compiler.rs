@@ -1600,7 +1600,7 @@ impl CompilerRunner {
 
         match vm.exec() {
             Ok(VmExecState::Complete(value)) => {
-                let result_str = format_vm_value(&value, &vm.objects);
+                let result_str = format_vm_value(&value, &vm);
                 self.vm_runner_state.execution_result =
                     Some(VmExecutionResult::Success(result_str));
             }
@@ -2371,10 +2371,7 @@ pub(crate) fn normalize_files_to_virtual_root(
 }
 
 /// Format a VM value for display
-fn format_vm_value<T>(
-    value: &bex_vm_types::Value,
-    objects: &bex_vm_types::ObjectPool<T>,
-) -> String {
+fn format_vm_value(value: &bex_vm_types::Value, vm: &bex_vm::BexVm) -> String {
     use bex_vm_types::{Object, Value};
 
     match value {
@@ -2383,55 +2380,51 @@ fn format_vm_value<T>(
         Value::Float(f) => f.to_string(),
         Value::Bool(b) => b.to_string(),
         Value::Object(idx) => {
-            if let Some(obj) = objects.get(idx.raw()) {
-                match obj {
-                    Object::String(s) => format!("\"{}\"", s),
-                    Object::Array(arr) => {
-                        let items: Vec<String> =
-                            arr.iter().map(|v| format_vm_value(v, objects)).collect();
-                        format!("[{}]", items.join(", "))
-                    }
-                    Object::Map(map) => {
-                        let items: Vec<String> = map
-                            .iter()
-                            .map(|(k, v)| format!("\"{}\": {}", k, format_vm_value(v, objects)))
-                            .collect();
-                        format!("{{{}}}", items.join(", "))
-                    }
-                    Object::Instance(inst) => {
-                        if let Some(Object::Class(class)) = objects.get(inst.class.raw()) {
-                            let fields: Vec<String> = class
-                                .field_names
-                                .iter()
-                                .zip(inst.fields.iter())
-                                .map(|(name, val)| {
-                                    format!("{}: {}", name, format_vm_value(val, objects))
-                                })
-                                .collect();
-                            format!("{}{{ {} }}", class.name, fields.join(", "))
-                        } else {
-                            "<instance>".to_string()
-                        }
-                    }
-                    Object::Variant(var) => {
-                        if let Some(Object::Enum(enm)) = objects.get(var.enm.raw()) {
-                            if let Some(name) = enm.variant_names.get(var.index) {
-                                format!("{}::{}", enm.name, name)
-                            } else {
-                                format!("{}::variant_{}", enm.name, var.index)
-                            }
-                        } else {
-                            "<variant>".to_string()
-                        }
-                    }
-                    Object::Function(f) => format!("<fn {}>", f.name),
-                    Object::Class(c) => format!("<class {}>", c.name),
-                    Object::Media(m) => format!("<type {}>", m.kind),
-                    Object::Enum(e) => format!("<enum {}>", e.name),
-                    Object::Future(_) => "<future>".to_string(),
+            let obj = vm.get_object(*idx);
+            match obj {
+                Object::String(s) => format!("\"{}\"", s),
+                Object::Array(arr) => {
+                    let items: Vec<String> = arr.iter().map(|v| format_vm_value(v, vm)).collect();
+                    format!("[{}]", items.join(", "))
                 }
-            } else {
-                format!("<object@{}>", idx.raw())
+                Object::Map(map) => {
+                    let items: Vec<String> = map
+                        .iter()
+                        .map(|(k, v)| format!("\"{}\": {}", k, format_vm_value(v, vm)))
+                        .collect();
+                    format!("{{{}}}", items.join(", "))
+                }
+                Object::Instance(inst) => {
+                    let class_obj = vm.get_object(inst.class);
+                    if let Object::Class(class) = class_obj {
+                        let fields: Vec<String> = class
+                            .field_names
+                            .iter()
+                            .zip(inst.fields.iter())
+                            .map(|(name, val)| format!("{}: {}", name, format_vm_value(val, vm)))
+                            .collect();
+                        format!("{}{{ {} }}", class.name, fields.join(", "))
+                    } else {
+                        "<instance>".to_string()
+                    }
+                }
+                Object::Variant(var) => {
+                    let enum_obj = vm.get_object(var.enm);
+                    if let Object::Enum(enm) = enum_obj {
+                        if let Some(name) = enm.variant_names.get(var.index) {
+                            format!("{}::{}", enm.name, name)
+                        } else {
+                            format!("{}::variant_{}", enm.name, var.index)
+                        }
+                    } else {
+                        "<variant>".to_string()
+                    }
+                }
+                Object::Function(f) => format!("<fn {}>", f.name),
+                Object::Class(c) => format!("<class {}>", c.name),
+                Object::Media(m) => format!("<type {}>", m.kind),
+                Object::Enum(e) => format!("<enum {}>", e.name),
+                Object::Future(_) => "<future>".to_string(),
             }
         }
     }

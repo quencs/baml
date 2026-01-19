@@ -20,7 +20,6 @@ use indexmap::IndexMap;
 use crate::{
     BexVm,
     errors::{InternalError, RuntimeError, VmError},
-    indexable::ObjectPoolTrait,
 };
 
 /// Result type for native functions.
@@ -218,18 +217,18 @@ fn deep_copy_value_recursive(
             }
 
             // Clone the object first to avoid borrow checker issues
-            let object = vm.objects[index].clone();
+            let object = vm.get_object(index).clone();
 
             // Deep copy based on object type
             let new_index = match object {
                 Object::String(s) => {
                     // Strings are immutable, but we still create a new copy
-                    vm.objects.insert(Object::String(s))
+                    vm.tlab.alloc(Object::String(s))
                 }
 
                 Object::Array(values) => {
                     // First, register a placeholder to handle circular references
-                    let placeholder_index = vm.objects.insert(Object::Array(Vec::new()));
+                    let placeholder_index = vm.tlab.alloc(Object::Array(Vec::new()));
                     copied_objects.insert(index, placeholder_index);
 
                     // Deep copy each element in the array
@@ -239,13 +238,13 @@ fn deep_copy_value_recursive(
                     }
 
                     // Update the placeholder with the actual array
-                    vm.objects[placeholder_index] = Object::Array(new_values);
+                    *vm.get_object_mut(placeholder_index) = Object::Array(new_values);
                     placeholder_index
                 }
 
                 Object::Map(map) => {
                     // First, register a placeholder to handle circular references
-                    let placeholder_index = vm.objects.insert(Object::Map(IndexMap::new()));
+                    let placeholder_index = vm.tlab.alloc(Object::Map(IndexMap::new()));
                     copied_objects.insert(index, placeholder_index);
 
                     // Deep copy each key-value pair
@@ -256,13 +255,13 @@ fn deep_copy_value_recursive(
                     }
 
                     // Update the placeholder with the actual map
-                    vm.objects[placeholder_index] = Object::Map(new_map);
+                    *vm.get_object_mut(placeholder_index) = Object::Map(new_map);
                     placeholder_index
                 }
 
                 Object::Instance(instance) => {
                     // First, register a placeholder to handle circular references
-                    let placeholder_index = vm.objects.insert(Object::Instance(Instance {
+                    let placeholder_index = vm.tlab.alloc(Object::Instance(Instance {
                         class: instance.class,
                         fields: Vec::new(),
                     }));
@@ -275,7 +274,7 @@ fn deep_copy_value_recursive(
                     }
 
                     // Update the placeholder with the actual instance
-                    vm.objects[placeholder_index] = Object::Instance(Instance {
+                    *vm.get_object_mut(placeholder_index) = Object::Instance(Instance {
                         class: instance.class,
                         fields: new_fields,
                     });
@@ -283,12 +282,12 @@ fn deep_copy_value_recursive(
                 }
 
                 // These types don't contain nested objects that need deep copying
-                Object::Function(f) => vm.objects.insert(Object::Function(f)),
-                Object::Class(c) => vm.objects.insert(Object::Class(c)),
-                Object::Enum(e) => vm.objects.insert(Object::Enum(e)),
-                Object::Variant(v) => vm.objects.insert(Object::Variant(v)),
-                Object::Media(m) => vm.objects.insert(Object::Media(m)),
-                Object::Future(f) => vm.objects.insert(Object::Future(f)),
+                Object::Function(f) => vm.tlab.alloc(Object::Function(f)),
+                Object::Class(c) => vm.tlab.alloc(Object::Class(c)),
+                Object::Enum(e) => vm.tlab.alloc(Object::Enum(e)),
+                Object::Variant(v) => vm.tlab.alloc(Object::Variant(v)),
+                Object::Media(m) => vm.tlab.alloc(Object::Media(m)),
+                Object::Future(f) => vm.tlab.alloc(Object::Future(f)),
             };
 
             // Record the mapping if not already done (for non-circular cases)
@@ -339,7 +338,7 @@ fn deep_equals_recursive(
             visited.insert(key, true);
 
             // Compare based on object type
-            let result = match (&vm.objects[a_idx], &vm.objects[b_idx]) {
+            let result = match (vm.get_object(a_idx), vm.get_object(b_idx)) {
                 (Object::String(a), Object::String(b)) => a == b,
 
                 (Object::Array(a_values), Object::Array(b_values)) => {
@@ -429,9 +428,9 @@ fn format_value_recursive(vm: &mut BexVm, value: &Value, depth: usize) -> Result
         Value::Float(f) => Ok(f.to_string()),
         Value::Bool(b) => Ok(b.to_string()),
 
-        Value::Object(obj_idx) => match &vm.objects[*obj_idx] {
+        Value::Object(obj_idx) => match vm.get_object(*obj_idx) {
             Object::Instance(instance) => {
-                let Object::Class(class) = &vm.objects[instance.class] else {
+                let Object::Class(class) = vm.get_object(instance.class) else {
                     return Err(VmError::RuntimeError(RuntimeError::Other(
                         "Invalid class reference".to_string(),
                     )));
@@ -495,7 +494,7 @@ fn format_value_recursive(vm: &mut BexVm, value: &Value, depth: usize) -> Result
             Object::String(s) => Ok(format!("\"{s}\"")),
             Object::Enum(e) => Ok(e.name.clone()),
             Object::Variant(variant) => {
-                let Object::Enum(enm) = &vm.objects[variant.enm] else {
+                let Object::Enum(enm) = vm.get_object(variant.enm) else {
                     return Err(VmError::RuntimeError(RuntimeError::Other(
                         "Invalid enum reference".to_string(),
                     )));

@@ -819,6 +819,8 @@ dependencies = [
  "anyhow",
  "baml_snapshot",
  "baml_tests",
+ "bex_external_types",
+ "bex_heap",
  "bex_sys",
  "bex_vm",
  "bex_vm_types",
@@ -826,6 +828,26 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.17",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "bex_external_types"
+version = "0.0.0"
+dependencies = [
+ "bex_vm_types",
+ "indexmap 2.13.0",
+]
+
+[[package]]
+name = "bex_heap"
+version = "0.0.0"
+dependencies = [
+ "bex_external_types",
+ "bex_vm_types",
+ "crossbeam-queue",
+ "indexmap 2.13.0",
+ "sharded-slab",
 ]
 
 [[package]]
@@ -847,6 +869,7 @@ dependencies = [
  "baml_builtins_macros",
  "baml_compiler_emit",
  "baml_tests",
+ "bex_heap",
  "bex_vm_types",
  "codspeed-divan-compat",
  "colored",
