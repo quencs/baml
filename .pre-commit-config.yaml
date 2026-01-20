@@ -11,13 +11,20 @@ exclude: |
 
 repos:
   # Fast built-in hooks (no network, no environment setup)
-  - repo: builtin
+  - repo: local
     hooks:
+      # Custom no-commit-to-branch that skips in CI environments
+      # (CI merges into canary are legitimate; we only want to block local direct commits)
       - id: no-commit-to-branch
-        args: [-b, canary]
+        name: no commit to canary (skipped in CI)
+        entry: bash -c 'if [ -n "$CI" ]; then exit 0; fi; BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo ""); if [ "$BRANCH" = "canary" ]; then echo "ERROR: Direct commits to canary branch are not allowed."; echo "Please create a feature branch and submit a PR instead."; exit 1; fi'
+        language: system
+        pass_filenames: false
         always_run: true
         fail_fast: true
 
+  - repo: builtin
+    hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         fail_fast: true
