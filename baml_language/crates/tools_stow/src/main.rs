@@ -1357,7 +1357,7 @@ fn parse_path_points(path_data: &str) -> Vec<(f64, f64)> {
             ' ' | ',' => {
                 flush_num(&mut num_buf, &mut nums);
                 // Every 6 numbers in a C command = one curve segment, take the endpoint
-                if nums.len() >= 6 && nums.len() % 6 == 0 {
+                if nums.len() >= 6 && nums.len().is_multiple_of(6) {
                     points.push((nums[nums.len() - 2], nums[nums.len() - 1]));
                 }
             }

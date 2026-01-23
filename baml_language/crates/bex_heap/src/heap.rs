@@ -25,10 +25,31 @@ use std::{
 use bex_external_types::{Handle, WeakHeapRef};
 use bex_vm_types::{Object, ObjectIndex};
 
-use crate::{HeapDebuggerConfig, HeapDebuggerState, tlab::TlabChunk};
+use crate::{HeapDebuggerConfig, HeapDebuggerState, chunked_vec::ChunkedVec, tlab::TlabChunk};
 
 /// Default TLAB chunk size (number of object slots).
+///
+/// This is the number of object slots each VM gets when it requests a new TLAB.
+/// When a VM exhausts its TLAB, it atomically reserves the next `tlab_size` slots.
+///
+/// # Relationship to ChunkedVec chunk size
+///
+/// The underlying storage uses `ChunkedVec` with `DEFAULT_CHUNK_SIZE` (4096).
+/// For optimal memory locality, TLAB size should divide evenly into the chunk size:
+///
+/// - `DEFAULT_CHUNK_SIZE = 4096` (storage chunks)
+/// - `DEFAULT_TLAB_SIZE = 1024` (TLAB allocation unit)
+/// - Result: 4 TLABs fit per storage chunk
+///
+/// This isn't strictly required (TLABs can span chunk boundaries), but aligned
+/// TLABs have better cache behavior since all objects in a TLAB are contiguous.
 pub const DEFAULT_TLAB_SIZE: usize = 1024;
+
+// Compile-time assertion that default TLAB size divides evenly into chunk size
+const _: () = assert!(
+    crate::chunked_vec::DEFAULT_CHUNK_SIZE.is_multiple_of(DEFAULT_TLAB_SIZE),
+    "DEFAULT_TLAB_SIZE should divide evenly into DEFAULT_CHUNK_SIZE for optimal alignment"
+);
 
 /// Statistics about heap usage.
 #[derive(Clone, Copy, Debug, Default)]
@@ -79,7 +100,17 @@ pub struct BexHeap<F> {
     compile_time: Vec<Object<F>>,
 
     /// Two runtime spaces - only one active at a time.
-    /// Objects stored in UnsafeCell for lock-free field writes.
+    /// Uses ChunkedVec for stable pointers during concurrent access.
+    ///
+    /// # Why ChunkedVec?
+    ///
+    /// With a regular Vec, if one VM is writing to an element while another
+    /// VM triggers a resize (via TLAB chunk allocation), the Vec may reallocate
+    /// and invalidate the first VM's pointer - that's undefined behavior.
+    ///
+    /// ChunkedVec stores objects in fixed-size chunks. Growing adds new chunks
+    /// without moving existing data, so pointers remain stable even during
+    /// concurrent growth.
     ///
     /// # Safety
     ///
@@ -87,7 +118,8 @@ pub struct BexHeap<F> {
     /// - Each VM has exclusive write access to its TLAB region
     /// - BAML has no global mutable state
     /// - GC only runs at safepoints when no VMs are executing
-    pub(crate) spaces: [UnsafeCell<Vec<Object<F>>>; 2],
+    /// - ChunkedVec never moves existing elements during growth
+    pub(crate) spaces: [UnsafeCell<ChunkedVec<Object<F>>>; 2],
 
     /// Which space is currently active (0 or 1).
     pub(crate) active_space: AtomicUsize,
@@ -190,7 +222,10 @@ impl<F> BexHeap<F> {
     ) -> Arc<Self> {
         Arc::new(Self {
             compile_time: compile_time_objects,
-            spaces: [UnsafeCell::new(Vec::new()), UnsafeCell::new(Vec::new())],
+            spaces: [
+                UnsafeCell::new(ChunkedVec::new()),
+                UnsafeCell::new(ChunkedVec::new()),
+            ],
             active_space: AtomicUsize::new(0),
             next_chunk: AtomicUsize::new(0), // Starts at 0 within active space
             handles: RwLock::new(HashMap::new()),
@@ -228,13 +263,39 @@ impl<F> BexHeap<F> {
         self.active_space.load(Ordering::Acquire)
     }
 
-    /// Get a pointer to the active runtime space.
+    /// Get a reference to the active runtime space.
     ///
     /// # Safety
-    /// Same safety requirements as objects_ptr()
+    ///
+    /// Caller must ensure no concurrent mutations to the space.
     #[inline]
-    pub unsafe fn active_space_ptr(&self) -> *mut Vec<Object<F>> {
-        self.spaces[self.active_space_index()].get()
+    pub unsafe fn active_space(&self) -> &ChunkedVec<Object<F>> {
+        // SAFETY: Caller ensures no concurrent mutations
+        unsafe { &*self.spaces[self.active_space_index()].get() }
+    }
+
+    /// Get a mutable reference to a specific space.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure exclusive access to the space. This is safe during GC
+    /// because all VMs are at safepoints (not executing).
+    #[inline]
+    #[allow(clippy::mut_from_ref)] // Interior mutability via UnsafeCell
+    pub(crate) unsafe fn space_mut(&self, space_idx: usize) -> &mut ChunkedVec<Object<F>> {
+        // SAFETY: Caller ensures exclusive access
+        unsafe { &mut *self.spaces[space_idx].get() }
+    }
+
+    /// Get a reference to a specific space.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure no concurrent mutations to the space.
+    #[inline]
+    pub(crate) unsafe fn space_ref(&self, space_idx: usize) -> &ChunkedVec<Object<F>> {
+        // SAFETY: Caller ensures no concurrent mutations
+        unsafe { &*self.spaces[space_idx].get() }
     }
 
     /// Convert a runtime space index to a global ObjectIndex.
@@ -261,23 +322,21 @@ impl<F> BexHeap<F> {
         self.tlab_size
     }
 
-    /// Get a raw pointer to the active runtime space.
+    /// Write an object at the given runtime index in the active space.
     ///
     /// # Safety
     ///
-    /// This method is `unsafe` to call because the returned pointer gives
-    /// mutable access to runtime heap objects. Callers must ensure:
-    ///
+    /// Caller must ensure:
     /// 1. **Write exclusivity**: Only write to indices within your TLAB's
     ///    exclusive region (`tlab.alloc_ptr..tlab.alloc_limit`)
+    /// 2. **Index validity**: The index must be < the space's current length
     ///
-    /// 2. **Read consistency**: Only read compile-time objects (always safe)
-    ///    or objects allocated by your own TLAB (no concurrent writes)
+    /// # Why This API?
     ///
-    /// 3. **No reallocation during access**: Do not hold the pointer across
-    ///    operations that might grow the heap (TLAB refills)
-    ///
-    /// # Why UnsafeCell?
+    /// ChunkedVec provides stable pointers - growing the storage never moves
+    /// existing elements. This eliminates the data race that occurred with
+    /// Vec, where one thread's pointer could be invalidated by another
+    /// thread's resize operation.
     ///
     /// Production VMs (JVM, CLR, V8, Go) all use direct memory access for
     /// field writes. The "lock-free" property comes from:
@@ -285,19 +344,32 @@ impl<F> BexHeap<F> {
     /// - **TLABs**: Each VM has exclusive write access to its allocation region
     /// - **No globals**: BAML has no global mutable state, preventing races
     /// - **Safepoint GC**: Collection only runs when no VMs are executing
+    /// - **ChunkedVec**: Growing never moves existing elements
+    #[inline]
+    pub unsafe fn write_runtime_object(&self, runtime_idx: usize, obj: Object<F>) {
+        // SAFETY: Caller ensures exclusive access to this index
+        // ChunkedVec's set() is internally safe for concurrent access to different indices
+        unsafe {
+            (*self.spaces[self.active_space_index()].get()).set(runtime_idx, obj);
+        }
+    }
+
+    /// Get a mutable reference to a runtime object.
     ///
-    /// Using `RwLock` or `Mutex` for field writes would make BEX unacceptably
-    /// slow - every `x.field = value` would require lock acquisition.
+    /// # Safety
     ///
-    /// Note: This now returns the active space pointer. For compile-time objects,
-    /// use `get_object()` which handles both compile-time and runtime objects.
-    pub unsafe fn objects_ptr(&self) -> *mut Vec<Object<F>> {
-        self.spaces[self.active_space_index()].get()
+    /// Caller must ensure exclusive access to this object.
+    #[inline]
+    #[allow(clippy::mut_from_ref)] // Interior mutability via UnsafeCell
+    pub unsafe fn get_runtime_object_mut(&self, runtime_idx: usize) -> &mut Object<F> {
+        // SAFETY: Caller ensures exclusive access
+        unsafe { &mut *(*self.spaces[self.active_space_index()].get()).get_ptr(runtime_idx) }
     }
 
     /// Get the current number of objects in the heap.
     pub fn len(&self) -> usize {
         let active = self.active_space_index();
+        // SAFETY: Reading len is safe, it's just a usize
         let runtime_len = unsafe { (*self.spaces[active].get()).len() };
         self.compile_time.len() + runtime_len
     }
@@ -316,7 +388,14 @@ impl<F> BexHeap<F> {
     ///
     /// Uses `fetch_add` with `SeqCst` ordering to ensure each caller
     /// gets a unique chunk range, even under concurrent access. The
-    /// growth_lock protects the rare Vec resize operation.
+    /// growth_lock protects the ChunkedVec resize operation.
+    ///
+    /// # Why This Is Now Safe
+    ///
+    /// With ChunkedVec, growing the storage adds new chunks without moving
+    /// existing data. So even if one VM is writing to an existing element
+    /// while another VM triggers growth here, there's no data race - the
+    /// existing element's memory location doesn't change.
     ///
     /// Returns a `TlabChunk` describing the exclusive region for the VM.
     /// The VM can then allocate objects within this region without locks.
@@ -332,24 +411,31 @@ impl<F> BexHeap<F> {
         let runtime_end = runtime_start + self.tlab_size;
         let reserve_end = runtime_end + canary_slots;
 
-        // Lock only for growth (rare operation)
+        // Lock only for growth (serializes chunk allocation)
         let _guard = self.growth_lock.lock().unwrap();
 
-        // Grow active space if needed
+        // Grow active space if needed - ChunkedVec never moves existing data
         let active = self.active_space_index();
         let ct_len = self.compile_time.len();
-        unsafe {
-            let space = &mut *self.spaces[active].get();
-            if space.len() < reserve_end {
+        // SAFETY: We hold the growth_lock, so no other thread is resizing.
+        // ChunkedVec's resize_with never moves existing elements, and takes &self
+        // so we don't need a mutable reference - which avoids the data race.
+        let space = unsafe { &*self.spaces[active].get() };
+        if space.len() < reserve_end {
+            // SAFETY: We hold the growth_lock, ensuring only one thread resizes at a time.
+            unsafe {
                 space.resize_with(reserve_end, || {
                     // Placeholder object - will be overwritten by TLAB alloc
                     self.placeholder_object()
                 });
             }
-            if use_canary {
-                let chunk_start = ct_len + runtime_start;
-                let chunk_end = ct_len + runtime_end;
-                space[runtime_end] = self.tlab_canary_object(chunk_start, chunk_end);
+        }
+        if use_canary {
+            let chunk_start = ct_len + runtime_start;
+            let chunk_end = ct_len + runtime_end;
+            // SAFETY: We hold the growth_lock, index is within bounds
+            unsafe {
+                space.set(runtime_end, self.tlab_canary_object(chunk_start, chunk_end));
             }
         }
 
@@ -382,10 +468,7 @@ impl<F> BexHeap<F> {
             // Runtime object - index relative to active space
             let runtime_idx = raw - ct_len;
             // SAFETY: Caller ensures no concurrent writes to runtime objects
-            unsafe {
-                let space = &*self.spaces[self.active_space_index()].get();
-                &space[runtime_idx]
-            }
+            unsafe { (*self.spaces[self.active_space_index()].get()).get(runtime_idx) }
         };
 
         self.debug_assert_not_sentinel(obj);
@@ -395,6 +478,7 @@ impl<F> BexHeap<F> {
     /// Get statistics about heap usage.
     pub fn stats(&self) -> HeapStats {
         let active = self.active_space_index();
+        // SAFETY: Reading len is safe
         let runtime_len = unsafe { (*self.spaces[active].get()).len() };
         let ct_len = self.compile_time.len();
         let total = ct_len + runtime_len;

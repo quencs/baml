@@ -80,11 +80,13 @@ impl<F: Clone> BexHeap<F> {
         self.bump_epoch();
 
         // Get the old space size for stats calculation
-        let old_space_size = unsafe { (*self.spaces[from_space].get()).len() };
+        // SAFETY: GC runs at safepoints, no VMs are executing
+        let old_space_size = unsafe { self.space_ref(from_space).len() };
 
         // Clear the target space and prepare for copying
+        // SAFETY: GC runs at safepoints, no VMs are executing
         unsafe {
-            (*self.spaces[to_space].get()).clear();
+            self.space_mut(to_space).clear();
         }
 
         // Worklist for BFS traversal: (old_index) pairs
@@ -110,7 +112,7 @@ impl<F: Clone> BexHeap<F> {
             // Add this object's references to the worklist
             // SAFETY: We just copied the object, so it exists in to_space
             let ct_len = self.compile_time_len();
-            let obj = unsafe { &(&(*self.spaces[to_space].get()))[new_idx.into_raw() - ct_len] };
+            let obj = unsafe { self.space_ref(to_space).get(new_idx.into_raw() - ct_len) };
             self.add_references_to_worklist(obj, &mut worklist);
         }
 
@@ -120,7 +122,8 @@ impl<F: Clone> BexHeap<F> {
         }
 
         // Calculate stats before swapping
-        let live_count = unsafe { (*self.spaces[to_space].get()).len() };
+        // SAFETY: GC runs at safepoints
+        let live_count = unsafe { self.space_ref(to_space).len() };
         let collected_count = old_space_size.saturating_sub(live_count);
 
         // Swap spaces: make to_space the new active space
@@ -169,11 +172,13 @@ impl<F: Clone> BexHeap<F> {
         self.bump_epoch();
 
         // Get the old space size for stats calculation
-        let old_space_size = unsafe { (*self.spaces[from_space].get()).len() };
+        // SAFETY: GC runs at safepoints, no VMs are executing
+        let old_space_size = unsafe { self.space_ref(from_space).len() };
 
         // Clear the target space and prepare for copying
+        // SAFETY: GC runs at safepoints, no VMs are executing
         unsafe {
-            (*self.spaces[to_space].get()).clear();
+            self.space_mut(to_space).clear();
         }
 
         // Worklist for BFS traversal
@@ -193,7 +198,8 @@ impl<F: Clone> BexHeap<F> {
             let new_idx = self.copy_object_to_new_space(old_idx, to_space, &mut forwarding);
 
             let ct_len = self.compile_time_len();
-            let obj = unsafe { &(&(*self.spaces[to_space].get()))[new_idx.into_raw() - ct_len] };
+            // SAFETY: GC runs at safepoints
+            let obj = unsafe { self.space_ref(to_space).get(new_idx.into_raw() - ct_len) };
             self.add_references_to_worklist(obj, &mut worklist);
         }
 
@@ -203,7 +209,8 @@ impl<F: Clone> BexHeap<F> {
         }
 
         // Calculate stats before swapping
-        let live_count = unsafe { (*self.spaces[to_space].get()).len() };
+        // SAFETY: GC runs at safepoints
+        let live_count = unsafe { self.space_ref(to_space).len() };
         let collected_count = old_space_size.saturating_sub(live_count);
 
         // Swap spaces
@@ -246,13 +253,15 @@ impl<F: Clone> BexHeap<F> {
         let runtime_old_idx = old_idx.into_raw() - ct_len;
 
         // Clone the object
-        let obj = unsafe { (&(*self.spaces[from_space].get()))[runtime_old_idx].clone() };
+        // SAFETY: GC runs at safepoints, no VMs are executing
+        let obj = unsafe { self.space_ref(from_space).get(runtime_old_idx).clone() };
 
         // Append to new space
+        // SAFETY: GC runs at safepoints, no VMs are executing
         let new_runtime_idx = unsafe {
-            let to_vec = &mut *self.spaces[to_space].get();
+            let to_vec = self.space_mut(to_space);
             let idx = to_vec.len();
-            to_vec.push(obj);
+            to_vec.push_with(obj, || Object::String(String::new()));
             idx
         };
 
@@ -332,7 +341,7 @@ impl<F: Clone> BexHeap<F> {
     ) {
         // SAFETY: All live objects have been copied to to_space, and no VMs are executing
         unsafe {
-            let to_vec = &mut *self.spaces[to_space].get();
+            let to_vec = self.space_mut(to_space);
 
             for obj in to_vec.iter_mut() {
                 self.fixup_object_references(obj, forwarding);
@@ -804,6 +813,197 @@ mod tests {
             }
         } else {
             panic!("Expected Map object");
+        }
+    }
+
+    // ========================================================================
+    // Miri-targeted tests
+    //
+    // These tests are specifically designed to exercise unsafe code paths
+    // that Miri can verify for memory safety. They focus on:
+    // - Stack/root index forwarding after GC
+    // - Object access patterns that could exhibit aliasing issues
+    // ========================================================================
+
+    /// Simulates what happens when a VM's stack contains object indices
+    /// that need to be updated after GC moves objects.
+    ///
+    /// This is the pattern used in bex_engine when updating parked VM stacks.
+    #[test]
+    fn test_miri_stack_forwarding_after_gc() {
+        let heap = BexHeap::<()>::new(vec![]);
+        let mut tlab = Tlab::new(Arc::clone(&heap));
+
+        // Simulate a VM stack with object references
+        let mut simulated_stack: Vec<Value> = Vec::new();
+
+        // Allocate objects and push their indices to the "stack"
+        let obj1 = tlab.alloc_string("stack_value_1".to_string());
+        let obj2 = tlab.alloc_string("stack_value_2".to_string());
+        let obj3 = tlab.alloc_string("stack_value_3".to_string());
+
+        simulated_stack.push(Value::Object(obj1));
+        simulated_stack.push(Value::Int(42)); // Non-object value
+        simulated_stack.push(Value::Object(obj2));
+        simulated_stack.push(Value::Null);
+        simulated_stack.push(Value::Object(obj3));
+
+        // Also allocate some garbage that won't be rooted
+        let _garbage1 = tlab.alloc_string("garbage1".to_string());
+        let _garbage2 = tlab.alloc_string("garbage2".to_string());
+
+        // Collect roots from the simulated stack (like collect_vm_roots does)
+        let roots: Vec<ObjectIndex> = simulated_stack
+            .iter()
+            .filter_map(|v| match v {
+                Value::Object(idx) => Some(*idx),
+                _ => None,
+            })
+            .collect();
+
+        assert_eq!(roots.len(), 3);
+
+        // Run GC with forwarding map
+        let (stats, _remapped, forwarding) =
+            unsafe { heap.collect_garbage_with_forwarding(&roots) };
+
+        // Should have collected the garbage
+        assert_eq!(stats.live_count, 3);
+        assert!(stats.collected_count >= 2);
+
+        // Update the simulated stack with forwarding pointers
+        // (This is what bex_engine does at lib.rs:780-786)
+        for value in &mut simulated_stack {
+            if let Value::Object(idx) = value
+                && let Some(&new_idx) = forwarding.get(idx)
+            {
+                *idx = new_idx;
+            }
+        }
+
+        // Verify all stack values are still accessible and correct
+        for value in &simulated_stack {
+            match value {
+                Value::Object(idx) => {
+                    let obj = unsafe { heap.get_object(*idx) };
+                    match obj {
+                        Object::String(s) => {
+                            assert!(s.starts_with("stack_value_"));
+                        }
+                        _ => panic!("Expected String object"),
+                    }
+                }
+                Value::Int(n) => assert_eq!(*n, 42),
+                Value::Null => {}
+                _ => panic!("Unexpected value type"),
+            }
+        }
+    }
+
+    /// Tests that deeply nested object graphs are correctly traced and
+    /// forwarded. This exercises the reference fixup logic.
+    #[test]
+    fn test_miri_deep_reference_chain_forwarding() {
+        let heap = BexHeap::<()>::new(vec![]);
+        let mut tlab = Tlab::new(Arc::clone(&heap));
+
+        // Create a chain: array -> map -> array -> string
+        let leaf_str = tlab.alloc_string("leaf".to_string());
+
+        let inner_array = tlab.alloc_array(vec![Value::Object(leaf_str)]);
+
+        let mut map = indexmap::IndexMap::new();
+        map.insert("nested".to_string(), Value::Object(inner_array));
+        let middle_map = tlab.alloc_map(map);
+
+        let outer_array = tlab.alloc_array(vec![Value::Object(middle_map)]);
+
+        // Allocate garbage between the chain objects
+        let _g1 = tlab.alloc_string("garbage".to_string());
+        let _g2 = tlab.alloc_string("more_garbage".to_string());
+
+        // Only root the outer array
+        let (stats, remapped, _forwarding) =
+            unsafe { heap.collect_garbage_with_forwarding(&[outer_array]) };
+
+        // All 4 objects in the chain should survive
+        assert_eq!(stats.live_count, 4);
+        assert!(stats.collected_count >= 2);
+
+        // Verify the chain is intact after forwarding
+        let new_outer = remapped[0];
+        let outer_obj = unsafe { heap.get_object(new_outer) };
+
+        if let Object::Array(arr) = outer_obj
+            && let Value::Object(map_idx) = &arr[0]
+        {
+            let map_obj = unsafe { heap.get_object(*map_idx) };
+            if let Object::Map(m) = map_obj
+                && let Some(Value::Object(inner_arr_idx)) = m.get("nested")
+            {
+                let inner_arr_obj = unsafe { heap.get_object(*inner_arr_idx) };
+                if let Object::Array(inner_arr) = inner_arr_obj
+                    && let Value::Object(str_idx) = &inner_arr[0]
+                {
+                    let str_obj = unsafe { heap.get_object(*str_idx) };
+                    if let Object::String(s) = str_obj {
+                        assert_eq!(s, "leaf");
+                        return; // Success!
+                    }
+                }
+            }
+        }
+        panic!("Reference chain broken after GC");
+    }
+
+    /// Tests multiple GC cycles with root set changes between cycles.
+    /// This catches issues with space swapping and stale pointers.
+    #[test]
+    fn test_miri_multiple_gc_cycles_with_changing_roots() {
+        let heap = BexHeap::<()>::new(vec![]);
+
+        let mut persistent_roots: Vec<ObjectIndex> = Vec::new();
+
+        for cycle in 0..5 {
+            let mut tlab = Tlab::new(Arc::clone(&heap));
+
+            // Allocate new objects
+            let new_obj = tlab.alloc_string(format!("cycle_{cycle}_persistent"));
+            persistent_roots.push(new_obj);
+
+            // Allocate garbage
+            for i in 0..10 {
+                tlab.alloc_string(format!("cycle_{cycle}_garbage_{i}"));
+            }
+
+            // Run GC with all persistent roots
+            let (stats, _remapped, forwarding) =
+                unsafe { heap.collect_garbage_with_forwarding(&persistent_roots) };
+
+            // Update our root set with forwarding pointers
+            for root in &mut persistent_roots {
+                if let Some(&new_idx) = forwarding.get(root) {
+                    *root = new_idx;
+                }
+            }
+
+            // Should have kept all persistent objects
+            assert_eq!(
+                stats.live_count,
+                cycle + 1,
+                "Cycle {cycle}: expected {} survivors",
+                cycle + 1
+            );
+
+            // Verify all persistent objects are still accessible
+            for (i, root) in persistent_roots.iter().enumerate() {
+                let obj = unsafe { heap.get_object(*root) };
+                if let Object::String(s) = obj {
+                    assert!(s.starts_with(&format!("cycle_{i}_persistent")));
+                } else {
+                    panic!("Expected String object for root {i}");
+                }
+            }
         }
     }
 }

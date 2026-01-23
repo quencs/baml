@@ -1,3 +1,17 @@
+//! BEX VM - The synchronous bytecode interpreter.
+//!
+//! # Unsafe Code
+//!
+//! This module uses unsafe code for direct heap access during instruction execution:
+//! - `heap.get_object(idx)`: Reading objects for type checks, field access, method dispatch
+//! - `get_object_mut()`: Mutating object fields through `&mut self`
+//!
+//! Safety is ensured by:
+//! - Single-threaded execution: Each VM instance runs on one thread at a time
+//! - TLAB exclusivity: VMs have exclusive write access to their allocation regions
+//! - Controlled mutation: Only VM-owned runtime objects can be mutated, and only via `&mut self`
+//! - GC coordination: Garbage collection only runs when VMs are at safepoints (yielded)
+
 #![allow(unsafe_code)]
 
 use std::{collections::HashMap, sync::Arc};
@@ -409,7 +423,8 @@ impl BexVm {
         );
         self.heap.debug_assert_valid_index(idx);
         let runtime_idx = global_idx - ct_len;
-        let obj = unsafe { &mut (&mut (*self.heap.objects_ptr()))[runtime_idx] };
+        // SAFETY: We have &mut self, ensuring exclusive access to this VM's objects
+        let obj = unsafe { self.heap.get_runtime_object_mut(runtime_idx) };
         #[cfg(feature = "heap_debug")]
         if let Object::Sentinel(kind) = obj {
             panic!("heap sentinel write: {kind:?}");
