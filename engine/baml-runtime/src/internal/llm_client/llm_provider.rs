@@ -162,13 +162,21 @@ impl TryFrom<(&ClientWalker<'_>, &RuntimeContext)> for LLMProvider {
     type Error = anyhow::Error;
 
     fn try_from((client, ctx): (&ClientWalker, &RuntimeContext)) -> Result<Self> {
-        match &client.elem().provider {
+        eprintln!("[LLMProvider::try_from] Starting, PID={}", std::process::id());
+        eprintln!("[LLMProvider::try_from] Getting provider type...");
+        let provider = &client.elem().provider;
+        eprintln!("[LLMProvider::try_from] Provider type: {:?}", provider);
+        match provider {
             internal_llm_client::ClientProvider::Strategy(_) => {
+                eprintln!("[LLMProvider::try_from] Creating Strategy provider...");
                 LLMStrategyProvider::try_from((client, ctx)).map(LLMProvider::Strategy)
             }
-            _ => LLMPrimitiveProvider::try_from((client, ctx))
-                .map(Arc::new)
-                .map(LLMProvider::Primitive),
+            _ => {
+                eprintln!("[LLMProvider::try_from] Creating Primitive provider...");
+                let result = LLMPrimitiveProvider::try_from((client, ctx));
+                eprintln!("[LLMProvider::try_from] LLMPrimitiveProvider::try_from completed, is_ok={}", result.is_ok());
+                result.map(Arc::new).map(LLMProvider::Primitive)
+            }
         }
     }
 }

@@ -30,10 +30,14 @@ mod types;
 
 // Conditional runtime selection based on the "interpreter" feature flag
 use std::{
+    cell::RefCell,
     collections::{hash_map::DefaultHasher, HashMap},
     hash::{Hash, Hasher},
     path::PathBuf,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc, Mutex, OnceLock,
+    },
 };
 
 use anyhow::{Context, Result};
@@ -117,10 +121,80 @@ use crate::{
     test_constraints::{evaluate_test_constraints, TestConstraintsResult},
 };
 
+/// Tracks the PID when the tokio runtime was initialized.
+/// Used to detect if we're in a forked child process.
+#[cfg(not(target_arch = "wasm32"))]
+static RUNTIME_INIT_PID: AtomicU32 = AtomicU32::new(0);
+
+/// Flag that gets set when we detect we're in a forked child process.
+/// Unlike RUNTIME_INIT_PID, this flag is NEVER reset, so we can always know
+/// if this process was ever detected as a forked child.
+/// This is needed because DashMaps are not fork-safe and we need to skip
+/// their cache even after the tokio runtime has been reinitialized.
+#[cfg(not(target_arch = "wasm32"))]
+static IS_FORKED_PROCESS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// The original static singleton - kept for reference but we use thread-local cache instead
 #[cfg(not(target_arch = "wasm32"))]
 static TOKIO_SINGLETON: OnceLock<std::io::Result<Arc<tokio::runtime::Runtime>>> = OnceLock::new();
 
+// Thread-local cache for the tokio runtime, with PID tracking for fork detection.
+// After a fork, the child process will have a different PID, triggering runtime recreation.
+#[cfg(not(target_arch = "wasm32"))]
+thread_local! {
+    static RUNTIME_CACHE: RefCell<Option<(u32, Arc<tokio::runtime::Runtime>)>> = const { RefCell::new(None) };
+}
+
 static INIT: std::sync::Once = std::sync::Once::new();
+
+/// Check if the current process is a forked child of the process that initialized the runtime.
+/// Returns true if we're in a forked child and need to reinitialize.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn is_forked_child() -> bool {
+    let init_pid = RUNTIME_INIT_PID.load(Ordering::Relaxed);
+    if init_pid == 0 {
+        false // Not yet initialized
+    } else {
+        init_pid != std::process::id()
+    }
+}
+
+/// Check if this process was ever detected as a forked child.
+/// Unlike is_forked_child(), this flag is never reset and persists
+/// even after the tokio runtime has been reinitialized.
+/// Used for fork-unsafe data structures like DashMap.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn was_forked() -> bool {
+    IS_FORKED_PROCESS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// Mark this process as having been detected as forked.
+/// This should be called when fork is first detected.
+#[cfg(not(target_arch = "wasm32"))]
+fn mark_as_forked() {
+    IS_FORKED_PROCESS.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Reset global state after a fork. This should be called in the child process
+/// after forking to ensure a fresh runtime is created.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn reset_after_fork() {
+    log::debug!(
+        "reset_after_fork called: parent_pid={}, current_pid={}",
+        RUNTIME_INIT_PID.load(Ordering::Relaxed),
+        std::process::id()
+    );
+
+    // Clear the thread-local runtime cache
+    RUNTIME_CACHE.with(|cache| {
+        *cache.borrow_mut() = None;
+    });
+
+    // Reset the publisher state (this will cause it to reinitialize on next use)
+    tracingv2::publisher::reset_publisher_after_fork();
+
+    log::debug!("reset_after_fork completed");
+}
 
 // fn setup_crypto_provider() {
 //     #[cfg(not(target_arch = "wasm32"))]
@@ -471,12 +545,70 @@ impl Drop for TripWire {
 }
 
 impl BamlRuntime {
+    /// Get the appropriate tokio runtime for execution.
+    /// This method is fork-safe: if we're in a forked child process,
+    /// it returns a fresh runtime from the singleton instead of using
+    /// the corrupted parent runtime stored in self.async_runtime.
     #[cfg(not(target_arch = "wasm32"))]
-    fn get_tokio_singleton() -> Result<Arc<tokio::runtime::Runtime>> {
-        match TOKIO_SINGLETON.get_or_init(|| tokio::runtime::Runtime::new().map(Arc::new)) {
-            Ok(t) => Ok(t.clone()),
-            Err(e) => Err(e.into()),
+    fn get_runtime(&self) -> Result<Arc<tokio::runtime::Runtime>> {
+        if is_forked_child() {
+            // We're in a forked child - use the singleton which will create a fresh runtime
+            Self::get_tokio_singleton()
+        } else {
+            // Normal case - use the stored runtime
+            Ok(self.async_runtime.clone())
         }
+    }
+
+    /// Get a tokio runtime, creating a new one if necessary.
+    /// This function is fork-safe: it detects when we're in a forked child process
+    /// and creates a fresh runtime instead of using the corrupted parent runtime.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn get_tokio_singleton() -> Result<Arc<tokio::runtime::Runtime>> {
+        let current_pid = std::process::id();
+
+        // Check thread-local cache first (handles fork detection via PID comparison)
+        let cached = RUNTIME_CACHE.with(|cache| {
+            let cache_ref = cache.borrow();
+            if let Some((pid, rt)) = cache_ref.as_ref() {
+                if *pid == current_pid {
+                    return Some(rt.clone());
+                }
+            }
+            None
+        });
+
+        if let Some(rt) = cached {
+            return Ok(rt);
+        }
+
+        // Need to create a new runtime (either first time or after fork)
+        let previous_pid = RUNTIME_INIT_PID.load(Ordering::Relaxed);
+        log::debug!(
+            "Creating new tokio runtime for PID {} (previous init PID: {})",
+            current_pid,
+            previous_pid
+        );
+
+        // If we had a previous PID and it's different, we're in a forked child
+        if previous_pid != 0 && previous_pid != current_pid {
+            eprintln!("[get_tokio_singleton] Fork detected! previous_pid={}, current_pid={}, marking as forked",
+                      previous_pid, current_pid);
+            mark_as_forked();
+        }
+
+        let rt = Arc::new(
+            tokio::runtime::Runtime::new()
+                .context("Failed to create tokio runtime")?,
+        );
+
+        // Update the init PID and cache the runtime
+        RUNTIME_INIT_PID.store(current_pid, Ordering::Relaxed);
+        RUNTIME_CACHE.with(|cache| {
+            *cache.borrow_mut() = Some((current_pid, rt.clone()));
+        });
+
+        Ok(rt)
     }
 
     fn new_runtime(
@@ -1304,6 +1436,12 @@ impl BamlRuntime {
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
+        // Get fork-safe runtime
+        let rt = match self.get_runtime() {
+            Ok(rt) => rt,
+            Err(e) => return (Err(e), FunctionCallId::new()),
+        };
+
         let fut = self.call_function(
             function_name,
             params,
@@ -1315,7 +1453,7 @@ impl BamlRuntime {
             tags,
             cancel_tripwire,
         );
-        self.async_runtime.block_on(fut)
+        rt.block_on(fut)
     }
 
     pub async fn call_function(
@@ -1330,6 +1468,7 @@ impl BamlRuntime {
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
+        eprintln!("[BamlRuntime::call_function] Starting for {}, PID={}", function_name, std::process::id());
         let res = Box::pin(self.call_function_with_expr_events(
             function_name,
             params,
@@ -1380,19 +1519,25 @@ impl BamlRuntime {
         tags: Option<&HashMap<String, String>>,
         expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
+        eprintln!("[call_function_with_expr_events] Starting for {}, PID={}", function_name, std::process::id());
         // baml_log::info!("env vars: {:#?}", env_vars.clone());
+        eprintln!("[call_function_with_expr_events] Setting log from env...");
         baml_log::set_from_env(&env_vars).unwrap();
 
         log::trace!("Calling function: {function_name}");
         log::debug!("collectors: {:#?}", &collectors);
 
+        eprintln!("[call_function_with_expr_events] Getting tracer...");
         let call = self
             .tracer_wrapper
             .get_or_create_tracer(&env_vars)
             .start_call(&function_name, ctx, params, true, false, collectors, tags);
+        eprintln!("[call_function_with_expr_events] Got tracer, getting call_id...");
         let curr_call_id = call.curr_call_id();
+        eprintln!("[call_function_with_expr_events] Got call_id: {:?}", curr_call_id);
 
         // Create guard that will automatically finish the call on drop
+        eprintln!("[call_function_with_expr_events] Creating TracingCallGuard...");
         let mut guard = TracingCallGuard::new(
             call,
             ctx,
@@ -1400,16 +1545,25 @@ impl BamlRuntime {
             self.tracer_wrapper.clone(),
             self.ir(),
         );
+        eprintln!("[call_function_with_expr_events] TracingCallGuard created");
 
+        eprintln!("[call_function_with_expr_events] Creating fake span...");
         let fake_syntax_span = Span::fake();
+        eprintln!("[call_function_with_expr_events] Creating runtime context...");
         let response = match ctx.create_ctx(tb, cb, env_vars.clone(), guard.call_id_stack().clone())
         {
             Ok(rctx) => {
+                eprintln!("[call_function_with_expr_events] create_ctx succeeded, cloning call_id_stack...");
                 let call_id_stack = rctx.call_id_stack.clone();
                 // TODO: is this the right naming?
+                eprintln!("[call_function_with_expr_events] Calling prepare_function...");
                 let prepared_func = match self.prepare_function(function_name.clone(), params) {
-                    Ok(prepared_func) => prepared_func,
+                    Ok(prepared_func) => {
+                        eprintln!("[call_function_with_expr_events] prepare_function succeeded");
+                        prepared_func
+                    },
                     Err(e) => {
+                        eprintln!("[call_function_with_expr_events] prepare_function failed");
                         let err_anyhow = e.into_error();
                         // Set error in guard - it will emit TraceEvent and finish the call on drop
                         guard.set_error(anyhow::anyhow!("{}", err_anyhow));
@@ -1418,23 +1572,30 @@ impl BamlRuntime {
                 };
 
                 // Call the function implementation
-                self.call_function_impl(prepared_func, rctx, cancel_tripwire)
-                    .await
+                eprintln!("[call_function_with_expr_events] Calling call_function_impl...");
+                let result = self.call_function_impl(prepared_func, rctx, cancel_tripwire)
+                    .await;
+                eprintln!("[call_function_with_expr_events] call_function_impl returned, is_ok={}", result.is_ok());
+                result
             }
             Err(e) => {
+                eprintln!("[call_function_with_expr_events] create_ctx failed: {}", e);
                 // Set error in guard - it will emit TraceEvent and finish the call on drop
                 guard.set_error(anyhow::anyhow!("{}", e));
                 Err(e)
             }
         };
+        eprintln!("[call_function_with_expr_events] Got response, is_ok={}", response.is_ok());
 
         // Finish the call explicitly with the response
+        eprintln!("[call_function_with_expr_events] Calling guard.finish_with...");
         #[cfg(not(target_arch = "wasm32"))]
         let _ = guard.finish_with(&response);
 
         #[cfg(target_arch = "wasm32")]
         let _ = guard.finish_with(&response).await;
 
+        eprintln!("[call_function_with_expr_events] Returning result");
         (response, curr_call_id)
     }
 
@@ -1587,7 +1748,7 @@ impl BamlRuntime {
             env_vars,
             stream,
         );
-        self.async_runtime.block_on(fut)
+        self.get_runtime()?.block_on(fut)
     }
 
     // TODO: Should this have an async version? Parse in a different thread and
@@ -1854,8 +2015,10 @@ impl BamlRuntime {
         client_spec: &ClientSpec,
         ctx: &RuntimeContext,
     ) -> Result<Arc<LLMProvider>> {
+        eprintln!("[get_llm_provider_impl] Starting, PID={}", std::process::id());
         match client_spec {
             ClientSpec::Shorthand(provider, model) => {
+                eprintln!("[get_llm_provider_impl] Shorthand client: {}/{}", provider, model);
                 let client_property = ClientProperty::from_shorthand(provider, model);
                 let llm_primitive_provider =
                     LLMPrimitiveProvider::try_from((&client_property, ctx))
@@ -1866,18 +2029,63 @@ impl BamlRuntime {
                 ))))
             }
             ClientSpec::Named(client_name) => {
+                eprintln!("[get_llm_provider_impl] Named client: {}", client_name);
                 if let Some(client) = ctx
                     .client_overrides
                     .as_ref()
                     .and_then(|(_, c)| c.get(client_name))
                 {
+                    eprintln!("[get_llm_provider_impl] Found client override");
                     return Ok(client.clone());
                 }
 
+                // Skip DashMap cache in forked children - DashMap is not fork-safe
+                // and its internal state can be corrupted after fork
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let forked = was_forked();
+                    eprintln!("[get_llm_provider_impl] was_forked()={}, PID={}",
+                              forked, std::process::id());
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                if was_forked() {
+                    eprintln!("[get_llm_provider_impl] Forked child detected, skipping cache...");
+                    eprintln!("[get_llm_provider_impl:fork] Calling self.ir()...");
+                    let ir = self.ir();
+                    eprintln!("[get_llm_provider_impl:fork] Got IR, calling find_client...");
+                    let walker = ir
+                        .find_client(client_name)
+                        .context(format!("Could not find client with name: {client_name}"))?;
+                    eprintln!("[get_llm_provider_impl:fork] Found client walker, provider type={:?}", walker.item.elem.provider);
+                    eprintln!("[get_llm_provider_impl:fork] Calling LLMProvider::try_from...");
+                    let new_client = LLMProvider::try_from((&walker, ctx)).map(Arc::new)?;
+                    eprintln!("[get_llm_provider_impl:fork] Created provider for forked child");
+
+                    // Check required env vars (same logic as below but without caching)
+                    let uses_proxy_server = ctx.proxy_url().is_some();
+                    let fail_on_missing_required_env_vars = !ctx.is_modular_api()
+                        && !uses_proxy_server
+                        && !matches!(
+                            walker.item.elem.provider,
+                            internal_llm_client::ClientProvider::AwsBedrock
+                                | internal_llm_client::ClientProvider::Vertex
+                        );
+                    for key in walker.required_env_vars() {
+                        if ctx.env_vars().get(&key).is_none() && fail_on_missing_required_env_vars {
+                            anyhow::bail!(
+                                "LLM client '{client_name}' requires environment variable '{key}' to be set but it is not"
+                            );
+                        }
+                    }
+                    return Ok(new_client);
+                }
+
+                eprintln!("[get_llm_provider_impl] No override, checking cache...");
                 #[cfg(target_arch = "wasm32")]
                 let mut clients = self.clients.lock().unwrap();
                 #[cfg(not(target_arch = "wasm32"))]
                 let clients = &self.clients;
+                eprintln!("[get_llm_provider_impl] Got clients reference");
 
                 if clients.contains_key(client_name) {
                     #[allow(clippy::map_clone)]
@@ -2067,7 +2275,8 @@ impl ExperimentalTracingInterface for BamlRuntime {
     fn flush(&self) -> Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            if let Err(e) = self.async_runtime.block_on(flush()) {
+            let rt = self.get_runtime()?;
+            if let Err(e) = rt.block_on(flush()) {
                 log::error!("Failed to flush: {e}");
                 baml_log::debug!("Failed to flush: {}", e);
             }
@@ -2109,8 +2318,13 @@ impl InternalRuntimeInterface for BamlRuntime {
         client_spec: &ClientSpec,
         ctx: &RuntimeContext,
     ) -> Result<Vec<internal::llm_client::orchestrator::OrchestratorNode>> {
+        eprintln!("[orchestration_graph] Starting, PID={}", std::process::id());
+        eprintln!("[orchestration_graph] Calling get_llm_provider_impl...");
         let client = self.get_llm_provider_impl(client_spec, ctx)?;
-        client.iter_orchestrator(&mut Default::default(), Default::default(), ctx, self)
+        eprintln!("[orchestration_graph] Got client, calling iter_orchestrator...");
+        let result = client.iter_orchestrator(&mut Default::default(), Default::default(), ctx, self);
+        eprintln!("[orchestration_graph] iter_orchestrator completed, is_ok={}", result.is_ok());
+        result
     }
 
     fn function_graph(&self, function_name: &str, _ctx: &RuntimeContext) -> Result<String> {

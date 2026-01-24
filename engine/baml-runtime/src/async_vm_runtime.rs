@@ -81,6 +81,20 @@ impl TryFrom<LlmRuntime> for BamlAsyncVmRuntime {
 }
 
 impl BamlAsyncVmRuntime {
+    /// Get the appropriate tokio runtime for execution.
+    /// This method is fork-safe: if we're in a forked child process,
+    /// it returns a fresh runtime instead of using the corrupted parent runtime.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn get_runtime(&self) -> anyhow::Result<Arc<tokio::runtime::Runtime>> {
+        if crate::is_forked_child() {
+            // We're in a forked child - use the singleton which will create a fresh runtime
+            crate::BamlRuntime::get_tokio_singleton()
+        } else {
+            // Normal case - use the stored runtime
+            Ok(self.async_runtime.clone())
+        }
+    }
+
     pub fn internal(&self) -> &LlmRuntime {
         &self.llm_runtime
     }
@@ -170,20 +184,24 @@ impl BamlAsyncVmRuntime {
         cancel_tripwire: Arc<TripWire>,
         watch_handler: Option<SharedWatchHandler>,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
+        eprintln!("[BamlAsyncVmRuntime::call_function] Starting for {}, PID={}", function_name, std::process::id());
         // Find the function.
         let Some((function_index, function_kind)) =
             self.program.resolved_function_names.get(&function_name)
         else {
             // TODO: We don't have an ID here! We can't call tracer here for llm functions here.
+            eprintln!("[BamlAsyncVmRuntime::call_function] Function {} not found", function_name);
             return (
                 Err(anyhow!("function '{function_name}' not found")),
                 FunctionCallId::new(),
             );
         };
+        eprintln!("[BamlAsyncVmRuntime::call_function] Function {} found, kind={:?}", function_name, function_kind);
 
         // If we're not running an expression function, then just delegate the
         // call to the LLM runtime.
         if matches!(function_kind, FunctionKind::Llm) {
+            eprintln!("[BamlAsyncVmRuntime::call_function] Delegating to LLM runtime");
             return self
                 .llm_runtime
                 .call_function(
@@ -491,8 +509,10 @@ impl BamlAsyncVmRuntime {
                             };
 
                             // Multi threaded runtime spawn.
+                            // Use tokio::spawn to spawn on the current runtime context,
+                            // which is fork-safe (the runtime we're currently running in).
                             #[cfg(not(target_arch = "wasm32"))]
-                            self.async_runtime.spawn(future);
+                            tokio::spawn(future);
 
                             // Spawning futures on WASM is a little bit more
                             // complicated. In WASM, Tokio does not support multi
@@ -742,8 +762,10 @@ impl BamlAsyncVmRuntime {
                             };
 
                             // Multi threaded runtime spawn.
+                            // Use tokio::spawn to spawn on the current runtime context,
+                            // which is fork-safe (the runtime we're currently running in).
                             #[cfg(not(target_arch = "wasm32"))]
-                            self.async_runtime.spawn(future);
+                            tokio::spawn(future);
 
                             // Spawning futures on WASM is a little bit more
                             // complicated. In WASM, Tokio does not support multi
@@ -826,7 +848,13 @@ impl BamlAsyncVmRuntime {
         cancel_tripwire: Arc<TripWire>,
         watch_handler: Option<SharedWatchHandler>,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
-        self.async_runtime.block_on(self.call_function(
+        // Get fork-safe runtime
+        let rt = match self.get_runtime() {
+            Ok(rt) => rt,
+            Err(e) => return (Err(e), FunctionCallId::new()),
+        };
+
+        rt.block_on(self.call_function(
             function_name,
             params,
             ctx,

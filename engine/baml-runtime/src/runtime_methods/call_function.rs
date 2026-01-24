@@ -48,16 +48,23 @@ impl BamlRuntime {
         ctx: RuntimeContext,
         cancel_tripwire: Arc<TripWire>,
     ) -> Result<crate::FunctionResult> {
+        eprintln!("[call_function_impl] Starting, PID={}", std::process::id());
         let future = async {
+            eprintln!("[call_function_impl] Inside async block");
             let func = prepared_func_call.func.as_ref().ok_or_else(|| {
                 anyhow::anyhow!("Cannot call expr function through call_function_impl")
             })?;
+            eprintln!("[call_function_impl] Got func");
             let renderer = PromptRenderer::from_function(func, self.ir(), &ctx)?;
+            eprintln!("[call_function_impl] Created renderer");
             let orchestrator = self.orchestration_graph(renderer.client_spec(), &ctx)?;
+            eprintln!("[call_function_impl] Got orchestrator");
 
             let baml_args = BamlValue::Map(prepared_func_call.baml_args.value);
+            eprintln!("[call_function_impl] Created baml_args");
 
             // Now actually execute the code.
+            eprintln!("[call_function_impl] Calling orchestrate_call...");
             let (history, _) = orchestrate_call(
                 orchestrator,
                 self.ir(),
@@ -68,10 +75,14 @@ impl BamlRuntime {
                 cancel_tripwire.trip_wire(),
             )
             .await;
+            eprintln!("[call_function_impl] orchestrate_call completed");
 
             FunctionResult::new_chain(history)
         };
 
-        future.await
+        eprintln!("[call_function_impl] Awaiting future...");
+        let result = future.await;
+        eprintln!("[call_function_impl] Future completed, is_ok={}", result.is_ok());
+        result
     }
 }

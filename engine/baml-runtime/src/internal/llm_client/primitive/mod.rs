@@ -172,8 +172,12 @@ impl TryFrom<(&ClientWalker<'_>, &RuntimeContext)> for LLMPrimitiveProvider {
     type Error = anyhow::Error;
 
     fn try_from((client, ctx): (&ClientWalker, &RuntimeContext)) -> Result<Self> {
-        match &client.elem().provider {
+        eprintln!("[LLMPrimitiveProvider::try_from] Starting, PID={}", std::process::id());
+        let provider = &client.elem().provider;
+        eprintln!("[LLMPrimitiveProvider::try_from] Provider: {:?}", provider);
+        match provider {
             ClientProvider::OpenAI(open_aiclient_provider_variant) => {
+                eprintln!("[LLMPrimitiveProvider::try_from] Creating OpenAI client...");
                 match open_aiclient_provider_variant {
                     OpenAIClientProviderVariant::Base => {
                         OpenAIClient::new(client, ctx).map(Into::into)
@@ -195,10 +199,24 @@ impl TryFrom<(&ClientWalker<'_>, &RuntimeContext)> for LLMPrimitiveProvider {
                     }
                 }
             }
-            ClientProvider::Anthropic => AnthropicClient::new(client, ctx).map(Into::into),
-            ClientProvider::AwsBedrock => AwsClient::new(client, ctx).map(Into::into),
-            ClientProvider::GoogleAi => GoogleAIClient::new(client, ctx).map(Into::into),
-            ClientProvider::Vertex => VertexClient::new(client, ctx).map(Into::into),
+            ClientProvider::Anthropic => {
+                eprintln!("[LLMPrimitiveProvider::try_from] Creating Anthropic client...");
+                let result = AnthropicClient::new(client, ctx);
+                eprintln!("[LLMPrimitiveProvider::try_from] AnthropicClient::new completed, is_ok={}", result.is_ok());
+                result.map(Into::into)
+            }
+            ClientProvider::AwsBedrock => {
+                eprintln!("[LLMPrimitiveProvider::try_from] Creating AWS client...");
+                AwsClient::new(client, ctx).map(Into::into)
+            }
+            ClientProvider::GoogleAi => {
+                eprintln!("[LLMPrimitiveProvider::try_from] Creating GoogleAI client...");
+                GoogleAIClient::new(client, ctx).map(Into::into)
+            }
+            ClientProvider::Vertex => {
+                eprintln!("[LLMPrimitiveProvider::try_from] Creating Vertex client...");
+                VertexClient::new(client, ctx).map(Into::into)
+            }
             ClientProvider::Strategy(strategy_client_provider) => {
                 unimplemented!(
                     "Strategy client providers are not supported yet in LLMPrimitiveProvider"

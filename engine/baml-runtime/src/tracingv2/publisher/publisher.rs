@@ -5,7 +5,10 @@ use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
     io::Write,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
 };
 
 use anyhow::{Context, Result};
@@ -65,9 +68,53 @@ static PUBLISHING_TASK: OnceCell<Arc<tokio::task::JoinHandle<()>>> = OnceCell::n
 static BLOB_UPLOADER_TASK: OnceCell<Arc<tokio::task::JoinHandle<()>>> = OnceCell::new();
 static BLOB_UPLOADER_CHANNEL: OnceCell<mpsc::Sender<BlobUploaderMessage>> = OnceCell::new();
 
+/// Tracks the PID when the publisher was initialized.
+/// Used to detect if we're in a forked child process.
+#[cfg(not(target_arch = "wasm32"))]
+static PUBLISHER_INIT_PID: AtomicU32 = AtomicU32::new(0);
+
+/// Check if we're in a forked child process (different PID from when publisher was initialized).
+#[cfg(not(target_arch = "wasm32"))]
+fn is_publisher_in_forked_child() -> bool {
+    let init_pid = PUBLISHER_INIT_PID.load(Ordering::Relaxed);
+    if init_pid == 0 {
+        false // Not yet initialized
+    } else {
+        init_pid != std::process::id()
+    }
+}
+
+/// Reset publisher state after a fork. This is called from `reset_after_fork()` in lib.rs.
+/// Since OnceCell doesn't support reset, we use a PID-based gate to prevent the forked child
+/// from using the corrupted parent channels. The next call to `start_publisher` in the child
+/// process will recognize this and skip publishing (which is acceptable behavior).
+#[cfg(not(target_arch = "wasm32"))]
+pub fn reset_publisher_after_fork() {
+    let old_pid = PUBLISHER_INIT_PID.load(Ordering::Relaxed);
+    let current_pid = std::process::id();
+    log::debug!(
+        "reset_publisher_after_fork: old_pid={}, current_pid={}",
+        old_pid,
+        current_pid
+    );
+    // We don't actually reset the OnceCell (can't), but the PID check in
+    // get_publish_channel() and is_publisher_in_forked_child() will prevent usage
+}
+
 fn get_publish_channel(allow_missing: bool) -> Option<&'static mpsc::Sender<PublisherMessage>> {
     #[cfg(not(target_arch = "wasm32"))]
     {
+        // Check if we're in a forked child process - if so, don't use the parent's channel
+        // as it's connected to a dead task in the parent process
+        if is_publisher_in_forked_child() {
+            log::debug!(
+                "Skipping publish channel access in forked child (PID {} vs init PID {})",
+                std::process::id(),
+                PUBLISHER_INIT_PID.load(Ordering::Relaxed)
+            );
+            return None;
+        }
+
         let Some(join_handle) = PUBLISHING_TASK.get() else {
             if !allow_missing {
                 // baml_log::fatal_once!(
@@ -231,6 +278,24 @@ pub fn start_publisher(
         log::debug!("Skipping publisher because BOUNDARY_API_KEY is not set");
         return;
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Check if we're in a forked child - if so, skip initializing the publisher
+        // since the OnceCell values are already set from the parent and we can't reset them.
+        // The forked child will operate without tracing (acceptable for now).
+        let init_pid = PUBLISHER_INIT_PID.load(Ordering::Relaxed);
+        let current_pid = std::process::id();
+        if init_pid != 0 && init_pid != current_pid {
+            log::debug!(
+                "Skipping publisher initialization in forked child (init PID {} != current PID {})",
+                init_pid,
+                current_pid
+            );
+            return;
+        }
+    }
+
     log::debug!("Starting publisher");
 
     // Read batch sizes early to calculate channel capacities
@@ -291,6 +356,16 @@ pub fn start_publisher(
 
         PUBLISHING_CHANNEL.get_or_init(move || {
             let (tx, rx) = mpsc::channel::<PublisherMessage>(trace_queue_capacity);
+
+            // Record the PID when publisher is first initialized (for fork detection)
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                PUBLISHER_INIT_PID.store(std::process::id(), Ordering::Relaxed);
+                log::debug!(
+                    "Publisher initialized with PID {}",
+                    std::process::id()
+                );
+            }
 
             let mut publisher = TracePublisher::new(
                 rx,

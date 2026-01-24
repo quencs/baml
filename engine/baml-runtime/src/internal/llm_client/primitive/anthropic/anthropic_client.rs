@@ -176,45 +176,58 @@ impl AnthropicClient {
     }
 
     pub fn new(client: &ClientWalker, ctx: &RuntimeContext) -> Result<AnthropicClient> {
+        eprintln!("[AnthropicClient::new] Starting, PID={}", std::process::id());
+        eprintln!("[AnthropicClient::new] Calling resolve_properties...");
         let properties = resolve_properties(&client.elem().provider, client.options(), ctx)?;
+        eprintln!("[AnthropicClient::new] resolve_properties completed");
+        eprintln!("[AnthropicClient::new] Creating RenderContext_Client...");
+        let context = RenderContext_Client {
+            name: client.name().into(),
+            provider: client.elem().provider.to_string(),
+            default_role: properties.default_role(),
+            allowed_roles: properties.allowed_roles(),
+            options: properties.properties.clone(),
+            remap_role: properties.remap_role(),
+        };
+        eprintln!("[AnthropicClient::new] RenderContext_Client created");
+        eprintln!("[AnthropicClient::new] Creating ModelFeatures...");
+        let features = ModelFeatures {
+            chat: true,
+            completion: false,
+            max_one_system_prompt: true,
+            resolve_audio_urls: properties
+                .media_url_handler
+                .audio
+                .map(Into::into)
+                .unwrap_or(ResolveMediaUrls::SendUrl),
+            resolve_image_urls: properties
+                .media_url_handler
+                .images
+                .map(Into::into)
+                .unwrap_or(ResolveMediaUrls::SendUrl),
+            resolve_pdf_urls: properties
+                .media_url_handler
+                .pdf
+                .map(Into::into)
+                .unwrap_or(ResolveMediaUrls::SendBase64),
+            resolve_video_urls: properties
+                .media_url_handler
+                .video
+                .map(Into::into)
+                .unwrap_or(ResolveMediaUrls::SendUrl),
+            allowed_metadata: properties.allowed_metadata.clone(),
+        };
+        eprintln!("[AnthropicClient::new] ModelFeatures created");
+        eprintln!("[AnthropicClient::new] Calling create_http_client...");
+        let http_client = create_http_client(&properties.http_config)?;
+        eprintln!("[AnthropicClient::new] create_http_client completed");
+        eprintln!("[AnthropicClient::new] Building AnthropicClient struct...");
         Ok(Self {
             name: client.name().into(),
-            context: RenderContext_Client {
-                name: client.name().into(),
-                provider: client.elem().provider.to_string(),
-                default_role: properties.default_role(),
-                allowed_roles: properties.allowed_roles(),
-                options: properties.properties.clone(),
-                remap_role: properties.remap_role(),
-            },
-            features: ModelFeatures {
-                chat: true,
-                completion: false,
-                max_one_system_prompt: true,
-                resolve_audio_urls: properties
-                    .media_url_handler
-                    .audio
-                    .map(Into::into)
-                    .unwrap_or(ResolveMediaUrls::SendUrl),
-                resolve_image_urls: properties
-                    .media_url_handler
-                    .images
-                    .map(Into::into)
-                    .unwrap_or(ResolveMediaUrls::SendUrl),
-                resolve_pdf_urls: properties
-                    .media_url_handler
-                    .pdf
-                    .map(Into::into)
-                    .unwrap_or(ResolveMediaUrls::SendBase64),
-                resolve_video_urls: properties
-                    .media_url_handler
-                    .video
-                    .map(Into::into)
-                    .unwrap_or(ResolveMediaUrls::SendUrl),
-                allowed_metadata: properties.allowed_metadata.clone(),
-            },
+            context,
+            features,
             retry_policy: client.elem().retry_policy_id.as_ref().map(String::from),
-            client: create_http_client(&properties.http_config)?,
+            client: http_client,
             properties,
         })
     }
