@@ -322,6 +322,9 @@ navigation:
           - page: Typescript
             icon: fa-brands fa-js
             path: 01-guide/02-languages/typescript.mdx
+          - page: Rust
+            icon: fa-brands fa-rust
+            path: 01-guide/02-languages/rust.mdx
           - page: Go
             icon: fa-brands fa-golang
             path: 01-guide/02-languages/go.mdx

@@ -1,0 +1,355 @@
+---
+title: Rust
+---
+
+To set up BAML with Rust do the following:
+
+<Steps>
+  ### Install BAML VSCode/Cursor Extension
+      https://marketplace.visualstudio.com/items?itemName=boundary.baml-extension
+
+      - syntax highlighting
+      - testing playground
+      - prompt previews
+
+  ### Install BAML CLI
+      Install the BAML CLI globally using cargo:
+
+      ```bash
+      cargo install baml-cli
+      ```
+
+  ### Add BAML to your existing project
+      This will give you some starter BAML code in a `baml_src` directory.
+
+      ```bash
+      baml-cli init
+      ```
+
+      <Note>
+      If you have a `Cargo.toml` file in your project directory, `baml-cli init` will automatically detect it and configure the generator for Rust. Otherwise, you can specify it explicitly with `baml-cli init --client-type rust`.
+      </Note>
+
+  ### Add the BAML runtime dependency
+      Add the `baml` crate to your `Cargo.toml`:
+
+      ```toml Cargo.toml
+      [dependencies]
+      baml = "0.218.0"  # Use the same version as your generator
+      ```
+
+      Or using cargo:
+
+      ```bash
+      cargo add baml
+      ```
+
+  ### Generate the `baml_client` Rust module from `.baml` files
+
+    One of the files in your `baml_src` directory will have a [generator block](/ref/baml/generator). This tells BAML how to generate the `baml_client` module, which will have auto-generated Rust code to call your BAML functions.
+
+    Any types defined in .baml files will be converted into Rust structs and enums in the `baml_client` module.
+
+    ```bash
+    baml-cli generate
+    ```
+
+    You can add this to your build process using a `build.rs` file:
+
+    ```rust build.rs
+    fn main() {
+        // Regenerate BAML client on build
+        std::process::Command::new("baml-cli")
+            .arg("generate")
+            .status()
+            .expect("Failed to run baml-cli generate");
+    }
+    ```
+
+    Or add it to your Makefile:
+
+    ```makefile Makefile
+    .PHONY: generate build
+
+    generate:
+    	baml-cli generate
+
+    build: generate
+    	cargo build
+
+    test: generate
+    	cargo test
+    ```
+
+    See [What is baml_client](/guide/introduction/baml_client) to learn more about how this works.
+
+    <Tip>
+      If you set up the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=Boundary.baml-extension), it will automatically run `baml-cli generate` on saving a BAML file.
+    </Tip>
+
+  ### Use a BAML function in Rust!
+    <Error>If `baml_client` doesn't exist, make sure to run the previous step!</Error>
+
+    First, make sure to declare the `baml_client` module in your `main.rs` or `lib.rs`:
+
+    ```rust src/main.rs or src/lib.rs
+    mod baml_client;
+    ```
+
+    Then you can use your BAML functions:
+
+    <Tabs>
+    <Tab title="Sync" language="rust">
+    ```rust main.rs
+    mod baml_client;
+
+    use baml_client::sync_client::B;
+    use baml_client::types::Resume;
+
+    fn main() {
+        let raw_resume = r#"
+            Jason Doe
+            Python, Rust
+            University of California, Berkeley, B.S.
+            in Computer Science, 2020
+            Also an expert in Tableau, SQL, and C++
+        "#;
+
+        // BAML's internal parser guarantees ExtractResume
+        // to always return a Resume type or an error
+        let result = B.ExtractResume.call(raw_resume);
+        
+        match result {
+            Ok(resume) => {
+                println!("Name: {}", resume.name);
+                println!("Skills: {:?}", resume.skills);
+            }
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
+    }
+    ```
+    </Tab>
+
+    <Tab title="Async" language="rust">
+    ```rust main.rs
+    mod baml_client;
+
+    use baml_client::async_client::B;
+    use baml_client::types::Resume;
+
+    #[tokio::main]
+    async fn main() {
+        let raw_resume = r#"
+            Jason Doe
+            Python, Rust
+            University of California, Berkeley, B.S.
+            in Computer Science, 2020
+            Also an expert in Tableau, SQL, and C++
+        "#;
+
+        // BAML's internal parser guarantees ExtractResume
+        // to always return a Resume type or an error
+        let result = B.ExtractResume.call(raw_resume).await;
+        
+        match result {
+            Ok(resume) => {
+                println!("Name: {}", resume.name);
+                println!("Skills: {:?}", resume.skills);
+            }
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
+    }
+    ```
+    </Tab>
+
+    <Tab title="Streaming (Sync)" language="rust">
+    ```rust main.rs
+    mod baml_client;
+
+    use baml_client::sync_client::B;
+
+    fn main() {
+        let input = "Programming languages are fun to create";
+
+        // Create a stream
+        let stream = B.PromptTestStreaming.stream(input).unwrap();
+
+        // Iterate through partial results
+        for partial in stream.partials() {
+            match partial {
+                Ok(partial_value) => {
+                    println!("Partial: {}", partial_value);
+                }
+                Err(e) => eprintln!("Stream error: {:?}", e),
+            }
+        }
+
+        // Get the final result
+        let final_result = stream.get_final_response();
+        match final_result {
+            Ok(value) => println!("Final: {}", value),
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
+    }
+    ```
+    </Tab>
+
+    <Tab title="Streaming (Async)" language="rust">
+    ```rust main.rs
+    mod baml_client;
+
+    use baml_client::async_client::B;
+
+    #[tokio::main]
+    async fn main() {
+        let input = "Programming languages are fun to create";
+
+        // Create a stream
+        let mut stream = B.PromptTestStreaming.stream(input).await.unwrap();
+
+        // Iterate through partial results
+        while let Some(partial) = stream.partials().next().await {
+            match partial {
+                Ok(partial_value) => {
+                    println!("Partial: {}", partial_value);
+                }
+                Err(e) => eprintln!("Stream error: {:?}", e),
+            }
+        }
+
+        // Get the final result
+        let final_result = stream.get_final_response().await;
+        match final_result {
+            Ok(value) => println!("Final: {}", value),
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
+    }
+    ```
+    </Tab>
+    </Tabs>
+</Steps>
+
+## Generator Configuration
+
+Your `baml_src/generators.baml` file should look like this:
+
+```baml generators.baml
+generator target {
+    // Specify Rust as the output type
+    output_type "rust"
+
+    // Where the generated code will be saved (relative to baml_src/)
+    output_dir "../src"
+
+    // Version of runtime to generate code for (should match your baml crate version)
+    version "0.218.0"
+
+    // Valid values: "sync", "async"
+    // This controls what `B.FunctionName` exports at the top level
+    default_client_mode "async"
+
+    // Optional: run cargo fmt after generating code
+    on_generate "cargo fmt"
+}
+```
+
+## Runtime Library Requirements
+
+The BAML Rust runtime requires the `libbaml_cffi` dynamic library at runtime. The library is:
+
+- **Auto-downloaded** from GitHub releases on first use (default behavior)
+- **Cached** in your user cache directory (`~/.cache/baml/libs/` on Linux, `~/Library/Caches/baml/libs/` on macOS)
+
+### Air-gapped Environments
+
+To disable auto-download (e.g., in air-gapped environments), you can manually specify the library path:
+
+```bash
+export BAML_LIBRARY_DISABLE_DOWNLOAD=true
+export BAML_LIBRARY_PATH=/path/to/libbaml_cffi.dylib
+```
+
+## Working with Axum
+
+BAML works great with Axum for building web APIs. Here's an example:
+
+```rust
+use axum::{
+    extract::Json,
+    routing::post,
+    Router,
+};
+use serde::{Deserialize, Serialize};
+
+mod baml_client;
+use baml_client::async_client::B;
+use baml_client::types::Resume;
+
+#[derive(Deserialize)]
+struct ExtractRequest {
+    resume_text: String,
+}
+
+#[derive(Serialize)]
+struct ExtractResponse {
+    resume: Resume,
+}
+
+async fn extract_resume(
+    Json(payload): Json<ExtractRequest>,
+) -> Result<Json<ExtractResponse>, String> {
+    let resume = B.ExtractResume
+        .call(&payload.resume_text)
+        .await
+        .map_err(|e| format!("BAML error: {:?}", e))?;
+
+    Ok(Json(ExtractResponse { resume }))
+}
+
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/extract", post(extract_resume));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+```
+
+## Error Handling
+
+BAML functions return `Result<T, BamlError>`. Handle errors appropriately:
+
+```rust
+use baml_client::sync_client::B;
+
+fn example() {
+    match B.ExtractResume.call("some resume text") {
+        Ok(resume) => {
+            println!("Extracted: {:?}", resume);
+        }
+        Err(e) => {
+            // Handle different error types
+            eprintln!("BAML Error: {:?}", e);
+        }
+    }
+}
+```
+
+## Type Safety
+
+All BAML types are converted to strongly-typed Rust structs and enums:
+
+```rust
+// Generated from your .baml files
+use baml_client::types::{Resume, Skill, Education};
+
+// Use them with full type safety
+fn process_resume(resume: &Resume) {
+    for skill in &resume.skills {
+        println!("Skill: {}", skill);
+    }
+}
+```
+
+You're all set! Continue on to the [Deployment Guides](/guide/development/deploying/docker) for your language to learn how to deploy your BAML code or check out the [Interactive Examples](https://baml-examples.vercel.app/) to see more examples.
