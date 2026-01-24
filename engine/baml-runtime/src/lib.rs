@@ -597,10 +597,8 @@ impl BamlRuntime {
             mark_as_forked();
         }
 
-        let rt = Arc::new(
-            tokio::runtime::Runtime::new()
-                .context("Failed to create tokio runtime")?,
-        );
+        let rt =
+            Arc::new(tokio::runtime::Runtime::new().context("Failed to create tokio runtime")?);
 
         // Update the init PID and cache the runtime
         RUNTIME_INIT_PID.store(current_pid, Ordering::Relaxed);
@@ -1468,7 +1466,11 @@ impl BamlRuntime {
         tags: Option<&HashMap<String, String>>,
         cancel_tripwire: Arc<TripWire>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
-        eprintln!("[BamlRuntime::call_function] Starting for {}, PID={}", function_name, std::process::id());
+        eprintln!(
+            "[BamlRuntime::call_function] Starting for {}, PID={}",
+            function_name,
+            std::process::id()
+        );
         let res = Box::pin(self.call_function_with_expr_events(
             function_name,
             params,
@@ -1519,7 +1521,11 @@ impl BamlRuntime {
         tags: Option<&HashMap<String, String>>,
         expr_tx: Option<mpsc::UnboundedSender<Vec<internal_baml_diagnostics::SerializedSpan>>>,
     ) -> (Result<FunctionResult>, FunctionCallId) {
-        eprintln!("[call_function_with_expr_events] Starting for {}, PID={}", function_name, std::process::id());
+        eprintln!(
+            "[call_function_with_expr_events] Starting for {}, PID={}",
+            function_name,
+            std::process::id()
+        );
         // baml_log::info!("env vars: {:#?}", env_vars.clone());
         eprintln!("[call_function_with_expr_events] Setting log from env...");
         baml_log::set_from_env(&env_vars).unwrap();
@@ -1534,7 +1540,10 @@ impl BamlRuntime {
             .start_call(&function_name, ctx, params, true, false, collectors, tags);
         eprintln!("[call_function_with_expr_events] Got tracer, getting call_id...");
         let curr_call_id = call.curr_call_id();
-        eprintln!("[call_function_with_expr_events] Got call_id: {:?}", curr_call_id);
+        eprintln!(
+            "[call_function_with_expr_events] Got call_id: {:?}",
+            curr_call_id
+        );
 
         // Create guard that will automatically finish the call on drop
         eprintln!("[call_function_with_expr_events] Creating TracingCallGuard...");
@@ -1561,7 +1570,7 @@ impl BamlRuntime {
                     Ok(prepared_func) => {
                         eprintln!("[call_function_with_expr_events] prepare_function succeeded");
                         prepared_func
-                    },
+                    }
                     Err(e) => {
                         eprintln!("[call_function_with_expr_events] prepare_function failed");
                         let err_anyhow = e.into_error();
@@ -1573,9 +1582,13 @@ impl BamlRuntime {
 
                 // Call the function implementation
                 eprintln!("[call_function_with_expr_events] Calling call_function_impl...");
-                let result = self.call_function_impl(prepared_func, rctx, cancel_tripwire)
+                let result = self
+                    .call_function_impl(prepared_func, rctx, cancel_tripwire)
                     .await;
-                eprintln!("[call_function_with_expr_events] call_function_impl returned, is_ok={}", result.is_ok());
+                eprintln!(
+                    "[call_function_with_expr_events] call_function_impl returned, is_ok={}",
+                    result.is_ok()
+                );
                 result
             }
             Err(e) => {
@@ -1585,7 +1598,10 @@ impl BamlRuntime {
                 Err(e)
             }
         };
-        eprintln!("[call_function_with_expr_events] Got response, is_ok={}", response.is_ok());
+        eprintln!(
+            "[call_function_with_expr_events] Got response, is_ok={}",
+            response.is_ok()
+        );
 
         // Finish the call explicitly with the response
         eprintln!("[call_function_with_expr_events] Calling guard.finish_with...");
@@ -2015,10 +2031,16 @@ impl BamlRuntime {
         client_spec: &ClientSpec,
         ctx: &RuntimeContext,
     ) -> Result<Arc<LLMProvider>> {
-        eprintln!("[get_llm_provider_impl] Starting, PID={}", std::process::id());
+        eprintln!(
+            "[get_llm_provider_impl] Starting, PID={}",
+            std::process::id()
+        );
         match client_spec {
             ClientSpec::Shorthand(provider, model) => {
-                eprintln!("[get_llm_provider_impl] Shorthand client: {}/{}", provider, model);
+                eprintln!(
+                    "[get_llm_provider_impl] Shorthand client: {}/{}",
+                    provider, model
+                );
                 let client_property = ClientProperty::from_shorthand(provider, model);
                 let llm_primitive_provider =
                     LLMPrimitiveProvider::try_from((&client_property, ctx))
@@ -2039,48 +2061,48 @@ impl BamlRuntime {
                     return Ok(client.clone());
                 }
 
-                // Skip DashMap cache in forked children - DashMap is not fork-safe
-                // and its internal state can be corrupted after fork
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    let forked = was_forked();
-                    eprintln!("[get_llm_provider_impl] was_forked()={}, PID={}",
-                              forked, std::process::id());
-                }
-                #[cfg(not(target_arch = "wasm32"))]
-                if was_forked() {
-                    eprintln!("[get_llm_provider_impl] Forked child detected, skipping cache...");
-                    eprintln!("[get_llm_provider_impl:fork] Calling self.ir()...");
-                    let ir = self.ir();
-                    eprintln!("[get_llm_provider_impl:fork] Got IR, calling find_client...");
-                    let walker = ir
-                        .find_client(client_name)
-                        .context(format!("Could not find client with name: {client_name}"))?;
-                    eprintln!("[get_llm_provider_impl:fork] Found client walker, provider type={:?}", walker.item.elem.provider);
-                    eprintln!("[get_llm_provider_impl:fork] Calling LLMProvider::try_from...");
-                    let new_client = LLMProvider::try_from((&walker, ctx)).map(Arc::new)?;
-                    eprintln!("[get_llm_provider_impl:fork] Created provider for forked child");
+                // // Skip DashMap cache in forked children - DashMap is not fork-safe
+                // // and its internal state can be corrupted after fork
+                // #[cfg(not(target_arch = "wasm32"))]
+                // {
+                //     let forked = was_forked();
+                //     eprintln!("[get_llm_provider_impl] was_forked()={}, PID={}",
+                //               forked, std::process::id());
+                // }
+                // #[cfg(not(target_arch = "wasm32"))]
+                // if was_forked() {
+                //     eprintln!("[get_llm_provider_impl] Forked child detected, skipping cache...");
+                //     eprintln!("[get_llm_provider_impl:fork] Calling self.ir()...");
+                //     let ir = self.ir();
+                //     eprintln!("[get_llm_provider_impl:fork] Got IR, calling find_client...");
+                //     let walker = ir
+                //         .find_client(client_name)
+                //         .context(format!("Could not find client with name: {client_name}"))?;
+                //     eprintln!("[get_llm_provider_impl:fork] Found client walker, provider type={:?}", walker.item.elem.provider);
+                //     eprintln!("[get_llm_provider_impl:fork] Calling LLMProvider::try_from...");
+                //     let new_client = LLMProvider::try_from((&walker, ctx)).map(Arc::new)?;
+                //     eprintln!("[get_llm_provider_impl:fork] Created provider for forked child");
 
-                    // Check required env vars (same logic as below but without caching)
-                    let uses_proxy_server = ctx.proxy_url().is_some();
-                    let fail_on_missing_required_env_vars = !ctx.is_modular_api()
-                        && !uses_proxy_server
-                        && !matches!(
-                            walker.item.elem.provider,
-                            internal_llm_client::ClientProvider::AwsBedrock
-                                | internal_llm_client::ClientProvider::Vertex
-                        );
-                    for key in walker.required_env_vars() {
-                        if ctx.env_vars().get(&key).is_none() && fail_on_missing_required_env_vars {
-                            anyhow::bail!(
-                                "LLM client '{client_name}' requires environment variable '{key}' to be set but it is not"
-                            );
-                        }
-                    }
-                    return Ok(new_client);
-                }
+                //     // Check required env vars (same logic as below but without caching)
+                //     let uses_proxy_server = ctx.proxy_url().is_some();
+                //     let fail_on_missing_required_env_vars = !ctx.is_modular_api()
+                //         && !uses_proxy_server
+                //         && !matches!(
+                //             walker.item.elem.provider,
+                //             internal_llm_client::ClientProvider::AwsBedrock
+                //                 | internal_llm_client::ClientProvider::Vertex
+                //         );
+                //     for key in walker.required_env_vars() {
+                //         if ctx.env_vars().get(&key).is_none() && fail_on_missing_required_env_vars {
+                //             anyhow::bail!(
+                //                 "LLM client '{client_name}' requires environment variable '{key}' to be set but it is not"
+                //             );
+                //         }
+                //     }
+                //     return Ok(new_client);
+                // }
 
-                eprintln!("[get_llm_provider_impl] No override, checking cache...");
+                eprintln!("[get_llm_provider_impl] No override, checking cache..eeee.");
                 #[cfg(target_arch = "wasm32")]
                 let mut clients = self.clients.lock().unwrap();
                 #[cfg(not(target_arch = "wasm32"))]
@@ -2322,8 +2344,12 @@ impl InternalRuntimeInterface for BamlRuntime {
         eprintln!("[orchestration_graph] Calling get_llm_provider_impl...");
         let client = self.get_llm_provider_impl(client_spec, ctx)?;
         eprintln!("[orchestration_graph] Got client, calling iter_orchestrator...");
-        let result = client.iter_orchestrator(&mut Default::default(), Default::default(), ctx, self);
-        eprintln!("[orchestration_graph] iter_orchestrator completed, is_ok={}", result.is_ok());
+        let result =
+            client.iter_orchestrator(&mut Default::default(), Default::default(), ctx, self);
+        eprintln!(
+            "[orchestration_graph] iter_orchestrator completed, is_ok={}",
+            result.is_ok()
+        );
         result
     }
 

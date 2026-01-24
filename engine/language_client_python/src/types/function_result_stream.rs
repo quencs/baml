@@ -120,7 +120,7 @@ impl FunctionResultStream {
         let tb = self.tb.clone();
         let cb = self.cb.clone();
         let env_vars = self.env_vars.clone();
-        crate::fork_safe_future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let ctx_mng = ctx_mng;
             let mut inner = inner;
             let (res, _) = inner

@@ -10,7 +10,6 @@ from .baml_py import (
     BamlImagePy as Image,
     BamlAudioPy as Audio,
     invoke_runtime_cli,
-    reset_after_fork,
     BamlPdfPy as Pdf,
     BamlVideoPy as Video,
     ClientRegistry,
@@ -39,7 +38,6 @@ __all__ = [
     "Pdf",
     "Video",
     "invoke_runtime_cli",
-    "reset_after_fork",
     # Collector types
     "Collector",
     "FunctionLog",

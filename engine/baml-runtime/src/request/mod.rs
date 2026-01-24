@@ -45,10 +45,6 @@ pub fn create_http_client(
             let danger_accept_invalid_certs = matches!(std::env::var("DANGER_ACCEPT_INVALID_CERTS").as_deref(), Ok("1"));
             eprintln!("[create_http_client] Creating builder...");
 
-            // Check if we're in a forked child process
-            let is_forked = crate::was_forked();
-            eprintln!("[create_http_client] was_forked={}", is_forked);
-
             let mut builder = reqwest::Client::builder()
                 .danger_accept_invalid_certs(danger_accept_invalid_certs)
                 .http2_keep_alive_interval(Some(Duration::from_secs(10)))
@@ -61,12 +57,18 @@ pub fn create_http_client(
                 .pool_max_idle_per_host(0)
                 .pool_idle_timeout(std::time::Duration::from_nanos(1));
 
-            // CRITICAL: Disable system proxy detection in forked children.
-            // On macOS, reqwest calls SCDynamicStore::get_proxies which uses
-            // Core Foundation APIs that are NOT fork-safe and cause SIGSEGV.
-            if is_forked {
-                eprintln!("[create_http_client] Forked child: disabling system proxy detection");
-                builder = builder.no_proxy();
+            // On macOS, disable system proxy detection unless user has explicitly
+            // set proxy env vars. This avoids calling SCDynamicStore::get_proxies
+            // which uses Core Foundation APIs that are NOT fork-safe and cause SIGSEGV.
+            #[cfg(target_os = "macos")]
+            {
+                let has_proxy_env = std::env::var("HTTP_PROXY").is_ok()
+                    || std::env::var("HTTPS_PROXY").is_ok()
+                    || std::env::var("ALL_PROXY").is_ok();
+
+                if !has_proxy_env {
+                    builder = builder.no_proxy();
+                }
             }
 
             eprintln!("[create_http_client] Builder created");

@@ -27,7 +27,6 @@ pub use baml_runtime::async_vm_runtime::BamlAsyncVmRuntime as CoreBamlRuntime;
 
 use crate::{
     errors::{BamlError, BamlInvalidArgumentError},
-    fork_safe_future_into_py,
     parse_py_type::parse_py_type,
     types::{
         function_result_stream::{FunctionResultStream, SyncFunctionResultStream},
@@ -252,21 +251,13 @@ impl BamlRuntime {
         self.inner.disassemble(&function_name);
     }
 
-    /// Static method to recreate BamlRuntime from pickle state.
-    /// This is called when deserializing a pickled BamlRuntime, which typically
-    /// happens in a forked child process (e.g., RQ worker, multiprocessing).
-    /// We call reset_after_fork() to ensure the child process gets fresh
-    /// tokio runtimes and publisher channels instead of corrupted parent state.
+    /// Static method to recreate BamlRuntime from pickle state
     #[staticmethod]
     fn _create_from_state(
         root_path: String,
         env_vars: std::collections::HashMap<String, String>,
         files: std::collections::HashMap<String, String>,
     ) -> PyResult<Self> {
-        // Reset global state after fork - this ensures the forked child process
-        // gets fresh tokio runtimes and publisher channels
-        baml_runtime::reset_after_fork();
-
         let core = CoreBamlRuntime::from_file_content(&root_path, &files, env_vars.clone())
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
         Ok(BamlRuntime {
@@ -369,7 +360,7 @@ impl BamlRuntime {
             None
         };
 
-        fork_safe_future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = notification_callbacks {
                     Python::with_gil(|py| {
@@ -497,10 +488,9 @@ impl BamlRuntime {
                 }
             });
 
-            eprintln!("[call_function:async] About to call baml_runtime.call_function for {}", function_name);
             let (result, _) = baml_runtime
                 .call_function(
-                    function_name.clone(),
+                    function_name,
                     &args_map,
                     &ctx_mng,
                     tb.as_ref(),
@@ -512,7 +502,6 @@ impl BamlRuntime {
                     Some(watch_handler),
                 )
                 .await;
-            eprintln!("[call_function:async] baml_runtime.call_function completed for {}, is_ok={}", function_name, result.is_ok());
 
             result
                 .map(FunctionResult::from)
@@ -865,7 +854,7 @@ impl BamlRuntime {
         let type_builder = tb.map(|tb| tb.inner.clone());
         let client_registry = cb.map(|cb| cb.inner.clone());
 
-        fork_safe_future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             baml_runtime
                 .build_request(
                     function_name,
