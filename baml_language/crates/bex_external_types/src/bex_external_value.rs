@@ -22,8 +22,9 @@
 //! }
 //! ```
 
-// Re-export Ty from baml_snapshot for convenience
-pub use baml_snapshot::Ty;
+// Re-export Ty from bex_program for convenience
+pub use bex_program::Ty;
+use bex_resource_types::ResourceHandle;
 use indexmap::IndexMap;
 
 /// Metadata about a union type, embedded with values from union-typed contexts.
@@ -150,6 +151,14 @@ pub enum BexExternalValue {
         /// Metadata about the union type.
         metadata: UnionMetadata,
     },
+
+    Media {
+        handle: crate::Handle,
+        kind: baml_base::MediaKind,
+    },
+
+    /// Resource handle (file, socket, etc.) for sys operations.
+    Resource(ResourceHandle),
 }
 
 impl BexExternalValue {
@@ -166,6 +175,51 @@ impl BexExternalValue {
             BexExternalValue::Instance { .. } => "instance",
             BexExternalValue::Variant { .. } => "variant",
             BexExternalValue::Union { .. } => "union",
+            BexExternalValue::Media { kind, .. } => match kind {
+                baml_base::MediaKind::Image => "image",
+                baml_base::MediaKind::Audio => "audio",
+                baml_base::MediaKind::Video => "video",
+                baml_base::MediaKind::Pdf => "pdf",
+                baml_base::MediaKind::Generic => "media",
+            },
+            BexExternalValue::Resource(handle) => match handle.kind {
+                bex_resource_types::ResourceType::File => "file",
+                bex_resource_types::ResourceType::Socket => "socket",
+            },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resource_variant_construction() {
+        // Test that we can construct a Resource variant with an opaque handle
+        let handle = bex_resource_types::ResourceHandle::new_without_cleanup(
+            1,
+            bex_resource_types::ResourceType::File,
+            "test.txt".to_string(),
+        );
+
+        let resource = BexExternalValue::Resource(handle);
+
+        // Test type_name returns "file"
+        assert_eq!(resource.type_name(), "file");
+    }
+
+    #[test]
+    fn test_resource_socket_type_name() {
+        let handle = bex_resource_types::ResourceHandle::new_without_cleanup(
+            2,
+            bex_resource_types::ResourceType::Socket,
+            "localhost:8080".to_string(),
+        );
+
+        let resource = BexExternalValue::Resource(handle);
+
+        // Test type_name returns "socket"
+        assert_eq!(resource.type_name(), "socket");
     }
 }

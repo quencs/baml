@@ -17,6 +17,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bex_heap::{BexHeap, Tlab};
+use bex_resource_types::ResourceHandle;
 use bex_vm_types::{
     BinOp, CmpOp, FunctionKind, GlobalPool, HeapPtr, Instruction, Object, ObjectIndex, ObjectPool,
     ObjectType, StackIndex, UnaryOp, Value, Variant,
@@ -346,6 +347,7 @@ fn value_type_tag(value: &Value) -> i64 {
                 Object::Future(_) => type_tags::FUTURE,
                 Object::Enum(_) => type_tags::ENUM,
                 Object::Media(_) => type_tags::MEDIA,
+                Object::Resource(_) => type_tags::RESOURCE,
                 Object::Class(_) => type_tags::UNKNOWN,
                 #[cfg(feature = "heap_debug")]
                 Object::Sentinel(_) => type_tags::UNKNOWN,
@@ -522,7 +524,7 @@ impl BexVm {
     pub fn as_media(
         &self,
         value: &Value,
-        media_kind: bex_vm_types::types::MediaKind,
+        media_kind: baml_base::MediaKind,
     ) -> Result<&bex_vm_types::types::MediaValue, InternalError> {
         let index = self.as_object_ptr(value, ObjectType::Media(media_kind))?;
         let obj = self.get_object(index);
@@ -540,7 +542,7 @@ impl BexVm {
     pub fn as_media_mut(
         &mut self,
         value: &Value,
-        media_kind: bex_vm_types::types::MediaKind,
+        media_kind: baml_base::MediaKind,
     ) -> Result<&mut bex_vm_types::types::MediaValue, InternalError> {
         let index = self.as_object_ptr(value, ObjectType::Media(media_kind))?;
         // Check type first to avoid borrow issues
@@ -567,6 +569,7 @@ impl BexVm {
         Err(InternalError::InvalidObjectRef(ptr.as_ptr() as usize))
     }
 
+    /// TODO: We should remove this API in favor of using `bex_engine` only (vbv)
     /// Creates a VM from a compiled [`bex_vm_types::Program`].
     ///
     /// This is primarily for testing. In production, use `BexEngine` which
@@ -623,7 +626,6 @@ impl BexVm {
         // stack and call stack should be empty.
         self.stack.clear();
         self.frames.clear();
-        self.collect_garbage();
     }
 
     /// Returns a reference to the pending future.
@@ -669,16 +671,6 @@ impl BexVm {
         Ok(())
     }
 
-    /// Stub for garbage collection.
-    ///
-    /// In the unified heap architecture, GC is coordinated by the engine
-    /// at safepoints (when all VMs are yielded). This method is kept for
-    /// API compatibility but is a no-op.
-    pub fn collect_garbage(&mut self) {
-        // GC is now coordinated by the engine at safepoints.
-        // This is a no-op in the unified heap architecture.
-    }
-
     /// Allocates an array on the heap and returns it to the caller.
     pub fn alloc_array(&mut self, values: Vec<Value>) -> Value {
         Value::Object(self.tlab.alloc(Object::Array(values)))
@@ -709,6 +701,11 @@ impl BexVm {
     /// Allocate a future object.
     pub fn alloc_future(&mut self, future: Future) -> Value {
         Value::Object(self.tlab.alloc(Object::Future(future)))
+    }
+
+    /// Allocate a resource object on the heap.
+    pub fn alloc_resource(&mut self, resource: ResourceHandle) -> Value {
+        Value::Object(self.tlab.alloc(Object::Resource(resource)))
     }
 
     // pub fn alloc_media(&mut self, media: BamlMedia) -> Value {

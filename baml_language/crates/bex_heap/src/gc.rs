@@ -317,7 +317,8 @@ impl BexHeap {
             | Object::Class(_)
             | Object::Enum(_)
             | Object::Function(_)
-            | Object::Media(_) => {}
+            | Object::Media(_)
+            | Object::Resource(_) => {}
         }
     }
 
@@ -384,7 +385,8 @@ impl BexHeap {
             | Object::Class(_)
             | Object::Enum(_)
             | Object::Function(_)
-            | Object::Media(_) => {}
+            | Object::Media(_)
+            | Object::Resource(_) => {}
         }
     }
 

@@ -605,13 +605,13 @@ impl BexHeap {
     /// Handles are used at the FFI boundary to give external code safe
     /// access to heap objects. Handles are GC roots - objects reachable
     /// from handles will not be collected.
-    pub fn create_handle(self: &Arc<Self>, idx: HeapPtr) -> Handle {
+    pub fn create_handle(self: &Arc<Self>, ptr: HeapPtr) -> Handle {
         // Get a unique key for this handle
         let handle_key = self.next_handle_key.fetch_add(1, Ordering::Relaxed);
 
         // Insert into the handle table
         if let Ok(mut handles) = self.handles.write() {
-            handles.insert(handle_key, idx);
+            handles.insert(handle_key, ptr);
         }
 
         // Handle no longer stores idx - always resolves through table

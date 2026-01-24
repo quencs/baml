@@ -14,7 +14,6 @@ use bex_vm_types::{
     bytecode::{
         BinOp, BlockNotification as VmBlockNotification, BlockNotificationType, CmpOp, UnaryOp,
     },
-    types::MediaKind,
 };
 use indexmap::IndexMap;
 
@@ -80,7 +79,7 @@ pub enum Object {
     Map(IndexMap<String, Value>),
     Instance(Instance),
     Variant(Variant),
-    Media(MediaKind),
+    Media(baml_base::MediaKind),
     /// Function name (for `LoadGlobal` instructions)
     Function(String),
     /// Class name (for `AllocInstance` instructions)
@@ -146,6 +145,7 @@ impl Object {
             VmObject::Enum(e) => Ok(Object::Enum(e.name.clone())),
 
             VmObject::Future(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
+            VmObject::Resource(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
             #[cfg(feature = "heap_debug")]
             VmObject::Sentinel(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
         }

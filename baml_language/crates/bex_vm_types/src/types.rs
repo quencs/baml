@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use bex_resource_types::ResourceHandle;
 use indexmap::IndexMap;
 
 use crate::{bytecode::Bytecode, heap_ptr::HeapPtr, indexable::ObjectPool};
@@ -37,6 +38,8 @@ pub mod type_tags {
     pub const FUTURE: i64 = 9;
     /// Media type tag.
     pub const MEDIA: i64 = 10;
+    /// Resource type tag (file handle, socket, etc.).
+    pub const RESOURCE: i64 = 11;
     /// Base value for class type tags (classes start at 100).
     pub const CLASS_BASE: i64 = 100;
     /// Unknown/invalid type tag.
@@ -448,6 +451,9 @@ pub enum Object {
     // /// Images, audio, pdf, video.
     Media(MediaValue),
 
+    /// External resource (file handle, socket, etc.).
+    Resource(ResourceHandle),
+
     #[cfg(feature = "heap_debug")]
     Sentinel(SentinelKind),
     // TODO: Figure out how to handle this here.
@@ -467,6 +473,7 @@ impl std::fmt::Display for Object {
             Object::Array(array) => write!(f, "<array len={}>", array.len()),
             Object::Map(map) => write!(f, "<map len={}>", map.len()),
             Object::Media(media) => media.fmt(f),
+            Object::Resource(r) => write!(f, "<{r}>"),
             Object::Future(future) => match future {
                 Future::Pending(future) => {
                     write!(f, "<pending: {}>", future.operation)
@@ -505,7 +512,7 @@ pub struct PendingFuture {
 
 #[derive(Clone, Debug)]
 pub struct MediaValue {
-    pub kind: MediaKind,
+    pub kind: baml_base::MediaKind,
     pub content: MediaContent,
     pub mime_type: Option<String>,
 }
@@ -608,8 +615,9 @@ pub enum ObjectType {
     String,
     Enum,
     Variant,
-    Media(MediaKind),
+    Media(baml_base::MediaKind),
     Future(FutureType),
+    Resource,
 }
 
 impl ObjectType {
@@ -624,6 +632,7 @@ impl ObjectType {
             Object::Array(_) => Self::Array,
             Object::Map(_) => Self::Map,
             Object::Media(media) => Self::Media(media.kind),
+            Object::Resource(_) => Self::Resource,
             Object::Future(fut) => Self::Future(fut.into()),
             #[cfg(feature = "heap_debug")]
             Object::Sentinel(_) => Self::Any,
@@ -658,6 +667,7 @@ impl std::fmt::Display for ObjectType {
             ObjectType::Future(future_type) => write!(f, "{future_type}"),
             ObjectType::String => write!(f, "string"),
             ObjectType::Media(media_kind) => write!(f, "{media_kind}"),
+            ObjectType::Resource => write!(f, "resource"),
         }
     }
 }
@@ -713,27 +723,6 @@ impl From<&Future> for FutureType {
         match value {
             Future::Pending(_) => Self::Pending,
             Future::Ready(_) => Self::Ready,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MediaKind {
-    Image,
-    Audio,
-    Video,
-    Pdf,
-    Generic,
-}
-
-impl std::fmt::Display for MediaKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MediaKind::Image => write!(f, "image"),
-            MediaKind::Audio => write!(f, "audio"),
-            MediaKind::Video => write!(f, "video"),
-            MediaKind::Pdf => write!(f, "pdf"),
-            MediaKind::Generic => write!(f, "media"),
         }
     }
 }

@@ -687,13 +687,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "baml_snapshot"
-version = "0.0.0"
-dependencies = [
- "bex_vm_types",
-]
-
-[[package]]
 name = "baml_tests"
 version = "0.0.0"
 dependencies = [
@@ -706,8 +699,8 @@ dependencies = [
  "baml_compiler_tir",
  "baml_db",
  "baml_project",
- "baml_snapshot",
  "baml_workspace",
+ "bex_program",
  "bex_vm",
  "bex_vm_types",
  "codspeed-divan-compat",
@@ -764,14 +757,16 @@ name = "bex_engine"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "baml_snapshot",
  "baml_tests",
  "bex_external_types",
  "bex_heap",
- "bex_sys",
+ "bex_program",
+ "bex_resource_types",
  "bex_vm",
  "bex_vm_types",
  "indexmap 2.13.0",
+ "sys_native",
+ "sys_types",
  "tempfile",
  "thiserror 2.0.17",
  "tokio",
@@ -782,9 +777,12 @@ dependencies = [
 name = "bex_external_types"
 version = "0.0.0"
 dependencies = [
- "baml_snapshot",
+ "baml_base",
+ "bex_program",
+ "bex_resource_types",
  "bex_vm_types",
  "indexmap 2.13.0",
+ "tokio",
 ]
 
 [[package]]
@@ -799,13 +797,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "bex_sys"
+name = "bex_program"
 version = "0.0.0"
 dependencies = [
- "indexmap 2.13.0",
- "thiserror 2.0.17",
- "tokio",
+ "bex_vm_types",
 ]
+
+[[package]]
+name = "bex_resource_types"
+version = "0.0.0"
 
 [[package]]
 name = "bex_vm"
@@ -818,6 +818,7 @@ dependencies = [
  "baml_compiler_emit",
  "baml_tests",
  "bex_heap",
+ "bex_resource_types",
  "bex_vm_types",
  "codspeed-divan-compat",
  "colored",
@@ -837,6 +838,7 @@ dependencies = [
  "baml_builtins_macros",
  "baml_compiler_emit",
  "baml_tests",
+ "bex_resource_types",
  "codspeed-divan-compat",
  "colored",
  "indexmap 2.13.0",
@@ -946,6 +948,19 @@ checksum = "87a0c0e6148f11f01f32650a2ea02d532b2ad4e81d8bd41e6e565b5adc5e6082"
 dependencies = [
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "cargo-stow"
+version = "0.1.0"
+dependencies = [
+ "cargo_metadata",
+ "clap",
+ "graphviz-rust",
+ "serde",
+ "taplo",
+ "toml",
+ "toml_edit 0.22.27",
 ]
 
 [[package]]
@@ -4207,6 +4222,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "sys_native"
+version = "0.0.0"
+dependencies = [
+ "bex_external_types",
+ "bex_resource_types",
+ "sys_types",
+ "tokio",
+]
+
+[[package]]
+name = "sys_types"
+version = "0.0.0"
+dependencies = [
+ "bex_external_types",
+ "bex_resource_types",
+ "bex_vm_types",
+ "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
 name = "system-configuration"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4407,7 +4443,6 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
- "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2 0.6.1",
@@ -4641,19 +4676,6 @@ name = "tools_rig"
 version = "0.0.0"
 dependencies = [
  "baml_codegen_tests",
-]
-
-[[package]]
-name = "tools_stow"
-version = "0.0.0"
-dependencies = [
- "cargo_metadata",
- "clap",
- "graphviz-rust",
- "serde",
- "taplo",
- "toml",
- "toml_edit 0.22.27",
 ]
 
 [[package]]
