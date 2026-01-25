@@ -9,24 +9,47 @@ use std::sync::atomic::{AtomicBool, Ordering};
 // Flag to prevent recursive signal handler calls
 static HANDLING_SIGNAL: AtomicBool = AtomicBool::new(false);
 
-/// Install a signal handler for SIGSEGV that prints a backtrace before crashing.
+/// Install signal handlers for crash signals that print a backtrace before crashing.
 /// This helps debug fork-safety issues.
-fn install_sigsegv_handler() {
+fn install_signal_handlers() {
     unsafe {
-        // Set up a signal handler for SIGSEGV
         let mut action: libc::sigaction = std::mem::zeroed();
-        action.sa_sigaction = sigsegv_handler as usize;
+        action.sa_sigaction = crash_signal_handler as usize;
         action.sa_flags = libc::SA_SIGINFO;
 
+        // Install handler for SIGSEGV (signal 11)
         if libc::sigaction(libc::SIGSEGV, &action, std::ptr::null_mut()) != 0 {
             eprintln!("[BAML] Warning: Failed to install SIGSEGV handler");
-        } else {
-            eprintln!("[BAML] SIGSEGV handler installed for debugging, PID={}", std::process::id());
+        }
+
+        // Install handler for SIGTRAP (signal 5)
+        if libc::sigaction(libc::SIGTRAP, &action, std::ptr::null_mut()) != 0 {
+            eprintln!("[BAML] Warning: Failed to install SIGTRAP handler");
+        }
+
+        // Install handler for SIGBUS (signal 10)
+        if libc::sigaction(libc::SIGBUS, &action, std::ptr::null_mut()) != 0 {
+            eprintln!("[BAML] Warning: Failed to install SIGBUS handler");
+        }
+
+        // Install handler for SIGABRT (signal 6)
+        if libc::sigaction(libc::SIGABRT, &action, std::ptr::null_mut()) != 0 {
+            eprintln!("[BAML] Warning: Failed to install SIGABRT handler");
         }
     }
 }
 
-extern "C" fn sigsegv_handler(sig: libc::c_int, _info: *mut libc::siginfo_t, _ctx: *mut libc::c_void) {
+fn signal_name(sig: libc::c_int) -> &'static str {
+    match sig {
+        libc::SIGSEGV => "SIGSEGV",
+        libc::SIGTRAP => "SIGTRAP",
+        libc::SIGBUS => "SIGBUS",
+        libc::SIGABRT => "SIGABRT",
+        _ => "UNKNOWN",
+    }
+}
+
+extern "C" fn crash_signal_handler(sig: libc::c_int, _info: *mut libc::siginfo_t, _ctx: *mut libc::c_void) {
     // Prevent recursive calls
     if HANDLING_SIGNAL.swap(true, Ordering::SeqCst) {
         // Already handling a signal, just abort
@@ -35,8 +58,9 @@ extern "C" fn sigsegv_handler(sig: libc::c_int, _info: *mut libc::siginfo_t, _ct
 
     // Use write() directly instead of eprintln! since we're in a signal handler
     // and eprintln! may not be signal-safe
-    let msg = b"\n\n=== SIGSEGV CAUGHT ===\nPID: ";
-    unsafe { libc::write(2, msg.as_ptr() as *const libc::c_void, msg.len()) };
+    let sig_name = signal_name(sig);
+    let header = format!("\n\n=== {} (signal {}) CAUGHT ===\nPID: ", sig_name, sig);
+    unsafe { libc::write(2, header.as_ptr() as *const libc::c_void, header.len()) };
 
     let pid = std::process::id();
     let pid_str = format!("{}\n", pid);
@@ -51,21 +75,90 @@ extern "C" fn sigsegv_handler(sig: libc::c_int, _info: *mut libc::siginfo_t, _ct
     let bt_str = format!("{:?}\n", bt);
     unsafe { libc::write(2, bt_str.as_ptr() as *const libc::c_void, bt_str.len()) };
 
-    let msg3 = b"\n=== END SIGSEGV ===\n";
-    unsafe { libc::write(2, msg3.as_ptr() as *const libc::c_void, msg3.len()) };
+    let footer = format!("\n=== END {} ===\n", sig_name);
+    unsafe { libc::write(2, footer.as_ptr() as *const libc::c_void, footer.len()) };
 
     // Re-raise the signal with default handler to get proper exit code
     unsafe {
-        libc::signal(libc::SIGSEGV, libc::SIG_DFL);
-        libc::raise(libc::SIGSEGV);
+        libc::signal(sig, libc::SIG_DFL);
+        libc::raise(sig);
     }
 }
+
+use std::future::Future;
 
 use pyo3::{
     prelude::{pyfunction, pymodule, PyAnyMethods, PyModule, PyResult},
     types::PyModuleMethods,
-    wrap_pyfunction, Bound, Python,
+    wrap_pyfunction, Bound, BoundObject, IntoPyObject, Py, Python,
 };
+
+/// Fork-safe alternative to pyo3_async_runtimes::tokio::future_into_py.
+///
+/// This function works correctly in forked child processes by using BAML's
+/// fork-safe tokio runtime instead of pyo3-async-runtimes' global runtime
+/// (which becomes corrupted after fork).
+///
+/// The approach:
+/// 1. Get BAML's fork-safe tokio runtime (creates fresh one if in forked child)
+/// 2. Create a Python asyncio.Future
+/// 3. Spawn the Rust future on our fork-safe runtime
+/// 4. When complete, set the result on the Python future via call_soon_threadsafe
+pub(crate) fn fork_safe_future_into_py<F, T>(py: Python<'_>, fut: F) -> PyResult<Bound<'_, pyo3::PyAny>>
+where
+    F: Future<Output = PyResult<T>> + Send + 'static,
+    T: for<'py> IntoPyObject<'py> + Send + 'static,
+{
+    // Get fork-safe runtime
+    let rt = baml_runtime::BamlRuntime::get_tokio_singleton()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to get tokio runtime: {}", e)))?;
+
+    // Get the running event loop
+    let asyncio = py.import("asyncio")?;
+    let event_loop = asyncio.call_method0("get_running_loop")?;
+
+    // Create a Python future
+    let py_future = event_loop.call_method0("create_future")?;
+
+    // Clone references for the spawned task
+    let py_future_ref: Py<pyo3::PyAny> = py_future.clone().unbind();
+    let event_loop_ref: Py<pyo3::PyAny> = event_loop.clone().unbind();
+
+    // Spawn on our fork-safe runtime
+    rt.spawn(async move {
+        let result = fut.await;
+
+        // Set the result on the Python future from the Rust thread
+        // We need to use call_soon_threadsafe since we're not on the Python thread
+        Python::with_gil(|py| {
+            let future = py_future_ref.bind(py);
+            let loop_ = event_loop_ref.bind(py);
+
+            match result {
+                Ok(val) => {
+                    match val.into_pyobject(py) {
+                        Ok(py_val) => {
+                            let py_obj: Py<pyo3::PyAny> = py_val.into_any().unbind();
+                            let set_result = future.getattr("set_result").unwrap();
+                            let _ = loop_.call_method1("call_soon_threadsafe", (set_result, py_obj));
+                        }
+                        Err(e) => {
+                            let err: pyo3::PyErr = e.into();
+                            let set_exception = future.getattr("set_exception").unwrap();
+                            let _ = loop_.call_method1("call_soon_threadsafe", (set_exception, err.value(py)));
+                        }
+                    }
+                }
+                Err(e) => {
+                    let set_exception = future.getattr("set_exception").unwrap();
+                    let _ = loop_.call_method1("call_soon_threadsafe", (set_exception, e.value(py)));
+                }
+            }
+        });
+    });
+
+    Ok(py_future)
+}
 
 #[pyfunction]
 fn invoke_runtime_cli(py: Python) -> PyResult<i32> {
@@ -155,7 +248,7 @@ fn baml_py(m: Bound<'_, PyModule>) -> PyResult<()> {
     init_debug_logger();
 
     // Install SIGSEGV handler for debugging fork-safety issues
-    install_sigsegv_handler();
+    install_signal_handlers();
 
     Ok(())
 }

@@ -21,11 +21,6 @@ wheels = [
 ]
 
 [[package]]
-name = "baml-py"
-version = "0.218.0"
-source = { editable = "../../engine/language_client_python" }
-
-[[package]]
 name = "click"
 version = "8.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -64,7 +59,6 @@ name = "debug-rq"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "baml-py" },
     { name = "django" },
     { name = "django-rq" },
     { name = "pydantic" },
@@ -75,7 +69,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "baml-py", editable = "../../engine/language_client_python" },
     { name = "django", specifier = ">=6.0.1" },
     { name = "django-rq", specifier = ">=2.10.0" },
     { name = "pydantic", specifier = ">=2.12.5" },

@@ -382,6 +382,7 @@ impl<'a> TracingCallGuard<'a> {
                 }
             }
         } else {
+            eprintln!("[TracingCallGuard::finish_with] No call to finish. cant send function_end");
             Ok(())
         }
     }
@@ -642,6 +643,7 @@ impl BamlRuntime {
             #[cfg(not(target_arch = "wasm32"))]
             async_runtime: rt.clone(),
         };
+        eprintln!("[BamlRuntime::new_runtime] Starting BAML publisher");
 
         tracingv2::publisher::start_publisher(
             Arc::new(
@@ -656,6 +658,52 @@ impl BamlRuntime {
         );
 
         Ok(runtime)
+    }
+
+    /// Ensures the publisher is running, reinitializing if we're in a forked child process.
+    /// This should be called before any function that needs to publish traces.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn ensure_publisher_running(&self, env_vars: &HashMap<String, String>) {
+        use crate::tracingv2::publisher::is_publisher_in_forked_child;
+
+        // Check if we need to reinitialize (we're in a forked child)
+        if !is_publisher_in_forked_child() {
+            return; // Publisher is fine, nothing to do
+        }
+
+        log::info!(
+            "Reinitializing publisher in forked child process (PID {})",
+            std::process::id()
+        );
+
+        // Get the fork-safe tokio runtime
+        let rt = match Self::get_tokio_singleton() {
+            Ok(rt) => rt,
+            Err(e) => {
+                log::error!(
+                    "Failed to get tokio runtime for publisher reinitialization: {}",
+                    e
+                );
+                return;
+            }
+        };
+
+        // Create AstSignatureWrapper from this runtime
+        let runtime_arc = Arc::new(self.clone());
+        let ast_wrapper: Result<crate::runtime::AstSignatureWrapper> =
+            (runtime_arc, env_vars.clone()).try_into();
+
+        match ast_wrapper {
+            Ok(wrapper) => {
+                tracingv2::publisher::start_publisher(Arc::new(wrapper), rt);
+            }
+            Err(e) => {
+                log::error!(
+                    "Failed to create AstSignatureWrapper for publisher reinitialization: {}",
+                    e
+                );
+            }
+        }
     }
 
     pub fn parse_baml_src_path(path: impl Into<PathBuf>) -> Result<PathBuf> {
@@ -1526,6 +1574,11 @@ impl BamlRuntime {
             function_name,
             std::process::id()
         );
+
+        // Ensure publisher is running (reinitialize if we're in a forked child)
+        #[cfg(not(target_arch = "wasm32"))]
+        self.ensure_publisher_running(&env_vars);
+
         // baml_log::info!("env vars: {:#?}", env_vars.clone());
         eprintln!("[call_function_with_expr_events] Setting log from env...");
         baml_log::set_from_env(&env_vars).unwrap();
@@ -2061,46 +2114,52 @@ impl BamlRuntime {
                     return Ok(client.clone());
                 }
 
-                // // Skip DashMap cache in forked children - DashMap is not fork-safe
-                // // and its internal state can be corrupted after fork
-                // #[cfg(not(target_arch = "wasm32"))]
-                // {
-                //     let forked = was_forked();
-                //     eprintln!("[get_llm_provider_impl] was_forked()={}, PID={}",
-                //               forked, std::process::id());
-                // }
-                // #[cfg(not(target_arch = "wasm32"))]
-                // if was_forked() {
-                //     eprintln!("[get_llm_provider_impl] Forked child detected, skipping cache...");
-                //     eprintln!("[get_llm_provider_impl:fork] Calling self.ir()...");
-                //     let ir = self.ir();
-                //     eprintln!("[get_llm_provider_impl:fork] Got IR, calling find_client...");
-                //     let walker = ir
-                //         .find_client(client_name)
-                //         .context(format!("Could not find client with name: {client_name}"))?;
-                //     eprintln!("[get_llm_provider_impl:fork] Found client walker, provider type={:?}", walker.item.elem.provider);
-                //     eprintln!("[get_llm_provider_impl:fork] Calling LLMProvider::try_from...");
-                //     let new_client = LLMProvider::try_from((&walker, ctx)).map(Arc::new)?;
-                //     eprintln!("[get_llm_provider_impl:fork] Created provider for forked child");
+                // Skip DashMap cache in forked children - DashMap is not fork-safe
+                // and its internal state can be corrupted after fork
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let forked = was_forked();
+                    eprintln!(
+                        "[get_llm_provider_impl] was_forked()={}, PID={}",
+                        forked,
+                        std::process::id()
+                    );
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                if was_forked() {
+                    eprintln!("[get_llm_provider_impl] Forked child detected, skipping cache...");
+                    eprintln!("[get_llm_provider_impl:fork] Calling self.ir()...");
+                    let ir = self.ir();
+                    eprintln!("[get_llm_provider_impl:fork] Got IR, calling find_client...");
+                    let walker = ir
+                        .find_client(client_name)
+                        .context(format!("Could not find client with name: {client_name}"))?;
+                    eprintln!(
+                        "[get_llm_provider_impl:fork] Found client walker, provider type={:?}",
+                        walker.item.elem.provider
+                    );
+                    eprintln!("[get_llm_provider_impl:fork] Calling LLMProvider::try_from...");
+                    let new_client = LLMProvider::try_from((&walker, ctx)).map(Arc::new)?;
+                    eprintln!("[get_llm_provider_impl:fork] Created provider for forked child");
 
-                //     // Check required env vars (same logic as below but without caching)
-                //     let uses_proxy_server = ctx.proxy_url().is_some();
-                //     let fail_on_missing_required_env_vars = !ctx.is_modular_api()
-                //         && !uses_proxy_server
-                //         && !matches!(
-                //             walker.item.elem.provider,
-                //             internal_llm_client::ClientProvider::AwsBedrock
-                //                 | internal_llm_client::ClientProvider::Vertex
-                //         );
-                //     for key in walker.required_env_vars() {
-                //         if ctx.env_vars().get(&key).is_none() && fail_on_missing_required_env_vars {
-                //             anyhow::bail!(
-                //                 "LLM client '{client_name}' requires environment variable '{key}' to be set but it is not"
-                //             );
-                //         }
-                //     }
-                //     return Ok(new_client);
-                // }
+                    // Check required env vars (same logic as below but without caching)
+                    let uses_proxy_server = ctx.proxy_url().is_some();
+                    let fail_on_missing_required_env_vars = !ctx.is_modular_api()
+                        && !uses_proxy_server
+                        && !matches!(
+                            walker.item.elem.provider,
+                            internal_llm_client::ClientProvider::AwsBedrock
+                                | internal_llm_client::ClientProvider::Vertex
+                        );
+                    for key in walker.required_env_vars() {
+                        if ctx.env_vars().get(&key).is_none() && fail_on_missing_required_env_vars {
+                            anyhow::bail!(
+                                "LLM client '{client_name}' requires environment variable '{key}' to be set but it is not"
+                            );
+                        }
+                    }
+                    return Ok(new_client);
+                }
 
                 eprintln!("[get_llm_provider_impl] No override, checking cache..eeee.");
                 #[cfg(target_arch = "wasm32")]
@@ -2109,7 +2168,15 @@ impl BamlRuntime {
                 let clients = &self.clients;
                 eprintln!("[get_llm_provider_impl] Got clients reference");
 
-                if clients.contains_key(client_name) {
+                // Skip cache if we're in a forked process - the cached reqwest clients
+                // contain corrupted TLS state from the parent process (macOS Security
+                // framework is not fork-safe).
+                #[cfg(not(target_arch = "wasm32"))]
+                let skip_cache = was_forked();
+                #[cfg(target_arch = "wasm32")]
+                let skip_cache = false;
+
+                if !skip_cache && clients.contains_key(client_name) {
                     #[allow(clippy::map_clone)]
                     let client = clients.get(client_name).map(|c| c.clone()).unwrap();
                     if !client.has_env_vars_changed(ctx.env_vars()) {

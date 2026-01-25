@@ -1,4 +1,5 @@
 """RQ jobs for testing BAML fork safety."""
+
 import asyncio
 import os
 import sys
@@ -6,6 +7,7 @@ import sys
 # Top-level imports - these get loaded in parent process before fork
 from baml_client.async_client import b as async_baml_client
 from baml_client.sync_client import b as sync_baml_client
+from baml_client.tracing import flush
 
 
 def sync_worker_job():
@@ -23,6 +25,7 @@ def sync_worker_job():
     except Exception as e:
         print(f"[PID {os.getpid()}] Error: {e}", flush=True)
         import traceback
+
         traceback.print_exc()
         return None
 
@@ -44,8 +47,12 @@ async def _async_baml_call():
     except Exception as e:
         print(f"[PID {os.getpid()}] Error: {e}", flush=True)
         import traceback
+
         traceback.print_exc()
         return None
+
+    print(f"[PID {os.getpid()}] Flushing traces...", flush=True)
+    flush()
 
     return "Hello2"
 
@@ -57,5 +64,8 @@ def async_worker_job():
     sys.stderr.flush()
 
     result = asyncio.run(_async_baml_call())
-    print(f"[PID {os.getpid()}] async_worker_job completed with result: {result}", flush=True)
+    print(
+        f"[PID {os.getpid()}] async_worker_job completed with result: {result}",
+        flush=True,
+    )
     return result

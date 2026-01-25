@@ -39,6 +39,7 @@ import django_rq
 from core.constants import QueueNames
 from core.utils.general_utils import sleep
 from baml_client.async_client import b as async_baml_client
+from baml_client.tracing import flush
 
 
 def test_sync_main():
@@ -62,7 +63,7 @@ def test_sync_main():
 async def _async_baml_call():
     """Call the LLM via BAML"""
 
-    # from baml_client.tracing import flush
+    from baml_client.tracing import flush
 
     try:
         result = await async_baml_client.MakeFoo(
@@ -76,7 +77,8 @@ async def _async_baml_call():
         return None
 
     # Force the tracing system to finish publishing.
-    # flush()
+    flush()
+    sleep(4)
 
     return "Hello2"
 
@@ -91,6 +93,7 @@ def _async_worker_job():
 def test_async_worker():
     """BAML async call in RQ worker - works but missing from Boundary Studio!"""
     from core.jobs import async_worker_job
+
     print("\nTest 2: Async in RQ worker...")
     queue = django_rq.get_queue(QueueNames.ASYNC.value)
     job = queue.enqueue(async_worker_job)
