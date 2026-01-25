@@ -187,17 +187,6 @@ impl ThreadedTracer {
     }
 
     pub fn flush(&self) -> Result<()> {
-        // Skip flushing if we're in a forked child process - the receiving thread
-        // was created in the parent and doesn't exist in the child.
-        #[cfg(not(target_arch = "wasm32"))]
-        if crate::was_forked() {
-            log::debug!(
-                "Skipping ThreadedTracer flush in forked child process (PID {})",
-                std::process::id()
-            );
-            return Ok(());
-        }
-
         let id = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -300,18 +289,6 @@ impl ThreadedTracer {
 
         // Redact the event
         event = redact_event(event, &self.api_config.config);
-
-        // Skip sending if we're in a forked child process - the receiving thread
-        // was created in the parent and doesn't exist in the child. The mpsc channel
-        // is not fork-safe and will crash.
-        #[cfg(not(target_arch = "wasm32"))]
-        if crate::was_forked() {
-            log::debug!(
-                "Skipping trace submission in forked child process for event {}",
-                event.event_id
-            );
-            return Ok(());
-        }
 
         self.span_tx.send(TxEventSignal::Submit(event))?;
         Ok(())

@@ -90,20 +90,6 @@ impl TryFrom<LlmRuntime> for BamlAsyncInterpreterRuntime {
 }
 
 impl BamlAsyncInterpreterRuntime {
-    /// Get the appropriate tokio runtime for execution.
-    /// This method is fork-safe: if we're in a forked child process,
-    /// it returns a fresh runtime instead of using the corrupted parent runtime.
-    #[cfg(not(target_arch = "wasm32"))]
-    fn get_runtime(&self) -> anyhow::Result<Arc<tokio::runtime::Runtime>> {
-        if crate::is_forked_child() {
-            // We're in a forked child - use the singleton which will create a fresh runtime
-            crate::BamlRuntime::get_tokio_singleton()
-        } else {
-            // Normal case - use the stored runtime
-            Ok(self.async_runtime.clone())
-        }
-    }
-
     pub fn internal(&self) -> &LlmRuntime {
         &self.llm_runtime
     }
@@ -536,13 +522,7 @@ impl BamlAsyncInterpreterRuntime {
         cancel_tripwire: Arc<TripWire>,
         watch_handler: Option<SharedWatchHandler>,
     ) -> (anyhow::Result<FunctionResult>, FunctionCallId) {
-        // Get fork-safe runtime
-        let rt = match self.get_runtime() {
-            Ok(rt) => rt,
-            Err(e) => return (Err(e), FunctionCallId::new()),
-        };
-
-        rt.block_on(self.call_function(
+        self.async_runtime.block_on(self.call_function(
             function_name,
             params,
             ctx,

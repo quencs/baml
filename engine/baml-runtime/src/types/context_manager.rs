@@ -203,7 +203,6 @@ impl RuntimeContextManager {
         env_vars: HashMap<String, String>,
         call_id_stack: Vec<FunctionCallId>,
     ) -> Result<RuntimeContext> {
-        eprintln!("[create_ctx] Starting, PID={}", std::process::id());
         // let mut tags = self.global_tags.lock().unwrap().clone();
         // let ctx_tags = {
         //     self.context
@@ -215,10 +214,8 @@ impl RuntimeContextManager {
         //         .unwrap_or_default()
         // };
         // tags.extend(ctx_tags);
-        eprintln!("[create_ctx] Locking global_tags...");
         let tags = {
             let mut tags = self.global_tags.lock().unwrap().clone();
-            eprintln!("[create_ctx] Locking context...");
             let ctx = self.context.lock().unwrap();
             let ctx = ctx.last();
             if let Some((.., ctx_tags, _)) = ctx {
@@ -226,18 +223,13 @@ impl RuntimeContextManager {
             }
             tags
         };
-        eprintln!("[create_ctx] Tags created");
 
-        eprintln!("[create_ctx] Getting type_builder overrides...");
         let (cls, enm, als, rec_cls, rec_als) = type_builder
             .map(TypeBuilder::to_overrides)
             .unwrap_or_default();
-        eprintln!("[create_ctx] Cloning baml_src_reader...");
-        let baml_src = self.baml_src_reader.clone();
-        eprintln!("[create_ctx] Creating RuntimeContext::new...");
 
         let mut ctx = RuntimeContext::new(
-            baml_src,
+            self.baml_src_reader.clone(),
             env_vars,
             tags,
             Default::default(),
@@ -248,23 +240,14 @@ impl RuntimeContextManager {
             rec_als,
             call_id_stack,
         );
-        eprintln!("[create_ctx] RuntimeContext created");
 
-        eprintln!("[create_ctx] Setting client_overrides (client_registry={:?})...", client_registry.is_some());
         ctx.client_overrides = match client_registry {
-            Some(cr) => {
-                eprintln!("[create_ctx] Calling cr.to_clients...");
-                Some(
-                    cr.to_clients(&ctx)
-                        .with_context(|| "Failed to create clients from client_registry")?,
-                )
-            },
-            None => {
-                eprintln!("[create_ctx] No client_registry, setting None");
-                None
-            }
+            Some(cr) => Some(
+                cr.to_clients(&ctx)
+                    .with_context(|| "Failed to create clients from client_registry")?,
+            ),
+            None => None,
         };
-        eprintln!("[create_ctx] client_overrides set, returning Ok");
 
         Ok(ctx)
     }

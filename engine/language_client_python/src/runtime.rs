@@ -27,7 +27,6 @@ pub use baml_runtime::async_vm_runtime::BamlAsyncVmRuntime as CoreBamlRuntime;
 
 use crate::{
     errors::{BamlError, BamlInvalidArgumentError},
-    fork_safe_future_into_py,
     parse_py_type::parse_py_type,
     types::{
         function_result_stream::{FunctionResultStream, SyncFunctionResultStream},
@@ -239,7 +238,6 @@ fn extract_notification_callbacks(
 impl BamlRuntime {
     // Called by pickle to serialize the object using __reduce__ protocol
     fn __reduce__(&self, py: Python) -> PickleReduceResult {
-        eprintln!("[BamlRuntime::__reduce__] __reduce__ called");
         let cls = py.get_type::<Self>();
         let args = (
             self.root_path.clone(),
@@ -260,10 +258,8 @@ impl BamlRuntime {
         env_vars: std::collections::HashMap<String, String>,
         files: std::collections::HashMap<String, String>,
     ) -> PyResult<Self> {
-        eprintln!("[BamlRuntime::_create_from_state] Creating BamlRuntime from state");
         let core = CoreBamlRuntime::from_file_content(&root_path, &files, env_vars.clone())
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-        eprintln!("[BamlRuntime::_create_from_state] BamlRuntime created");
         Ok(BamlRuntime {
             inner: std::sync::Arc::new(core),
             root_path,
@@ -364,7 +360,7 @@ impl BamlRuntime {
             None
         };
 
-        fork_safe_future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let watch_handler = shared_handler(move |notification| {
                 if let Some(ref callbacks) = notification_callbacks {
                     Python::with_gil(|py| {
@@ -858,7 +854,7 @@ impl BamlRuntime {
         let type_builder = tb.map(|tb| tb.inner.clone());
         let client_registry = cb.map(|cb| cb.inner.clone());
 
-        fork_safe_future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             baml_runtime
                 .build_request(
                     function_name,

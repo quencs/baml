@@ -6,11 +6,17 @@ mod types;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use pyo3::{
+    prelude::{pyfunction, pymodule, PyAnyMethods, PyModule, PyResult},
+    types::PyModuleMethods,
+    wrap_pyfunction, Bound, Python,
+};
+
 // Flag to prevent recursive signal handler calls
 static HANDLING_SIGNAL: AtomicBool = AtomicBool::new(false);
 
 /// Install signal handlers for crash signals that print a backtrace before crashing.
-/// This helps debug fork-safety issues.
+/// This helps debug issues like fork-safety problems.
 fn install_signal_handlers() {
     unsafe {
         let mut action: libc::sigaction = std::mem::zeroed();
@@ -83,81 +89,6 @@ extern "C" fn crash_signal_handler(sig: libc::c_int, _info: *mut libc::siginfo_t
         libc::signal(sig, libc::SIG_DFL);
         libc::raise(sig);
     }
-}
-
-use std::future::Future;
-
-use pyo3::{
-    prelude::{pyfunction, pymodule, PyAnyMethods, PyModule, PyResult},
-    types::PyModuleMethods,
-    wrap_pyfunction, Bound, BoundObject, IntoPyObject, Py, Python,
-};
-
-/// Fork-safe alternative to pyo3_async_runtimes::tokio::future_into_py.
-///
-/// This function works correctly in forked child processes by using BAML's
-/// fork-safe tokio runtime instead of pyo3-async-runtimes' global runtime
-/// (which becomes corrupted after fork).
-///
-/// The approach:
-/// 1. Get BAML's fork-safe tokio runtime (creates fresh one if in forked child)
-/// 2. Create a Python asyncio.Future
-/// 3. Spawn the Rust future on our fork-safe runtime
-/// 4. When complete, set the result on the Python future via call_soon_threadsafe
-pub(crate) fn fork_safe_future_into_py<F, T>(py: Python<'_>, fut: F) -> PyResult<Bound<'_, pyo3::PyAny>>
-where
-    F: Future<Output = PyResult<T>> + Send + 'static,
-    T: for<'py> IntoPyObject<'py> + Send + 'static,
-{
-    // Get fork-safe runtime
-    let rt = baml_runtime::BamlRuntime::get_tokio_singleton()
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to get tokio runtime: {}", e)))?;
-
-    // Get the running event loop
-    let asyncio = py.import("asyncio")?;
-    let event_loop = asyncio.call_method0("get_running_loop")?;
-
-    // Create a Python future
-    let py_future = event_loop.call_method0("create_future")?;
-
-    // Clone references for the spawned task
-    let py_future_ref: Py<pyo3::PyAny> = py_future.clone().unbind();
-    let event_loop_ref: Py<pyo3::PyAny> = event_loop.clone().unbind();
-
-    // Spawn on our fork-safe runtime
-    rt.spawn(async move {
-        let result = fut.await;
-
-        // Set the result on the Python future from the Rust thread
-        // We need to use call_soon_threadsafe since we're not on the Python thread
-        Python::with_gil(|py| {
-            let future = py_future_ref.bind(py);
-            let loop_ = event_loop_ref.bind(py);
-
-            match result {
-                Ok(val) => {
-                    match val.into_pyobject(py) {
-                        Ok(py_val) => {
-                            let py_obj: Py<pyo3::PyAny> = py_val.into_any().unbind();
-                            let set_result = future.getattr("set_result").unwrap();
-                            let _ = loop_.call_method1("call_soon_threadsafe", (set_result, py_obj));
-                        }
-                        Err(e) => {
-                            let err: pyo3::PyErr = e.into();
-                            let set_exception = future.getattr("set_exception").unwrap();
-                            let _ = loop_.call_method1("call_soon_threadsafe", (set_exception, err.value(py)));
-                        }
-                    }
-                }
-                Err(e) => {
-                    let set_exception = future.getattr("set_exception").unwrap();
-                    let _ = loop_.call_method1("call_soon_threadsafe", (set_exception, e.value(py)));
-                }
-            }
-        });
-    });
-
-    Ok(py_future)
 }
 
 #[pyfunction]
@@ -247,7 +178,7 @@ fn baml_py(m: Bound<'_, PyModule>) -> PyResult<()> {
     baml_log::init().map_err(errors::BamlError::from_anyhow)?;
     init_debug_logger();
 
-    // Install SIGSEGV handler for debugging fork-safety issues
+    // Install signal handlers for debugging crash issues
     install_signal_handlers();
 
     Ok(())

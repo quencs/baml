@@ -40,11 +40,7 @@ pub fn create_http_client(
                 .build()
                 .context("Failed to create reqwest client")
         } else {
-            eprintln!("[create_http_client] Starting, PID={}", std::process::id());
-            eprintln!("[create_http_client] Reading DANGER_ACCEPT_INVALID_CERTS env...");
             let danger_accept_invalid_certs = matches!(std::env::var("DANGER_ACCEPT_INVALID_CERTS").as_deref(), Ok("1"));
-            eprintln!("[create_http_client] Creating builder...");
-
             let mut builder = reqwest::Client::builder()
                 .danger_accept_invalid_certs(danger_accept_invalid_certs)
                 .http2_keep_alive_interval(Some(Duration::from_secs(10)))
@@ -57,27 +53,10 @@ pub fn create_http_client(
                 .pool_max_idle_per_host(0)
                 .pool_idle_timeout(std::time::Duration::from_nanos(1));
 
-            // On macOS, disable system proxy detection unless user has explicitly
-            // set proxy env vars. This avoids calling SCDynamicStore::get_proxies
-            // which uses Core Foundation APIs that are NOT fork-safe and cause SIGSEGV.
-            #[cfg(target_os = "macos")]
-            {
-                let has_proxy_env = std::env::var("HTTP_PROXY").is_ok()
-                    || std::env::var("HTTPS_PROXY").is_ok()
-                    || std::env::var("ALL_PROXY").is_ok();
-
-                if !has_proxy_env {
-                    builder = builder.no_proxy();
-                }
-            }
-
-            eprintln!("[create_http_client] Builder created");
-
             // Apply connect timeout if specified
             // Note: 0 means infinite timeout (no timeout)
             // Defaults were already applied during client creation
             if let Some(ms) = http_config.connect_timeout_ms {
-                eprintln!("[create_http_client] Applying connect timeout: {}ms", ms);
                 if ms > 0 {
                     builder = builder.connect_timeout(Duration::from_millis(ms));
                 }
@@ -87,10 +66,7 @@ pub fn create_http_client(
             // Note: request_timeout is applied per-request, not on client
             // We'll apply it when building individual requests
 
-            eprintln!("[create_http_client] Calling builder.build()...");
-            let result = builder.build().context("Failed to create reqwest client");
-            eprintln!("[create_http_client] builder.build() completed, is_ok={}", result.is_ok());
-            result
+            builder.build().context("Failed to create reqwest client")
         }
     }
 }
