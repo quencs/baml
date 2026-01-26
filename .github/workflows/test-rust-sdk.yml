@@ -77,7 +77,7 @@ jobs:
 
       - name: Set BAML Library Path
         run: |
-          echo "BAML_LIBRARY_PATH=${{ github.workspace }}\engine\target\release\baml_cffi.dll" >> $GITHUB_ENV
+          echo "BAML_LIBRARY_PATH=${{ github.workspace }}/engine/target/release/baml_cffi.dll" >> $GITHUB_ENV
         shell: bash
 
       - name: Run Rust SDK Tests
