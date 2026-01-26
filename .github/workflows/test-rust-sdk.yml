@@ -23,7 +23,7 @@ on:
 jobs:
   test-windows:
     name: Test Windows Rust SDK
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     steps:
       - name: Checkout code
