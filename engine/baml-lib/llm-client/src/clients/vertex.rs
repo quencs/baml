@@ -152,7 +152,9 @@ fn try_unwrap_quoted_json(s: String) -> String {
     // Quick check: only try to unwrap if it looks like a quoted string
     if s.starts_with('"') && s.ends_with('"') {
         // Try to parse as a JSON string (which would unescape the inner content)
-        if let Ok(serde_json::Value::String(unwrapped)) = serde_json::from_str::<serde_json::Value>(&s) {
+        if let Ok(serde_json::Value::String(unwrapped)) =
+            serde_json::from_str::<serde_json::Value>(&s)
+        {
             // Verify the unwrapped content is valid JSON before returning it
             if serde_json::from_str::<serde_json::Value>(&unwrapped).is_ok() {
                 return unwrapped;
@@ -468,8 +470,9 @@ impl<Meta: Clone> UnresolvedVertex<Meta> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::HashMap;
+
+    use super::*;
 
     /// A simple mock implementation of GetEnvVar for testing
     struct MockEnvVars {
@@ -560,10 +563,9 @@ mod tests {
     fn test_credentials_string_from_env_with_double_quoted_json() {
         // Bug case: double-quoted JSON from env var should be unwrapped
         let double_quoted = double_quoted_json();
-        let strategy: UnresolvedGcpAuthStrategy<()> =
-            UnresolvedGcpAuthStrategy::CredentialsString(StringOr::EnvVar(
-                "TEST_CREDENTIALS".to_string(),
-            ));
+        let strategy: UnresolvedGcpAuthStrategy<()> = UnresolvedGcpAuthStrategy::CredentialsString(
+            StringOr::EnvVar("TEST_CREDENTIALS".to_string()),
+        );
         let ctx = MockEnvVars::new().with_var("TEST_CREDENTIALS", &double_quoted);
         let resolved = strategy.resolve(&ctx).unwrap();
 
@@ -597,7 +599,10 @@ mod tests {
                 // Should contain the unwrapped JSON
                 assert_eq!(s, VALID_JSON);
             }
-            other => panic!("Expected StringContainingJson with unwrapped JSON, got {:?}", other),
+            other => panic!(
+                "Expected StringContainingJson with unwrapped JSON, got {:?}",
+                other
+            ),
         }
     }
 
@@ -636,7 +641,10 @@ mod tests {
             ResolvedGcpAuthStrategy::StringContainingJson(s) => {
                 assert_eq!(s, VALID_JSON);
             }
-            other => panic!("Expected StringContainingJson with unwrapped JSON, got {:?}", other),
+            other => panic!(
+                "Expected StringContainingJson with unwrapped JSON, got {:?}",
+                other
+            ),
         }
     }
 
