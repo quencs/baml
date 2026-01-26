@@ -32,7 +32,7 @@ jobs:
       - name: Setup Rust (MSRV 1.70)
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.70"
+          toolchain: "1.82"
 
       - name: Cache Rust dependencies (engine)
         uses: Swatinem/rust-cache@v2
