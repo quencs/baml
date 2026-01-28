@@ -35,12 +35,19 @@ async function loadEmbeddingsIndex(baseUrl: string): Promise<EmbeddingsIndex> {
   if (cachedIndex) return cachedIndex;
 
   const response = await fetch(`${baseUrl}/embeddings.json`);
+  if (!response.ok) {
+    throw new Error(`Failed to load embeddings: ${response.status}`);
+  }
   cachedIndex = await response.json();
 
   return cachedIndex!;
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error(`Vector length mismatch: ${a.length} vs ${b.length}`);
+  }
+
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
@@ -51,7 +58,10 @@ function cosineSimilarity(a: number[], b: number[]): number {
     normB += b[i] * b[i];
   }
 
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+  if (denominator === 0) return 0;
+
+  return dotProduct / denominator;
 }
 
 function searchByEmbedding(
@@ -78,6 +88,9 @@ async function embedQuery(
     model,
     input: query,
   });
+  if (!response.data || response.data.length === 0) {
+    throw new Error('No embedding returned from OpenAI');
+  }
   return response.data[0].embedding;
 }
 
@@ -86,6 +99,10 @@ export default async function handler(req: Request) {
     return new Response('Method not allowed', { status: 405 });
   }
 
+  // TODO: Add rate limiting here
+  // Consider using Vercel's rate limiting or a service like Upstash
+  // Example: Check IP against rate limit store, return 429 if exceeded
+
   try {
     const { message, prev_messages = [] }: ChatRequest = await req.json();
 
@@ -93,6 +110,20 @@ export default async function handler(req: Request) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    if (message.length > 2000) {
+      return Response.json({ error: 'Message too long (max 2000 characters)' }, { status: 400 });
+    }
+
+    if (prev_messages.length > 20) {
+      return Response.json({ error: 'Too many previous messages (max 20)' }, { status: 400 });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     // Get the base URL from the request
