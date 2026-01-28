@@ -14,11 +14,6 @@ import { useBAMLSDK } from "../sdk";
 // ============================================================================
 // EventListener-specific atoms (not managed by SDK)
 // ============================================================================
-export const hasClosedEnvVarsDialogAtom = atomWithStorage<boolean>(
-  "has-closed-env-vars-dialog",
-  false,
-  vscodeLocalStorageStore,
-);
 
 export const bamlCliVersionAtom = atom<string | null>(null);
 
@@ -108,7 +103,7 @@ export const EventListener: React.FC = () => {
       if (!source) {
         return;
       }
-      if (source === ('react-devtools-bridge' as string)) {
+      if (typeof source === 'string' && source.startsWith('react-devtools-')) {
         // Ignore noisy React DevTools bridge chatter
         return;
       }

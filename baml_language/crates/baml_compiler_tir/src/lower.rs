@@ -5,55 +5,15 @@
 //! - Resolving named types to their definitions (classes, enums)
 //! - Converting type constructors (Optional, List, Union)
 //! - Handling primitive type names
-//! - Validating that named types exist (when `known_types` is provided)
+//! - Validating that named types exist (when `type_alias_names` is provided)
 
 use std::collections::HashSet;
 
 use baml_base::{Name, Span};
 use baml_compiler_diagnostics::TypeError;
-use baml_compiler_hir::TypeRef;
+use baml_compiler_hir::{ErrorLocation, TypeRef};
 
-use crate::{LiteralValue, Ty};
-
-/// Context for type lowering with validation.
-///
-/// When `known_types` is provided, unknown type names will produce errors
-/// and return `Ty::Error` to suppress downstream type mismatches.
-pub struct TypeLoweringContext<'a> {
-    /// Set of known type names (classes, enums, type aliases).
-    /// If None, no validation is performed.
-    pub known_types: Option<&'a HashSet<Name>>,
-    /// Span to use for error reporting. If None, a default span is used.
-    pub span: Option<Span>,
-    /// Accumulated errors during lowering.
-    pub errors: Vec<TypeError<Ty>>,
-}
-
-impl<'a> TypeLoweringContext<'a> {
-    /// Create a new context without validation.
-    pub fn new() -> Self {
-        TypeLoweringContext {
-            known_types: None,
-            span: None,
-            errors: Vec::new(),
-        }
-    }
-
-    /// Create a new context with type name validation.
-    pub fn with_validation(known_types: &'a HashSet<Name>, span: Span) -> Self {
-        TypeLoweringContext {
-            known_types: Some(known_types),
-            span: Some(span),
-            errors: Vec::new(),
-        }
-    }
-}
-
-impl Default for TypeLoweringContext<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+use crate::{LiteralValue, TirTypeError, Ty};
 
 /// Lower a `TypeRef` to a Ty with validation AND resolution of class/enum types.
 ///
@@ -62,36 +22,36 @@ impl Default for TypeLoweringContext<'_> {
 /// contexts where you need fully resolved types.
 ///
 /// Returns the lowered type and any errors encountered.
-pub fn lower_type_ref_validated_resolved(
+pub fn lower_type_ref(
     type_ref: &TypeRef,
-    known_types: &HashSet<Name>,
+    type_alias_names: &HashSet<Name>,
     class_names: &HashSet<Name>,
     enum_names: &HashSet<Name>,
     span: Span,
-) -> (Ty, Vec<TypeError<Ty>>) {
-    let mut ctx = TypeLoweringContextResolved::new(known_types, class_names, enum_names, span);
+) -> (Ty, Vec<TirTypeError>) {
+    let mut ctx = TypeLoweringContextResolved::new(type_alias_names, class_names, enum_names, span);
     let ty = lower_type_ref_resolved_with_ctx(&mut ctx, type_ref);
     (ty, ctx.errors)
 }
 
 /// Context for type lowering with validation and resolution.
 struct TypeLoweringContextResolved<'a> {
-    known_types: &'a HashSet<Name>,
+    type_alias_names: &'a HashSet<Name>,
     class_names: &'a HashSet<Name>,
     enum_names: &'a HashSet<Name>,
     span: Span,
-    errors: Vec<TypeError<Ty>>,
+    errors: Vec<TirTypeError>,
 }
 
 impl<'a> TypeLoweringContextResolved<'a> {
     fn new(
-        known_types: &'a HashSet<Name>,
+        type_alias_names: &'a HashSet<Name>,
         class_names: &'a HashSet<Name>,
         enum_names: &'a HashSet<Name>,
         span: Span,
     ) -> Self {
         Self {
-            known_types,
+            type_alias_names,
             class_names,
             enum_names,
             span,
@@ -99,23 +59,24 @@ impl<'a> TypeLoweringContextResolved<'a> {
         }
     }
 
-    fn is_known_type(&self, name: &Name) -> bool {
-        self.known_types.contains(name)
+    fn is_type_alias_name(&self, name: &Name) -> bool {
+        self.type_alias_names.contains(name)
     }
 
     fn unknown_type_error(&mut self, name: &Name) -> Ty {
         self.errors.push(TypeError::UnknownType {
             name: name.to_string(),
-            span: self.span,
+            location: ErrorLocation::Span(self.span),
         });
         Ty::Error
     }
 
     fn resolve_name(&self, name: &Name) -> Option<Ty> {
+        use baml_compiler_hir::FullyQualifiedName;
         if self.class_names.contains(name) {
-            Some(Ty::Class(name.clone()))
+            Some(Ty::Class(FullyQualifiedName::local(name.clone())))
         } else if self.enum_names.contains(name) {
-            Some(Ty::Enum(name.clone()))
+            Some(Ty::Enum(FullyQualifiedName::local(name.clone())))
         } else {
             None
         }
@@ -136,7 +97,7 @@ fn lower_type_ref_resolved_with_ctx(
         TypeRef::Null => Ty::Null,
 
         // Media types
-        TypeRef::Media(kind) => Ty::Media(kind.clone()),
+        TypeRef::Media(kind) => Ty::Media(*kind),
 
         // Named type via path
         TypeRef::Path(path) => lower_path_type_resolved_with_ctx(ctx, path),
@@ -205,9 +166,11 @@ fn lower_path_type_resolved_with_ctx(
                 "pdf" => Ty::Media(baml_base::MediaKind::Pdf),
                 // User-defined type - resolve to Class/Enum or validate
                 _ => {
+                    use baml_compiler_hir::FullyQualifiedName;
+
                     // Skip validation for complex type expressions
                     if !is_simple_type_name(name.as_str()) {
-                        return Ty::Named(name.clone());
+                        return Ty::TypeAlias(FullyQualifiedName::local(name.clone()));
                     }
 
                     // Try to resolve to Class/Enum
@@ -215,9 +178,9 @@ fn lower_path_type_resolved_with_ctx(
                         return resolved;
                     }
 
-                    // Check if it's a known type (could be a type alias)
-                    if ctx.is_known_type(name) {
-                        Ty::Named(name.clone())
+                    // Check if it's a type alias
+                    if ctx.is_type_alias_name(name) {
+                        Ty::TypeAlias(FullyQualifiedName::local(name.clone()))
                     } else {
                         ctx.unknown_type_error(name)
                     }
@@ -225,6 +188,8 @@ fn lower_path_type_resolved_with_ctx(
             }
         }
         _ => {
+            use baml_compiler_hir::FullyQualifiedName;
+
             let full_path = path
                 .segments
                 .iter()
@@ -232,8 +197,8 @@ fn lower_path_type_resolved_with_ctx(
                 .collect::<Vec<_>>()
                 .join(".");
             let name = Name::new(&full_path);
-            if !is_simple_type_name(&full_path) || ctx.is_known_type(&name) {
-                Ty::Named(name)
+            if !is_simple_type_name(&full_path) || ctx.is_type_alias_name(&name) {
+                Ty::TypeAlias(FullyQualifiedName::local(name))
             } else {
                 ctx.unknown_type_error(&name)
             }

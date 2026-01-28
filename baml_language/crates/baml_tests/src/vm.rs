@@ -4,17 +4,16 @@
 //! rely on indices, making tests more readable and resilient to changes in the
 //! order of globals, constants, and objects.
 
-use baml_vm::{
-    Vm, VmExecState,
+use bex_vm::{
+    BexVm, VmExecState,
     vm::WatchNotification as VmWatchNotification,
     watch::{self},
 };
-use baml_vm_types::{
-    Object as VmObject, ObjectIndex, Value as VmValue,
+use bex_vm_types::{
+    HeapPtr, Object as VmObject, Value as VmValue,
     bytecode::{
         BinOp, BlockNotification as VmBlockNotification, BlockNotificationType, CmpOp, UnaryOp,
     },
-    types::MediaKind,
 };
 use indexmap::IndexMap;
 
@@ -31,7 +30,7 @@ pub enum Value {
 
 impl Value {
     /// Convert a VM Value to a test Value by following object references.
-    pub fn from_vm_value(value: &VmValue, vm: &Vm) -> anyhow::Result<Self> {
+    pub fn from_vm_value(value: &VmValue, vm: &BexVm) -> anyhow::Result<Self> {
         match value {
             VmValue::Null => Ok(Value::Null),
             VmValue::Int(i) => Ok(Value::Int(*i)),
@@ -60,6 +59,16 @@ impl Value {
     pub fn string(s: &str) -> Self {
         Value::Object(Object::String(s.to_string()))
     }
+
+    /// Shorthand for creating an array value.
+    pub fn array(values: Vec<Value>) -> Self {
+        Value::Object(Object::Array(values))
+    }
+
+    /// Shorthand for creating a map value.
+    pub fn map(values: IndexMap<String, Value>) -> Self {
+        Value::Object(Object::Map(values))
+    }
 }
 
 /// Test-friendly representation of VM objects.
@@ -70,7 +79,7 @@ pub enum Object {
     Map(IndexMap<String, Value>),
     Instance(Instance),
     Variant(Variant),
-    Media(MediaKind),
+    Media(baml_base::MediaKind),
     /// Function name (for `LoadGlobal` instructions)
     Function(String),
     /// Class name (for `AllocInstance` instructions)
@@ -80,8 +89,8 @@ pub enum Object {
 }
 
 impl Object {
-    pub fn from_vm_object(index: ObjectIndex, vm: &Vm) -> anyhow::Result<Self> {
-        let obj = &vm.objects[index];
+    pub fn from_vm_object(ptr: HeapPtr, vm: &BexVm) -> anyhow::Result<Self> {
+        let obj = vm.get_object(ptr);
         match obj {
             VmObject::String(s) => Ok(Object::String(s.clone())),
 
@@ -100,7 +109,7 @@ impl Object {
                 .map(Object::Map),
 
             VmObject::Instance(instance) => {
-                let VmObject::Class(vm_class) = &vm.objects[instance.class] else {
+                let VmObject::Class(vm_class) = vm.get_object(instance.class) else {
                     anyhow::bail!("Class not found for instance: {instance:?}");
                 };
 
@@ -118,7 +127,7 @@ impl Object {
             }
 
             VmObject::Variant(variant) => {
-                let VmObject::Enum(vm_enum) = &vm.objects[variant.enm] else {
+                let VmObject::Enum(vm_enum) = vm.get_object(variant.enm) else {
                     anyhow::bail!("Enum not found for variant: {variant:?}");
                 };
 
@@ -136,6 +145,12 @@ impl Object {
             VmObject::Enum(e) => Ok(Object::Enum(e.name.clone())),
 
             VmObject::Future(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
+            VmObject::Resource(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
+            VmObject::PromptAst(_) => {
+                anyhow::bail!("Unsupported object type for testing: {obj:?}")
+            }
+            #[cfg(feature = "heap_debug")]
+            VmObject::Sentinel(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
         }
     }
 
@@ -235,7 +250,7 @@ impl Notification {
 
 impl Notification {
     /// Convert from VM `NodeId` to test Node by resolving indices to names/objects.
-    pub fn from_node_id(node_id: &watch::NodeId, vm: &Vm) -> anyhow::Result<Self> {
+    pub fn from_node_id(node_id: &watch::NodeId, vm: &BexVm) -> anyhow::Result<Self> {
         match node_id {
             watch::NodeId::LocalVar(stack_index) => vm
                 .watch
@@ -266,7 +281,7 @@ pub enum ExecState {
 
 impl ExecState {
     /// Convert from `VmExecState`, converting Value to test Value for Complete case.
-    pub fn from_vm_exec_state(state: VmExecState, vm: &Vm) -> anyhow::Result<Self> {
+    pub fn from_vm_exec_state(state: VmExecState, vm: &BexVm) -> anyhow::Result<Self> {
         match state {
             VmExecState::Await(index) => Ok(ExecState::Await(Object::from_vm_object(index, vm)?)),
             VmExecState::ScheduleFuture(index) => Ok(ExecState::ScheduleFuture(
@@ -290,7 +305,7 @@ impl ExecState {
                     function_name,
                     event,
                 } => {
-                    let is_enter = event.delta == baml_vm_types::bytecode::VizExecDelta::Enter;
+                    let is_enter = event.delta == bex_vm_types::bytecode::VizExecDelta::Enter;
                     Ok(ExecState::Emit(vec![Notification::Viz(VizEvent {
                         function_name,
                         label: event.label,

@@ -11,9 +11,9 @@ use baml_compiler_mir::{
     Place, Rvalue, StatementKind, Terminator, UnaryOp,
 };
 use baml_compiler_tir::Ty;
-use baml_vm_types::{
-    BinOp as VmBinOp, Bytecode, CmpOp, Function, FunctionKind, GlobalIndex, Instruction, Object,
-    ObjectIndex, ObjectPool, UnaryOp as VmUnaryOp, Value,
+use bex_vm_types::{
+    BinOp as VmBinOp, Bytecode, CmpOp, ConstValue, Function, FunctionKind, GlobalIndex,
+    Instruction, Object, ObjectIndex, ObjectPool, UnaryOp as VmUnaryOp,
     bytecode::{BlockNotification, BlockNotificationType, JumpTableData},
 };
 
@@ -117,7 +117,7 @@ struct StackifyCodegen<'ctx, 'obj> {
     /// Enum variant mappings (enum name -> variant name -> variant index).
     enum_variants: &'ctx HashMap<String, HashMap<String, usize>>,
     /// Shared object pool.
-    objects: &'obj mut ObjectPool<()>,
+    objects: &'obj mut ObjectPool,
 
     /// Analysis results (classifications, def-use, etc.).
     analysis: AnalysisResult,
@@ -176,7 +176,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     }
 
     /// Compile a MIR function to bytecode.
-    fn compile(mut self, mir: &MirFunction) -> Function<()> {
+    fn compile(mut self, mir: &MirFunction) -> Function {
         // 1. Allocate stack slots only for real locals
         self.allocate_real_locals(mir);
 
@@ -208,7 +208,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
         let viz_nodes = mir
             .viz_nodes
             .iter()
-            .map(|node| baml_vm_types::VizNodeMeta {
+            .map(|node| bex_vm_types::VizNodeMeta {
                 node_id: node.node_id,
                 log_filter_key: node.log_filter_key.clone(),
                 parent_log_filter_key: node.parent_log_filter_key.clone(),
@@ -223,7 +223,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             name: mir.name.clone(),
             arity: mir.arity,
             bytecode: self.bytecode,
-            kind: FunctionKind::Exec,
+            kind: FunctionKind::Bytecode,
             locals_in_scope: Self::build_locals_in_scope(mir, &self.local_slots),
             span: baml_base::Span::fake(),
             block_notifications: self.block_notifications,
@@ -234,18 +234,16 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     /// Convert MIR `VizNodeType` to VM `VizNodeType`.
     fn convert_viz_node_type(
         mir_type: baml_compiler_mir::VizNodeType,
-    ) -> baml_vm_types::VizNodeType {
+    ) -> bex_vm_types::VizNodeType {
         match mir_type {
-            baml_compiler_mir::VizNodeType::FunctionRoot => {
-                baml_vm_types::VizNodeType::FunctionRoot
-            }
+            baml_compiler_mir::VizNodeType::FunctionRoot => bex_vm_types::VizNodeType::FunctionRoot,
             baml_compiler_mir::VizNodeType::HeaderContextEnter => {
-                baml_vm_types::VizNodeType::HeaderContextEnter
+                bex_vm_types::VizNodeType::HeaderContextEnter
             }
-            baml_compiler_mir::VizNodeType::BranchGroup => baml_vm_types::VizNodeType::BranchGroup,
-            baml_compiler_mir::VizNodeType::BranchArm => baml_vm_types::VizNodeType::BranchArm,
-            baml_compiler_mir::VizNodeType::Loop => baml_vm_types::VizNodeType::Loop,
-            baml_compiler_mir::VizNodeType::OtherScope => baml_vm_types::VizNodeType::OtherScope,
+            baml_compiler_mir::VizNodeType::BranchGroup => bex_vm_types::VizNodeType::BranchGroup,
+            baml_compiler_mir::VizNodeType::BranchArm => bex_vm_types::VizNodeType::BranchArm,
+            baml_compiler_mir::VizNodeType::Loop => bex_vm_types::VizNodeType::Loop,
+            baml_compiler_mir::VizNodeType::OtherScope => bex_vm_types::VizNodeType::OtherScope,
         }
     }
 
@@ -288,7 +286,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
         // Pre-allocate only the real locals (not virtuals)
         if slots_to_allocate > 0 {
-            let null_idx = self.add_constant(Value::Null);
+            let null_idx = self.add_constant(ConstValue::Null);
             for _ in 0..slots_to_allocate {
                 self.emit(Instruction::LoadConst(null_idx));
             }
@@ -310,7 +308,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     }
 
     /// Add a constant to the pool and return its index.
-    fn add_constant(&mut self, value: Value) -> usize {
+    fn add_constant(&mut self, value: ConstValue) -> usize {
         // Try to find existing constant
         for (i, existing) in self.bytecode.constants.iter().enumerate() {
             if *existing == value {
@@ -432,11 +430,11 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                                     local_decl.name.as_ref().map_or("_watch", |n| n.as_str());
                                 let channel_obj_idx = self.objects.len();
                                 self.objects.push(Object::String(channel.to_string()));
-                                let channel_const_idx = self.add_constant(Value::Object(
+                                let channel_const_idx = self.add_constant(ConstValue::Object(
                                     ObjectIndex::from_raw(channel_obj_idx),
                                 ));
                                 self.emit(Instruction::LoadConst(channel_const_idx));
-                                let null_const_idx = self.add_constant(Value::Null);
+                                let null_const_idx = self.add_constant(ConstValue::Null);
                                 self.emit(Instruction::LoadConst(null_const_idx));
                                 self.emit(Instruction::Watch(slot));
                             }
@@ -475,8 +473,8 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                     let channel = local_decl.name.as_ref().map_or("_watch", |n| n.as_str());
                     let channel_obj_idx = self.objects.len();
                     self.objects.push(Object::String(channel.to_string()));
-                    let channel_const_idx =
-                        self.add_constant(Value::Object(ObjectIndex::from_raw(channel_obj_idx)));
+                    let channel_const_idx = self
+                        .add_constant(ConstValue::Object(ObjectIndex::from_raw(channel_obj_idx)));
                     self.emit(Instruction::LoadConst(channel_const_idx));
                     // Push filter value
                     self.emit_operand_pull(filter, mir);
@@ -663,7 +661,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
                         // Load variant index onto stack, then allocate variant
                         #[allow(clippy::cast_possible_wrap)]
-                        let idx = self.add_constant(Value::Int(variant_idx as i64));
+                        let idx = self.add_constant(ConstValue::Int(variant_idx as i64));
                         self.emit(Instruction::LoadConst(idx));
                         self.emit(Instruction::AllocVariant(ObjectIndex::from_raw(
                             enum_obj_idx,
@@ -674,7 +672,12 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
             Rvalue::Discriminant(place) => {
                 self.emit_place_value_pull(place, mir);
-                // TODO: Emit actual discriminant extraction instruction
+                self.emit(Instruction::Discriminant);
+            }
+
+            Rvalue::TypeTag(place) => {
+                self.emit_place_value_pull(place, mir);
+                self.emit(Instruction::TypeTag);
             }
 
             Rvalue::Len(place) => {
@@ -690,23 +693,23 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 self.emit_operand_pull(operand, mir);
                 // Emit instanceof check using CmpOp::InstanceOf
                 // The type should be a class name - look up the class object
-                if let Ty::Named(class_name) = ty {
-                    let class_name_str = class_name.as_str();
+                if let Ty::Class(fqn) | Ty::TypeAlias(fqn) = ty {
+                    let class_name_str = fqn.name.as_str();
                     if let Some(&class_obj_idx) = self.class_object_indices.get(class_name_str) {
                         // Load the Class object for the type check
-                        let class_const =
-                            self.add_constant(Value::Object(ObjectIndex::from_raw(class_obj_idx)));
+                        let class_const = self
+                            .add_constant(ConstValue::Object(ObjectIndex::from_raw(class_obj_idx)));
                         self.emit(Instruction::LoadConst(class_const));
                         // Emit instanceof comparison
                         self.emit(Instruction::CmpOp(CmpOp::InstanceOf));
                     } else {
                         // Unknown class - treat as always false
-                        let idx = self.add_constant(Value::Bool(false));
+                        let idx = self.add_constant(ConstValue::Bool(false));
                         self.emit(Instruction::LoadConst(idx));
                     }
                 } else {
                     // Non-class type - not supported yet, return false
-                    let idx = self.add_constant(Value::Bool(false));
+                    let idx = self.add_constant(ConstValue::Bool(false));
                     self.emit(Instruction::LoadConst(idx));
                 }
             }
@@ -717,25 +720,25 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     fn emit_constant(&mut self, constant: &Constant) {
         match constant {
             Constant::Int(v) => {
-                let idx = self.add_constant(Value::Int(*v));
+                let idx = self.add_constant(ConstValue::Int(*v));
                 self.emit(Instruction::LoadConst(idx));
             }
             Constant::Float(v) => {
-                let idx = self.add_constant(Value::Float(*v));
+                let idx = self.add_constant(ConstValue::Float(*v));
                 self.emit(Instruction::LoadConst(idx));
             }
             Constant::String(s) => {
                 let obj_idx = self.objects.len();
                 self.objects.push(Object::String(s.clone()));
-                let idx = self.add_constant(Value::Object(ObjectIndex::from_raw(obj_idx)));
+                let idx = self.add_constant(ConstValue::Object(ObjectIndex::from_raw(obj_idx)));
                 self.emit(Instruction::LoadConst(idx));
             }
             Constant::Bool(v) => {
-                let idx = self.add_constant(Value::Bool(*v));
+                let idx = self.add_constant(ConstValue::Bool(*v));
                 self.emit(Instruction::LoadConst(idx));
             }
             Constant::Null => {
-                let idx = self.add_constant(Value::Null);
+                let idx = self.add_constant(ConstValue::Null);
                 self.emit(Instruction::LoadConst(idx));
             }
             Constant::Function(name) => {
@@ -747,7 +750,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 self.emit(Instruction::LoadGlobal(GlobalIndex::from_raw(*global_idx)));
             }
             Constant::Ty(_) => {
-                let idx = self.add_constant(Value::Null);
+                let idx = self.add_constant(ConstValue::Null);
                 self.emit(Instruction::LoadConst(idx));
             }
             Constant::EnumVariant { enum_name, variant } => {
@@ -768,7 +771,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
                 // Load variant index onto stack, then allocate variant
                 #[allow(clippy::cast_possible_wrap)]
-                let idx = self.add_constant(Value::Int(variant_idx as i64));
+                let idx = self.add_constant(ConstValue::Int(variant_idx as i64));
                 self.emit(Instruction::LoadConst(idx));
                 self.emit(Instruction::AllocVariant(ObjectIndex::from_raw(
                     enum_obj_idx,
@@ -857,6 +860,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 discriminant,
                 arms,
                 otherwise,
+                exhaustive,
             } => {
                 // Analyze the switch to determine the best emission strategy
                 let strategy = analyze_switch(arms);
@@ -866,10 +870,16 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                         self.emit_switch_jump_table(discriminant, arms, *otherwise, min, max, mir);
                     }
                     SwitchStrategy::BinarySearch => {
-                        self.emit_switch_binary_search(discriminant, arms, *otherwise, mir);
+                        self.emit_switch_binary_search(
+                            discriminant,
+                            arms,
+                            *otherwise,
+                            *exhaustive,
+                            mir,
+                        );
                     }
                     SwitchStrategy::IfElseChain => {
-                        self.emit_switch_if_else(discriminant, arms, *otherwise, mir);
+                        self.emit_switch_if_else(discriminant, arms, *otherwise, *exhaustive, mir);
                     }
                 }
             }
@@ -1008,18 +1018,32 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     /// Emit switch using if-else chain (O(n) comparisons).
     ///
     /// This is the original linear emission strategy.
+    ///
+    /// If `exhaustive` is true, the last arm's comparison is skipped since
+    /// if all previous comparisons failed, the discriminant must match.
     fn emit_switch_if_else(
         &mut self,
         discriminant: &Operand,
         arms: &[(i64, BlockId)],
         otherwise: BlockId,
+        exhaustive: bool,
         mir: &MirFunction,
     ) {
         self.emit_operand_pull(discriminant, mir);
 
-        for (value, target) in arms {
+        let num_arms = arms.len();
+        for (i, (value, target)) in arms.iter().enumerate() {
+            let is_last = i == num_arms - 1;
+
+            // For exhaustive switches, skip the last arm's comparison
+            if exhaustive && is_last {
+                self.emit(Instruction::Pop(1)); // Pop discriminant
+                self.emit_jump_unless_fallthrough(*target);
+                return;
+            }
+
             self.emit(Instruction::Copy(0));
-            let idx = self.add_constant(Value::Int(*value));
+            let idx = self.add_constant(ConstValue::Int(*value));
             self.emit(Instruction::LoadConst(idx));
             self.emit(Instruction::CmpOp(CmpOp::Eq));
             let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
@@ -1071,11 +1095,16 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     /// Emit switch using binary search (O(log n) comparisons).
     ///
     /// Creates a balanced binary search tree of comparisons.
+    ///
+    /// Note: The exhaustive optimization is not applied to binary search because
+    /// the savings are minimal (O(1) instruction in O(log n) total) and the
+    /// implementation would be complex (need to track rightmost leaf of tree).
     fn emit_switch_binary_search(
         &mut self,
         discriminant: &Operand,
         arms: &[(i64, BlockId)],
         otherwise: BlockId,
+        _exhaustive: bool,
         mir: &MirFunction,
     ) {
         // Push discriminant onto stack (will be popped by comparisons)
@@ -1108,7 +1137,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 // Single arm - emit direct comparison
                 let (value, target) = &arms[0];
                 self.emit(Instruction::Copy(0));
-                let idx = self.add_constant(Value::Int(*value));
+                let idx = self.add_constant(ConstValue::Int(*value));
                 self.emit(Instruction::LoadConst(idx));
                 self.emit(Instruction::CmpOp(CmpOp::Eq));
                 let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
@@ -1121,7 +1150,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 // Two arms - emit both comparisons sequentially
                 for (value, target) in arms {
                     self.emit(Instruction::Copy(0));
-                    let idx = self.add_constant(Value::Int(*value));
+                    let idx = self.add_constant(ConstValue::Int(*value));
                     self.emit(Instruction::LoadConst(idx));
                     self.emit(Instruction::CmpOp(CmpOp::Eq));
                     let jump_idx = self.emit(Instruction::PopJumpIfFalse(0));
@@ -1140,7 +1169,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
                 // Compare with pivot
                 self.emit(Instruction::Copy(0));
-                let idx = self.add_constant(Value::Int(*value));
+                let idx = self.add_constant(ConstValue::Int(*value));
                 self.emit(Instruction::LoadConst(idx));
                 self.emit(Instruction::CmpOp(CmpOp::Eq));
                 let eq_jump = self.emit(Instruction::PopJumpIfFalse(0));
@@ -1241,10 +1270,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 /// Compile a MIR function to bytecode using stackification.
 ///
 /// This is the main entry point for the optimized MIR-based code generation.
-pub(crate) fn compile_mir_function(
-    mir: &MirFunction,
-    ctx: MirCodegenContext<'_, '_>,
-) -> Function<()> {
+pub(crate) fn compile_mir_function(mir: &MirFunction, ctx: MirCodegenContext<'_, '_>) -> Function {
     // Run analysis
     let analysis = AnalysisResult::analyze(mir);
 

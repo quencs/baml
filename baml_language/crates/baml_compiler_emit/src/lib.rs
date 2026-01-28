@@ -22,7 +22,7 @@
 mod analysis;
 mod emit;
 
-use baml_vm_types::ObjectPool;
+use bex_vm_types::ObjectPool;
 pub(crate) use emit::compile_mir_function;
 
 /// Context for MIR codegen.
@@ -41,18 +41,20 @@ pub(crate) struct MirCodegenContext<'ctx, 'obj> {
     /// Enum variant mappings (enum name -> variant name -> variant index).
     pub enum_variants: &'ctx HashMap<String, HashMap<String, usize>>,
     /// Shared object pool for strings, etc.
-    pub objects: &'obj mut ObjectPool<()>,
+    pub objects: &'obj mut ObjectPool,
 }
 
 use std::collections::HashMap;
 
 use baml_base::{Name, SourceFile, Span};
-use baml_compiler_hir::{self, ItemId, function_body, function_signature};
+use baml_compiler_hir::{
+    self, ItemId, function_body, function_signature, function_signature_source_map,
+};
 use baml_compiler_tir::TypeResolutionContext;
 pub use baml_compiler_vir::LoweringError;
-pub use baml_vm_types::{
-    BinOp, Bytecode, Class, CmpOp, Enum, Function, FunctionKind, GlobalIndex, Instruction, Object,
-    ObjectIndex, Program, UnaryOp, Value, type_tags,
+pub use bex_vm_types::{
+    BinOp, Bytecode, Class, CmpOp, ConstValue, Enum, ExternalOp, Function, FunctionKind,
+    GlobalIndex, Instruction, Object, ObjectIndex, Program, SysOp, UnaryOp, Value, type_tags,
 };
 
 /// Generate bytecode for all functions in a project.
@@ -62,9 +64,7 @@ pub use baml_vm_types::{
 /// lowers to MIR, and compiles to bytecode.
 ///
 /// Returns `Err` if any function contains unrecoverable errors (Missing nodes).
-pub fn generate_project_bytecode(
-    db: &dyn baml_compiler_mir::Db,
-) -> Result<Program<()>, LoweringError> {
+pub fn generate_project_bytecode(db: &dyn baml_compiler_mir::Db) -> Result<Program, LoweringError> {
     let project = db.project();
     compile_files(db, project.files(db))
 }
@@ -77,7 +77,7 @@ pub fn generate_project_bytecode(
 pub fn compile_files(
     db: &dyn baml_compiler_mir::Db,
     files: &[SourceFile],
-) -> Result<Program<()>, LoweringError> {
+) -> Result<Program, LoweringError> {
     let mut program = Program::new();
     let project = db.project();
 
@@ -112,9 +112,11 @@ pub fn compile_files(
 
     // Build classes map (class name -> field name -> field index) and add Class objects to program
     // Also build class_field_types for type inference (class name -> field name -> Ty)
+    // Also build class_type_tags for TypeTag switch optimization (class name -> type tag)
     let mut classes: HashMap<String, HashMap<String, usize>> = HashMap::new();
     let mut class_field_types: HashMap<Name, HashMap<Name, baml_compiler_tir::Ty>> = HashMap::new();
     let mut class_object_indices: HashMap<String, usize> = HashMap::new();
+    let mut class_type_tags: HashMap<String, i64> = HashMap::new();
     let mut class_type_tag_counter = 0i64;
 
     for file in files {
@@ -136,11 +138,15 @@ pub fn compile_files(
                     field_types.insert(field.name.clone(), ty);
                 }
 
+                // Compute type tag for this class
+                let type_tag = type_tags::CLASS_BASE + class_type_tag_counter;
+                class_type_tags.insert(class_name.clone(), type_tag);
+
                 // Add Class object to program and record its index
                 let class_obj = Object::Class(Class {
                     name: class_name.clone(),
                     field_names,
-                    type_tag: type_tags::CLASS_BASE + class_type_tag_counter,
+                    type_tag,
                 });
                 class_type_tag_counter += 1;
                 let class_obj_idx = program.add_object(class_obj);
@@ -191,18 +197,28 @@ pub fn compile_files(
 
     // Add builtin functions to globals FIRST (stable indices)
     for builtin in builtins {
+        // External builtins (like file I/O) use FunctionKind::External
+        // so the VM knows to dispatch them via DispatchFuture/Await
+        let kind = if builtin.is_external {
+            let external_op = external_op_for_builtin_path(builtin.path)
+                .expect("external builtin must have ExternalOp mapping");
+            FunctionKind::External(external_op)
+        } else {
+            FunctionKind::NativeUnresolved
+        };
+
         let builtin_fn = Function {
             name: builtin.path.to_string(),
             arity: builtin.arity(),
             bytecode: Bytecode::default(),
-            kind: FunctionKind::Native(()),
+            kind,
             locals_in_scope: Vec::new(),
             span: baml_base::Span::fake(),
             block_notifications: Vec::new(),
             viz_nodes: Vec::new(),
         };
         let fn_obj_idx = program.add_object(Object::Function(builtin_fn));
-        program.add_global(Value::Object(ObjectIndex::from_raw(fn_obj_idx)));
+        program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
     }
 
     // Compile each user function using MIR
@@ -211,6 +227,7 @@ pub fn compile_files(
         for item in items_struct.items(db) {
             if let ItemId::Function(func_loc) = item {
                 let signature = function_signature(db, *func_loc);
+                let sig_source_map = function_signature_source_map(db, *func_loc);
                 let body = function_body(db, *func_loc);
 
                 // Handle different function body types
@@ -223,7 +240,7 @@ pub fn compile_files(
                             name: signature.name.to_string(),
                             arity: params.len(),
                             bytecode: Bytecode::new(),
-                            kind: FunctionKind::Llm,
+                            kind: FunctionKind::External(ExternalOp::Llm),
                             locals_in_scope: vec![
                                 params
                                     .iter()
@@ -243,7 +260,7 @@ pub fn compile_files(
                             name: signature.name.to_string(),
                             arity: params.len(),
                             bytecode: Bytecode::new(),
-                            kind: FunctionKind::Exec,
+                            kind: FunctionKind::Bytecode,
                             locals_in_scope: vec![
                                 params
                                     .iter()
@@ -255,7 +272,7 @@ pub fn compile_files(
                             viz_nodes: Vec::new(),
                         }
                     }
-                    baml_compiler_hir::FunctionBody::Expr(_) => {
+                    baml_compiler_hir::FunctionBody::Expr(_, _) => {
                         // Run type inference
                         // Note: type_aliases is not passed here, so exhaustiveness
                         // checking for type aliases won't work. This is acceptable
@@ -264,6 +281,7 @@ pub fn compile_files(
                         let inference = baml_compiler_tir::infer_function(
                             db,
                             &signature,
+                            Some(&sig_source_map),
                             &body,
                             Some(typing_context.clone()),
                             Some(class_field_types.clone()),
@@ -274,17 +292,15 @@ pub fn compile_files(
 
                         // Lower HIR → VIR → MIR
                         // Returns early if there are Missing nodes (errors in source)
-                        let vir = baml_compiler_vir::lower_from_hir(
-                            db,
-                            &body,
-                            &inference,
-                            &resolution_ctx,
-                        )?;
+                        let vir =
+                            baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx)?;
                         let mir = baml_compiler_mir::lower(
                             &signature,
                             &vir,
                             db,
                             &classes,
+                            &enum_variants,
+                            &class_type_tags,
                             &resolution_ctx,
                         );
 
@@ -310,7 +326,7 @@ pub fn compile_files(
                     .insert(signature.name.to_string(), fn_obj_idx);
 
                 // Add to globals
-                program.add_global(Value::Object(ObjectIndex::from_raw(fn_obj_idx)));
+                program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
             }
         }
     }
@@ -359,4 +375,27 @@ fn build_typing_context(
     }
 
     context
+}
+
+/// Map a builtin path to its corresponding `ExternalOp`.
+///
+/// This is used during code generation to set the correct `ExternalOp` variant
+/// for external builtin functions.
+fn external_op_for_builtin_path(path: &str) -> Option<ExternalOp> {
+    match path {
+        "baml.fs.open" => Some(ExternalOp::Sys(SysOp::FsOpen)),
+        "baml.fs.File.read" => Some(ExternalOp::Sys(SysOp::FsRead)),
+        "baml.fs.File.close" => Some(ExternalOp::Sys(SysOp::FsClose)),
+        "baml.sys.shell" => Some(ExternalOp::Sys(SysOp::Shell)),
+        "baml.net.connect" => Some(ExternalOp::Sys(SysOp::NetConnect)),
+        "baml.net.Socket.read" => Some(ExternalOp::Sys(SysOp::NetRead)),
+        "baml.net.Socket.close" => Some(ExternalOp::Sys(SysOp::NetClose)),
+        "baml.http.fetch" => Some(ExternalOp::Sys(SysOp::HttpFetch)),
+        "baml.http.Response.text" => Some(ExternalOp::Sys(SysOp::HttpResponseText)),
+        "baml.http.Response.status" => Some(ExternalOp::Sys(SysOp::HttpResponseStatus)),
+        "baml.http.Response.ok" => Some(ExternalOp::Sys(SysOp::HttpResponseOk)),
+        "baml.http.Response.url" => Some(ExternalOp::Sys(SysOp::HttpResponseUrl)),
+        "baml.http.Response.headers" => Some(ExternalOp::Sys(SysOp::HttpResponseHeaders)),
+        _ => None,
+    }
 }

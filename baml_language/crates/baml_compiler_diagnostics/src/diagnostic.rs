@@ -13,7 +13,7 @@ use baml_base::{FileId, Span};
 /// The compiler phase that produced a diagnostic.
 ///
 /// This enables grouping diagnostics by phase for display purposes
-/// (e.g., in `baml_tools_onionskin` TUI or `baml_tests` snapshots).
+/// (e.g., in `tools_onionskin` TUI or `baml_tests` snapshots).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum DiagnosticPhase {
     /// Parsing phase errors (syntax errors from the parser)
@@ -56,6 +56,7 @@ pub enum DiagnosticId {
     NotCallable,
     NoSuchField,
     NotIndexable,
+    InvalidMapKeyType,
 
     // Name errors (E0011)
     DuplicateName,
@@ -77,6 +78,16 @@ pub enum DiagnosticId {
     NegativeTimeout,
     MissingProvider,
     UnknownClientProperty,
+    /// `remap_roles` must be a map.
+    RemapRolesNotMap,
+    /// `remap_role` values must be strings.
+    RemapRoleValueNotString,
+    /// Invalid role not in `allowed_roles` list.
+    RemapRoleNotAllowed,
+    /// `allowed_roles` must not be empty.
+    AllowedRolesEmpty,
+    /// `allowed_roles` values must be strings.
+    AllowedRoleNotString,
 
     // Pattern matching errors (E0062-E0066)
     NonExhaustiveMatch,
@@ -96,13 +107,26 @@ pub enum DiagnosticId {
     // Constraint attribute errors (E0032)
     InvalidConstraintSyntax,
 
+    // Attribute value errors (E0037-E0038)
+    InvalidAttributeArg,
+    UnexpectedAttributeArg,
+
     // Type literal errors (E0033)
     UnsupportedFloatLiteral,
+
+    // Map type errors (E0039)
+    InvalidMapArity,
 
     // Test diagnostics (E0034-E0036)
     UnknownTestProperty,
     MissingTestProperty,
     TestFieldAttribute,
+
+    // Type builder diagnostics (E0040-E0043)
+    TypeBuilderInNonTestContext,
+    DuplicateTypeBuilderBlock,
+    IncompleteDynamicDefinition,
+    TypeBuilderSyntaxError,
 }
 
 impl DiagnosticId {
@@ -123,6 +147,7 @@ impl DiagnosticId {
             DiagnosticId::NotCallable => "E0006",
             DiagnosticId::NoSuchField => "E0007",
             DiagnosticId::NotIndexable => "E0008",
+            DiagnosticId::InvalidMapKeyType => "E0067",
 
             // Name errors
             DiagnosticId::DuplicateName => "E0011",
@@ -144,6 +169,11 @@ impl DiagnosticId {
             DiagnosticId::NegativeTimeout => "E0025",
             DiagnosticId::MissingProvider => "E0026",
             DiagnosticId::UnknownClientProperty => "E0027",
+            DiagnosticId::RemapRolesNotMap
+            | DiagnosticId::RemapRoleValueNotString
+            | DiagnosticId::RemapRoleNotAllowed
+            | DiagnosticId::AllowedRolesEmpty
+            | DiagnosticId::AllowedRoleNotString => "E0044",
 
             // Pattern matching errors
             DiagnosticId::NonExhaustiveMatch => "E0062",
@@ -163,13 +193,26 @@ impl DiagnosticId {
             // Constraint attribute errors
             DiagnosticId::InvalidConstraintSyntax => "E0032",
 
+            // Attribute value errors
+            DiagnosticId::InvalidAttributeArg => "E0037",
+            DiagnosticId::UnexpectedAttributeArg => "E0038",
+
             // Type literal errors
             DiagnosticId::UnsupportedFloatLiteral => "E0033",
+
+            // Map type errors
+            DiagnosticId::InvalidMapArity => "E0039",
 
             // Test diagnostics
             DiagnosticId::UnknownTestProperty => "E0034",
             DiagnosticId::MissingTestProperty => "E0035",
             DiagnosticId::TestFieldAttribute => "E0036",
+
+            // Type builder diagnostics
+            DiagnosticId::TypeBuilderInNonTestContext => "E0040",
+            DiagnosticId::DuplicateTypeBuilderBlock => "E0041",
+            DiagnosticId::IncompleteDynamicDefinition => "E0042",
+            DiagnosticId::TypeBuilderSyntaxError => "E0043",
         }
     }
 }

@@ -25,6 +25,8 @@ struct BuiltinDef {
     params: Vec<(String, TokenStream2)>,
     /// Return type pattern
     returns: TokenStream2,
+    /// Whether this is an external function (runs async outside VM)
+    is_external: bool,
 }
 
 /// Info for generating native function implementations.
@@ -45,6 +47,8 @@ struct NativeFnDef {
     returns: (String, bool, bool),
     /// Whether this function needs the VM (marked with #[uses(vm)])
     uses_vm: bool,
+    /// Whether this is an external function (runs async outside VM)
+    is_external: bool,
 }
 
 /// The root input to the macro: a list of modules.
@@ -56,7 +60,13 @@ impl Parse for BuiltinsInput {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut modules = Vec::new();
         while !input.is_empty() {
-            modules.push(input.parse()?);
+            // Check for attributes before mod
+            if input.peek(Token![#]) {
+                let attrs = input.call(Attribute::parse_outer)?;
+                modules.push(ModuleItem::parse_with_attrs(input, &attrs)?);
+            } else {
+                modules.push(input.parse()?);
+            }
         }
         Ok(BuiltinsInput { modules })
     }
@@ -66,6 +76,8 @@ impl Parse for BuiltinsInput {
 struct ModuleItem {
     name: Ident,
     items: Vec<ModuleContent>,
+    /// Whether this module is marked with #[hide] (hidden from type checker).
+    is_hidden: bool,
 }
 
 /// Content inside a module.
@@ -80,6 +92,8 @@ struct StructItem {
     name: Ident,
     generics: Generics,
     methods: Vec<FunctionItem>,
+    /// Whether this struct is marked with #[builtin] (builtin type).
+    is_builtin: bool,
 }
 
 /// A function or method declaration.
@@ -95,10 +109,15 @@ struct FunctionItem {
     return_type: Type,
     /// Whether this function uses the VM (marked with #[uses(vm)])
     uses_vm: bool,
+    /// Whether this function is external (marked with #[external])
+    /// External functions run asynchronously outside the VM.
+    is_external: bool,
 }
 
-impl Parse for ModuleItem {
-    fn parse(input: ParseStream) -> Result<Self> {
+impl ModuleItem {
+    fn parse_with_attrs(input: ParseStream, attrs: &[Attribute]) -> Result<Self> {
+        let is_hidden = attrs.iter().any(|attr| attr.path().is_ident("hide"));
+
         // Parse: mod name { ... }
         input.parse::<Token![mod]>()?;
         let name: Ident = input.parse()?;
@@ -108,26 +127,60 @@ impl Parse for ModuleItem {
         let mut items = Vec::new();
         while !content.is_empty() {
             // Peek to determine what kind of item this is
-            // Note: FunctionItem::parse handles its own attributes (#[uses(vm)])
+            // Handle attributes first (for #[opaque] struct, #[uses(vm)]/#[external] fn, or #[hide] mod)
             let lookahead = content.lookahead1();
             if lookahead.peek(Token![mod]) {
-                items.push(ModuleContent::Module(content.parse()?));
+                items.push(ModuleContent::Module(ModuleItem::parse_with_attrs(
+                    &content,
+                    &[],
+                )?));
             } else if lookahead.peek(Token![struct]) {
                 items.push(ModuleContent::Struct(content.parse()?));
-            } else if lookahead.peek(Token![fn]) || lookahead.peek(Token![#]) {
-                // Function with optional attributes
+            } else if lookahead.peek(Token![#]) {
+                // Could be #[opaque] struct, #[uses(vm)]/#[external] fn, or #[hide] mod
+                // Parse attributes first, then peek again
+                let attrs = content.call(Attribute::parse_outer)?;
+                let lookahead2 = content.lookahead1();
+                if lookahead2.peek(Token![struct]) {
+                    items.push(ModuleContent::Struct(StructItem::parse_with_attrs(
+                        &content, &attrs,
+                    )?));
+                } else if lookahead2.peek(Token![fn]) {
+                    items.push(ModuleContent::Function(Box::new(
+                        FunctionItem::parse_with_attrs(&content, &attrs)?,
+                    )));
+                } else if lookahead2.peek(Token![mod]) {
+                    items.push(ModuleContent::Module(ModuleItem::parse_with_attrs(
+                        &content, &attrs,
+                    )?));
+                } else {
+                    return Err(lookahead2.error());
+                }
+            } else if lookahead.peek(Token![fn]) {
                 items.push(ModuleContent::Function(Box::new(content.parse()?)));
             } else {
                 return Err(lookahead.error());
             }
         }
 
-        Ok(ModuleItem { name, items })
+        Ok(ModuleItem {
+            name,
+            items,
+            is_hidden,
+        })
     }
 }
 
-impl Parse for StructItem {
+impl Parse for ModuleItem {
     fn parse(input: ParseStream) -> Result<Self> {
+        Self::parse_with_attrs(input, &[])
+    }
+}
+
+impl StructItem {
+    fn parse_with_attrs(input: ParseStream, attrs: &[Attribute]) -> Result<Self> {
+        let is_builtin = attrs.iter().any(|attr| attr.path().is_ident("builtin"));
+
         // Parse: struct Name<Generics> { fn... }
         input.parse::<Token![struct]>()?;
         let name: Ident = input.parse()?;
@@ -145,14 +198,19 @@ impl Parse for StructItem {
             name,
             generics,
             methods,
+            is_builtin,
         })
     }
 }
 
-impl Parse for FunctionItem {
+impl Parse for StructItem {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Parse attributes like #[uses(vm)]
-        let attrs = input.call(Attribute::parse_outer)?;
+        Self::parse_with_attrs(input, &[])
+    }
+}
+
+impl FunctionItem {
+    fn parse_with_attrs(input: ParseStream, attrs: &[Attribute]) -> Result<Self> {
         let uses_vm = attrs.iter().any(|attr| {
             if attr.path().is_ident("uses") {
                 // Check if it's #[uses(vm)]
@@ -162,6 +220,7 @@ impl Parse for FunctionItem {
             }
             false
         });
+        let is_external = attrs.iter().any(|attr| attr.path().is_ident("external"));
 
         // Parse: fn name<Generics>(params...) -> RetType;
         input.parse::<Token![fn]>()?;
@@ -227,12 +286,77 @@ impl Parse for FunctionItem {
             params,
             return_type,
             uses_vm,
+            is_external,
         })
     }
 }
 
+impl Parse for FunctionItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        // Parse attributes like #[uses(vm)] or #[external]
+        let attrs = input.call(Attribute::parse_outer)?;
+        Self::parse_with_attrs(input, &attrs)
+    }
+}
+
+use std::collections::HashMap;
+
+/// Context for collecting builtin definitions.
+///
+/// Groups common parameters to reduce argument count in collection functions.
+struct CollectContext<'a> {
+    path_prefix: String,
+    const_prefix: String,
+    fn_name_prefix: String,
+    defs: &'a mut Vec<BuiltinDef>,
+    native_defs: &'a mut Vec<NativeFnDef>,
+    builtin_types: &'a HashMap<String, String>,
+    is_hidden: bool,
+}
+
+/// Collect all builtin struct paths from modules (first pass).
+/// Returns a map from struct name to full path (e.g., "File" -> "baml.fs.File").
+fn collect_builtin_types(modules: &[ModuleItem]) -> HashMap<String, String> {
+    let mut builtin_types = HashMap::new();
+    for module in modules {
+        collect_builtin_types_from_module(module, "", &mut builtin_types);
+    }
+    builtin_types
+}
+
+fn collect_builtin_types_from_module(
+    module: &ModuleItem,
+    path_prefix: &str,
+    builtin_types: &mut HashMap<String, String>,
+) {
+    let module_name = module.name.to_string();
+    let new_path_prefix = if path_prefix.is_empty() {
+        module_name
+    } else {
+        format!("{path_prefix}.{module_name}")
+    };
+
+    for item in &module.items {
+        match item {
+            ModuleContent::Struct(s) if s.is_builtin => {
+                let struct_name = s.name.to_string();
+                let full_path = format!("{new_path_prefix}.{struct_name}");
+                builtin_types.insert(struct_name, full_path);
+            }
+            ModuleContent::Module(m) => {
+                collect_builtin_types_from_module(m, &new_path_prefix, builtin_types);
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Convert a Rust type to a `TypePattern` token stream.
-fn type_to_pattern(ty: &Type, generic_params: &[String]) -> TokenStream2 {
+fn type_to_pattern(
+    ty: &Type,
+    generic_params: &[String],
+    builtin_types: &HashMap<String, String>,
+) -> TokenStream2 {
     match ty {
         Type::Path(type_path) => {
             let segment = type_path.path.segments.last().unwrap();
@@ -254,7 +378,8 @@ fn type_to_pattern(ty: &Type, generic_params: &[String]) -> TokenStream2 {
                 "Option" => {
                     if let PathArguments::AngleBracketed(args) = &segment.arguments {
                         if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            let inner_pattern = type_to_pattern(inner, generic_params);
+                            let inner_pattern =
+                                type_to_pattern(inner, generic_params, builtin_types);
                             return quote!(TypePattern::Optional(Box::new(#inner_pattern)));
                         }
                     }
@@ -263,7 +388,8 @@ fn type_to_pattern(ty: &Type, generic_params: &[String]) -> TokenStream2 {
                 "Array" => {
                     if let PathArguments::AngleBracketed(args) = &segment.arguments {
                         if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            let inner_pattern = type_to_pattern(inner, generic_params);
+                            let inner_pattern =
+                                type_to_pattern(inner, generic_params, builtin_types);
                             return quote!(TypePattern::Array(Box::new(#inner_pattern)));
                         }
                     }
@@ -281,7 +407,7 @@ fn type_to_pattern(ty: &Type, generic_params: &[String]) -> TokenStream2 {
                                     None
                                 }
                             })
-                            .map(|t| type_to_pattern(t, generic_params))
+                            .map(|t| type_to_pattern(t, generic_params, builtin_types))
                             .unwrap_or_else(|| quote!(TypePattern::String));
                         let value = iter
                             .next()
@@ -292,7 +418,7 @@ fn type_to_pattern(ty: &Type, generic_params: &[String]) -> TokenStream2 {
                                     None
                                 }
                             })
-                            .map(|t| type_to_pattern(t, generic_params))
+                            .map(|t| type_to_pattern(t, generic_params, builtin_types))
                             .unwrap_or_else(|| quote!(TypePattern::Null));
                         return quote!(TypePattern::Map {
                             key: Box::new(#key),
@@ -305,6 +431,10 @@ fn type_to_pattern(ty: &Type, generic_params: &[String]) -> TokenStream2 {
                     })
                 }
                 _ => {
+                    // Check if it's a builtin type
+                    if let Some(full_path) = builtin_types.get(&ident_str) {
+                        return quote!(TypePattern::Builtin(#full_path));
+                    }
                     // Single uppercase letter is likely a type variable
                     if ident_str.len() == 1 && ident_str.chars().next().unwrap().is_uppercase() {
                         let lit = syn::LitStr::new(&ident_str, ident.span());
@@ -412,82 +542,72 @@ fn unwrap_result_type(ty: &Type) -> (&Type, bool) {
 }
 
 /// Collect all builtin definitions from a module.
-fn collect_builtins(
-    module: &ModuleItem,
-    path_prefix: &str,
-    const_prefix: &str,
-    fn_name_prefix: &str,
-    defs: &mut Vec<BuiltinDef>,
-    native_defs: &mut Vec<NativeFnDef>,
-) {
+///
+/// When `is_hidden` is true, items are not added to `defs` (signatures)
+/// but are still added to `native_defs` (native function implementations).
+fn collect_builtins(module: &ModuleItem, ctx: &mut CollectContext) {
     let module_name = module.name.to_string();
-    let new_path_prefix = if path_prefix.is_empty() {
+    let new_path_prefix = if ctx.path_prefix.is_empty() {
         module_name.clone()
     } else {
-        format!("{path_prefix}.{module_name}")
+        format!("{}.{module_name}", ctx.path_prefix)
     };
 
-    let new_const_prefix = if const_prefix.is_empty() {
+    let new_const_prefix = if ctx.const_prefix.is_empty() {
         to_screaming_snake_case(&module_name)
     } else {
-        format!("{const_prefix}_{}", to_screaming_snake_case(&module_name))
+        format!(
+            "{}_{}",
+            ctx.const_prefix,
+            to_screaming_snake_case(&module_name)
+        )
     };
 
-    let new_fn_name_prefix = if fn_name_prefix.is_empty() {
+    let new_fn_name_prefix = if ctx.fn_name_prefix.is_empty() {
         to_snake_case(&module_name)
     } else {
-        format!("{}_{}", fn_name_prefix, to_snake_case(&module_name))
+        format!("{}_{}", ctx.fn_name_prefix, to_snake_case(&module_name))
+    };
+
+    // If this module is hidden, propagate to children
+    let hidden = ctx.is_hidden || module.is_hidden;
+
+    // Create child context with updated prefixes
+    let mut child_ctx = CollectContext {
+        path_prefix: new_path_prefix,
+        const_prefix: new_const_prefix,
+        fn_name_prefix: new_fn_name_prefix,
+        defs: ctx.defs,
+        native_defs: ctx.native_defs,
+        builtin_types: ctx.builtin_types,
+        is_hidden: hidden,
     };
 
     for item in &module.items {
         match item {
             ModuleContent::Struct(s) => {
-                collect_struct_builtins(
-                    s,
-                    &new_path_prefix,
-                    &new_const_prefix,
-                    &new_fn_name_prefix,
-                    defs,
-                    native_defs,
-                );
+                collect_struct_builtins(s, &mut child_ctx);
             }
             ModuleContent::Function(f) => {
-                collect_function_builtin(
-                    f,
-                    &new_path_prefix,
-                    &new_const_prefix,
-                    &new_fn_name_prefix,
-                    defs,
-                    native_defs,
-                );
+                collect_function_builtins(f, &mut child_ctx);
             }
             ModuleContent::Module(m) => {
-                collect_builtins(
-                    m,
-                    &new_path_prefix,
-                    &new_const_prefix,
-                    &new_fn_name_prefix,
-                    defs,
-                    native_defs,
-                );
+                collect_builtins(m, &mut child_ctx);
             }
         }
     }
 }
 
 /// Collect builtin definitions from a struct.
-fn collect_struct_builtins(
-    s: &StructItem,
-    path_prefix: &str,
-    const_prefix: &str,
-    fn_name_prefix: &str,
-    defs: &mut Vec<BuiltinDef>,
-    native_defs: &mut Vec<NativeFnDef>,
-) {
+fn collect_struct_builtins(s: &StructItem, ctx: &mut CollectContext) {
     let struct_name = s.name.to_string();
-    let struct_path = format!("{path_prefix}.{struct_name}");
-    let struct_const_prefix = format!("{const_prefix}_{}", to_screaming_snake_case(&struct_name));
-    let struct_fn_name_prefix = format!("{}_{}", fn_name_prefix, to_snake_case(&struct_name));
+    let struct_path = format!("{}.{struct_name}", ctx.path_prefix);
+    let struct_const_prefix = format!(
+        "{}_{}",
+        ctx.const_prefix,
+        to_screaming_snake_case(&struct_name)
+    );
+    let struct_fn_name_prefix = format!("{}_{}", ctx.fn_name_prefix, to_snake_case(&struct_name));
 
     // Collect generic params from struct
     let struct_generics: Vec<String> = s
@@ -514,26 +634,35 @@ fn collect_struct_builtins(
         let receiver = method
             .receiver
             .as_ref()
-            .map(|(ty, _is_mut)| type_to_pattern(ty, &all_generics));
+            .map(|(ty, _is_mut)| type_to_pattern(ty, &all_generics, ctx.builtin_types));
 
         // Build params
         let params: Vec<(String, TokenStream2)> = method
             .params
             .iter()
-            .map(|(name, ty)| (name.to_string(), type_to_pattern(ty, &all_generics)))
+            .map(|(name, ty)| {
+                (
+                    name.to_string(),
+                    type_to_pattern(ty, &all_generics, ctx.builtin_types),
+                )
+            })
             .collect();
 
         // Build return type (unwrap Result<T> to just T for TypePattern)
         let (inner_return_ty, _) = unwrap_result_type(&method.return_type);
-        let returns = type_to_pattern(inner_return_ty, &all_generics);
+        let returns = type_to_pattern(inner_return_ty, &all_generics, ctx.builtin_types);
 
-        defs.push(BuiltinDef {
-            path: path.clone(),
-            const_name: const_name.clone(),
-            receiver,
-            params,
-            returns,
-        });
+        // Only add to defs (signatures) if not hidden
+        if !ctx.is_hidden {
+            ctx.defs.push(BuiltinDef {
+                path: path.clone(),
+                const_name: const_name.clone(),
+                receiver,
+                params,
+                returns,
+                is_external: method.is_external,
+            });
+        }
 
         // Build native fn def
         let native_receiver = method.receiver.as_ref().map(|(ty, is_mut)| {
@@ -560,7 +689,7 @@ fn collect_struct_builtins(
             (type_name, is_generic, is_fallible)
         };
 
-        native_defs.push(NativeFnDef {
+        ctx.native_defs.push(NativeFnDef {
             const_name,
             path,
             fn_name,
@@ -568,19 +697,13 @@ fn collect_struct_builtins(
             params: native_params,
             returns: native_returns,
             uses_vm: method.uses_vm,
+            is_external: method.is_external,
         });
     }
 }
 
-/// Collect a single function builtin.
-fn collect_function_builtin(
-    f: &FunctionItem,
-    path_prefix: &str,
-    const_prefix: &str,
-    fn_name_prefix: &str,
-    defs: &mut Vec<BuiltinDef>,
-    native_defs: &mut Vec<NativeFnDef>,
-) {
+/// Collect builtins from a single function.
+fn collect_function_builtins(f: &FunctionItem, ctx: &mut CollectContext) {
     let fn_generics: Vec<String> = f
         .generics
         .type_params()
@@ -588,37 +711,50 @@ fn collect_function_builtin(
         .collect();
 
     let original_fn_name = f.name.to_string();
-    let path = format!("{path_prefix}.{original_fn_name}");
+    let path = format!("{}.{original_fn_name}", ctx.path_prefix);
     let const_name = format_ident!(
         "{}_{}",
-        const_prefix,
+        ctx.const_prefix,
         to_screaming_snake_case(&original_fn_name)
     );
-    let fn_name = format_ident!("{}_{}", fn_name_prefix, to_snake_case(&original_fn_name));
+    let fn_name = format_ident!(
+        "{}_{}",
+        ctx.fn_name_prefix,
+        to_snake_case(&original_fn_name)
+    );
 
     // Free functions shouldn't have receivers (ignoring mutability for type pattern)
     let receiver = f
         .receiver
         .as_ref()
-        .map(|(ty, _is_mut)| type_to_pattern(ty, &fn_generics));
+        .map(|(ty, _is_mut)| type_to_pattern(ty, &fn_generics, ctx.builtin_types));
 
     let params: Vec<(String, TokenStream2)> = f
         .params
         .iter()
-        .map(|(name, ty)| (name.to_string(), type_to_pattern(ty, &fn_generics)))
+        .map(|(name, ty)| {
+            (
+                name.to_string(),
+                type_to_pattern(ty, &fn_generics, ctx.builtin_types),
+            )
+        })
         .collect();
 
     // Unwrap Result<T> to just T for TypePattern
     let (inner_return_ty, _) = unwrap_result_type(&f.return_type);
-    let returns = type_to_pattern(inner_return_ty, &fn_generics);
+    let returns = type_to_pattern(inner_return_ty, &fn_generics, ctx.builtin_types);
 
-    defs.push(BuiltinDef {
-        path: path.clone(),
-        const_name: const_name.clone(),
-        receiver,
-        params,
-        returns,
-    });
+    // Only add to defs (signatures) if not hidden
+    if !ctx.is_hidden {
+        ctx.defs.push(BuiltinDef {
+            path: path.clone(),
+            const_name: const_name.clone(),
+            receiver,
+            params,
+            returns,
+            is_external: f.is_external,
+        });
+    }
 
     // Build native fn def
     let native_receiver = f.receiver.as_ref().map(|(ty, is_mut)| {
@@ -644,7 +780,7 @@ fn collect_function_builtin(
         (type_name, is_generic, is_fallible)
     };
 
-    native_defs.push(NativeFnDef {
+    ctx.native_defs.push(NativeFnDef {
         const_name,
         path,
         fn_name,
@@ -652,6 +788,7 @@ fn collect_function_builtin(
         params: native_params,
         returns: native_returns,
         uses_vm: f.uses_vm,
+        is_external: f.is_external,
     });
 }
 
@@ -660,10 +797,23 @@ fn collect_function_builtin(
 pub fn define_builtins(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as BuiltinsInput);
 
+    // First pass: collect all opaque types
+    let builtin_types = collect_builtin_types(&input.modules);
+
+    // Second pass: collect all builtin definitions
     let mut defs = Vec::new();
     let mut native_defs = Vec::new();
     for module in &input.modules {
-        collect_builtins(module, "", "", "", &mut defs, &mut native_defs);
+        let mut ctx = CollectContext {
+            path_prefix: String::new(),
+            const_prefix: String::new(),
+            fn_name_prefix: String::new(),
+            defs: &mut defs,
+            native_defs: &mut native_defs,
+            builtin_types: &builtin_types,
+            is_hidden: false, // Not hidden at root level; modules handle their own is_hidden flag
+        };
+        collect_builtins(module, &mut ctx);
     }
 
     // Generate path constants
@@ -681,6 +831,13 @@ pub fn define_builtins(input: TokenStream) -> TokenStream {
     // Generate const names for the for_all_builtins macro
     let const_names: Vec<_> = defs.iter().map(|d| &d.const_name).collect();
 
+    // Generate const names for the for_native_builtins macro (exclude external functions)
+    let native_const_names: Vec<_> = defs
+        .iter()
+        .filter(|d| !d.is_external)
+        .map(|d| &d.const_name)
+        .collect();
+
     // Generate builtin signatures
     let signatures: Vec<_> = defs
         .iter()
@@ -696,6 +853,7 @@ pub fn define_builtins(input: TokenStream) -> TokenStream {
                 .map(|(name, ty)| quote!((#name, #ty)))
                 .collect();
             let returns = &d.returns;
+            let is_external = d.is_external;
 
             quote! {
                 BuiltinSignature {
@@ -703,6 +861,7 @@ pub fn define_builtins(input: TokenStream) -> TokenStream {
                     receiver: #receiver,
                     params: vec![#(#params),*],
                     returns: #returns,
+                    is_external: #is_external,
                 }
             }
         })
@@ -765,6 +924,25 @@ pub fn define_builtins(input: TokenStream) -> TokenStream {
             };
         }
 
+        /// Invoke a macro with only native (non-external) builtin constant names.
+        ///
+        /// External functions are handled by the embedder, not native Rust.
+        /// Use this instead of `for_all_builtins!` when generating native function
+        /// implementations or registrations.
+        ///
+        /// Usage:
+        /// ```ignore
+        /// baml_builtins::for_native_builtins!(my_macro);
+        /// // Expands to: my_macro!(BAML_ARRAY_LENGTH, BAML_ARRAY_PUSH, ...);
+        /// // (excluding external functions like BAML_FS_FILE_READ)
+        /// ```
+        #[macro_export]
+        macro_rules! for_native_builtins {
+            ($callback:ident) => {
+                $callback!(#(#native_const_names),*)
+            };
+        }
+
         /// Invoke a macro with all native function info.
         ///
         /// Each entry has format:
@@ -808,17 +986,32 @@ pub fn define_builtins(input: TokenStream) -> TokenStream {
 pub fn generate_native_trait(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as BuiltinsInput);
 
+    // First pass: collect all opaque types
+    let builtin_types = collect_builtin_types(&input.modules);
+
+    // Second pass: collect all builtin definitions
     let mut native_defs = Vec::new();
     let mut defs = Vec::new();
     for module in &input.modules {
-        collect_builtins(module, "", "", "", &mut defs, &mut native_defs);
+        let mut ctx = CollectContext {
+            path_prefix: String::new(),
+            const_prefix: String::new(),
+            fn_name_prefix: String::new(),
+            defs: &mut defs,
+            native_defs: &mut native_defs,
+            builtin_types: &builtin_types,
+            is_hidden: false, // Not hidden at root level; modules handle their own is_hidden flag
+        };
+        collect_builtins(module, &mut ctx);
     }
 
     // Generate required trait methods (clean signatures)
     // Note: For mutable receivers, we don't pass `vm` due to borrow checker constraints
     // Note: For non-fallible functions, return type is just T (not Result<T, VmError>)
+    // Note: External functions are skipped - they're handled by the embedder, not native Rust
     let required_methods: Vec<_> = native_defs
         .iter()
+        .filter(|d| !d.is_external) // Skip external functions
         .map(|d| {
             let fn_name = &d.fn_name;
             let params = generate_clean_params(d);
@@ -830,7 +1023,7 @@ pub fn generate_native_trait(input: TokenStream) -> TokenStream {
             // - Receiver is not mutable (mutable receivers can't have vm due to borrow checker)
             if d.uses_vm && !has_mut_receiver {
                 quote! {
-                    fn #fn_name(vm: &mut Vm, #params) -> #return_type;
+                    fn #fn_name(vm: &mut BexVm, #params) -> #return_type;
                 }
             } else {
                 quote! {
@@ -842,8 +1035,10 @@ pub fn generate_native_trait(input: TokenStream) -> TokenStream {
 
     // Generate default glue methods
     // Note: For mutable receivers, we don't pass `vm` to the clean function
+    // Note: External functions are skipped - they're handled by the embedder
     let glue_methods: Vec<_> = native_defs
         .iter()
+        .filter(|d| !d.is_external) // Skip external functions
         .map(|d| {
             let fn_name = &d.fn_name;
             let glue_fn_name = format_ident!("__{}", fn_name);
@@ -865,7 +1060,7 @@ pub fn generate_native_trait(input: TokenStream) -> TokenStream {
             };
 
             quote! {
-                fn #glue_fn_name(vm: &mut Vm, args: &[Value]) -> NativeFunctionResult {
+                fn #glue_fn_name(vm: &mut BexVm, args: &[Value]) -> NativeFunctionResult {
                     #extract_args
                     let result = #call_expr;
                     #convert_result
@@ -875,8 +1070,10 @@ pub fn generate_native_trait(input: TokenStream) -> TokenStream {
         .collect();
 
     // Generate get_native_fn match arms
+    // Note: External functions are skipped - they don't have native implementations
     let match_arms: Vec<_> = native_defs
         .iter()
+        .filter(|d| !d.is_external) // Skip external functions
         .map(|d| {
             let path = &d.path;
             let glue_fn_name = format_ident!("__{}", d.fn_name);
@@ -888,13 +1085,15 @@ pub fn generate_native_trait(input: TokenStream) -> TokenStream {
 
     // Generate public wrapper functions that delegate to VmNatives::__baml_*
     // These are needed by builtins.rs which looks up native::baml_* functions
+    // Note: External functions are skipped - they don't have native implementations
     let public_wrappers: Vec<_> = native_defs
         .iter()
+        .filter(|d| !d.is_external) // Skip external functions
         .map(|d| {
             let fn_name = &d.fn_name;
             let glue_fn_name = format_ident!("__{}", d.fn_name);
             quote! {
-                pub fn #fn_name(vm: &mut Vm, args: &[Value]) -> NativeFunctionResult {
+                pub fn #fn_name(vm: &mut BexVm, args: &[Value]) -> NativeFunctionResult {
                     VmNatives::#glue_fn_name(vm, args)
                 }
             }
@@ -995,6 +1194,13 @@ fn rust_type_for_input(type_name: &str, is_generic: bool, is_mut: bool) -> Token
                 quote!(&MediaValue)
             }
         }
+        "PromptAst" => {
+            if is_mut {
+                quote!(&mut PromptAst)
+            } else {
+                quote!(&PromptAst)
+            }
+        }
         t if t.starts_with("Array") => {
             if is_mut {
                 quote!(&mut Vec<Value>)
@@ -1038,6 +1244,7 @@ fn rust_type_for_output(type_name: &str, is_generic: bool) -> TokenStream2 {
         "bool" => quote!(bool),
         "()" => quote!(()),
         "Media" => quote!(MediaValue),
+        "PromptAst" => quote!(PromptAst),
         t if t.starts_with("Array") => quote!(Vec<Value>),
         t if t.starts_with("Map") => quote!(IndexMap<String, Value>),
         t if t.starts_with("Option<") => {
@@ -1117,7 +1324,7 @@ fn generate_single_extraction(
     if is_generic {
         return if is_mut {
             quote! {
-                let #var_name = vm.objects.as_value_mut(&args[#idx])?;
+                let #var_name = vm.as_value_mut(&args[#idx])?;
             }
         } else {
             quote! {
@@ -1130,12 +1337,12 @@ fn generate_single_extraction(
         "String" => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_string_mut(&args[#idx])?;
+                    let #var_name = vm.as_string_mut(&args[#idx])?;
                 }
             } else {
-                // Clone string to release borrow on vm.objects
+                // Clone string to release borrow on vm
                 quote! {
-                    let #var_name = vm.objects.as_string(&args[#idx])?.clone();
+                    let #var_name = vm.as_string(&args[#idx])?.clone();
                 }
             }
         }
@@ -1144,7 +1351,7 @@ fn generate_single_extraction(
                 Value::Int(i) => i,
                 _ => return Err(InternalError::TypeError {
                     expected: Type::Int,
-                    got: vm.objects.type_of(&args[#idx]),
+                    got: vm.type_of(&args[#idx]),
                 }.into()),
             };
         },
@@ -1153,7 +1360,7 @@ fn generate_single_extraction(
                 Value::Float(f) => f,
                 _ => return Err(InternalError::TypeError {
                     expected: Type::Float,
-                    got: vm.objects.type_of(&args[#idx]),
+                    got: vm.type_of(&args[#idx]),
                 }.into()),
             };
         },
@@ -1162,47 +1369,59 @@ fn generate_single_extraction(
                 Value::Bool(b) => b,
                 _ => return Err(InternalError::TypeError {
                     expected: Type::Bool,
-                    got: vm.objects.type_of(&args[#idx]),
+                    got: vm.type_of(&args[#idx]),
                 }.into()),
             };
         },
         "Media" => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_media_mut(&args[#idx], MediaKind::Generic)?;
+                    let #var_name = vm.as_media_mut(&args[#idx], MediaKind::Generic)?;
                 }
             } else {
                 quote! {
-                    let #var_name = vm.objects.as_media(&args[#idx], MediaKind::Generic)?.clone();
+                    let #var_name = vm.as_media(&args[#idx], MediaKind::Generic)?.clone();
+                }
+            }
+        }
+        "PromptAst" => {
+            if is_mut {
+                // TODO: Add as_prompt_ast_mut to vm when needed
+                quote! {
+                    compile_error!("Mutable PromptAst parameters not yet supported");
+                }
+            } else {
+                quote! {
+                    let #var_name = vm.as_prompt_ast(&args[#idx])?.clone();
                 }
             }
         }
         t if t.starts_with("Array") => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_array_mut(&args[#idx])?;
+                    let #var_name = vm.as_array_mut(&args[#idx])?;
                 }
             } else {
                 quote! {
-                    let #var_name = vm.objects.as_array(&args[#idx])?.to_vec();
+                    let #var_name = vm.as_array(&args[#idx])?.to_vec();
                 }
             }
         }
         t if t.starts_with("Map") => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_map_mut(&args[#idx])?;
+                    let #var_name = vm.as_map_mut(&args[#idx])?;
                 }
             } else {
                 quote! {
-                    let #var_name = vm.objects.as_map(&args[#idx])?.clone();
+                    let #var_name = vm.as_map(&args[#idx])?.clone();
                 }
             }
         }
         _ => {
             if is_mut {
                 quote! {
-                    let #var_name = vm.objects.as_value_mut(&args[#idx])?;
+                    let #var_name = vm.as_value_mut(&args[#idx])?;
                 }
             } else {
                 quote! {
@@ -1254,7 +1473,7 @@ fn needs_reference(type_name: &str, is_generic: bool) -> bool {
         return false; // Generic types are already passed as &Value
     }
 
-    matches!(type_name, "String" | "Media")
+    matches!(type_name, "String" | "Media" | "PromptAst")
         || type_name.starts_with("Array")
         || type_name.starts_with("Map")
 }
@@ -1287,6 +1506,7 @@ fn generate_result_conversion(d: &NativeFnDef) -> TokenStream2 {
         },
         t if t.starts_with("Array") => quote!(Ok(vm.alloc_array(result))),
         t if t.starts_with("Map") => quote!(Ok(vm.alloc_map(result))),
+        "PromptAst" => quote!(Ok(vm.alloc_prompt_ast(result))),
         _ => quote!(Ok(result)),
     }
 }

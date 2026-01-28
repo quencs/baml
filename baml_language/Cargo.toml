@@ -1,5 +1,5 @@
 [workspace]
-members = [ "crates/*" ]
+members = [ "crates/*", "rig_tests/crates/*" ]
 resolver = "2"
 
 [workspace.package]
@@ -20,6 +20,9 @@ version = "0.0.0"
 baml_base = { path = "crates/baml_base" }
 baml_builtins = { path = "crates/baml_builtins" }
 baml_builtins_macros = { path = "crates/baml_builtins_macros" }
+baml_codegen_python = { path = "crates/baml_codegen_python" }
+baml_codegen_tests = { path = "crates/baml_codegen_tests" }
+baml_codegen_types = { path = "crates/baml_codegen_types" }
 baml_compiler_diagnostics = { path = "crates/baml_compiler_diagnostics" }
 baml_compiler_emit = { path = "crates/baml_compiler_emit" }
 baml_compiler_hir = { path = "crates/baml_compiler_hir" }
@@ -29,22 +32,43 @@ baml_compiler_parser = { path = "crates/baml_compiler_parser" }
 baml_compiler_syntax = { path = "crates/baml_compiler_syntax" }
 baml_compiler_tir = { path = "crates/baml_compiler_tir" }
 baml_compiler_vir = { path = "crates/baml_compiler_vir" }
+bex_program = { path = "crates/bex_program" }
+bex_engine = { path = "crates/bex_engine" }
+sys_types = { path = "crates/sys_types" }
+sys_native = { path = "crates/sys_native" }
 baml_db = { path = "crates/baml_db" }
 baml_ide = { path = "crates/baml_ide" }
 baml_lsp = { path = "crates/baml_lsp" }
 baml_lsp_types = { path = "crates/baml_lsp_types" }
 baml_project = { path = "crates/baml_project" }
 baml_tests = { path = "crates/baml_tests" }
-baml_tools_onionskin = { path = "crates/baml_tools_onionskin" }
-baml_vm = { path = "crates/baml_vm" }
-baml_vm_types = { path = "crates/baml_vm_types" }
+baml_typetags = { path = "crates/baml_typetags" }
+tools_onionskin = { path = "crates/tools_onionskin" }
+bex_vm = { path = "crates/bex_vm" }
+bex_vm_types = { path = "crates/bex_vm_types" }
+bex_external_types = { path = "crates/bex_external_types" }
+bex_heap = { path = "crates/bex_heap" }
+bex_llm_types = { path = "crates/bex_llm_types" }
+bex_jinja_runtime = { path = "crates/bex_jinja_runtime" }
+sys_resource_types = { path = "crates/sys_resource_types" }
+
+# External dependencies for bex_jinja_runtime
+minijinja = { git = "https://github.com/boundaryml/minijinja.git", branch = "main", default-features = false, features = [
+  "macros",
+  "builtins",
+  "debug",
+  "preserve_order",
+  "serde",
+] }
 baml_workspace = { path = "crates/baml_workspace" }
 
 #  External dependencies
 anyhow = { version = "1" }
 arboard = "3.4"
 ariadne = { version = "0.6" }
+askama = { version = "0.14.0" }
 axum = { version = "0.8.4", features = [ "ws" ] }
+cargo_metadata = { version = "0.23.1" }
 cfg-if = "1.0.0"
 clap = { version = "4.4.6", features = [ "cargo", "derive" ] }
 clap-cargo = "0.14.1"
@@ -52,16 +76,17 @@ colored = { version = "2.1.0" }
 console-subscriber = { version = "0.4.1", features = [ "grpc-web" ] }
 console_error_panic_hook = "0.1"
 crossbeam = { version = "0.8.4", features = [ "crossbeam-channel" ] }
+crossbeam-queue = "0.3"
 crossterm = "0.28"
 ctrlc = "3.4"
 divan = { package = "codspeed-divan-compat", version = "*" }
 filetime = "0.2.25"
 futures = { version = "0.3.30", features = [ "executor" ] }
 glob = { version = "0.3" }
+graphviz-rust = { version = "0.9" }
 ignore = { version = "0.4.22" }
 indexmap = { version = "2.1.0", features = [ "serde" ] }
 insta = { version = "1.34", features = [ "yaml", "redactions" ] }
-insta-cmd = { version = "0.6.0" }
 is-macro = { version = "0.3.5" }
 itertools = "0.14.0"
 jod-thread = { version = "0.1.2" }
@@ -106,17 +131,19 @@ semver = "1.0.20"
 serde = { version = "1.0.197", features = [ "derive" ] }
 serde-wasm-bindgen = "0.4"
 serde_json = { version = "1.0.113" }
+sharded-slab = "0.1"
 shellexpand = { version = "3.0.0" }
 similar = { version = "2.4.0", features = [ "inline" ] }
 simple-logging = "2.0.2"
 smol_str = { version = "0.3" }
 syn = { version = "2", features = [ "full" ] }
 taplo = { version = "0.13" }
+tempfile = { version = "3" }
 text-size = { version = "1.1" }
 thiserror = { version = "2.0.0" }
 toml = { version = "0.8" }
 toml_edit = { version = "0.22" }
-tokio = { version = "1.36", features = [ "full", "tracing" ] }
+tokio = { version = "1.36" }
 tower = "0.5"
 tower-http = { version = "0.6.6", features = [ "fs", "cors" ] }
 tracing = { version = "0.1.40" }
@@ -131,6 +158,7 @@ wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3"
 webbrowser = "1.0.5"
 wee_alloc = "0.4"
+wiremock = "0.6"
 [workspace.lints.rust]
 unsafe_code = "warn"
 unreachable_pub = "warn"

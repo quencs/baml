@@ -10,20 +10,35 @@
 //!
 //! This follows patterns from rust-analyzer and ruff for incremental type checking.
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use baml_base::{FileId, Name, Span};
 use baml_compiler_diagnostics::TypeError;
 use baml_compiler_hir::{
-    ExprBody, ExprId, FunctionBody, FunctionLoc, FunctionSignature, Pattern, StmtId,
+    ErrorLocation, ExprBody, ExprId, FunctionBody, FunctionLoc, FunctionSignature, HirSourceMap,
+    MatchArmId, Pattern, SignatureSourceMap, StmtId, TirContext, TypeId,
 };
 use baml_workspace::Project;
+
+/// Type alias for TIR type errors.
+///
+/// Uses `TirContext<Ty>` which has:
+/// - `Ty` as the type representation
+/// - `ErrorLocation` as the location (position-independent IDs)
+///
+/// This enables Salsa caching to work correctly - whitespace changes don't
+/// invalidate type inference results because locations use IDs instead of spans.
+pub type TirTypeError = TypeError<TirContext<Ty>>;
 
 pub mod builtins;
 mod exhaustiveness;
 mod lower;
 mod normalize;
 pub mod pretty;
+mod resolve;
 mod types;
 
 pub use builtins::{
@@ -31,8 +46,10 @@ pub use builtins::{
     method_return_type, substitute,
 };
 pub use exhaustiveness::{ExhaustivenessChecker, ExhaustivenessResult, ValueSet};
-pub use lower::{TypeLoweringContext, lower_type_ref_validated_resolved};
+pub use lower::lower_type_ref;
+pub use normalize::find_invalid_map_keys;
 pub use pretty::{expr_to_string, render_body_tree, render_function_tree};
+pub use resolve::{ResolutionMap, ResolvedMethod, ResolvedValue, resolve_method};
 use text_size::TextRange;
 pub use types::*;
 
@@ -59,6 +76,7 @@ fn substitute_with_fallback(pattern: &baml_builtins::TypePattern, bindings: &Bin
         TypePattern::Optional(inner) => {
             Ty::Optional(Box::new(substitute_with_fallback(inner, bindings)))
         }
+        TypePattern::Builtin(path) => Ty::Builtin((*path).to_string()),
     }
 }
 
@@ -166,9 +184,9 @@ pub struct EnumNamesSet<'db> {
     pub names: HashSet<Name>,
 }
 
-/// Tracked struct holding all known type names (classes, enums, type aliases).
+/// Tracked struct holding type alias names.
 #[salsa::tracked]
-pub struct KnownTypesSet<'db> {
+pub struct TypeAliasNamesSet<'db> {
     #[tracked]
     #[returns(ref)]
     pub names: HashSet<Name>,
@@ -244,7 +262,7 @@ pub fn typing_context(db: &dyn Db, project: Project) -> TypingContextMap<'_> {
         }
     }
 
-    TypingContextMap::new(db, context)
+    TypingContextMap::new(db, context /* functions */)
 }
 
 /// Query: Get class field types for a project.
@@ -336,37 +354,22 @@ pub fn enum_names(db: &dyn Db, project: Project) -> EnumNamesSet<'_> {
     EnumNamesSet::new(db, names)
 }
 
-/// Query: Get all known type names for a project (classes, enums, type aliases).
+/// Query: Get type alias names for a project.
 #[salsa::tracked]
-pub fn known_types(db: &dyn Db, project: Project) -> KnownTypesSet<'_> {
+pub fn type_alias_names(db: &dyn Db, project: Project) -> TypeAliasNamesSet<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let mut names = HashSet::new();
 
     for item in items.items(db) {
-        match item {
-            baml_compiler_hir::ItemId::Class(class_loc) => {
-                let file = class_loc.file(db);
-                let item_tree = baml_compiler_hir::file_item_tree(db, file);
-                let class_data = &item_tree[class_loc.id(db)];
-                names.insert(class_data.name.clone());
-            }
-            baml_compiler_hir::ItemId::Enum(enum_loc) => {
-                let file = enum_loc.file(db);
-                let item_tree = baml_compiler_hir::file_item_tree(db, file);
-                let enum_data = &item_tree[enum_loc.id(db)];
-                names.insert(enum_data.name.clone());
-            }
-            baml_compiler_hir::ItemId::TypeAlias(alias_loc) => {
-                let file = alias_loc.file(db);
-                let item_tree = baml_compiler_hir::file_item_tree(db, file);
-                let alias_data = &item_tree[alias_loc.id(db)];
-                names.insert(alias_data.name.clone());
-            }
-            _ => {}
+        if let baml_compiler_hir::ItemId::TypeAlias(alias_loc) = item {
+            let file = alias_loc.file(db);
+            let item_tree = baml_compiler_hir::file_item_tree(db, file);
+            let alias_data = &item_tree[alias_loc.id(db)];
+            names.insert(alias_data.name.clone());
         }
     }
 
-    KnownTypesSet::new(db, names)
+    TypeAliasNamesSet::new(db, names)
 }
 
 /// Context for type resolution across a project.
@@ -376,7 +379,7 @@ pub fn known_types(db: &dyn Db, project: Project) -> KnownTypesSet<'_> {
 pub struct TypeResolutionContext {
     pub class_names: HashSet<Name>,
     pub enum_names: HashSet<Name>,
-    pub known_types: HashSet<Name>,
+    pub type_alias_names: HashSet<Name>,
 }
 
 impl TypeResolutionContext {
@@ -385,7 +388,7 @@ impl TypeResolutionContext {
         Self {
             class_names: class_names(db, project).names(db).clone(),
             enum_names: enum_names(db, project).names(db).clone(),
-            known_types: known_types(db, project).names(db).clone(),
+            type_alias_names: type_alias_names(db, project).names(db).clone(),
         }
     }
 
@@ -394,10 +397,10 @@ impl TypeResolutionContext {
         &self,
         type_ref: &baml_compiler_hir::TypeRef,
         span: Span,
-    ) -> (Ty, Vec<TypeError<Ty>>) {
-        lower_type_ref_validated_resolved(
+    ) -> (Ty, Vec<TirTypeError>) {
+        lower_type_ref(
             type_ref,
-            &self.known_types,
+            &self.type_alias_names,
             &self.class_names,
             &self.enum_names,
             span,
@@ -431,12 +434,24 @@ pub struct InferenceResult {
     /// enabling phi-like optimization for match results.
     pub exhaustive_matches: HashSet<ExprId>,
     /// Type checking errors.
-    pub errors: Vec<TypeError<Ty>>,
+    pub errors: Vec<TirTypeError>,
+    /// Resolution information for IDE features (go-to-definition, find-references).
+    /// Maps expression IDs to what they resolve to.
+    pub expr_resolutions: ResolutionMap,
 }
 
 // ============================================================================
 // Type Context
 // ============================================================================
+
+/// Where a local variable was defined (for go-to-definition).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DefinitionSite {
+    /// Defined in a let statement.
+    Statement(StmtId),
+    /// Defined as a function parameter (with its index).
+    Parameter(usize),
+}
 
 /// Context for type inference, tracking scopes and accumulated results.
 pub struct TypeContext<'db> {
@@ -453,8 +468,8 @@ pub struct TypeContext<'db> {
     class_names: HashSet<Name>,
     /// Enum names for type resolution
     enum_names: HashSet<Name>,
-    /// Known type names for validation
-    known_types: HashSet<Name>,
+    /// Type alias names for validation
+    type_alias_names: HashSet<Name>,
     /// Inferred types for expressions.
     expr_types: HashMap<ExprId, Ty>,
     /// For multi-segment paths, the type of each segment.
@@ -467,11 +482,17 @@ pub struct TypeContext<'db> {
     /// Used to validate that all return paths match the declared return type.
     return_types: Vec<(Ty, Span)>,
     /// Accumulated type errors.
-    errors: Vec<TypeError<Ty>>,
+    errors: Vec<TirTypeError>,
     /// The current file being typechecked
     file_id: FileId,
     /// Variables declared with `watch let` (tracked for $watch validation).
     watched_vars: HashSet<Name>,
+    /// Resolution map for expressions (for IDE features).
+    expr_resolutions: ResolutionMap,
+    /// Track where local variables were defined (for go-to-definition).
+    local_definitions: HashMap<Name, DefinitionSite>,
+    /// Optional source map for looking up spans (for type annotation errors).
+    hir_source_map: Option<HirSourceMap>,
 }
 
 impl<'db> TypeContext<'db> {
@@ -485,8 +506,9 @@ impl<'db> TypeContext<'db> {
         enum_variants: HashMap<Name, Vec<Name>>,
         class_names: HashSet<Name>,
         enum_names: HashSet<Name>,
-        known_types: HashSet<Name>,
+        type_alias_names: HashSet<Name>,
         file_id: FileId,
+        hir_source_map: Option<HirSourceMap>,
     ) -> Self {
         TypeContext {
             db,
@@ -496,7 +518,7 @@ impl<'db> TypeContext<'db> {
             enum_variants,
             class_names,
             enum_names,
-            known_types,
+            type_alias_names,
             expr_types: HashMap::new(),
             path_segment_types: HashMap::new(),
             enum_variant_exprs: HashMap::new(),
@@ -505,6 +527,9 @@ impl<'db> TypeContext<'db> {
             errors: Vec::new(),
             file_id,
             watched_vars: HashSet::new(),
+            expr_resolutions: HashMap::new(),
+            local_definitions: HashMap::new(),
+            hir_source_map,
         }
     }
 
@@ -565,7 +590,7 @@ impl<'db> TypeContext<'db> {
     }
 
     /// Add a type error.
-    pub fn push_error(&mut self, error: TypeError<Ty>) {
+    pub fn push_error(&mut self, error: TirTypeError) {
         self.errors.push(error);
     }
 
@@ -577,6 +602,25 @@ impl<'db> TypeContext<'db> {
     /// Check if a variable is watched (declared with `watch let`).
     pub fn is_watched(&self, name: &Name) -> bool {
         self.watched_vars.contains(name)
+    }
+
+    /// Set the resolution for an expression.
+    pub fn set_expr_resolution(&mut self, expr_id: ExprId, resolution: ResolvedValue) {
+        self.expr_resolutions.insert(expr_id, resolution);
+    }
+
+    /// Define a local variable and track its definition site.
+    pub fn define_with_site(&mut self, name: Name, ty: Ty, definition_site: DefinitionSite) {
+        // Get the current scope (last in the stack)
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name.clone(), ty);
+        }
+        self.local_definitions.insert(name, definition_site);
+    }
+
+    /// Get the definition site for a local variable.
+    pub fn get_definition_site(&self, name: &Name) -> Option<DefinitionSite> {
+        self.local_definitions.get(name).copied()
     }
 
     /// Get the database reference.
@@ -594,37 +638,61 @@ impl<'db> TypeContext<'db> {
         range.map(|s| self.build_span(s)).unwrap_or_default()
     }
 
+    /// Look up the span for a type from the source map.
+    pub fn type_span(&self, id: TypeId) -> Span {
+        self.hir_source_map
+            .as_ref()
+            .and_then(|sm| sm.type_span(id))
+            .unwrap_or_default()
+    }
+
     /// Check if `sub` is a subtype of `sup`, resolving type aliases.
     pub fn is_subtype_of(&self, sub: &Ty, sup: &Ty) -> bool {
         normalize::is_subtype_of(sub, sup, &self.type_aliases)
     }
 
-    /// Lower a `TypeRef` to a Ty with full resolution (classes/enums resolved to names).
-    pub fn lower_type_resolved(&self, type_ref: &baml_compiler_hir::TypeRef, span: Span) -> Ty {
-        let (ty, _errors) = lower_type_ref_validated_resolved(
+    /// Lower a `TypeRef` to a `Ty` with full resolution and validation.
+    ///
+    /// This is the single entry point for type lowering during inference.
+    /// It resolves classes/enums to their concrete types, validates map key
+    /// types, and accumulates any errors.
+    pub fn lower_type(&mut self, type_ref: &baml_compiler_hir::TypeRef, span: Span) -> Ty {
+        let (ty, errors) = lower_type_ref(
             type_ref,
-            &self.known_types,
+            &self.type_alias_names,
             &self.class_names,
             &self.enum_names,
             span,
         );
-        // Note: errors are not accumulated here since they should have been
-        // caught during earlier validation passes
+
+        // Accumulate lowering errors (e.g., unknown types)
+        self.errors.extend(errors);
+
+        // Validate map key types
+        let invalid_keys = normalize::find_invalid_map_keys(&ty, &self.type_aliases);
+        for invalid_key in invalid_keys {
+            self.errors.push(TypeError::InvalidMapKeyType {
+                ty: invalid_key,
+                location: ErrorLocation::Span(span),
+            });
+        }
+
         ty
     }
 
     /// Resolve a named type to its proper Ty representation.
     ///
-    /// This resolves class and enum names to `Ty::Class` and `Ty::Enum` with their names,
-    /// while type aliases and unknown types stay as `Ty::Named`.
+    /// This resolves class and enum names to `Ty::Class` and `Ty::Enum` with FQNs,
+    /// while type aliases and unknown types stay as `Ty::TypeAlias`.
     pub fn resolve_named_type(&self, name: &Name) -> Ty {
+        use baml_compiler_hir::FullyQualifiedName;
         if self.class_names.contains(name) {
-            Ty::Class(name.clone())
+            Ty::Class(FullyQualifiedName::local(name.clone()))
         } else if self.enum_names.contains(name) {
-            Ty::Enum(name.clone())
+            Ty::Enum(FullyQualifiedName::local(name.clone()))
         } else {
-            // Type alias or unknown type - stays as Named, will be resolved during normalization
-            Ty::Named(name.clone())
+            // Type alias or unknown type - stays as TypeAlias, will be resolved during normalization
+            Ty::TypeAlias(FullyQualifiedName::local(name.clone()))
         }
     }
 
@@ -705,10 +773,17 @@ pub fn infer_function_body<'db>(
     enum_variants: Option<HashMap<Name, Vec<Name>>>,
     class_names_opt: Option<HashSet<Name>>,
     enum_names_opt: Option<HashSet<Name>>,
-    known_types: Option<HashSet<Name>>,
+    type_alias_names: Option<HashSet<Name>>,
     function_loc: FunctionLoc<'db>,
 ) -> InferenceResult {
     let file_id = function_loc.file(db).file_id(db);
+
+    // Extract source map from body if available
+    let hir_source_map = match body {
+        FunctionBody::Expr(_, source_map) => Some(source_map.clone()),
+        _ => None,
+    };
+
     let mut ctx = TypeContext::with_type_info(
         db,
         globals.unwrap_or_default(),
@@ -717,32 +792,36 @@ pub fn infer_function_body<'db>(
         enum_variants.unwrap_or_default(),
         class_names_opt.unwrap_or_default(),
         enum_names_opt.unwrap_or_default(),
-        known_types.unwrap_or_default(),
+        type_alias_names.unwrap_or_default(),
         file_id,
+        hir_source_map,
     );
 
     // Add parameters to the current scope (on top of globals)
-    for (name, ty) in &param_types {
-        ctx.define(name.clone(), ty.clone());
+    // Track their index in the parameter list for go-to-definition
+    for (index, (name, ty)) in param_types.iter().enumerate() {
+        ctx.define_with_site(name.clone(), ty.clone(), DefinitionSite::Parameter(index));
     }
 
     // Type check the body against the expected return type (checking mode for bidirectional typing)
-    let (trailing_expr_type, body_span) = match body {
-        FunctionBody::Expr(expr_body) => {
+    let (trailing_expr_type, body_location) = match body {
+        FunctionBody::Expr(expr_body, _source_map) => {
             if let Some(root_expr) = expr_body.root_expr {
                 // Use check_expr for bidirectional typing - check body against expected return type
                 let ty = check_expr(&mut ctx, root_expr, expr_body, expected_return);
-                let span = expr_body.get_expr_span(root_expr).unwrap_or_default();
-                (ty, span)
+                (ty, ErrorLocation::Expr(root_expr))
             } else {
-                (Ty::Void, Span::default())
+                (Ty::Void, ErrorLocation::Span(Span::default()))
             }
         }
         FunctionBody::Llm(_) => {
             // LLM functions return their declared return type
-            (expected_return.clone(), Span::default())
+            (
+                expected_return.clone(),
+                ErrorLocation::Span(Span::default()),
+            )
         }
-        FunctionBody::Missing => (Ty::Unknown, Span::default()),
+        FunctionBody::Missing => (Ty::Unknown, ErrorLocation::Span(Span::default())),
     };
 
     // With bidirectional type checking, return statements are already checked
@@ -762,14 +841,14 @@ pub fn infer_function_body<'db>(
         let error = if trailing_expr_type.is_void() && !expected_return.is_void() {
             TypeError::MissingReturnExpression {
                 expected: expected_return.clone(),
-                span: body_span,
+                location: body_location,
             }
         } else {
             TypeError::TypeMismatch {
                 expected: expected_return.clone(),
                 found: trailing_expr_type.clone(),
-                span: body_span,
-                info_span: return_type_span,
+                location: body_location,
+                info_location: return_type_span.map(ErrorLocation::Span),
             }
         };
         ctx.push_error(error);
@@ -797,7 +876,61 @@ pub fn infer_function_body<'db>(
         enum_variant_exprs: ctx.enum_variant_exprs,
         exhaustive_matches: ctx.exhaustive_matches,
         errors: ctx.errors,
+        expr_resolutions: ctx.expr_resolutions,
     }
+}
+
+/// Salsa tracked query for function type inference.
+///
+/// This caches the type inference results for a function, enabling
+/// incremental recomputation when dependencies change.
+#[salsa::tracked]
+pub fn function_type_inference<'db>(
+    db: &'db dyn Db,
+    function: FunctionLoc<'db>,
+) -> Arc<InferenceResult> {
+    // Get the function signature and body
+    // NOTE: We intentionally don't call function_signature_source_map here.
+    // This allows Salsa early cutoff: when only whitespace/comments change,
+    // function_signature returns an equal value, so this query is cached.
+    // The trade-off is that type mismatch errors won't point to the return
+    // type annotation, but they'll still point to the offending expression.
+    let signature = baml_compiler_hir::function_signature(db, function);
+    let body = baml_compiler_hir::function_body(db, function);
+
+    // Get the project context
+    let project = db.project();
+
+    // Build global context from the project
+    // Get function signatures as global types (for function calls)
+    let typing_ctx = typing_context(db, project);
+    let globals = Some(typing_ctx.functions(db).clone());
+
+    // Get class field types
+    let class_field_types = class_field_types(db, project);
+    let class_fields = Some(class_field_types.classes(db).clone());
+
+    // Get type aliases
+    let type_aliases_map = type_aliases(db, project);
+    let type_aliases = Some(type_aliases_map.aliases(db).clone());
+
+    // Get enum variants
+    let enum_variants_map = enum_variants(db, project);
+    let enum_variants = Some(enum_variants_map.enums(db).clone());
+
+    let result = infer_function(
+        db,
+        &signature,
+        None, // No source map - enables Salsa early cutoff on whitespace changes
+        &body,
+        globals,
+        class_fields,
+        type_aliases,
+        enum_variants,
+        function,
+    );
+
+    Arc::new(result)
 }
 
 /// Infer types for a function given its signature and body.
@@ -809,10 +942,17 @@ pub fn infer_function_body<'db>(
 ///
 /// The `globals` parameter provides types for top-level functions, allowing
 /// function calls to be properly typed. Pass `None` if no global context is needed.
+///
+/// The `sig_source_map` parameter is optional. When provided, type mismatch errors
+/// will include a secondary location pointing to the return type annotation.
+/// When `None`, errors still point to the offending expression but without the
+/// return type annotation location. Pass `None` for cached queries to enable
+/// Salsa early cutoff on whitespace/comment changes.
 #[allow(clippy::too_many_arguments)]
 pub fn infer_function<'db>(
     db: &'db dyn Db,
     signature: &FunctionSignature,
+    sig_source_map: Option<&SignatureSourceMap>,
     body: &FunctionBody,
     globals: Option<HashMap<Name, Ty>>,
     class_fields: Option<HashMap<Name, HashMap<Name, Ty>>>,
@@ -820,11 +960,9 @@ pub fn infer_function<'db>(
     enum_variants: Option<HashMap<Name, Vec<Name>>>,
     function_loc: FunctionLoc<'db>,
 ) -> InferenceResult {
-    // Query known type names from the project (Salsa-cached)
     let project = db.project();
-    let known_type_names = baml_compiler_hir::project_type_names(db, project);
-    let known_types: std::collections::HashSet<_> =
-        known_type_names.names(db).iter().cloned().collect();
+    let type_aliases = type_aliases.unwrap_or_default();
+    let type_alias_name_set: HashSet<Name> = type_aliases.keys().cloned().collect();
 
     // Get class and enum name sets for type resolution (Salsa-cached)
     let class_name_set = class_names(db, project).names(db).clone();
@@ -834,16 +972,16 @@ pub fn infer_function<'db>(
     // Use a placeholder span for now - ideally we'd have spans on TypeRef
     let placeholder_span = Span::new(file_id, TextRange::empty(0.into()));
 
-    let mut type_errors: Vec<TypeError<Ty>> = Vec::new();
+    let mut type_errors: Vec<TirTypeError> = Vec::new();
 
     // Convert parameter TypeRefs to Tys with validation and resolution
     let param_types: HashMap<Name, Ty> = signature
         .params
         .iter()
         .map(|param| {
-            let (ty, errors) = lower_type_ref_validated_resolved(
+            let (ty, errors) = lower_type_ref(
                 &param.type_ref,
-                &known_types,
+                &type_alias_name_set,
                 &class_name_set,
                 &enum_name_set,
                 placeholder_span,
@@ -854,19 +992,50 @@ pub fn infer_function<'db>(
         .collect();
 
     // Convert return type with validation and resolution
-    let (expected_return, errors) = lower_type_ref_validated_resolved(
+    let (expected_return, errors) = lower_type_ref(
         &signature.return_type,
-        &known_types,
+        &type_alias_name_set,
         &class_name_set,
         &enum_name_set,
         placeholder_span,
     );
     type_errors.extend(errors);
 
-    // Convert return type TextRange to Span for diagnostics
-    let return_type_span = signature
-        .return_type_span
+    // Convert return type TextRange to Span for diagnostics (if source map provided)
+    let return_type_span = sig_source_map
+        .and_then(SignatureSourceMap::return_type_span)
         .map(|range| Span::new(file_id, range));
+
+    // Validate map key types in function signature
+    // Check return type for invalid map keys
+    if let Some(span) = return_type_span {
+        let invalid_return_keys = normalize::find_invalid_map_keys(&expected_return, &type_aliases);
+        for invalid_key in invalid_return_keys {
+            type_errors.push(TypeError::InvalidMapKeyType {
+                ty: invalid_key,
+                location: ErrorLocation::Span(span),
+            });
+        }
+    }
+
+    // Check param types for invalid map keys
+    if let Some(source_map) = sig_source_map {
+        for (idx, param) in signature.params.iter().enumerate() {
+            if let Some(param_ty) = param_types.get(&param.name) {
+                if let Some(range) = source_map.param_span(idx) {
+                    let span = Span::new(file_id, range);
+                    let invalid_param_keys =
+                        normalize::find_invalid_map_keys(param_ty, &type_aliases);
+                    for invalid_key in invalid_param_keys {
+                        type_errors.push(TypeError::InvalidMapKeyType {
+                            ty: invalid_key,
+                            location: ErrorLocation::Span(span),
+                        });
+                    }
+                }
+            }
+        }
+    }
 
     // Delegate to the body inference function
     let mut result = infer_function_body(
@@ -877,11 +1046,11 @@ pub fn infer_function<'db>(
         return_type_span,
         globals,
         class_fields,
-        type_aliases,
+        Some(type_aliases),
         enum_variants,
         Some(class_name_set),
         Some(enum_name_set),
-        Some(known_types),
+        Some(type_alias_name_set),
         function_loc,
     );
 
@@ -899,8 +1068,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 
     let expr = &body.exprs[expr_id];
 
-    // Create a placeholder span for errors (ideally we'd track spans in ExprBody)
-    let span = body.get_expr_span(expr_id).unwrap_or_default();
+    // Use position-independent location for errors - resolved to spans at render time
+    let location = ErrorLocation::Expr(expr_id);
 
     let ty = match expr {
         Expr::Literal(lit) => infer_literal(lit),
@@ -909,14 +1078,43 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
             if segments.is_empty() {
                 Ty::Unknown
             } else if segments.len() == 1 {
-                // Single segment: simple variable lookup
+                // Single segment: variable, function, class, or enum lookup
                 let name = &segments[0];
                 if let Some(ty) = ctx.lookup(name) {
-                    ty.clone()
+                    let ty = ty.clone();
+
+                    // Determine the resolution based on what kind of entity this is
+                    let resolution = if let Some(definition_site) = ctx.get_definition_site(name) {
+                        // Has a definition site -> it's a local variable or parameter
+                        ResolvedValue::Local {
+                            name: name.clone(),
+                            definition_site: Some(definition_site),
+                        }
+                    } else if ctx.class_names.contains(name) {
+                        // Class name
+                        use baml_compiler_hir::FullyQualifiedName;
+                        ResolvedValue::Class(FullyQualifiedName::local(name.clone()))
+                    } else if ctx.enum_names.contains(name) {
+                        // Enum name
+                        use baml_compiler_hir::FullyQualifiedName;
+                        ResolvedValue::Enum(FullyQualifiedName::local(name.clone()))
+                    } else if ctx.type_aliases.contains_key(name) {
+                        // Type alias
+                        use baml_compiler_hir::FullyQualifiedName;
+                        ResolvedValue::TypeAlias(FullyQualifiedName::local(name.clone()))
+                    } else {
+                        // Must be a function in globals
+                        use baml_compiler_hir::FullyQualifiedName;
+                        ResolvedValue::Function(FullyQualifiedName::local(name.clone()))
+                    };
+
+                    // Store resolution for IDE features
+                    ctx.set_expr_resolution(expr_id, resolution);
+                    ty
                 } else {
                     ctx.push_error(TypeError::UnknownVariable {
                         name: name.to_string(),
-                        span,
+                        location,
                     });
                     Ty::Unknown
                 }
@@ -932,6 +1130,15 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     .collect::<Vec<_>>()
                     .join(".");
                 if let Some(def) = builtins::lookup_builtin_by_path(&full_path) {
+                    // Store resolution for builtin function
+                    ctx.set_expr_resolution(
+                        expr_id,
+                        ResolvedValue::BuiltinFunction {
+                            // Use normalized path (baaml -> baml)
+                            path: def.path.to_string(),
+                        },
+                    );
+
                     // It's a builtin function - return its function type
                     let mut param_types: Vec<Ty> = Vec::new();
                     if let Some(ref receiver_pattern) = def.receiver {
@@ -954,16 +1161,28 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 
                     if let Some(variants) = ctx.lookup_enum_variants(enum_name) {
                         if variants.contains(variant_name) {
+                            use baml_compiler_hir::FullyQualifiedName;
+                            let enum_fqn = FullyQualifiedName::local(enum_name.clone());
+
+                            // Store resolution for enum variant
+                            ctx.set_expr_resolution(
+                                expr_id,
+                                ResolvedValue::EnumVariant {
+                                    enum_fqn: enum_fqn.clone(),
+                                    variant: variant_name.clone(),
+                                },
+                            );
+
                             // This is a valid enum variant - record it and return the enum type
                             ctx.enum_variant_exprs
                                 .insert(expr_id, (enum_name.clone(), variant_name.clone()));
-                            return Ty::Named(enum_name.clone());
+                            return Ty::Enum(enum_fqn);
                         }
                         // Enum exists but variant doesn't
                         ctx.push_error(TypeError::UnknownEnumVariant {
                             enum_name: enum_name.to_string(),
                             variant_name: variant_name.to_string(),
-                            span,
+                            location,
                         });
                         return Ty::Unknown;
                     }
@@ -976,7 +1195,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 } else {
                     ctx.push_error(TypeError::UnknownVariable {
                         name: first.to_string(),
-                        span,
+                        location,
                     });
                     return Ty::Unknown;
                 };
@@ -986,7 +1205,18 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 
                 // Apply field accesses for remaining segments
                 for field in &segments[1..] {
-                    ty = infer_field_access(ctx, &ty, field, span);
+                    // Before updating ty, check if we're accessing a field on a class
+                    // This is for IDE resolution of field access paths
+                    if let Ty::Class(class_fqn) = &ty {
+                        ctx.set_expr_resolution(
+                            expr_id,
+                            ResolvedValue::Field {
+                                class_fqn: class_fqn.clone(),
+                                field: field.clone(),
+                            },
+                        );
+                    }
+                    ty = infer_field_access(ctx, &ty, field, location);
                     segment_types.push(ty.clone());
                 }
 
@@ -1008,13 +1238,13 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
             } else {
                 let lhs_ty = infer_expr(ctx, *lhs, body);
                 let rhs_ty = infer_expr(ctx, *rhs, body);
-                infer_binary_op(ctx, *op, &lhs_ty, &rhs_ty, span)
+                infer_binary_op(ctx, *op, &lhs_ty, &rhs_ty, location)
             }
         }
 
         Expr::Unary { op, expr: inner } => {
             let inner_ty = infer_expr(ctx, *inner, body);
-            infer_unary_op(ctx, *op, &inner_ty, span)
+            infer_unary_op(ctx, *op, &inner_ty, location)
         }
 
         Expr::Call { callee, args } => {
@@ -1022,8 +1252,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
             // If so, we need to pass the receiver as the first argument.
             // We track (type, Option<span>) for each argument so we can report errors
             // at the correct location. Implicit receiver args have None for span.
-            let (callee_ty, effective_args): (Ty, Vec<(Ty, Option<Span>)>) = match &body.exprs
-                [*callee]
+            let (callee_ty, effective_args): (Ty, Vec<(Ty, Option<ErrorLocation>)>) = match &body
+                .exprs[*callee]
             {
                 Expr::FieldAccess { base, field: _ } => {
                     // Method call: receiver.method(args) -> Type.method(receiver, args)
@@ -1035,8 +1265,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     let mut effective_args = vec![(receiver_ty, None)];
                     for arg in args {
                         let arg_ty = infer_expr(ctx, *arg, body);
-                        let arg_span = body.get_expr_span(*arg);
-                        effective_args.push((arg_ty, arg_span));
+                        let arg_location = Some(ErrorLocation::Expr(*arg));
+                        effective_args.push((arg_ty, arg_location));
                     }
                     (callee_ty, effective_args)
                 }
@@ -1051,12 +1281,12 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     if let Some(def) = builtins::lookup_builtin_by_path(&full_path) {
                         // It's a builtin function - infer argument types first so we can
                         // bind type variables (e.g., T in deep_copy(x: T) -> T)
-                        let arg_types_with_spans: Vec<(Ty, Option<Span>)> = args
+                        let arg_types_with_spans: Vec<(Ty, Option<ErrorLocation>)> = args
                             .iter()
                             .map(|arg| {
                                 let ty = infer_expr(ctx, *arg, body);
-                                let arg_span = body.get_expr_span(*arg);
-                                (ty, arg_span)
+                                let arg_location = Some(ErrorLocation::Expr(*arg));
+                                (ty, arg_location)
                             })
                             .collect();
                         let arg_types: Vec<Ty> = arg_types_with_spans
@@ -1130,7 +1360,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                             let first = &receiver_segments[0];
                             let mut ty = ctx.lookup(first).cloned().unwrap_or(Ty::Unknown);
                             for field in &receiver_segments[1..] {
-                                ty = infer_field_access(ctx, &ty, field, span);
+                                ty = infer_field_access(ctx, &ty, field, location);
                             }
                             ty
                         };
@@ -1141,8 +1371,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         let mut effective_args = vec![(receiver_ty, None)];
                         for arg in args {
                             let arg_ty = infer_expr(ctx, *arg, body);
-                            let arg_span = body.get_expr_span(*arg);
-                            effective_args.push((arg_ty, arg_span));
+                            let arg_location = Some(ErrorLocation::Expr(*arg));
+                            effective_args.push((arg_ty, arg_location));
                         }
                         (callee_ty, effective_args)
                     }
@@ -1150,12 +1380,12 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 _ => {
                     // Regular function call (single-segment Path or other expression)
                     let callee_ty = infer_expr(ctx, *callee, body);
-                    let arg_types_with_spans: Vec<(Ty, Option<Span>)> = args
+                    let arg_types_with_spans: Vec<(Ty, Option<ErrorLocation>)> = args
                         .iter()
                         .map(|arg| {
                             let ty = infer_expr(ctx, *arg, body);
-                            let arg_span = body.get_expr_span(*arg);
-                            (ty, arg_span)
+                            let arg_location = Some(ErrorLocation::Expr(*arg));
+                            (ty, arg_location)
                         })
                         .collect();
                     (callee_ty, arg_types_with_spans)
@@ -1170,20 +1400,22 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         ctx.push_error(TypeError::ArgumentCountMismatch {
                             expected: params.len(),
                             found: effective_args.len(),
-                            span,
+                            location,
                         });
                     }
 
-                    // Check argument types - use each argument's span for precise error location
-                    for ((arg_ty, arg_span), param_ty) in effective_args.iter().zip(params.iter()) {
+                    // Check argument types - use each argument's location for precise error location
+                    for ((arg_ty, arg_location), param_ty) in
+                        effective_args.iter().zip(params.iter())
+                    {
                         if !ctx.is_subtype_of(arg_ty, param_ty) {
-                            // Use the argument's span if available, otherwise fall back to call span
-                            let error_span = arg_span.unwrap_or(span);
+                            // Use the argument's location if available, otherwise fall back to call location
+                            let error_location = arg_location.unwrap_or(location);
                             ctx.push_error(TypeError::TypeMismatch {
                                 expected: param_ty.clone(),
                                 found: generalize_for_error(param_ty, arg_ty),
-                                span: error_span,
-                                info_span: None,
+                                location: error_location,
+                                info_location: None,
                             });
                         }
                     }
@@ -1195,7 +1427,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 _ => {
                     ctx.push_error(TypeError::NotCallable {
                         ty: callee_ty,
-                        span,
+                        location,
                     });
                     Ty::Unknown
                 }
@@ -1214,25 +1446,25 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         if !ctx.is_watched(var_name) {
                             ctx.push_error(TypeError::WatchOnUnwatchedVariable {
                                 name: var_name.to_string(),
-                                span,
+                                location,
                             });
                         }
                     }
                     _ => {
                         // Not a simple variable (e.g., arr[0].$watch, obj.field.$watch)
-                        ctx.push_error(TypeError::WatchOnNonVariable { span });
+                        ctx.push_error(TypeError::WatchOnNonVariable { location });
                     }
                 }
             }
 
             let base_ty = infer_expr(ctx, *base, body);
-            infer_field_access(ctx, &base_ty, field, span)
+            infer_field_access(ctx, &base_ty, field, location)
         }
 
         Expr::Index { base, index } => {
             let base_ty = infer_expr(ctx, *base, body);
             let index_ty = infer_expr(ctx, *index, body);
-            infer_index_access(ctx, &base_ty, &index_ty, span)
+            infer_index_access(ctx, &base_ty, &index_ty, location)
         }
 
         Expr::Array { elements } => {
@@ -1251,8 +1483,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         ctx.push_error(TypeError::TypeMismatch {
                             expected: elem_ty.clone(),
                             found: other_ty,
-                            span,
-                            info_span: None,
+                            location,
+                            info_location: None,
                         });
                     }
                 }
@@ -1277,6 +1509,17 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 Ty::Unknown
             };
 
+            // Store resolution for IDE features if this is a class instantiation
+            if let Some(name) = type_name {
+                if ctx.class_names.contains(name) {
+                    use baml_compiler_hir::FullyQualifiedName;
+                    ctx.set_expr_resolution(
+                        expr_id,
+                        ResolvedValue::Class(FullyQualifiedName::local(name.clone())),
+                    );
+                }
+            }
+
             // Type check spread expressions - they must be the same type as the object
             for spread in spreads {
                 let spread_ty = infer_expr(ctx, spread.expr, body);
@@ -1285,8 +1528,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     ctx.push_error(TypeError::TypeMismatch {
                         expected: obj_ty.clone(),
                         found: spread_ty,
-                        span,
-                        info_span: None,
+                        location,
+                        info_location: None,
                     });
                 }
             }
@@ -1316,16 +1559,16 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         ctx.push_error(TypeError::TypeMismatch {
                             expected: key_ty.clone(),
                             found: generalize_for_error(&key_ty, &other_key_ty),
-                            span,
-                            info_span: None,
+                            location,
+                            info_location: None,
                         });
                     }
                     if !ctx.is_subtype_of(&other_value_ty, &value_ty) {
                         ctx.push_error(TypeError::TypeMismatch {
                             expected: value_ty.clone(),
                             found: generalize_for_error(&value_ty, &other_value_ty),
-                            span,
-                            info_span: None,
+                            location,
+                            info_location: None,
                         });
                     }
                 }
@@ -1366,8 +1609,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Bool,
                     found: cond_ty,
-                    span,
-                    info_span: None,
+                    location,
+                    info_location: None,
                 });
             }
 
@@ -1412,9 +1655,6 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
         Expr::Match { scrutinee, arms } => {
             let scrutinee_ty = infer_expr(ctx, *scrutinee, body);
 
-            // Use the actual match expression span if available, otherwise fall back to placeholder
-            let match_span = body.get_expr_span(expr_id).unwrap_or(span);
-
             if arms.is_empty() {
                 // Empty match is non-exhaustive (unless scrutinee is uninhabited).
                 // An uninhabited type has no possible values, so an empty match is
@@ -1424,18 +1664,20 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     ctx.push_error(TypeError::NonExhaustiveMatch {
                         scrutinee_type: scrutinee_ty.clone(),
                         missing_cases: vec!["all cases".to_string()],
-                        span: match_span,
+                        location: ErrorLocation::Expr(expr_id),
                     });
                 }
                 Ty::Unknown
             } else {
                 // Perform exhaustiveness checking and unreachable arm detection
-                check_match_exhaustiveness(ctx, &scrutinee_ty, arms, body, expr_id, match_span);
+                check_match_exhaustiveness(ctx, &scrutinee_ty, arms, body, expr_id);
 
                 // Collect result types from all arms
                 let arm_types: Vec<Ty> = arms
                     .iter()
-                    .map(|arm| {
+                    .map(|arm_id| {
+                        let arm = &body.match_arms[*arm_id];
+
                         // Push a scope for the arm's pattern bindings
                         ctx.push_scope();
 
@@ -1456,8 +1698,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                                 ctx.push_error(TypeError::TypeMismatch {
                                     expected: Ty::Bool,
                                     found: guard_ty,
-                                    span,
-                                    info_span: None,
+                                    location,
+                                    info_location: None,
                                 });
                             }
                         }
@@ -1497,7 +1739,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
     use baml_compiler_hir::Expr;
 
     let expr = &body.exprs[expr_id];
-    let span = body.get_expr_span(expr_id).unwrap_or_default();
+    let location = ErrorLocation::Expr(expr_id);
 
     let ty = match expr {
         // For most cases, we synthesize then check subtyping
@@ -1576,8 +1818,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                             ctx.push_error(TypeError::TypeMismatch {
                                 expected: (**expected_elem).clone(),
                                 found: generalize_for_error(expected_elem, &elem_ty),
-                                span,
-                                info_span: None,
+                                location,
+                                info_location: None,
                             });
                         }
                     }
@@ -1593,8 +1835,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                     ctx.push_error(TypeError::TypeMismatch {
                         expected: expected.clone(),
                         found: generalize_for_error(expected, &ty),
-                        span,
-                        info_span: None,
+                        location,
+                        info_location: None,
                     });
                 }
                 ty
@@ -1606,13 +1848,26 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
             fields,
             spreads: _,
         } => {
+            // Store resolution for IDE features if this is a class instantiation
+            if let Some(name) = type_name {
+                if ctx.class_names.contains(name) {
+                    use baml_compiler_hir::FullyQualifiedName;
+                    ctx.set_expr_resolution(
+                        expr_id,
+                        ResolvedValue::Class(FullyQualifiedName::local(name.clone())),
+                    );
+                }
+            }
+
             // If we expect a specific class type, we can use its field types
-            if let Ty::Class(expected_name) = expected {
+            if let Ty::Class(expected_fqn) = expected {
+                use baml_compiler_hir::FullyQualifiedName;
                 // Check field types against the expected class fields
                 for (field_name, value_expr) in fields {
                     // Clone the field type to avoid borrow issues
-                    let expected_field_ty =
-                        ctx.lookup_class_field(expected_name, field_name).cloned();
+                    let expected_field_ty = ctx
+                        .lookup_class_field(&expected_fqn.name, field_name)
+                        .cloned();
                     if let Some(field_ty) = expected_field_ty {
                         check_expr(ctx, *value_expr, body, &field_ty);
                     } else {
@@ -1622,18 +1877,20 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                 }
 
                 // Return the expected type if type_name matches
-                if type_name.as_ref() == Some(expected_name) {
+                if type_name.as_ref() == Some(&expected_fqn.name) {
                     expected.clone()
                 } else if let Some(name) = type_name {
-                    Ty::Class(name.clone())
+                    Ty::Class(FullyQualifiedName::local(name.clone()))
                 } else {
                     Ty::Unknown
                 }
-            } else if let Ty::Named(expected_name) = expected {
-                // Similar handling for Named types (type aliases)
+            } else if let Ty::TypeAlias(expected_fqn) = expected {
+                use baml_compiler_hir::FullyQualifiedName;
+                // Similar handling for TypeAlias types
                 for (field_name, value_expr) in fields {
-                    let expected_field_ty =
-                        ctx.lookup_class_field(expected_name, field_name).cloned();
+                    let expected_field_ty = ctx
+                        .lookup_class_field(&expected_fqn.name, field_name)
+                        .cloned();
                     if let Some(field_ty) = expected_field_ty {
                         check_expr(ctx, *value_expr, body, &field_ty);
                     } else {
@@ -1641,10 +1898,10 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                     }
                 }
 
-                if type_name.as_ref() == Some(expected_name) {
+                if type_name.as_ref() == Some(&expected_fqn.name) {
                     expected.clone()
                 } else if let Some(name) = type_name {
-                    Ty::Named(name.clone())
+                    Ty::TypeAlias(FullyQualifiedName::local(name.clone()))
                 } else {
                     Ty::Unknown
                 }
@@ -1658,8 +1915,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                     ctx.push_error(TypeError::TypeMismatch {
                         expected: expected.clone(),
                         found: generalize_for_error(expected, &ty),
-                        span,
-                        info_span: None,
+                        location,
+                        info_location: None,
                     });
                 }
                 ty
@@ -1686,8 +1943,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                             ctx.push_error(TypeError::TypeMismatch {
                                 expected: (**expected_key).clone(),
                                 found: generalize_for_error(expected_key, &key_ty),
-                                span,
-                                info_span: None,
+                                location,
+                                info_location: None,
                             });
                         }
                         let value_ty = check_expr(ctx, value_expr, body, expected_value);
@@ -1695,8 +1952,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                             ctx.push_error(TypeError::TypeMismatch {
                                 expected: (**expected_value).clone(),
                                 found: generalize_for_error(expected_value, &value_ty),
-                                span,
-                                info_span: None,
+                                location,
+                                info_location: None,
                             });
                         }
                     }
@@ -1712,8 +1969,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                     ctx.push_error(TypeError::TypeMismatch {
                         expected: expected.clone(),
                         found: generalize_for_error(expected, &ty),
-                        span,
-                        info_span: None,
+                        location,
+                        info_location: None,
                     });
                 }
                 ty
@@ -1734,8 +1991,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: expected.clone(),
                     found: generalize_for_error(expected, &ty),
-                    span,
-                    info_span: None,
+                    location,
+                    info_location: None,
                 });
             }
             ty
@@ -1757,7 +2014,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
 /// - `_` is a special case of binding that's semantically discarded later
 /// - Literals, enum variants, and union patterns don't introduce bindings
 fn extract_pattern_binding(
-    ctx: &TypeContext<'_>,
+    ctx: &mut TypeContext<'_>,
     pattern: &Pattern,
     scrutinee_ty: &Ty,
     _body: &ExprBody,
@@ -1765,7 +2022,8 @@ fn extract_pattern_binding(
     match pattern {
         // Typed binding: `s: Success` -> s has type Success
         Pattern::TypedBinding { name, ty } => {
-            let narrowed_ty = ctx.lower_type_resolved(ty, Span::default());
+            // TODO: Pattern types should use TypeId for proper span tracking
+            let narrowed_ty = ctx.lower_type(ty, Span::default());
             (Some(name.clone()), narrowed_ty)
         }
 
@@ -1821,10 +2079,9 @@ fn extract_pattern_binding(
 fn check_match_exhaustiveness(
     ctx: &mut TypeContext<'_>,
     scrutinee_ty: &Ty,
-    arms: &[baml_compiler_hir::MatchArm],
+    arm_ids: &[MatchArmId],
     body: &ExprBody,
     match_expr_id: ExprId,
-    match_span: Span,
 ) {
     // Skip exhaustiveness checking for unknown/error types
     if scrutinee_ty.is_unknown() || scrutinee_ty.is_error() {
@@ -1837,23 +2094,17 @@ fn check_match_exhaustiveness(
         &ctx.type_aliases,
         &ctx.class_names,
         &ctx.enum_names,
-        &ctx.known_types,
+        &ctx.type_alias_names,
     );
 
-    let result = checker.check(scrutinee_ty, arms, body);
+    let result = checker.check(scrutinee_ty, arm_ids, body);
 
-    // Get arm spans if available (for accurate error locations)
-    let arm_spans = body.get_match_arm_spans(match_expr_id);
-
-    // Report unreachable arms with accurate spans
+    // Report unreachable arms using position-independent MatchArmId
     for arm_idx in result.unreachable_arms {
-        // Use the arm's specific span if available, otherwise fall back to match span
-        let span = arm_spans
-            .and_then(|spans| spans.get(arm_idx))
-            .map(|s| s.arm_span)
-            .unwrap_or(match_span);
-
-        ctx.push_error(TypeError::UnreachableArm { span });
+        let arm_id = arm_ids[arm_idx];
+        ctx.push_error(TypeError::UnreachableArm {
+            location: ErrorLocation::MatchArm(arm_id),
+        });
     }
 
     // Report non-exhaustive match (points to the match expression itself)
@@ -1867,7 +2118,7 @@ fn check_match_exhaustiveness(
         ctx.push_error(TypeError::NonExhaustiveMatch {
             scrutinee_type: scrutinee_ty.clone(),
             missing_cases,
-            span: match_span,
+            location: ErrorLocation::Expr(match_expr_id),
         });
     } else {
         // Record that this match is exhaustive for codegen optimization
@@ -1944,10 +2195,14 @@ fn extract_instanceof_narrowing(
                     // RHS should be a simple path (type name)
                     if let Expr::Path(type_segments) = &body.exprs[*rhs] {
                         if type_segments.len() == 1 {
+                            use baml_compiler_hir::FullyQualifiedName;
                             let type_name = type_segments[0].clone();
                             // Return the variable name and the narrowed type
-                            // We use Ty::Named here since user-defined types are represented this way
-                            return Some((var_name, Ty::Named(type_name)));
+                            // Use TypeAlias as a fallback - will be resolved during normalization
+                            return Some((
+                                var_name,
+                                Ty::TypeAlias(FullyQualifiedName::local(type_name)),
+                            ));
                         }
                     }
                 }
@@ -1964,7 +2219,7 @@ fn infer_binary_op(
     op: baml_compiler_hir::BinaryOp,
     lhs: &Ty,
     rhs: &Ty,
-    span: Span,
+    location: ErrorLocation,
 ) -> Ty {
     use baml_compiler_hir::BinaryOp::{
         Add, And, BitAnd, BitOr, BitXor, Div, Eq, Ge, Gt, Instanceof, Le, Lt, Mod, Mul, Ne, Or,
@@ -2005,7 +2260,7 @@ fn infer_binary_op(
                     op: format!("{op:?}"),
                     lhs: generalize(lhs),
                     rhs: generalize(rhs),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2022,7 +2277,7 @@ fn infer_binary_op(
                     op: format!("{op:?}"),
                     lhs: generalize(lhs),
                     rhs: generalize(rhs),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2041,7 +2296,7 @@ fn infer_binary_op(
                     op: format!("{op:?}"),
                     lhs: generalize(lhs),
                     rhs: generalize(rhs),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2056,7 +2311,7 @@ fn infer_binary_op(
                     op: format!("{op:?}"),
                     lhs: generalize(lhs),
                     rhs: generalize(rhs),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2071,7 +2326,7 @@ fn infer_binary_op(
                     op: format!("{op:?}"),
                     lhs: generalize(lhs),
                     rhs: generalize(rhs),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2087,7 +2342,7 @@ fn infer_unary_op(
     ctx: &mut TypeContext<'_>,
     op: baml_compiler_hir::UnaryOp,
     operand: &Ty,
-    span: Span,
+    location: ErrorLocation,
 ) -> Ty {
     use baml_compiler_hir::UnaryOp::{Neg, Not};
 
@@ -2107,7 +2362,7 @@ fn infer_unary_op(
                 ctx.push_error(TypeError::InvalidUnaryOp {
                     op: "!".to_string(),
                     operand: generalize(operand),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2119,7 +2374,7 @@ fn infer_unary_op(
                 ctx.push_error(TypeError::InvalidUnaryOp {
                     op: "-".to_string(),
                     operand: generalize(operand),
-                    span,
+                    location,
                 });
                 Ty::Error
             }
@@ -2131,7 +2386,12 @@ fn infer_unary_op(
 ///
 /// For class types, this handles both field access and method access.
 /// For primitive types (arrays, strings, maps), this handles builtin methods.
-fn infer_field_access(ctx: &mut TypeContext<'_>, base: &Ty, field: &Name, span: Span) -> Ty {
+fn infer_field_access(
+    ctx: &mut TypeContext<'_>,
+    base: &Ty,
+    field: &Name,
+    location: ErrorLocation,
+) -> Ty {
     // Special case: $watch accessor on any type
     // The actual watched check happens at MIR lowering time
     if field.as_str() == "$watch" {
@@ -2162,7 +2422,7 @@ fn infer_field_access(ctx: &mut TypeContext<'_>, base: &Ty, field: &Name, span: 
                 ctx.push_error(TypeError::NoSuchField {
                     ty: base.clone(),
                     field: field.to_string(),
-                    span,
+                    location,
                 });
                 return Ty::Unknown;
             }
@@ -2171,17 +2431,17 @@ fn infer_field_access(ctx: &mut TypeContext<'_>, base: &Ty, field: &Name, span: 
 
     // First, try class field lookup for named types
     let found_field = match base {
-        Ty::Named(class_name) => ctx
+        Ty::TypeAlias(fqn) => ctx
             .lookup(field)
-            .or(ctx.lookup_class_field(class_name, field))
+            .or(ctx.lookup_class_field(&fqn.name, field))
             .cloned(),
-        Ty::Class(class_name) => {
+        Ty::Class(fqn) => {
             // First try to find a method (global function lookup)
             if let Some(method_ty) = ctx.lookup(field) {
                 return method_ty.clone();
             }
             // Check the context's class_fields for this class name
-            ctx.lookup_class_field(class_name, field).cloned()
+            ctx.lookup_class_field(&fqn.name, field).cloned()
         }
         Ty::Unknown => return Ty::Unknown,
         _ => None,
@@ -2215,13 +2475,18 @@ fn infer_field_access(ctx: &mut TypeContext<'_>, base: &Ty, field: &Name, span: 
     ctx.push_error(TypeError::NoSuchField {
         ty: base.clone(),
         field: field.to_string(),
-        span,
+        location,
     });
     Ty::Unknown
 }
 
 /// Infer the type of an index access.
-fn infer_index_access(ctx: &mut TypeContext<'_>, base: &Ty, index: &Ty, span: Span) -> Ty {
+fn infer_index_access(
+    ctx: &mut TypeContext<'_>,
+    base: &Ty,
+    index: &Ty,
+    location: ErrorLocation,
+) -> Ty {
     match base {
         Ty::List(elem) => {
             // Index must be int
@@ -2229,8 +2494,8 @@ fn infer_index_access(ctx: &mut TypeContext<'_>, base: &Ty, index: &Ty, span: Sp
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Int,
                     found: index.clone(),
-                    span,
-                    info_span: None,
+                    location,
+                    info_location: None,
                 });
             }
             (**elem).clone()
@@ -2241,8 +2506,8 @@ fn infer_index_access(ctx: &mut TypeContext<'_>, base: &Ty, index: &Ty, span: Sp
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: (**key).clone(),
                     found: index.clone(),
-                    span,
-                    info_span: None,
+                    location,
+                    info_location: None,
                 });
             }
             (**value).clone()
@@ -2253,8 +2518,8 @@ fn infer_index_access(ctx: &mut TypeContext<'_>, base: &Ty, index: &Ty, span: Sp
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: Ty::Int,
                     found: index.clone(),
-                    span,
-                    info_span: None,
+                    location,
+                    info_location: None,
                 });
             }
             Ty::String
@@ -2263,7 +2528,7 @@ fn infer_index_access(ctx: &mut TypeContext<'_>, base: &Ty, index: &Ty, span: Sp
         _ => {
             ctx.push_error(TypeError::NotIndexable {
                 ty: base.clone(),
-                span,
+                location,
             });
             Ty::Unknown
         }
@@ -2293,15 +2558,15 @@ fn check_stmt_with_return(
         Stmt::Let {
             pattern,
             type_annotation,
-            type_span,
             initializer,
             is_watched,
         } => {
             let ty = if let Some(init) = initializer {
                 // If there's a type annotation, use check_expr for bidirectional typing
-                if let Some(annot) = type_annotation {
-                    let span = ctx.build_span_default(type_span);
-                    let annot_ty = ctx.lower_type_resolved(annot, span);
+                if let Some(type_id) = type_annotation {
+                    let type_ref = &body.types[*type_id];
+                    let span = ctx.type_span(*type_id);
+                    let annot_ty = ctx.lower_type(type_ref, span);
                     // Use check_expr when we have an expected type
                     // check_expr already reports any type mismatch errors
                     check_expr(ctx, *init, body, &annot_ty);
@@ -2312,8 +2577,10 @@ fn check_stmt_with_return(
                     let inferred = infer_expr(ctx, *init, body);
                     generalize(&inferred)
                 }
-            } else if let Some(annot) = type_annotation {
-                ctx.lower_type_resolved(annot, Span::default())
+            } else if let Some(type_id) = type_annotation {
+                let type_ref = &body.types[*type_id];
+                let span = ctx.type_span(*type_id);
+                ctx.lower_type(type_ref, span)
             } else {
                 Ty::Unknown
             };
@@ -2322,14 +2589,14 @@ fn check_stmt_with_return(
             let pat = &body.patterns[*pattern];
             match pat {
                 Pattern::Binding(name) => {
-                    ctx.define(name.clone(), ty);
+                    ctx.define_with_site(name.clone(), ty, DefinitionSite::Statement(stmt_id));
                     if *is_watched {
                         ctx.mark_watched(name.clone());
                     }
                 }
                 Pattern::TypedBinding { name, ty: _ } => {
                     // TODO: Check declared type matches inferred type
-                    ctx.define(name.clone(), ty);
+                    ctx.define_with_site(name.clone(), ty, DefinitionSite::Statement(stmt_id));
                     if *is_watched {
                         ctx.mark_watched(name.clone());
                     }
@@ -2346,22 +2613,18 @@ fn check_stmt_with_return(
         }
 
         Stmt::Return(expr) => {
-            let (return_ty, span) = if let Some(e) = expr {
+            let return_ty = if let Some(e) = expr {
                 // If we have an expected return type, use check_expr for bidirectional typing
-                let ty = if let Some(expected) = expected_return {
+                if let Some(expected) = expected_return {
                     check_expr(ctx, *e, body, expected)
                 } else {
                     infer_expr(ctx, *e, body)
-                };
-                // Use the return expression's span for more precise error location
-                let span = body.get_expr_span(*e).unwrap_or_default();
-                (ty, span)
+                }
             } else {
-                // For bare `return;`, use the statement span
-                let span = body.get_stmt_span(stmt_id).unwrap_or_default();
-                (Ty::Void, span)
+                Ty::Void
             };
-            ctx.record_return(return_ty, span);
+            // Record return type (span resolved at render time if needed)
+            ctx.record_return(return_ty, Span::default());
         }
 
         Stmt::While {
@@ -2390,12 +2653,11 @@ fn check_stmt_with_return(
             let value_ty = infer_expr(ctx, *value, body);
             // Check that value type is compatible with target type
             if !ctx.is_subtype_of(&value_ty, &target_ty) {
-                let span = body.get_expr_span(*value).unwrap_or_default();
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: target_ty.clone(),
                     found: generalize_for_error(&target_ty, &value_ty),
-                    span,
-                    info_span: None,
+                    location: ErrorLocation::Expr(*value),
+                    info_location: None,
                 });
             }
         }
@@ -2410,12 +2672,11 @@ fn check_stmt_with_return(
             let value_ty = infer_expr(ctx, *value, body);
             // Check that value type is compatible with target type
             if !ctx.is_subtype_of(&value_ty, &target_ty) {
-                let span = body.get_expr_span(*value).unwrap_or_default();
                 ctx.push_error(TypeError::TypeMismatch {
                     expected: target_ty.clone(),
                     found: generalize_for_error(&target_ty, &value_ty),
-                    span,
-                    info_span: None,
+                    location: ErrorLocation::Expr(*value),
+                    info_location: None,
                 });
             }
         }

@@ -42,6 +42,8 @@ enum StructuralTy {
     // User-defined (resolved by name)
     Class(Name),
     Enum(Name),
+    // Builtin types (e.g., baml.fs.File)
+    Builtin(std::string::String),
     // Constructors
     Optional(Box<StructuralTy>),
     List(Box<StructuralTy>),
@@ -199,6 +201,86 @@ fn substitute(ty: &StructuralTy, var: &Name, replacement: &StructuralTy) -> Stru
     }
 }
 
+/// Check if a type is valid as a map key.
+///
+/// Valid key types are: string, string literals, and unions of valid key types.
+/// Enums are NOT valid (they're structurally distinct from string literals).
+fn is_valid_map_key_type(ty: &Ty, aliases: &HashMap<Name, Ty>) -> bool {
+    fn can_be_key(structural_ty: &StructuralTy) -> bool {
+        match structural_ty {
+            StructuralTy::String => true,
+            StructuralTy::Literal(literal_value) => match literal_value {
+                LiteralValue::String(_) => true,
+                LiteralValue::Int(_) => false,
+                LiteralValue::Float(_) => false,
+                LiteralValue::Bool(_) => false,
+            },
+            StructuralTy::Error => true,
+            StructuralTy::Union(variants) => variants.iter().all(can_be_key),
+            StructuralTy::Int => false,
+            StructuralTy::Float => false,
+            StructuralTy::Bool => false,
+            StructuralTy::Null => false,
+            StructuralTy::Media(_) => false,
+            StructuralTy::Class(_) => false,
+            StructuralTy::Enum(_) => false,
+            StructuralTy::Optional(_) => false,
+            StructuralTy::List(_) => false,
+            StructuralTy::Map { .. } => false,
+            StructuralTy::Function { .. } => false,
+            StructuralTy::Mu { .. } => false,
+            StructuralTy::TyVar(_) => false,
+            StructuralTy::Unknown => false,
+            StructuralTy::Void => false,
+            StructuralTy::WatchAccessor(_) => false,
+            StructuralTy::Builtin(_) => false,
+        }
+    }
+    let recursive = find_recursive_aliases(aliases);
+    let norm = normalize(ty, aliases, &recursive);
+    can_be_key(&norm)
+}
+
+/// Find all invalid map key types within a type (recursively).
+///
+/// Returns a list of the invalid key types found. The caller should create
+/// appropriate diagnostics for each.
+pub fn find_invalid_map_keys(ty: &Ty, aliases: &HashMap<Name, Ty>) -> Vec<Ty> {
+    let mut invalid_keys = Vec::new();
+    find_invalid_map_keys_recursive(ty, aliases, &mut invalid_keys);
+    invalid_keys
+}
+
+fn find_invalid_map_keys_recursive(
+    ty: &Ty,
+    aliases: &HashMap<Name, Ty>,
+    invalid_keys: &mut Vec<Ty>,
+) {
+    match ty {
+        Ty::Map { key, value } => {
+            if !is_valid_map_key_type(key, aliases) {
+                invalid_keys.push((**key).clone());
+            }
+            find_invalid_map_keys_recursive(key, aliases, invalid_keys);
+            find_invalid_map_keys_recursive(value, aliases, invalid_keys);
+        }
+        Ty::List(inner) => find_invalid_map_keys_recursive(inner, aliases, invalid_keys),
+        Ty::Optional(inner) => find_invalid_map_keys_recursive(inner, aliases, invalid_keys),
+        Ty::Union(types) => {
+            for t in types {
+                find_invalid_map_keys_recursive(t, aliases, invalid_keys);
+            }
+        }
+        Ty::Function { params, ret } => {
+            for p in params {
+                find_invalid_map_keys_recursive(p, aliases, invalid_keys);
+            }
+            find_invalid_map_keys_recursive(ret, aliases, invalid_keys);
+        }
+        _ => {}
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // NORMALIZATION (private)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -221,19 +303,20 @@ fn normalize_impl(
         Ty::String => StructuralTy::String,
         Ty::Bool => StructuralTy::Bool,
         Ty::Null => StructuralTy::Null,
-        Ty::Media(kind) => StructuralTy::Media(kind.clone()),
+        Ty::Media(kind) => StructuralTy::Media(*kind),
         Ty::Unknown => StructuralTy::Unknown,
         Ty::Error => StructuralTy::Error,
         Ty::Void => StructuralTy::Void,
         Ty::Literal(lit) => StructuralTy::Literal(lit.clone()),
-        Ty::Class(name) => StructuralTy::Class(name.clone()),
-        Ty::Enum(name) => StructuralTy::Enum(name.clone()),
+        Ty::Class(fqn) => StructuralTy::Class(fqn.name.clone()),
+        Ty::Enum(fqn) => StructuralTy::Enum(fqn.name.clone()),
         Ty::WatchAccessor(inner) => StructuralTy::WatchAccessor(Box::new(normalize_impl(
             inner, aliases, recursive, expanding,
         ))),
 
-        // Named: resolve alias
-        Ty::Named(name) => {
+        // TypeAlias: resolve alias
+        Ty::TypeAlias(fqn) => {
+            let name = &fqn.name;
             if expanding.contains(name) {
                 // Back-reference in recursive expansion
                 return StructuralTy::TyVar(name.clone());
@@ -254,8 +337,7 @@ fn normalize_impl(
                     normalize_impl(alias_ty, aliases, recursive, expanding)
                 }
             } else {
-                // Not an alias - this shouldn't happen if TIR lowering is correct.
-                // Classes/enums should be Ty::Class/Ty::Enum, not Ty::Named.
+                // Not a known alias - this shouldn't happen if TIR lowering is correct.
                 // Treat as error for now (error recovery will handle it).
                 StructuralTy::Error
             }
@@ -285,6 +367,9 @@ fn normalize_impl(
                 .collect(),
             ret: Box::new(normalize_impl(ret, aliases, recursive, expanding)),
         },
+
+        // Builtin types
+        Ty::Builtin(path) => StructuralTy::Builtin(path.clone()),
     }
 }
 
@@ -333,7 +418,9 @@ fn ty_has_cycle(
     stack: &mut HashSet<Name>,
 ) -> bool {
     match ty {
-        Ty::Named(name) if aliases.contains_key(name) => has_cycle(name, aliases, visited, stack),
+        Ty::TypeAlias(fqn) if aliases.contains_key(&fqn.name) => {
+            has_cycle(&fqn.name, aliases, visited, stack)
+        }
         Ty::Optional(inner) | Ty::List(inner) => ty_has_cycle(inner, aliases, visited, stack),
         Ty::Map { key, value } => {
             ty_has_cycle(key, aliases, visited, stack)
@@ -354,7 +441,14 @@ fn ty_has_cycle(
 
 #[cfg(test)]
 mod tests {
+    use baml_compiler_hir::FullyQualifiedName;
+
     use super::*;
+
+    /// Helper to create a type alias type
+    fn type_alias(name: &str) -> Ty {
+        Ty::TypeAlias(FullyQualifiedName::local(Name::new(name)))
+    }
 
     #[test]
     fn test_simple_alias() {
@@ -362,37 +456,25 @@ mod tests {
         aliases.insert(Name::new("MyInt"), Ty::Int);
 
         // MyInt <: int should be true
-        assert!(is_subtype_of(
-            &Ty::Named(Name::new("MyInt")),
-            &Ty::Int,
-            &aliases
-        ));
+        assert!(is_subtype_of(&type_alias("MyInt"), &Ty::Int, &aliases));
 
         // int <: MyInt should also be true (same structural type)
-        assert!(is_subtype_of(
-            &Ty::Int,
-            &Ty::Named(Name::new("MyInt")),
-            &aliases
-        ));
+        assert!(is_subtype_of(&Ty::Int, &type_alias("MyInt"), &aliases));
     }
 
     #[test]
     fn test_transitive_alias() {
         let mut aliases = HashMap::new();
         aliases.insert(Name::new("MyInt"), Ty::Int);
-        aliases.insert(Name::new("AnotherInt"), Ty::Named(Name::new("MyInt")));
+        aliases.insert(Name::new("AnotherInt"), type_alias("MyInt"));
 
         // AnotherInt <: int
-        assert!(is_subtype_of(
-            &Ty::Named(Name::new("AnotherInt")),
-            &Ty::Int,
-            &aliases
-        ));
+        assert!(is_subtype_of(&type_alias("AnotherInt"), &Ty::Int, &aliases));
 
         // AnotherInt <: MyInt
         assert!(is_subtype_of(
-            &Ty::Named(Name::new("AnotherInt")),
-            &Ty::Named(Name::new("MyInt")),
+            &type_alias("AnotherInt"),
+            &type_alias("MyInt"),
             &aliases
         ));
     }
@@ -408,21 +490,21 @@ mod tests {
         // int <: IntOrString
         assert!(is_subtype_of(
             &Ty::Int,
-            &Ty::Named(Name::new("IntOrString")),
+            &type_alias("IntOrString"),
             &aliases
         ));
 
         // string <: IntOrString
         assert!(is_subtype_of(
             &Ty::String,
-            &Ty::Named(Name::new("IntOrString")),
+            &type_alias("IntOrString"),
             &aliases
         ));
 
         // bool NOT <: IntOrString
         assert!(!is_subtype_of(
             &Ty::Bool,
-            &Ty::Named(Name::new("IntOrString")),
+            &type_alias("IntOrString"),
             &aliases
         ));
     }
@@ -433,7 +515,7 @@ mod tests {
         // type List = int | List (simplified recursive type)
         aliases.insert(
             Name::new("List"),
-            Ty::Union(vec![Ty::Null, Ty::Named(Name::new("List"))]),
+            Ty::Union(vec![Ty::Null, type_alias("List")]),
         );
 
         let recursive = find_recursive_aliases(&aliases);

@@ -3,7 +3,7 @@
 //! The CST already distinguishes `LLM_FUNCTION_BODY` from `EXPR_FUNCTION_BODY`,
 //! so we just need to lower each type appropriately.
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use baml_base::{FileId, Span};
 use baml_compiler_diagnostics::HirDiagnostic;
@@ -11,7 +11,7 @@ use baml_compiler_syntax::TypeExpr;
 use la_arena::{Arena, Idx};
 use rowan::{TextRange, ast::AstNode};
 
-use crate::{Name, type_ref::TypeRef};
+use crate::{Name, source_map::HirSourceMap, type_ref::TypeRef};
 
 /// Strip quote delimiters from a string literal.
 ///
@@ -40,8 +40,9 @@ pub enum FunctionBody {
     /// LLM function: has `LLM_FUNCTION_BODY` in CST
     Llm(LlmBody),
 
-    /// Expression function: has `EXPR_FUNCTION_BODY` in CST
-    Expr(ExprBody),
+    /// Expression function: has `EXPR_FUNCTION_BODY` in CST.
+    /// Contains both the position-independent body and the source map for spans.
+    Expr(ExprBody, HirSourceMap),
 
     /// Function has no body (error recovery)
     Missing,
@@ -78,6 +79,10 @@ pub struct Interpolation {
 }
 
 /// Body of an expression function (turing-complete).
+///
+/// This structure is position-independent - it contains no span information.
+/// Spans are stored separately in `HirSourceMap` to enable incremental compilation
+/// (whitespace changes don't invalidate type checking).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExprBody {
     /// Expression arena
@@ -89,28 +94,15 @@ pub struct ExprBody {
     /// Pattern arena (for let bindings, match arms, etc.)
     pub patterns: Arena<Pattern>,
 
+    /// Match arm arena
+    pub match_arms: Arena<MatchArm>,
+
+    /// Type annotation arena (for let bindings, etc.)
+    pub types: Arena<crate::type_ref::TypeRef>,
+
     /// Root expression of the function body (usually a `BLOCK_EXPR`)
     pub root_expr: Option<ExprId>,
 
-    // ========================================================================
-    // Span tracking (for accurate error messages)
-    // ========================================================================
-    /// Spans for expressions
-    pub expr_spans: HashMap<ExprId, Span>,
-
-    /// Spans for statements
-    pub stmt_spans: HashMap<StmtId, Span>,
-
-    /// Spans for patterns
-    pub pattern_spans: HashMap<PatId, Span>,
-
-    /// Spans for match arms: maps match expression ID to its arm spans.
-    /// Each entry is (`arm_span`, `pattern_span`) for each arm in order.
-    pub match_arm_spans: HashMap<ExprId, Vec<MatchArmSpans>>,
-
-    // ========================================================================
-    // Diagnostics
-    // ========================================================================
     /// HIR diagnostics collected during lowering (e.g., missing semicolons).
     pub diagnostics: Vec<HirDiagnostic>,
 }
@@ -124,32 +116,13 @@ pub struct MatchArmSpans {
     pub pattern_span: Span,
 }
 
-impl ExprBody {
-    /// Get the span of an expression, if available.
-    pub fn get_expr_span(&self, expr_id: ExprId) -> Option<Span> {
-        self.expr_spans.get(&expr_id).copied()
-    }
-
-    /// Get the span of a statement, if available.
-    pub fn get_stmt_span(&self, stmt_id: StmtId) -> Option<Span> {
-        self.stmt_spans.get(&stmt_id).copied()
-    }
-
-    /// Get the span of a pattern, if available.
-    pub fn get_pattern_span(&self, pat_id: PatId) -> Option<Span> {
-        self.pattern_spans.get(&pat_id).copied()
-    }
-
-    /// Get the arm spans for a match expression, if available.
-    pub fn get_match_arm_spans(&self, match_expr_id: ExprId) -> Option<&[MatchArmSpans]> {
-        self.match_arm_spans.get(&match_expr_id).map(Vec::as_slice)
-    }
-}
-
 // IDs for arena indices
 pub type ExprId = Idx<Expr>;
 pub type StmtId = Idx<Stmt>;
 pub type PatId = Idx<Pattern>;
+pub type MatchArmId = Idx<MatchArm>;
+/// ID for any syntactic occurrence of a type (annotations, generic arguments, etc.)
+pub type TypeId = Idx<crate::type_ref::TypeRef>;
 
 /// A spread element in an object constructor: `...expr`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,7 +157,7 @@ pub enum Expr {
     /// Match expression: `match (scrutinee) { arm1, arm2, ... }`
     Match {
         scrutinee: ExprId,
-        arms: Vec<MatchArm>,
+        arms: Vec<MatchArmId>,
     },
 
     /// Binary operation
@@ -248,8 +221,7 @@ pub enum Stmt {
     /// If `is_watched` is true, this is a `watch let` that tracks variable changes.
     Let {
         pattern: PatId,
-        type_annotation: Option<crate::type_ref::TypeRef>,
-        type_span: Option<TextRange>,
+        type_annotation: Option<TypeId>,
         initializer: Option<ExprId>,
         is_watched: bool,
     },
@@ -452,11 +424,8 @@ impl FunctionBody {
         if let Some(llm_body) = func_node.llm_body() {
             Arc::new(FunctionBody::Llm(Self::lower_llm_body(&llm_body)))
         } else if let Some(expr_body) = func_node.expr_body() {
-            Arc::new(FunctionBody::Expr(Self::lower_expr_body(
-                &expr_body,
-                file_id,
-                &param_names,
-            )))
+            let (body, source_map) = Self::lower_expr_body(&expr_body, file_id, &param_names);
+            Arc::new(FunctionBody::Expr(body, source_map))
         } else {
             Arc::new(FunctionBody::Missing)
         }
@@ -527,7 +496,7 @@ impl FunctionBody {
         expr_body: &baml_compiler_syntax::ast::ExprFunctionBody,
         file_id: FileId,
         param_names: &[String],
-    ) -> ExprBody {
+    ) -> (ExprBody, HirSourceMap) {
         let mut ctx = LoweringContext::new(file_id);
 
         // Add function parameters to scope so gensym avoids them
@@ -551,22 +520,16 @@ struct LoweringContext {
     exprs: Arena<Expr>,
     stmts: Arena<Stmt>,
     patterns: Arena<Pattern>,
+    match_arms: Arena<MatchArm>,
+    types: Arena<crate::type_ref::TypeRef>,
     /// File ID for creating spans
     file_id: FileId,
     /// All names used in this function, for generating unique synthetic variable names.
     names_in_scope: std::collections::HashSet<String>,
 
-    // Span tracking
-    /// Span tracking for expressions
-    expr_spans: HashMap<ExprId, Span>,
-    /// Span tracking for statements
-    stmt_spans: HashMap<StmtId, Span>,
-    /// Span tracking for patterns
-    pattern_spans: HashMap<PatId, Span>,
-    /// Span tracking for match arms (maps match expr ID to arm spans)
-    match_arm_spans: HashMap<ExprId, Vec<MatchArmSpans>>,
+    /// Source map for tracking spans (separate from `ExprBody` for incrementality)
+    source_map: HirSourceMap,
 
-    // Diagnostics
     /// HIR diagnostics collected during lowering.
     diagnostics: Vec<HirDiagnostic>,
 }
@@ -588,12 +551,11 @@ impl LoweringContext {
             exprs: Arena::new(),
             stmts: Arena::new(),
             patterns: Arena::new(),
+            match_arms: Arena::new(),
+            types: Arena::new(),
             file_id,
             names_in_scope: std::collections::HashSet::new(),
-            expr_spans: HashMap::new(),
-            stmt_spans: HashMap::new(),
-            pattern_spans: HashMap::new(),
-            match_arm_spans: HashMap::new(),
+            source_map: HirSourceMap::new(),
             diagnostics: Vec::new(),
         }
     }
@@ -633,34 +595,46 @@ impl LoweringContext {
 
     fn alloc_expr(&mut self, expr: Expr, range: TextRange) -> ExprId {
         let id = self.exprs.alloc(expr);
-        self.expr_spans.insert(id, self.span_from_range(range));
+        self.source_map.insert_expr(id, self.span_from_range(range));
         id
     }
 
     fn alloc_stmt(&mut self, stmt: Stmt, range: TextRange) -> StmtId {
         let id = self.stmts.alloc(stmt);
-        self.stmt_spans.insert(id, self.span_from_range(range));
+        self.source_map.insert_stmt(id, self.span_from_range(range));
         id
     }
 
     fn alloc_pattern(&mut self, pattern: Pattern, range: TextRange) -> PatId {
         let id = self.patterns.alloc(pattern);
-        self.pattern_spans.insert(id, self.span_from_range(range));
+        self.source_map
+            .insert_pattern(id, self.span_from_range(range));
         id
     }
 
-    fn finish(self, root_expr: Option<ExprId>) -> ExprBody {
-        ExprBody {
+    fn alloc_match_arm(&mut self, arm: MatchArm, spans: MatchArmSpans) -> MatchArmId {
+        let id = self.match_arms.alloc(arm);
+        self.source_map.insert_match_arm(id, spans);
+        id
+    }
+
+    fn alloc_type(&mut self, type_ref: crate::type_ref::TypeRef, range: TextRange) -> TypeId {
+        let id = self.types.alloc(type_ref);
+        self.source_map.insert_type(id, self.span_from_range(range));
+        id
+    }
+
+    fn finish(self, root_expr: Option<ExprId>) -> (ExprBody, HirSourceMap) {
+        let body = ExprBody {
             exprs: self.exprs,
             stmts: self.stmts,
             patterns: self.patterns,
+            match_arms: self.match_arms,
+            types: self.types,
             root_expr,
-            expr_spans: self.expr_spans,
-            stmt_spans: self.stmt_spans,
-            pattern_spans: self.pattern_spans,
-            match_arm_spans: self.match_arm_spans,
             diagnostics: self.diagnostics,
-        }
+        };
+        (body, self.source_map)
     }
 
     /// Generate a unique variable name for desugaring.
@@ -1190,8 +1164,7 @@ impl LoweringContext {
 
         let match_span = self.span_from_node(node);
         let mut scrutinee = None;
-        let mut arms = Vec::new();
-        let mut arm_spans = Vec::new();
+        let mut arm_ids = Vec::new();
 
         // Use children_with_tokens to handle both node and token children
         for elem in node.children_with_tokens() {
@@ -1200,8 +1173,8 @@ impl LoweringContext {
                     match child.kind() {
                         SyntaxKind::MATCH_ARM => {
                             let (arm, spans) = self.lower_match_arm(&child);
-                            arms.push(arm);
-                            arm_spans.push(spans);
+                            let arm_id = self.alloc_match_arm(arm, spans);
+                            arm_ids.push(arm_id);
                         }
                         _ => {
                             // First non-MATCH_ARM child is the scrutinee (as a node)
@@ -1217,13 +1190,17 @@ impl LoweringContext {
                         match token.kind() {
                             SyntaxKind::INTEGER_LITERAL => {
                                 let value = token.text().parse::<i64>().unwrap_or(0);
-                                scrutinee =
-                                    Some(self.exprs.alloc(Expr::Literal(Literal::Int(value))));
+                                let range = token.text_range();
+                                scrutinee = Some(
+                                    self.alloc_expr(Expr::Literal(Literal::Int(value)), range),
+                                );
                             }
                             SyntaxKind::FLOAT_LITERAL => {
                                 let text = token.text().to_string();
-                                scrutinee =
-                                    Some(self.exprs.alloc(Expr::Literal(Literal::Float(text))));
+                                let range = token.text_range();
+                                scrutinee = Some(
+                                    self.alloc_expr(Expr::Literal(Literal::Float(text)), range),
+                                );
                             }
                             SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
                                 let text = token.text().to_string();
@@ -1234,20 +1211,21 @@ impl LoweringContext {
                                 } else {
                                     text
                                 };
-                                scrutinee =
-                                    Some(self.exprs.alloc(Expr::Literal(Literal::String(content))));
+                                let range = token.text_range();
+                                scrutinee = Some(
+                                    self.alloc_expr(Expr::Literal(Literal::String(content)), range),
+                                );
                             }
                             SyntaxKind::WORD => {
                                 let text = token.text();
+                                let range = token.text_range();
                                 let expr = match text {
-                                    "true" => self.exprs.alloc(Expr::Literal(Literal::Bool(true))),
-                                    "false" => {
-                                        self.exprs.alloc(Expr::Literal(Literal::Bool(false)))
-                                    }
-                                    "null" => self.exprs.alloc(Expr::Literal(Literal::Null)),
-                                    _ => self.exprs.alloc(Expr::Path(vec![Name::new(text)])),
+                                    "true" => Expr::Literal(Literal::Bool(true)),
+                                    "false" => Expr::Literal(Literal::Bool(false)),
+                                    "null" => Expr::Literal(Literal::Null),
+                                    _ => Expr::Path(vec![Name::new(text)]),
                                 };
-                                scrutinee = Some(expr);
+                                scrutinee = Some(self.alloc_expr(expr, range));
                             }
                             _ => {}
                         }
@@ -1256,13 +1234,18 @@ impl LoweringContext {
             }
         }
 
-        let scrutinee = scrutinee.unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+        let scrutinee = scrutinee.unwrap_or_else(|| {
+            // If we couldn't find a scrutinee, create a missing expression with an empty range
+            self.alloc_expr(Expr::Missing, TextRange::default())
+        });
 
-        let expr_id = self.exprs.alloc(Expr::Match { scrutinee, arms });
+        let expr_id = self.exprs.alloc(Expr::Match {
+            scrutinee,
+            arms: arm_ids,
+        });
 
         // Store span information for this match expression
-        self.expr_spans.insert(expr_id, match_span);
-        self.match_arm_spans.insert(expr_id, arm_spans);
+        self.source_map.insert_expr(expr_id, match_span);
 
         expr_id
     }
@@ -1978,20 +1961,22 @@ impl LoweringContext {
     fn lower_array_literal(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
         use baml_compiler_syntax::SyntaxKind;
 
-        // Collect elements from both child nodes and direct tokens
+        // Collect elements from both child nodes and direct tokens.
+        // Arrays can have mixed content: some elements are nodes (like STRING_LITERAL
+        // with quote children), while others are bare tokens (INTEGER_LITERAL).
+        // We need to process all of them in order.
         let mut elements = Vec::new();
 
-        // First, collect expression nodes
-        for child in node.children() {
-            if !matches!(child.kind(), SyntaxKind::L_BRACKET | SyntaxKind::R_BRACKET) {
-                elements.push(self.lower_expr(&child));
-            }
-        }
-
-        // If no child nodes found, check for direct literal tokens
-        if elements.is_empty() {
-            for elem in node.children_with_tokens() {
-                if let rowan::NodeOrToken::Token(token) = elem {
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child) => {
+                    // Skip bracket nodes (shouldn't happen but be safe)
+                    if !matches!(child.kind(), SyntaxKind::L_BRACKET | SyntaxKind::R_BRACKET) {
+                        elements.push(self.lower_expr(&child));
+                    }
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    // Try to lower value tokens (integers, floats, etc.)
                     if let Some(expr_id) = self.lower_value_token(&token) {
                         elements.push(expr_id);
                     }
@@ -2119,7 +2104,7 @@ impl LoweringContext {
                                 })
                         })?;
 
-                    let key_span = self.expr_spans.get(&key).copied();
+                    let key_span = self.source_map.expr_span(key);
 
                     // Value - get child expression after the key
                     // Skip STRING_LITERAL if it was the key (compare spans), and get the next expression
@@ -2331,10 +2316,11 @@ impl LoweringContext {
             .as_ref()
             .and_then(baml_compiler_syntax::LetStmt::ty);
 
-        // Extract type annotation if present
-        let type_annotation = type_node.as_ref().map(TypeRef::from_ast);
-
-        let type_span = type_node.map(|t: TypeExpr| t.text_range());
+        // Extract type annotation if present, allocating it in the arena
+        let type_annotation = type_node.map(|t: TypeExpr| {
+            let type_ref = TypeRef::from_ast(&t);
+            self.alloc_type(type_ref, t.text_range())
+        });
 
         // Extract initializer expression - first try as a node, then as a token
         let initializer = let_stmt
@@ -2353,7 +2339,6 @@ impl LoweringContext {
             Stmt::Let {
                 pattern,
                 type_annotation,
-                type_span,
                 initializer,
                 is_watched,
             },
@@ -2778,7 +2763,6 @@ impl LoweringContext {
         let arr_let = self.stmts.alloc(Stmt::Let {
             pattern: arr_pat,
             type_annotation: None,
-            type_span: None,
             initializer: Some(iterator_expr),
             is_watched: false,
         });
@@ -2799,7 +2783,6 @@ impl LoweringContext {
         let len_let = self.stmts.alloc(Stmt::Let {
             pattern: len_pat,
             type_annotation: None,
-            type_span: None,
             initializer: Some(length_call),
             is_watched: false,
         });
@@ -2810,7 +2793,6 @@ impl LoweringContext {
         let idx_let = self.stmts.alloc(Stmt::Let {
             pattern: idx_pat,
             type_annotation: None,
-            type_span: None,
             initializer: Some(zero),
             is_watched: false,
         });
@@ -2849,7 +2831,6 @@ impl LoweringContext {
         let elem_let = self.stmts.alloc(Stmt::Let {
             pattern: user_pattern,
             type_annotation: None,
-            type_span: None,
             initializer: Some(element_access),
             is_watched: false,
         });

@@ -2,7 +2,7 @@
 //!
 //! This crate provides compile-time type information for built-in functions,
 //! used by the type checker (`baml_compiler_tir`). It does NOT include
-//! runtime implementations - those live in `baml_vm`.
+//! runtime implementations - those live in `bex_vm`.
 //!
 //! This separation allows the type checker to avoid depending on the VM.
 //!
@@ -31,6 +31,9 @@ pub enum TypePattern {
     /// Type variable - binds to actual type during pattern matching.
     /// E.g., `Var("T")` in `Array<T>.push(item: T)` binds to the element type.
     Var(&'static str),
+    /// Builtin type - matches exactly by path.
+    /// E.g., `Builtin("baml.fs.File")` matches only `Ty::Builtin("baml.fs.File")`.
+    Builtin(&'static str),
 }
 
 impl TypePattern {
@@ -60,6 +63,10 @@ pub struct BuiltinSignature {
 
     /// Return type.
     pub returns: TypePattern,
+
+    /// Whether this is an external function (runs async outside VM).
+    /// External functions use DispatchFuture/Await instead of Call.
+    pub is_external: bool,
 }
 
 impl BuiltinSignature {
@@ -79,7 +86,7 @@ impl BuiltinSignature {
 
 /// Macro containing all builtin definitions.
 ///
-/// This is used by both `baml_builtins` and `baml_vm` to ensure consistency.
+/// This is used by both `baml_builtins` and `bex_vm` to ensure consistency.
 /// The macro takes a callback that will receive the definitions.
 #[macro_export]
 macro_rules! with_builtins {
@@ -147,6 +154,89 @@ macro_rules! with_builtins {
                     fn as_file(self: Media) -> Option<String>;
                     fn mime_type(self: Media) -> Option<String>;
                 }
+
+                // =====================================================================
+                // Filesystem operations
+                // =====================================================================
+                mod fs {
+                    #[builtin]
+                    struct File {
+                        #[external]
+                        fn read(self: File) -> String;
+                        #[external]
+                        fn close(self: File);
+                    }
+
+                    #[external]
+                    fn open(path: String) -> File;
+                }
+
+                // =====================================================================
+                // System operations
+                // =====================================================================
+                mod sys {
+                    /// Execute a shell command and return stdout.
+                    #[external]
+                    fn shell(command: String) -> String;
+                }
+
+                // =====================================================================
+                // Network operations
+                // =====================================================================
+                mod net {
+                    #[builtin]
+                    struct Socket {
+                        /// Read data from the socket as a string.
+                        #[external]
+                        fn read(self: Socket) -> String;
+                        /// Close the socket.
+                        #[external]
+                        fn close(self: Socket);
+                    }
+
+                    /// Connect to a TCP address (host:port).
+                    #[external]
+                    fn connect(addr: String) -> Socket;
+                }
+
+                // =====================================================================
+                // HTTP operations
+                // =====================================================================
+                mod http {
+                    #[builtin]
+                    struct Response {
+                        /// Get response body as text (consumes body).
+                        #[external]
+                        fn text(self: Response) -> String;
+                        /// Get HTTP status code.
+                        #[external]
+                        fn status(self: Response) -> i64;
+                        /// Check if status is 2xx.
+                        #[external]
+                        fn ok(self: Response) -> bool;
+                        /// Get request URL (may differ if redirected).
+                        #[external]
+                        fn url(self: Response) -> String;
+                        /// Get response headers.
+                        #[external]
+                        fn headers(self: Response) -> Map<String, String>;
+                    }
+
+                    /// Fetch a URL via HTTP GET.
+                    #[external]
+                    fn fetch(url: String) -> Response;
+                }
+
+                // =====================================================================
+                // LLM operations (hidden - internal use only)
+                // =====================================================================
+                #[hide]
+                mod llm {
+                    /// Prompt AST - a structured prompt for LLM calls.
+                    /// This is hidden from the type checker as it's for internal use.
+                    #[builtin]
+                    struct PromptAst {}
+                }
             }
 
             mod env {
@@ -180,16 +270,46 @@ pub fn find_method(method_name: &str) -> impl Iterator<Item = &'static BuiltinSi
 
 /// Find a free function by path (functions without a receiver).
 pub fn find_function(path: &str) -> Option<&'static BuiltinSignature> {
+    let normalized = normalize_baml_prefix(path);
     builtins()
         .iter()
-        .find(|def| def.receiver.is_none() && def.path == path)
+        .find(|def| def.receiver.is_none() && def.path == normalized)
 }
 
 /// Find any builtin by path (including methods).
 ///
 /// This is useful for direct builtin calls like `baml.Array.length(arr)`.
 pub fn find_builtin_by_path(path: &str) -> Option<&'static BuiltinSignature> {
-    builtins().iter().find(|def| def.path == path)
+    let normalized = normalize_baml_prefix(path);
+    builtins().iter().find(|def| def.path == normalized)
+}
+
+/// Normalize the `baml` prefix, allowing any number of a's.
+///
+/// This is an easter egg: `baml`, `baaml`, `baaaml`, etc. all resolve
+/// to the `baml` namespace.
+fn normalize_baml_prefix(path: &str) -> std::borrow::Cow<'_, str> {
+    // Check if path starts with "ba"
+    let Some(after_ba) = path.strip_prefix("ba") else {
+        return std::borrow::Cow::Borrowed(path);
+    };
+
+    // Count consecutive 'a's after "ba"
+    let extra_a_count = after_ba.chars().take_while(|&c| c == 'a').count();
+
+    // Check if followed by "ml"
+    let after_as = &after_ba[extra_a_count..];
+    if !after_as.starts_with("ml") {
+        return std::borrow::Cow::Borrowed(path);
+    }
+
+    // If there are extra a's, normalize to "baml"
+    if extra_a_count > 0 {
+        let rest = &after_as[2..]; // skip "ml"
+        std::borrow::Cow::Owned(format!("baml{rest}"))
+    } else {
+        std::borrow::Cow::Borrowed(path)
+    }
 }
 
 #[cfg(test)]
@@ -254,5 +374,60 @@ mod tests {
         assert_eq!(paths::ENV_GET, "env.get");
         assert_eq!(paths::BAML_DEEP_COPY, "baml.deep_copy");
         assert_eq!(paths::BAML_UNSTABLE_STRING, "baml.unstable.string");
+    }
+
+    #[test]
+    fn test_hidden_llm_module() {
+        // The baml.llm module is hidden from the type checker.
+        // It should NOT appear in the builtins list, even though
+        // the VM can still use it internally.
+        assert!(find_builtin_by_path("baml.llm.PromptAst").is_none());
+
+        // Other builtins in the same parent module are still visible
+        assert!(find_builtin_by_path("baml.http.Response.text").is_some());
+        assert!(find_builtin_by_path("baml.http.fetch").is_some());
+    }
+
+    #[test]
+    fn test_baaml_easter_egg() {
+        // Easter egg: any number of a's in "baml" should work
+        assert!(find_builtin_by_path("baaml.Array.length").is_some());
+        assert!(find_builtin_by_path("baaaml.Array.length").is_some());
+        assert!(find_builtin_by_path("baaaaaaaaml.deep_copy").is_some());
+
+        // Original still works
+        assert!(find_builtin_by_path("baml.Array.length").is_some());
+
+        // But not other variations
+        assert!(find_builtin_by_path("bml.Array.length").is_none()); // no 'a'
+        assert!(find_builtin_by_path("bamll.Array.length").is_none()); // extra 'l'
+        assert!(find_builtin_by_path("bbaml.Array.length").is_none()); // extra 'b'
+    }
+
+    #[test]
+    fn test_normalize_baml_prefix() {
+        use std::borrow::Cow;
+
+        // No change needed
+        assert!(matches!(
+            normalize_baml_prefix("baml.Array"),
+            Cow::Borrowed(_)
+        ));
+        assert!(matches!(normalize_baml_prefix("env.get"), Cow::Borrowed(_)));
+        assert!(matches!(normalize_baml_prefix("foo.bar"), Cow::Borrowed(_)));
+
+        // Normalization happens
+        assert_eq!(normalize_baml_prefix("baaml.Array"), "baml.Array");
+        assert_eq!(normalize_baml_prefix("baaaml.deep_copy"), "baml.deep_copy");
+        assert_eq!(
+            normalize_baml_prefix("baaaaaaaaml.unstable.string"),
+            "baml.unstable.string"
+        );
+
+        // Edge cases that should NOT normalize
+        assert_eq!(normalize_baml_prefix("bml.Array"), "bml.Array"); // missing 'a'
+        assert_eq!(normalize_baml_prefix("ba"), "ba"); // incomplete
+        assert_eq!(normalize_baml_prefix("bam"), "bam"); // incomplete
+        assert_eq!(normalize_baml_prefix("banal"), "banal"); // different word
     }
 }

@@ -29,6 +29,7 @@ import type {
   WatchNotification,
   FlashRange,
   PendingTestCommand,
+  PendingFunctionSelection,
 } from '../atoms/test.atoms';
 
 import type { BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
@@ -197,7 +198,7 @@ export interface SDKStorage {
   // Test History
   addTestHistoryRun(run: TestHistoryRun): void;
   getTestHistory(): TestHistoryRun[];
-  updateTestInHistory(runIndex: number, testIndex: number, update: TestState): void;
+  updateTestInHistoryByRunId(runId: string, testIndex: number, update: TestState): void;
   setSelectedHistoryIndex(index: number): void;
   getSelectedHistoryIndex(): number;
 
@@ -243,4 +244,11 @@ export interface SDKStorage {
 
   setPendingTestCommand(command: PendingTestCommand | null): void;
   getPendingTestCommand(): PendingTestCommand | null;
+
+  // ============================================================================
+  // Pending Function Selection (from URL parameter)
+  // ============================================================================
+
+  setPendingFunctionSelection(selection: PendingFunctionSelection | null): void;
+  getPendingFunctionSelection(): PendingFunctionSelection | null;
 }

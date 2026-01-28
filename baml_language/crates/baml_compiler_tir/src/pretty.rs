@@ -6,14 +6,12 @@
 use std::fmt::Write;
 
 use baml_base::Span;
-use baml_compiler_diagnostics::TypeError;
 use baml_compiler_hir::{
     BinaryOp, Expr, ExprBody, ExprId, FunctionBody, FunctionSignature, Literal, LlmBody, Pattern,
     Stmt, StmtId, UnaryOp,
 };
 
-use super::Ty;
-use crate::{InferenceResult, TypeResolutionContext};
+use crate::{InferenceResult, TirTypeError, TypeResolutionContext};
 
 /// Renders a function's TIR as a tree showing expression structure with types.
 ///
@@ -139,7 +137,7 @@ impl<'a> TreeRenderer<'a> {
 
     fn render_body(&mut self, body: &FunctionBody, result: &InferenceResult) {
         match body {
-            FunctionBody::Expr(expr_body) => {
+            FunctionBody::Expr(expr_body, _source_map) => {
                 if let Some(root_expr) = expr_body.root_expr {
                     self.render_expr(root_expr, expr_body, result, true);
                 }
@@ -354,7 +352,8 @@ impl<'a> TreeRenderer<'a> {
                 self.pop_continuation();
 
                 // Render each arm
-                for (i, arm) in arms.iter().enumerate() {
+                for (i, arm_id) in arms.iter().enumerate() {
+                    let arm = &body.match_arms[*arm_id];
                     let is_last_arm = i == arms.len() - 1;
                     let arm_prefix = self.make_prefix(is_last_arm);
                     writeln!(self.output, "{arm_prefix}arm[{i}]:").ok();
@@ -396,7 +395,8 @@ impl<'a> TreeRenderer<'a> {
                     Pattern::Union(pats) => format!("union[{}]", pats.len()),
                 };
 
-                let ty_str = if let Some(type_ref) = type_annotation {
+                let ty_str = if let Some(type_id) = type_annotation {
+                    let type_ref = &body.types[*type_id];
                     let ty = self
                         .resolution_ctx
                         .lower_type_ref(type_ref, Span::default())
@@ -624,7 +624,8 @@ fn unary_op_to_str(op: UnaryOp) -> &'static str {
     }
 }
 
-pub fn short_display(error: &TypeError<Ty>) -> String {
+pub fn short_display(error: &TirTypeError) -> String {
+    use baml_compiler_diagnostics::TypeError;
     match error {
         TypeError::TypeMismatch {
             expected, found, ..
@@ -665,6 +666,9 @@ pub fn short_display(error: &TypeError<Ty>) -> String {
             format!(
                 "Missing return expression. Function expects `{expected}` but body has no final expression."
             )
+        }
+        TypeError::InvalidMapKeyType { ty, .. } => {
+            format!("Invalid key type for map: {ty}.")
         }
     }
 }

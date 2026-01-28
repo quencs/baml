@@ -50,8 +50,8 @@ export class BAMLSDK {
   private storage: SDKStorage;
   private activeExecutions = new Map<string, AbortController>();
   private runtimeFactory: BamlRuntimeFactory;
-  private currentFiles: Record<string, string> = {};
   private coordinator: NavigationCoordinator | null = null;
+  private initialized = false;
 
   /**
    * Expose all atoms directly via sdk.atoms
@@ -66,6 +66,7 @@ export class BAMLSDK {
   constructor(runtimeFactory: BamlRuntimeFactory, storage: SDKStorage) {
     this.runtimeFactory = runtimeFactory;
     this.storage = storage;
+    this.initialized = false;
   }
 
   /**
@@ -79,23 +80,37 @@ export class BAMLSDK {
       featureFlags?: string[];
     }
   ) {
-    if (Object.keys(initialFiles).length === 0) {
-      throw new Error('Cannot initialize SDK with empty files');
+    if (this.initialized) {
+      console.log('aaron: SDK: Already initialized, skipping initialization');
+      return;
     }
+    this.initialized = true;
 
     // Load VSCode settings (in VSCode environment only)
+    // This must happen even if no files are provided (browser-served playground needs proxy port)
     await this.loadVSCodeSettings();
 
-    // Store initial state in atoms
-    this.currentFiles = initialFiles;
-    this.storage.setBAMLFiles(initialFiles);
+    // Check for function selection from URL parameter (e.g., ?function=MyFunction)
+    // This is used when the playground is opened via "Open Playground" code action
+    this.captureUrlFunctionParameter();
 
+    // Store env vars and feature flags (these are needed even without files)
     if (options?.envVars) {
       this.storage.setEnvVars(options.envVars);
     }
     if (options?.featureFlags) {
       this.storage.setFeatureFlags(options.featureFlags);
     }
+
+    // If no files provided, we're done - runtime will be created when files arrive via files.update()
+    if (Object.keys(initialFiles).length === 0) {
+      console.log('SDK: No initial files, skipping runtime creation (will create on first file update)');
+      return;
+    }
+
+    // Store initial files and create runtime
+    this.storage.setBAMLFiles(initialFiles);
+    await this.recreateRuntime();
   }
 
   /**
@@ -139,13 +154,14 @@ export class BAMLSDK {
    * WasmProject and WasmRuntime instances (not the entire WASM module)
    */
   private async recreateRuntime() {
-    console.log('SDK: Recreating runtime instance');
 
+    const files = this.storage.getBAMLFiles();
+    console.log('aaron: SDK: Recreating runtime instance with files', files);
     const envVars = this.storage.getEnvVars();
     const featureFlags = this.storage.getFeatureFlags();
 
     // Create new runtime instance (WASM module is cached, only WasmProject/WasmRuntime recreated)
-    this.runtime = await this.runtimeFactory(this.currentFiles, envVars, featureFlags);
+    this.runtime = await this.runtimeFactory(files, envVars, featureFlags);
 
     // Store runtime instance - this automatically updates all derived atoms
     this.storage.setRuntime(this.runtime);
@@ -160,6 +176,7 @@ export class BAMLSDK {
     //     );
     //   });
     // });
+    console.log('aaron: SDK: Parsed files', parsedFiles);
     this.storage.setParsedBAMLFiles(parsedFiles);
 
     // Store last valid WASM instance if no errors
@@ -182,6 +199,9 @@ export class BAMLSDK {
 
     // Retry pending navigation if in loading state
     await this.retryPendingNavigation();
+
+    // Execute pending function selection if one was captured from URL parameter
+    this.executePendingFunctionSelection();
 
     // Execute pending test command if one was queued before runtime was ready
     await this.executePendingTestCommand();
@@ -273,6 +293,67 @@ export class BAMLSDK {
     }
   }
 
+  /**
+   * Capture function selection from URL parameter
+   * Called during initialization to store any ?function= parameter
+   * The selection will be applied after runtime is first created
+   */
+  private captureUrlFunctionParameter() {
+    // Only run in browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const functionName = urlParams.get('function');
+
+      if (functionName) {
+        console.log('[SDK] Captured function from URL parameter:', functionName);
+        this.storage.setPendingFunctionSelection({
+          functionName,
+          timestamp: Date.now(),
+        });
+
+        // Clear the URL parameter to prevent re-triggering on refresh
+        // Use replaceState to avoid adding to browser history
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('function');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    } catch (e) {
+      console.warn('[SDK] Failed to read URL parameters:', e);
+    }
+  }
+
+  /**
+   * Execute pending function selection if one was captured from URL parameter
+   * Called after runtime recreation to navigate to the function
+   */
+  private executePendingFunctionSelection() {
+    const pendingSelection = this.storage.getPendingFunctionSelection();
+
+    if (!pendingSelection) {
+      return; // No pending selection
+    }
+
+    // Clear the pending selection before executing
+    this.storage.setPendingFunctionSelection(null);
+
+    // Check if the selection is stale (older than 30 seconds)
+    const THIRTY_SECONDS = 30000;
+    const selectionAge = Date.now() - pendingSelection.timestamp;
+    if (selectionAge > THIRTY_SECONDS) {
+      console.log('[SDK] Pending function selection is stale (age:', selectionAge, 'ms), skipping');
+      return;
+    }
+
+    console.log('[SDK] Executing pending function selection:', pendingSelection.functionName);
+
+    // Select the function
+    this.navigation.selectFunction(pendingSelection.functionName);
+  }
+
   // ============================================================================
   // File Management API
   // ============================================================================
@@ -288,7 +369,7 @@ export class BAMLSDK {
       }
 
       // Efficiently detect if file contents have changed
-      const oldFiles = this.currentFiles;
+      const oldFiles = this.storage.getBAMLFiles();
       const oldKeys = Object.keys(oldFiles);
       const newKeys = Object.keys(files);
 
@@ -314,13 +395,11 @@ export class BAMLSDK {
       }
 
       if (!changed) {
-        console.log('files: SDK: No file content changes detected, skipping runtime update');
+        console.log('aaron: files: SDK: No file content changes detected, skipping runtime update');
         return;
       }
 
-
       // Update files in storage (updates atom)
-      this.currentFiles = files;
       this.storage.setBAMLFiles(files);
 
       // Recreate runtime with new files
@@ -328,7 +407,7 @@ export class BAMLSDK {
     },
 
     getCurrent: () => {
-      return { ...this.currentFiles };
+      return { ...this.storage.getBAMLFiles() };
     },
   };
 
@@ -843,7 +922,7 @@ export class BAMLSDK {
       const result = this.runtime.updateCursor(cursor, fileContents, currentSelection);
 
       if (!result.functionName) {
-        console.debug('aaron: [SDK] Cursor not on any function');
+        console.debug('[SDK] Cursor not on any function');
         return;
       }
 
@@ -1077,7 +1156,10 @@ export class BAMLSDK {
       this.storage.clearAllNodeIterations();
 
       // Create test history run with all tests
+      // Generate unique runId to track this specific run in callbacks
+      const runId = `run-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const historyRun: testAtoms.TestHistoryRun = {
+        runId,
         timestamp: Date.now(),
         tests: tests.map((test) => {
           const testCases = this.runtime!.getTestCases(test.functionName);
@@ -1129,7 +1211,7 @@ export class BAMLSDK {
         const testKey = `${test.functionName}:${test.testName}`;
         watchNotificationsByTest[testKey] = [];
         // Mark as running - execution is about to begin
-        this.storage.updateTestInHistory(0, i, { status: 'running' });
+        this.storage.updateTestInHistoryByRunId(runId, i, { status: 'running' });
 
         // Emit node.enter to execution log
         const testCase = this.runtime!.getTestCases(test.functionName).find((tc) => tc.name === test.testName);
@@ -1166,7 +1248,7 @@ export class BAMLSDK {
             );
             if (testIndex !== -1) {
               const testKey = `${functionName}:${testName}`;
-              this.storage.updateTestInHistory(0, testIndex, {
+              this.storage.updateTestInHistoryByRunId(runId, testIndex, {
                 status: 'running',
                 response: partial,
                 watchNotifications: watchNotificationsByTest[testKey] || [],
@@ -1182,7 +1264,7 @@ export class BAMLSDK {
             );
             if (testIndex !== -1) {
               const testKey = `${functionName}:${testName}`;
-              this.storage.updateTestInHistory(0, testIndex, {
+              this.storage.updateTestInHistoryByRunId(runId, testIndex, {
                 status: 'done',
                 response,
                 response_status: status,
@@ -1276,7 +1358,7 @@ export class BAMLSDK {
 
         // Update all running/queued tests to error
         tests.forEach((_, i) => {
-          this.storage.updateTestInHistory(0, i, {
+          this.storage.updateTestInHistoryByRunId(runId, i, {
             status: 'error',
             message: err.message,
           });

@@ -69,6 +69,7 @@ import {
   highlightedBlocksAtom,
   flashRangesAtom,
   pendingTestCommandAtom,
+  pendingFunctionSelectionAtom,
 } from '../atoms/test.atoms';
 
 import type {
@@ -77,6 +78,7 @@ import type {
   WatchNotification,
   FlashRange,
   PendingTestCommand,
+  PendingFunctionSelection,
 } from '../atoms/test.atoms';
 import type { BamlRuntimeInterface } from '../runtime/BamlRuntimeInterface';
 import type { FunctionWithCallGraph } from '../interface';
@@ -431,14 +433,18 @@ export class JotaiStorage implements SDKStorage {
     return this.store.get(testHistoryAtom);
   }
 
-  updateTestInHistory(runIndex: number, testIndex: number, update: TestState) {
-    console.log('[JotaiStorage] updateTestInHistory called:', { runIndex, testIndex, update });
+  updateTestInHistoryByRunId(runId: string, testIndex: number, update: TestState) {
+    console.log('[JotaiStorage] updateTestInHistoryByRunId called:', { runId, testIndex, update });
     this.store.set(testHistoryAtom, (prev) => {
-      console.log('[JotaiStorage] inside functional updater, prev length:', prev.length);
+      const runIndex = prev.findIndex((run) => run.runId === runId);
+      if (runIndex === -1) {
+        console.warn('[JotaiStorage] run not found with runId:', runId);
+        return prev;
+      }
+
       const newHistory = [...prev];
       const run = newHistory[runIndex];
       if (!run) {
-        console.warn('[JotaiStorage] run not found at index:', runIndex);
         return prev;
       }
 
@@ -454,7 +460,7 @@ export class JotaiStorage implements SDKStorage {
         timestamp: Date.now(),
       };
 
-      console.log('[JotaiStorage] updated test:', run.tests[testIndex]);
+      console.log('[JotaiStorage] updated test by runId:', run.tests[testIndex]);
       return newHistory;
     });
   }
@@ -571,5 +577,17 @@ export class JotaiStorage implements SDKStorage {
 
   getPendingTestCommand() {
     return this.store.get(pendingTestCommandAtom);
+  }
+
+  // ============================================================================
+  // Pending Function Selection (from URL parameter)
+  // ============================================================================
+
+  setPendingFunctionSelection(selection: PendingFunctionSelection | null) {
+    this.store.set(pendingFunctionSelectionAtom, selection);
+  }
+
+  getPendingFunctionSelection() {
+    return this.store.get(pendingFunctionSelectionAtom);
   }
 }

@@ -226,7 +226,7 @@ fn generate_project_tests(project: &TestProject, manifest_dir: &str) -> TokenStr
             use baml_db::baml_compiler_vir;
             use baml_db::baml_compiler_mir;
             use baml_db::baml_compiler_emit;
-            use baml_compiler_hir::{function_body, function_signature};
+            use baml_compiler_hir::{function_body, function_signature, function_signature_source_map};
             use baml_compiler_tir::{class_field_types, enum_variants, type_aliases, typing_context};
             use baml_compiler_tir::pretty::short_display;
             use baml_compiler_diagnostics::{RenderConfig, ToDiagnostic, render_diagnostic};
@@ -434,8 +434,9 @@ fn generate_tir_test(project: &TestProject) -> TokenStream {
                 for item in items.iter() {
                     if let baml_compiler_hir::ItemId::Function(func_id) = item {
                         let signature = function_signature(&db, *func_id);
+                        let sig_source_map = function_signature_source_map(&db, *func_id);
                         let body = function_body(&db, *func_id);
-                        let result = baml_compiler_tir::infer_function(&db, &signature, &body, Some(globals.clone()), Some(class_fields.clone()), Some(type_aliases_map.clone()), Some(enum_variants_data.clone()), *func_id);
+                        let result = baml_compiler_tir::infer_function(&db, &signature, Some(&sig_source_map), &body, Some(globals.clone()), Some(class_fields.clone()), Some(type_aliases_map.clone()), Some(enum_variants_data.clone()), *func_id);
 
                         writeln!(output, "  Function {}:", signature.name).unwrap();
                         writeln!(output, "    Return: {:?}", result.return_type).unwrap();
@@ -501,7 +502,12 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
             let resolution_ctx = baml_compiler_tir::TypeResolutionContext::new(&db, root);
 
             // Build class field indices map (class name -> field name -> field index)
+            // Also build class type tags for TypeTag switch optimization
             let mut classes: HashMap<String, HashMap<String, usize>> = HashMap::new();
+            let mut class_type_tags: HashMap<String, i64> = HashMap::new();
+            let mut class_type_tag_counter = 0i64;
+            // Build enum variant indices map (enum name -> variant name -> variant index)
+            let mut enums: HashMap<String, HashMap<String, usize>> = HashMap::new();
             for source_file in &source_files {
                 let item_tree = baml_compiler_hir::file_item_tree(&db, *source_file);
                 let items_struct = baml_compiler_hir::file_items(&db, *source_file);
@@ -513,7 +519,20 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
                         for (idx, field) in class.fields.iter().enumerate() {
                             field_indices.insert(field.name.to_string(), idx);
                         }
+                        // Compute type tag for this class (CLASS_BASE + counter)
+                        let type_tag = baml_typetags::CLASS_BASE + class_type_tag_counter;
+                        class_type_tag_counter += 1;
+                        class_type_tags.insert(class_name.clone(), type_tag);
                         classes.insert(class_name, field_indices);
+                    }
+                    if let baml_compiler_hir::ItemId::Enum(enum_loc) = item {
+                        let enum_def = &item_tree[enum_loc.id(&db)];
+                        let enum_name = enum_def.name.to_string();
+                        let mut variant_indices = HashMap::new();
+                        for (idx, variant) in enum_def.variants.iter().enumerate() {
+                            variant_indices.insert(variant.name.to_string(), idx);
+                        }
+                        enums.insert(enum_name, variant_indices);
                     }
                 }
             }
@@ -525,17 +544,21 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
                 for item in items.iter() {
                     if let baml_compiler_hir::ItemId::Function(func_id) = item {
                         let signature = function_signature(&db, *func_id);
+                        let sig_source_map = function_signature_source_map(&db, *func_id);
                         let body = function_body(&db, *func_id);
-                        let inference = baml_compiler_tir::infer_function(&db, &signature, &body, Some(globals.clone()), Some(class_field_types_map.clone()), None, None, *func_id);
+                        let inference = baml_compiler_tir::infer_function(&db, &signature, Some(&sig_source_map), &body, Some(globals.clone()), Some(class_field_types_map.clone()), None, None, *func_id);
 
                         // Lower HIR → VIR → MIR
-                        let mir_output = match baml_compiler_vir::lower_from_hir(&db, &body, &inference, &resolution_ctx) {
+                        let mir_output = match baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx) {
                             Ok(vir) => {
-                                let mir = baml_compiler_mir::lower(&signature, &vir, &db, &classes, &resolution_ctx);
+                                let mir = baml_compiler_mir::lower(&signature, &vir, &db, &classes, &enums, &class_type_tags, &resolution_ctx);
                                 baml_compiler_mir::pretty::display_function(&mir)
                             }
+                            Err(baml_compiler_vir::LoweringError::LlmFunction) => {
+                                format!("fn {}:\n  (LLM function - no MIR)\n", signature.name)
+                            }
                             Err(err) => {
-                                format!("fn {}:\n  (no MIR due to errors: {:?})\n", signature.name, err)
+                                format!("fn {}:\n  (no MIR due to errors: {})\n", signature.name, err)
                             }
                         };
 
@@ -681,11 +704,15 @@ fn generate_codegen_test(project: &TestProject) -> TokenStream {
                             && let Some(baml_compiler_emit::Object::Function(func)) = program.objects.get(idx)
                         {
                             writeln!(output, "\nFunction {} (arity: {}, kind: {:?}):", func_name, func.arity, func.kind).unwrap();
-                            let bytecode_table = baml_vm::debug::display_bytecode(
+                            // Use empty GlobalPool for compile-time display (no heap available)
+                            // Pass ObjectPool and compile-time globals to resolve names
+                            let empty_globals = bex_vm_types::indexable::GlobalPool::new();
+                            let bytecode_table = bex_vm::debug::display_bytecode(
                                 func,
-                                &baml_vm::EvalStack::new(),
-                                &program.objects,
-                                &program.globals,
+                                &bex_vm::EvalStack::new(),
+                                &empty_globals,
+                                Some(&program.objects),
+                                Some(&program.globals),
                                 false,  // no colors
                             );
                             if bytecode_table.is_empty() {

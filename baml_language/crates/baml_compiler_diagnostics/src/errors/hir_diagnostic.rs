@@ -144,6 +144,30 @@ pub enum HirDiagnostic {
         span: Span,
     },
 
+    /// `remap_roles` must be a map/block, not a scalar value.
+    RemapRolesNotMap {
+        client_name: String,
+        actual_type: String,
+        span: Span,
+    },
+
+    /// `remap_role` values must be strings.
+    RemapRoleValueNotString { client_name: String, span: Span },
+
+    /// `remap_roles` key is not in `allowed_roles`.
+    RemapRoleNotAllowed {
+        client_name: String,
+        role_key: String,
+        allowed_roles: Vec<String>,
+        span: Span,
+    },
+
+    /// `allowed_roles` must not be empty.
+    AllowedRolesEmpty { client_name: String, span: Span },
+
+    /// `allowed_roles` values must be strings.
+    AllowedRoleNotString { client_name: String, span: Span },
+
     // ============ Syntax Diagnostics ============
     /// Statement missing required semicolon.
     /// In Rust-style blocks, all statements except the final expression need semicolons.
@@ -172,9 +196,34 @@ pub enum HirDiagnostic {
     /// These require a Jinja expression block {{ }}.
     InvalidConstraintSyntax { attr_name: String, span: Span },
 
+    // ============ Attribute Value Diagnostics ============
+    /// Attribute requires a single string literal but received something else.
+    /// Covers cases like:
+    /// - `@alias(some_var)` - identifier instead of string
+    /// - `@alias("a", "b")` - multiple arguments
+    /// - `@alias()` - no arguments
+    /// - `@alias({{ expr }})` - expression instead of string
+    InvalidAttributeArg {
+        attr_name: String,
+        span: Span,
+        /// Human-readable description of what was received
+        received: String,
+    },
+
+    /// Attribute takes no arguments but received some (e.g., @@dynamic("unexpected")).
+    UnexpectedAttributeArg { attr_name: String, span: Span },
+
     // ============ Type Diagnostics ============
     /// Float literal used as a type, which is not supported.
     UnsupportedFloatLiteral { value: String, span: Span },
+
+    /// Invalid map type arity (wrong number of type parameters).
+    /// Maps require exactly 2 type parameters: `map<KeyType, ValueType>`
+    InvalidMapArity {
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
 
     // ============ Test Diagnostics ============
     /// Unknown property in test block.
@@ -194,4 +243,24 @@ pub enum HirDiagnostic {
 
     /// Attribute used on test config item field (not allowed).
     TestFieldAttribute { attr_name: String, span: Span },
+
+    // ============ Type Builder Diagnostics ============
+    /// `type_builder` block found outside of test context (e.g., in function or client).
+    TypeBuilderInNonTestContext {
+        context: &'static str, // "function", "client", "generator"
+        span: Span,
+    },
+
+    /// Multiple `type_builder` blocks in the same test.
+    DuplicateTypeBuilderBlock {
+        test_name: String,
+        first_span: Span,
+        second_span: Span,
+    },
+
+    /// Incomplete dynamic type definition (e.g., `dynamic Foo` without `class` or `enum`).
+    IncompleteDynamicDefinition { span: Span },
+
+    /// Syntax error in `type_builder` block content.
+    TypeBuilderSyntaxError { message: String, span: Span },
 }

@@ -2,14 +2,17 @@
 //!
 //! Separated from `ItemTree` to provide fine-grained incrementality.
 //! Signature changes invalidate type checking, but not name resolution.
+//! Spans are stored separately in `SignatureSourceMap` for incrementality.
 
 use std::sync::Arc;
 
-use rowan::TextRange;
+use rowan::ast::AstNode;
 
-use crate::{Name, type_ref::TypeRef};
+use crate::{Name, SignatureSourceMap, type_ref::TypeRef};
 
 /// The signature of a function (everything except the body).
+///
+/// Position-independent: spans are stored in `SignatureSourceMap`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionSignature {
     /// Function name (duplicated from `ItemTree` for convenience)
@@ -20,9 +23,6 @@ pub struct FunctionSignature {
 
     /// Return type
     pub return_type: TypeRef,
-
-    /// Span of the return type annotation (for diagnostics)
-    pub return_type_span: Option<TextRange>,
 }
 
 /// Function parameter.
@@ -34,11 +34,17 @@ pub struct Param {
 
 impl FunctionSignature {
     /// Lower a function signature from CST.
-    pub fn lower(func_node: &baml_compiler_syntax::ast::FunctionDef) -> Arc<FunctionSignature> {
+    ///
+    /// Returns both the signature (position-independent) and its source map (spans).
+    pub fn lower(
+        func_node: &baml_compiler_syntax::ast::FunctionDef,
+    ) -> (Arc<FunctionSignature>, SignatureSourceMap) {
         let name = func_node
             .name()
             .map(|n| Name::new(n.text()))
             .unwrap_or_else(|| Name::new("UnnamedFunction"));
+
+        let mut source_map = SignatureSourceMap::new();
 
         // Extract parameters
         let mut params = Vec::new();
@@ -49,6 +55,9 @@ impl FunctionSignature {
                         .ty()
                         .map(|t| TypeRef::from_ast(&t))
                         .unwrap_or(TypeRef::Unknown);
+
+                    // Store the span in the source map
+                    source_map.push_param_span(Some(param_node.syntax().text_range()));
 
                     params.push(Param {
                         name: Name::new(name_token.text()),
@@ -64,13 +73,19 @@ impl FunctionSignature {
             .as_ref()
             .map(TypeRef::from_ast)
             .unwrap_or(TypeRef::Unknown);
-        let return_type_span = return_type_node.map(|t| t.text_range());
 
-        Arc::new(FunctionSignature {
-            name,
-            params,
-            return_type,
-            return_type_span,
-        })
+        // Store return type span in source map
+        if let Some(span) = return_type_node.map(|t| t.text_range()) {
+            source_map.set_return_type_span(span);
+        }
+
+        (
+            Arc::new(FunctionSignature {
+                name,
+                params,
+                return_type,
+            }),
+            source_map,
+        )
     }
 }

@@ -74,7 +74,7 @@ impl ariadne::Span for Span {
 pub type Name = SmolStr;
 
 /// The types of media we support
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum MediaKind {
     Image,
     Audio,
@@ -93,6 +93,13 @@ impl fmt::Display for MediaKind {
             MediaKind::Generic => write!(f, "image | audio | video | pdf"),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Literal {
+    Int(i64),
+    String(String),
+    Bool(bool),
 }
 
 /// Module identifier (for multi-file support)

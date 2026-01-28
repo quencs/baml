@@ -33,9 +33,9 @@
 use std::collections::{HashMap, HashSet};
 
 use baml_base::{Name, Span};
-use baml_compiler_hir::{ExprBody, Literal, MatchArm, Pattern};
+use baml_compiler_hir::{ExprBody, Literal, MatchArmId, Pattern};
 
-use crate::{LiteralValue, Ty, lower_type_ref_validated_resolved};
+use crate::{LiteralValue, Ty, lower_type_ref};
 
 // ============================================================================
 // ValueSet: The Core Abstraction
@@ -166,8 +166,8 @@ pub struct ExhaustivenessChecker<'a> {
     /// Enum names for type resolution
     enum_names: &'a HashSet<Name>,
 
-    /// Known types for validation
-    known_types: &'a HashSet<Name>,
+    /// Type alias names for validation
+    type_alias_names: &'a HashSet<Name>,
 }
 
 /// Result of exhaustiveness checking.
@@ -190,14 +190,14 @@ impl<'a> ExhaustivenessChecker<'a> {
         type_aliases: &'a HashMap<Name, Ty>,
         class_names: &'a HashSet<Name>,
         enum_names: &'a HashSet<Name>,
-        known_types: &'a HashSet<Name>,
+        type_alias_names: &'a HashSet<Name>,
     ) -> Self {
         Self {
             enum_variants,
             type_aliases,
             class_names,
             enum_names,
-            known_types,
+            type_alias_names,
         }
     }
 
@@ -205,15 +205,15 @@ impl<'a> ExhaustivenessChecker<'a> {
     ///
     /// # Arguments
     /// - `scrutinee_ty`: The type of the value being matched
-    /// - `arms`: The match arms to check
-    /// - `body`: The expression body (for pattern lookup)
+    /// - `arm_ids`: The match arm IDs to check
+    /// - `body`: The expression body (for pattern and arm lookup)
     ///
     /// # Returns
     /// An `ExhaustivenessResult` with coverage info and any issues found.
     pub fn check(
         &self,
         scrutinee_ty: &Ty,
-        arms: &[MatchArm],
+        arm_ids: &[MatchArmId],
         body: &ExprBody,
     ) -> ExhaustivenessResult {
         // Expand the scrutinee type into the value sets that need to be covered
@@ -224,7 +224,8 @@ impl<'a> ExhaustivenessChecker<'a> {
         let mut has_catch_all = false;
         let mut unreachable_arms: Vec<usize> = Vec::new();
 
-        for (arm_idx, arm) in arms.iter().enumerate() {
+        for (arm_idx, arm_id) in arm_ids.iter().enumerate() {
+            let arm = &body.match_arms[*arm_id];
             let pattern = &body.patterns[arm.pattern];
             let has_guard = arm.guard.is_some();
             let value_set = self.pattern_to_value_set(pattern, has_guard, body);
@@ -300,9 +301,9 @@ impl<'a> ExhaustivenessChecker<'a> {
                 values
             }
 
-            // Named type: could be enum, class, or type alias
-            Ty::Named(name) => {
-                // Check if it's a type alias
+            // Type alias: expand to underlying type
+            Ty::TypeAlias(fqn) => {
+                // Check if we can resolve the type alias
                 //
                 // TODO(type-alias-architecture): Type alias resolution should be its own
                 // dedicated phase that runs once after name resolution. Resolved aliases
@@ -335,22 +336,12 @@ impl<'a> ExhaustivenessChecker<'a> {
                 // and engine/baml-lib/parser-database/src/types/mod.rs (resolve_type_aliases)
                 //
                 // Porting this to the new compiler requires its own task for feature parity.
+                let name = &fqn.name;
                 if let Some(alias_ty) = self.type_aliases.get(name) {
                     return self.expand_type_to_values(alias_ty);
                 }
 
-                // Check if it's an enum (finite type)
-                if let Some(variants) = self.enum_variants.get(name) {
-                    return variants
-                        .iter()
-                        .map(|variant_name| ValueSet::EnumVariant {
-                            enum_name: name.clone(),
-                            variant_name: variant_name.clone(),
-                        })
-                        .collect();
-                }
-
-                // Unknown named type or class (infinite)
+                // Unknown type alias (infinite)
                 vec![ValueSet::OfType(name.clone())]
             }
 
@@ -379,13 +370,14 @@ impl<'a> ExhaustivenessChecker<'a> {
             Ty::String => vec![ValueSet::OfType(Name::new("string"))],
             Ty::Media(kind) => vec![ValueSet::OfType(Name::new(kind.to_string()))],
 
-            // User-defined class and enum types (resolved by name).
-            Ty::Class(name) => {
+            // User-defined class and enum types (resolved by FQN).
+            Ty::Class(fqn) => {
                 // Class types are treated like named types for exhaustiveness
-                vec![ValueSet::OfType(name.clone())]
+                vec![ValueSet::OfType(fqn.name.clone())]
             }
-            Ty::Enum(name) => {
+            Ty::Enum(fqn) => {
                 // Enum types: look up variants for exhaustiveness checking
+                let name = &fqn.name;
                 if let Some(variants) = self.enum_variants.get(name) {
                     variants
                         .iter()
@@ -410,6 +402,9 @@ impl<'a> ExhaustivenessChecker<'a> {
             Ty::Unknown | Ty::Error | Ty::Void => Vec::new(),
             Ty::Function { .. } => vec![ValueSet::OfType(Name::new("<function>"))],
             Ty::WatchAccessor(_) => vec![ValueSet::OfType(Name::new("<$watch>"))],
+
+            // Builtin types (e.g., baml.fs.File)
+            Ty::Builtin(path) => vec![ValueSet::OfType(Name::new(path.clone()))],
         }
     }
 
@@ -435,9 +430,9 @@ impl<'a> ExhaustivenessChecker<'a> {
 
             // Typed binding: matches all values of that type
             Pattern::TypedBinding { ty, .. } => {
-                let (lowered_ty, _) = lower_type_ref_validated_resolved(
+                let (lowered_ty, _) = lower_type_ref(
                     ty,
-                    self.known_types,
+                    self.type_alias_names,
                     self.class_names,
                     self.enum_names,
                     Span::default(),
@@ -488,11 +483,13 @@ impl<'a> ExhaustivenessChecker<'a> {
                 let inner_set = Self::ty_to_value_set(inner);
                 ValueSet::Union(vec![inner_set, ValueSet::Literal(Literal::Null)])
             }
-            Ty::Named(name) => {
+            Ty::TypeAlias(fqn) => {
                 // For type aliases, keep the alias name (don't expand)
                 // The coverage check will handle expansion
-                ValueSet::OfType(name.clone())
+                ValueSet::OfType(fqn.name.clone())
             }
+            Ty::Class(fqn) => ValueSet::OfType(fqn.name.clone()),
+            Ty::Enum(fqn) => ValueSet::OfType(fqn.name.clone()),
             Ty::Literal(value) => match value {
                 LiteralValue::Int(v) => ValueSet::Literal(Literal::Int(*v)),
                 LiteralValue::Float(v) => ValueSet::Literal(Literal::Float(v.clone())),
