@@ -24,3 +24,4 @@ yarn-error.log*
 
 # Backup folder (migration artifacts)
 /_backup
+.vercel

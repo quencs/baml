@@ -214,16 +214,105 @@
   margin-bottom: 0;
 }
 
-.assistant pre {
-  margin: 8px 0;
-  padding: 10px;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  overflow-x: auto;
-  font-size: 12px;
+/* Code Block Wrapper with Copy Button */
+.codeBlockWrapper {
+  position: relative;
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 0.5px solid var(--color-border, #e4e4e7);
 }
 
+.codeBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--color-surface-3, #f4f4f5);
+  border-bottom: 0.5px solid var(--color-border, #e4e4e7);
+  min-height: 36px;
+}
+
+.codeBlockLanguage {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #52525b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.copyButton {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background: var(--color-surface-4, #e4e4e7);
+  border: 0.5px solid var(--color-border, #d4d4d8);
+  border-radius: 6px;
+  color: var(--color-text-secondary, #52525b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 11px;
+  gap: 5px;
+  font-weight: 500;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.copyButton:hover {
+  background: var(--color-surface-5, #d4d4d8);
+  color: var(--color-text-primary, #18181b);
+}
+
+.copyButton svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.copyButton span {
+  color: inherit;
+}
+
+.codeBlock {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace) !important;
+  border-radius: 0 0 8px 8px;
+  background: var(--color-surface-2, #fafafa);
+}
+
+/* Dark mode code block background */
+:global([data-theme='dark']) .codeBlock {
+  background: var(--color-surface-3, #27272a);
+}
+
+.codeBlock code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Ensure syntax highlighting colors are not overridden */
+.codeBlock span {
+  font-family: inherit;
+}
+
+/* Inline Code */
+.inlineCode {
+  background: var(--color-surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: var(--font-mono);
+  color: var(--color-accent);
+}
+
+/* Legacy support for assistant code */
 .assistant code {
   font-size: 12px;
   font-family: var(--font-mono);
@@ -265,6 +354,115 @@
   40% {
     transform: scale(1);
   }
+}
+
+/* Streaming State */
+.streaming {
+  border-left: 2px solid var(--color-accent);
+  padding-left: 12px;
+}
+
+.streamingCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--color-accent);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Markdown Styling */
+.markdownParagraph {
+  margin: 0 0 8px 0;
+}
+
+.markdownParagraph:last-child {
+  margin-bottom: 0;
+}
+
+.markdownList,
+.markdownOrderedList {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.markdownListItem {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.markdownLink {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdownLink:hover {
+  text-decoration-thickness: 2px;
+}
+
+.markdownBlockquote {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface-2);
+  border-radius: 0 6px 6px 0;
+  color: var(--color-text-secondary);
+}
+
+.markdownBlockquote p {
+  margin: 0;
+}
+
+.markdownHeading1 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 16px 0 8px 0;
+}
+
+.markdownHeading2 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 12px 0 6px 0;
+}
+
+.markdownHeading3 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 10px 0 4px 0;
+}
+
+.markdownTableWrapper {
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.markdownTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.markdownTh,
+.markdownTd {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.markdownTh {
+  background: var(--color-surface-2);
+  font-weight: 600;
 }
 
 /* Citations */
@@ -343,6 +541,7 @@
   border-top: 1px solid var(--color-border);
   background: var(--color-surface-1);
   flex-shrink: 0;
+  align-items: flex-end;
 }
 
 .input {
@@ -355,7 +554,11 @@
   font-family: var(--font-sans);
   background: var(--color-surface-2);
   color: var(--color-text-primary);
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, height 0.1s ease;
+  min-height: 40px;
+  max-height: 150px;
+  overflow-y: auto;
+  line-height: 1.4;
 }
 
 .input:focus {
@@ -384,6 +587,7 @@
   cursor: pointer;
   transition: background 0.15s ease;
   flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .sendButton:hover:not(:disabled) {
@@ -393,4 +597,25 @@
 .sendButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Stop Button */
+.stopButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--color-error, #ef4444);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.stopButton:hover {
+  background: var(--color-error-hover, #dc2626);
 }

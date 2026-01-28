@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSync } from 'fs';
 import { join, relative } from 'path';
 import matter from 'gray-matter';

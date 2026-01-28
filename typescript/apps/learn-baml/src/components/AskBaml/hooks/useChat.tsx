@@ -14,12 +14,14 @@ interface Message {
   text: string;
   citations?: Array<{ title: string; url: string; relevance: string }>;
   suggested_questions?: string[];
+  isStreaming?: boolean;
 }
 
 interface ChatState {
   messages: Message[];
   isLoading: boolean;
   isOpen: boolean;
+  streamingMessageId: string | null;
 }
 
 interface ChatContextValue extends ChatState {
@@ -27,6 +29,7 @@ interface ChatContextValue extends ChatState {
   setIsOpen: (isOpen: boolean, source?: 'button' | 'keyboard') => void;
   clearMessages: () => void;
   sessionId: string;
+  stopStreaming: () => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -48,33 +51,56 @@ export function ChatProvider({ children }: ChatProviderProps) {
     messages: [],
     isLoading: false,
     isOpen: false,
+    streamingMessageId: null,
   });
 
   const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const sessionStartTime = useRef<number>(Date.now());
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize analytics
   useEffect(() => {
     initAnalytics();
   }, []);
 
-  // Persist messages to localStorage
+  // Load persisted state from localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem('ask-baml-messages');
-    if (saved) {
+    
+    // Load messages
+    const savedMessages = localStorage.getItem('ask-baml-messages');
+    if (savedMessages) {
       try {
-        setState(prev => ({ ...prev, messages: JSON.parse(saved) }));
+        const messages = JSON.parse(savedMessages);
+        setState(prev => ({ ...prev, messages }));
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    
+    // Load isOpen state
+    const savedIsOpen = localStorage.getItem('ask-baml-panel-open');
+    if (savedIsOpen) {
+      try {
+        const isOpen = JSON.parse(savedIsOpen);
+        setState(prev => ({ ...prev, isOpen }));
       } catch {
         // Ignore parse errors
       }
     }
   }, []);
 
+  // Persist messages to localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
     localStorage.setItem('ask-baml-messages', JSON.stringify(state.messages));
   }, [state.messages]);
+
+  // Persist isOpen state to localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('ask-baml-panel-open', JSON.stringify(state.isOpen));
+  }, [state.isOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -114,6 +140,13 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setState(prev => ({ ...prev, isOpen }));
   }, [state.isOpen, state.messages.length, sessionId]);
 
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || state.isLoading) return;
 
@@ -133,11 +166,25 @@ export function ChatProvider({ children }: ChatProviderProps) {
       text: trimmedText,
     };
 
+    const assistantMessageId = `assistant-${Date.now()}`;
+
+    // Create assistant message placeholder for streaming
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      text: '',
+      isStreaming: true,
+    };
+
     setState(prev => ({
       ...prev,
-      messages: [...prev.messages, userMessage],
+      messages: [...prev.messages, userMessage, assistantMessage],
       isLoading: true,
+      streamingMessageId: assistantMessageId,
     }));
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       const response = await fetch('/api/chat', {
@@ -146,37 +193,116 @@ export function ChatProvider({ children }: ChatProviderProps) {
         body: JSON.stringify({
           message: trimmedText,
           prev_messages: state.messages.map(m => ({ role: m.role, text: m.text })),
+          stream: true,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) throw new Error('Request failed');
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
 
-      // Track successful response
-      trackResponse({
-        query: trimmedText,
-        answer: data.answer,
-        citations: data.citations || [],
-        suggestedQuestions: data.suggested_questions || [],
-        latencyMs: Date.now() - startTime,
-        topDocScores: data._debug?.doc_scores || [],
-      });
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let docScores: number[] = [];
+      let finalData: { answer: string; citations: any[]; suggested_questions: string[] } | null = null;
 
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        text: data.answer,
-        citations: data.citations,
-        suggested_questions: data.suggested_questions,
-      };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-        isLoading: false,
-      }));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'doc_scores') {
+                docScores = data.scores;
+              } else if (data.type === 'partial') {
+                // Update streaming message with partial content
+                setState(prev => ({
+                  ...prev,
+                  messages: prev.messages.map(m =>
+                    m.id === assistantMessageId
+                      ? {
+                          ...m,
+                          text: data.answer || '',
+                          citations: data.citations,
+                          suggested_questions: data.suggested_questions,
+                        }
+                      : m
+                  ),
+                }));
+              } else if (data.type === 'done') {
+                finalData = data;
+              }
+            } catch (e) {
+              console.warn('Failed to parse SSE data:', e);
+            }
+          }
+        }
+      }
+
+      // Finalize the message
+      if (finalData) {
+        // Track successful response
+        trackResponse({
+          query: trimmedText,
+          answer: finalData.answer,
+          citations: finalData.citations || [],
+          suggestedQuestions: finalData.suggested_questions || [],
+          latencyMs: Date.now() - startTime,
+          topDocScores: docScores,
+        });
+
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.map(m =>
+            m.id === assistantMessageId
+              ? {
+                  ...m,
+                  text: finalData!.answer,
+                  citations: finalData!.citations,
+                  suggested_questions: finalData!.suggested_questions,
+                  isStreaming: false,
+                }
+              : m
+          ),
+          isLoading: false,
+          streamingMessageId: null,
+        }));
+      } else {
+        // No final data received, mark as complete anyway
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.map(m =>
+            m.id === assistantMessageId ? { ...m, isStreaming: false } : m
+          ),
+          isLoading: false,
+          streamingMessageId: null,
+        }));
+      }
     } catch (error) {
+      // Handle abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.map(m =>
+            m.id === assistantMessageId
+              ? { ...m, isStreaming: false, text: m.text || 'Response stopped.' }
+              : m
+          ),
+          isLoading: false,
+          streamingMessageId: null,
+        }));
+        return;
+      }
+
       console.error('Chat error:', error);
 
       // Track error
@@ -188,16 +314,16 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
       setState(prev => ({
         ...prev,
-        messages: [
-          ...prev.messages,
-          {
-            id: `error-${Date.now()}`,
-            role: 'assistant',
-            text: 'Sorry, something went wrong. Please try again.',
-          },
-        ],
+        messages: prev.messages.map(m =>
+          m.id === assistantMessageId
+            ? { ...m, text: 'Sorry, something went wrong. Please try again.', isStreaming: false }
+            : m
+        ),
         isLoading: false,
+        streamingMessageId: null,
       }));
+    } finally {
+      abortControllerRef.current = null;
     }
   }, [state.messages, state.isLoading, sessionId]);
 
@@ -211,6 +337,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setIsOpen,
     clearMessages,
     sessionId,
+    stopStreaming,
   };
 
   return (
