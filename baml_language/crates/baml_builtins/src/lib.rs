@@ -227,6 +227,15 @@ macro_rules! with_builtins {
                 // HTTP operations
                 // =====================================================================
                 mod http {
+                    /// An HTTP request to be sent.
+                    #[builtin]
+                    struct Request {
+                        method: String,
+                        url: String,
+                        headers: Map<String, String>,
+                        body: String,
+                    }
+
                     #[builtin]
                     struct Response {
                         private _handle: ResourceHandle,
@@ -244,20 +253,22 @@ macro_rules! with_builtins {
                     /// Fetch a URL via HTTP GET.
                     #[sys_op]
                     fn fetch(url: String) -> Response;
+
+                    /// Send an HTTP request and return the response.
+                    #[sys_op]
+                    fn send(request: Request) -> Response;
                 }
 
                 // =====================================================================
-                // LLM operations (hidden - internal use only)
+                // LLM operations
                 // =====================================================================
-                #[hide]
                 mod llm {
                     /// Prompt AST - a structured prompt for LLM calls.
-                    /// This is hidden from the type checker as it's for internal use.
                     #[builtin]
                     struct PromptAst {}
 
-                    /// A primitive LLM client (single provider, not composite).
-                    /// This is hidden from the type checker as it's for internal use.
+                    /// A primitive LLM client (single provider, fully resolved).
+                    /// Options have been evaluated (env vars resolved, expressions computed).
                     #[builtin]
                     struct PrimitiveClient {
                         /// Render a Jinja template with the given arguments.
@@ -270,7 +281,37 @@ macro_rules! with_builtins {
                         /// consolidation, metadata filtering).
                         #[sys_op]
                         fn specialize_prompt(self: PrimitiveClient, prompt: PromptAst) -> PromptAst;
+
+                        /// Build an HTTP request from a specialized prompt.
+                        /// Creates a provider-specific HTTP request ready to be sent.
+                        #[sys_op]
+                        fn build_request(self: PrimitiveClient, prompt: PromptAst) -> Request;
+
+                        /// Parse an HTTP response into a BAML value.
+                        /// Interprets the provider-specific response format and parses the output.
+                        #[sys_op]
+                        fn parse(self: PrimitiveClient, response: Response, function_name: String) -> Any;
                     }
+
+                    /// Get the Jinja template for an LLM function.
+                    #[sys_op]
+                    fn get_jinja_template(function_name: String) -> String;
+
+                    /// Build a PrimitiveClient from evaluated options.
+                    /// Called after options have been evaluated by bytecode.
+                    #[sys_op]
+                    fn build_primitive_client(
+                        name: String,
+                        provider: String,
+                        default_role: String,
+                        allowed_roles: Array<String>,
+                        options: Map<String, Any>
+                    ) -> PrimitiveClient;
+
+                    /// Get the client resolve function for an LLM function.
+                    /// Returns a function reference that, when called, returns a PrimitiveClient.
+                    #[sys_op]
+                    fn get_client_function(function_name: String) -> FunctionRef;
                 }
             }
 
@@ -428,13 +469,30 @@ mod tests {
     }
 
     #[test]
-    fn test_hidden_llm_module() {
-        // The baml.llm module is hidden from the type checker.
-        // It should NOT appear in the builtins list, even though
-        // the VM can still use it internally.
-        assert!(find_builtin_by_path("baml.llm.PromptAst").is_none());
+    fn test_llm_module() {
+        // The baml.llm module contains LLM-related builtins
+        let render_prompt = find_builtin_by_path("baml.llm.PrimitiveClient.render_prompt");
+        assert!(render_prompt.is_some());
+        assert!(render_prompt.unwrap().is_sys_op);
 
-        // Other builtins in the same parent module are still visible
+        let get_client_fn = find_builtin_by_path("baml.llm.get_client_function");
+        assert!(
+            get_client_fn.is_some(),
+            "get_client_function should be found"
+        );
+        assert!(
+            get_client_fn.unwrap().is_sys_op,
+            "get_client_function should be sys_op"
+        );
+
+        let get_jinja = find_builtin_by_path("baml.llm.get_jinja_template");
+        assert!(get_jinja.is_some(), "get_jinja_template should be found");
+        assert!(
+            get_jinja.unwrap().is_sys_op,
+            "get_jinja_template should be sys_op"
+        );
+
+        // Other builtins in the same parent module are also visible
         assert!(find_builtin_by_path("baml.http.Response.text").is_some());
         assert!(find_builtin_by_path("baml.http.fetch").is_some());
     }
@@ -528,4 +586,61 @@ mod tests {
         let headers_field = headers_field.unwrap();
         assert!(matches!(headers_field.ty, Some(TypePattern::Map { .. })));
     }
+}
+
+// ============================================================================
+// Embedded BAML Builtin Files
+// ============================================================================
+
+/// Embedded BAML source files for built-in functions.
+///
+/// These files are compiled together with user code and provide
+/// implementations for builtin namespaces like `baml.llm`.
+///
+/// # Structure
+///
+/// Files are organized by namespace:
+/// - `baml/llm.baml` -> `baml.llm` namespace
+///
+/// # Usage
+///
+/// ```ignore
+/// for (namespace, source) in baml_builtins::baml_sources() {
+///     // Add source to compilation context
+///     compiler.add_builtin(namespace, source);
+/// }
+/// ```
+pub mod baml_sources {
+    /// The BAML source for the `baml.llm` namespace.
+    ///
+    /// Contains the `render_prompt` orchestrator function.
+    pub const LLM: &str = include_str!("../baml/llm.baml");
+
+    /// A builtin BAML source file with its namespace.
+    #[derive(Debug, Clone, Copy)]
+    pub struct BuiltinSource {
+        /// The namespace this file provides (e.g., "baml.llm").
+        pub namespace: &'static str,
+        /// The virtual file path for diagnostics (e.g., `<builtin>/baml/llm.baml`).
+        pub path: &'static str,
+        /// The BAML source code.
+        pub source: &'static str,
+    }
+
+    /// All builtin BAML sources.
+    ///
+    /// These should be added to the compilation context before user code.
+    pub const ALL: &[BuiltinSource] = &[BuiltinSource {
+        namespace: "baml.llm",
+        path: "<builtin>/baml/llm.baml",
+        source: LLM,
+    }];
+}
+
+/// Get all builtin BAML sources.
+///
+/// Returns an iterator over all embedded BAML files that should be
+/// compiled as part of the builtin library.
+pub fn baml_sources() -> impl Iterator<Item = &'static baml_sources::BuiltinSource> {
+    baml_sources::ALL.iter()
 }

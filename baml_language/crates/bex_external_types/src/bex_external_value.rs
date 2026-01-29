@@ -165,6 +165,15 @@ pub enum BexExternalValue {
 
     /// Primitive LLM client.
     PrimitiveClient(PrimitiveClientValue),
+
+    /// Reference to a function by its global index.
+    ///
+    /// Used to return callable function references from SysOps.
+    /// The global_index corresponds to the function's position in the VM's globals array.
+    FunctionRef {
+        /// Global index of the function.
+        global_index: usize,
+    },
 }
 
 /// Extracted PrimitiveClient data (no HeapPtr, fully owned).
@@ -232,6 +241,7 @@ impl BexExternalValue {
             },
             BexExternalValue::PromptAst(_) => "prompt_ast",
             BexExternalValue::PrimitiveClient(_) => "primitive_client",
+            BexExternalValue::FunctionRef { .. } => "function",
         }
     }
 }

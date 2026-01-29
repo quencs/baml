@@ -984,6 +984,23 @@ pub fn infer_function<'db>(
     enum_variants: Option<HashMap<Name, Vec<Name>>>,
     function_loc: FunctionLoc<'db>,
 ) -> InferenceResult {
+    // Skip type inference for compiler-generated functions (e.g., client resolve).
+    // These contain heterogeneous values that shouldn't be type-checked.
+    let item_tree = baml_compiler_hir::file_item_tree(db, function_loc.file(db));
+    let func = &item_tree[function_loc.id(db)];
+    if func.compiler_generated.is_some() {
+        return InferenceResult {
+            return_type: Ty::Unknown,
+            param_types: HashMap::new(),
+            expr_types: HashMap::new(),
+            path_segment_types: HashMap::new(),
+            enum_variant_exprs: HashMap::new(),
+            exhaustive_matches: std::collections::HashSet::new(),
+            errors: Vec::new(),
+            expr_resolutions: ResolutionMap::default(),
+        };
+    }
+
     let project = db.project();
     let type_aliases = type_aliases.unwrap_or_default();
     let type_alias_name_set: HashSet<Name> = type_aliases.keys().cloned().collect();

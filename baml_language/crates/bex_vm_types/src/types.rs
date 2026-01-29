@@ -35,6 +35,10 @@ pub struct Program {
 
     /// Maps function names to their object indices.
     pub function_indices: HashMap<String, usize>,
+
+    /// Maps function names to their global indices.
+    /// Used for dynamic function lookup at runtime.
+    pub function_global_indices: HashMap<String, usize>,
 }
 
 impl Program {
@@ -94,6 +98,18 @@ pub enum SysOp {
     RenderPrompt,
     /// Specialize a prompt for a specific provider: `PrimitiveClient.specialize_prompt(prompt) -> PromptAst`
     SpecializePrompt,
+    /// Get the Jinja template for a function: `baml.llm.get_jinja_template(function_name) -> String`
+    LlmGetJinjaTemplate,
+    /// Build a `PrimitiveClient` from evaluated options: `baml.llm.build_primitive_client(...) -> PrimitiveClient`
+    LlmBuildPrimitiveClient,
+    /// Get the client function for a function: `baml.llm.get_client_function(function_name) -> fn() -> PrimitiveClient`
+    LlmGetClientFunction,
+    /// Build an HTTP request from a prompt: `PrimitiveClient.build_request(prompt: PromptAst) -> HttpRequest`
+    LlmBuildRequest,
+    /// Parse an HTTP response into a BAML value: `PrimitiveClient.parse(response: Response, function_name: String) -> T`
+    LlmParseResponse,
+    /// Send an HTTP request: `baml.http.send(request: Request) -> Response`
+    HttpSend,
 }
 
 impl std::fmt::Display for SysOp {
@@ -111,6 +127,12 @@ impl std::fmt::Display for SysOp {
             SysOp::ResponseOk => write!(f, "http.Response.ok"),
             SysOp::RenderPrompt => write!(f, "llm.render_prompt"),
             SysOp::SpecializePrompt => write!(f, "llm.specialize_prompt"),
+            SysOp::LlmGetJinjaTemplate => write!(f, "llm.get_jinja_template"),
+            SysOp::LlmBuildPrimitiveClient => write!(f, "llm.build_primitive_client"),
+            SysOp::LlmGetClientFunction => write!(f, "llm.get_client_function"),
+            SysOp::LlmBuildRequest => write!(f, "llm.build_request"),
+            SysOp::LlmParseResponse => write!(f, "llm.parse"),
+            SysOp::HttpSend => write!(f, "http.send"),
         }
     }
 }
@@ -420,7 +442,7 @@ pub enum Object {
     /// Prompt AST tree node.
     PromptAst(PromptAst),
 
-    /// LLM primitive client.
+    /// LLM primitive client (resolved, options evaluated).
     PrimitiveClient(PrimitiveClient),
 
     #[cfg(feature = "heap_debug")]
@@ -536,6 +558,9 @@ impl std::fmt::Display for MediaContent {
 // ============================================================================
 
 /// A primitive LLM client (single provider, not composite).
+///
+/// This is the resolved/evaluated form of a client, ready to make API calls.
+/// Options have been evaluated (env vars resolved, expressions computed).
 #[derive(Clone, Debug)]
 pub struct PrimitiveClient {
     /// Client name (e.g., "GPT4").
@@ -546,7 +571,7 @@ pub struct PrimitiveClient {
     pub default_role: String,
     /// Allowed roles for chat messages.
     pub allowed_roles: Vec<String>,
-    /// Provider-specific options (heap-allocated map).
+    /// Provider-specific options (heap-allocated map, already evaluated).
     pub options: HeapPtr,
 }
 
