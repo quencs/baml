@@ -293,7 +293,8 @@ pub fn compile_files(
                         // Lower HIR → VIR → MIR
                         // Returns early if there are Missing nodes (errors in source)
                         let vir =
-                            baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx)?;
+                            baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx)
+                                .map_err(|e| e.in_function(signature.name.to_string()))?;
                         let mir = baml_compiler_mir::lower(
                             &signature,
                             &vir,
