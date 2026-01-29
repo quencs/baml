@@ -119,6 +119,48 @@ pub fn compile_files(
     let mut class_type_tags: HashMap<String, i64> = HashMap::new();
     let mut class_type_tag_counter = 0i64;
 
+    // Inject builtin classes BEFORE user classes for stable indices
+    for builtin in baml_builtins::builtin_types() {
+        let mut field_names = Vec::new();
+        let mut field_indices = HashMap::new();
+        let mut field_types = HashMap::new();
+
+        // Include ALL fields (public and private) in runtime field order
+        for field in &builtin.fields {
+            let idx = field_names.len();
+            field_indices.insert(field.name.to_string(), idx);
+            field_names.push(field.name.to_string());
+
+            // Only add public fields to field_types (for type checking)
+            if !field.is_private {
+                if let Some(ref ty_pattern) = field.ty {
+                    field_types.insert(
+                        Name::new(field.name),
+                        baml_compiler_tir::builtins::substitute_unknown(ty_pattern),
+                    );
+                }
+            }
+        }
+
+        // Compute type tag for this builtin class
+        let type_tag = type_tags::CLASS_BASE + class_type_tag_counter;
+        class_type_tags.insert(builtin.path.to_string(), type_tag);
+
+        // Add Class object to program and record its index
+        let class_obj = Object::Class(Class {
+            name: builtin.path.to_string(),
+            field_names,
+            type_tag,
+        });
+        class_type_tag_counter += 1;
+        let class_obj_idx = program.add_object(class_obj);
+        class_object_indices.insert(builtin.path.to_string(), class_obj_idx);
+
+        classes.insert(builtin.path.to_string(), field_indices);
+        class_field_types.insert(Name::new(builtin.path), field_types);
+    }
+
+    // Now add user-defined classes
     for file in files {
         let item_tree = baml_compiler_hir::file_item_tree(db, *file);
         let items_struct = baml_compiler_hir::file_items(db, *file);
@@ -396,11 +438,8 @@ fn sys_op_for_builtin_path(path: &str) -> Option<SysOp> {
         "baml.net.Socket.read" => Some(SysOp::NetRead),
         "baml.net.Socket.close" => Some(SysOp::NetClose),
         "baml.http.fetch" => Some(SysOp::HttpFetch),
-        "baml.http.HttpResponse.text" => Some(SysOp::HttpResponseText),
-        "baml.http.HttpResponse.status" => Some(SysOp::HttpResponseStatus),
-        "baml.http.HttpResponse.ok" => Some(SysOp::HttpResponseOk),
-        "baml.http.HttpResponse.url" => Some(SysOp::HttpResponseUrl),
-        "baml.http.HttpResponse.headers" => Some(SysOp::HttpResponseHeaders),
+        "baml.http.Response.text" => Some(SysOp::ResponseText),
+        "baml.http.Response.ok" => Some(SysOp::ResponseOk),
         _ => None,
     }
 }

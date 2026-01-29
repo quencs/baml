@@ -84,18 +84,12 @@ pub enum SysOp {
     NetRead,
     /// Close a socket: `Socket.close()`
     NetClose,
-    /// HTTP fetch: `baml.http.fetch(url: String) -> HttpResponse`
+    /// HTTP fetch: `baml.http.fetch(url: String) -> Response`
     HttpFetch,
-    /// Get response body as text: `HttpResponse.text() -> String`
-    HttpResponseText,
-    /// Get response status code: `HttpResponse.status() -> i64`
-    HttpResponseStatus,
-    /// Check if response is OK (2xx): `HttpResponse.ok() -> bool`
-    HttpResponseOk,
-    /// Get request URL: `HttpResponse.url() -> String`
-    HttpResponseUrl,
-    /// Get response headers: `HttpResponse.headers() -> Map<String, String>`
-    HttpResponseHeaders,
+    /// Get response body as text: `Response.text() -> String`
+    ResponseText,
+    /// Check if response is OK (2xx): `Response.ok() -> bool`
+    ResponseOk,
     /// Render a Jinja template: `PrimitiveClient.render_prompt(template, args) -> PromptAst`
     RenderPrompt,
     /// Specialize a prompt for a specific provider: `PrimitiveClient.specialize_prompt(prompt) -> PromptAst`
@@ -113,11 +107,8 @@ impl std::fmt::Display for SysOp {
             SysOp::NetRead => write!(f, "net.read"),
             SysOp::NetClose => write!(f, "net.close"),
             SysOp::HttpFetch => write!(f, "http.fetch"),
-            SysOp::HttpResponseText => write!(f, "http.HttpResponse.text"),
-            SysOp::HttpResponseStatus => write!(f, "http.HttpResponse.status"),
-            SysOp::HttpResponseOk => write!(f, "http.HttpResponse.ok"),
-            SysOp::HttpResponseUrl => write!(f, "http.HttpResponse.url"),
-            SysOp::HttpResponseHeaders => write!(f, "http.HttpResponse.headers"),
+            SysOp::ResponseText => write!(f, "http.Response.text"),
+            SysOp::ResponseOk => write!(f, "http.Response.ok"),
             SysOp::RenderPrompt => write!(f, "llm.render_prompt"),
             SysOp::SpecializePrompt => write!(f, "llm.specialize_prompt"),
         }

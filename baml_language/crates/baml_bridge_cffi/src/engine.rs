@@ -267,7 +267,6 @@ fn convert_tir_ty_to_program_ty(tir_ty: &baml_compiler_tir::Ty) -> bex_program::
 
         TirTy::Unknown | TirTy::Error | TirTy::Void => ProgTy::Null,
         TirTy::WatchAccessor(inner) => convert_tir_ty_to_program_ty(inner),
-        TirTy::Builtin(path) => ProgTy::Class(path.clone()),
     }
 }
 
