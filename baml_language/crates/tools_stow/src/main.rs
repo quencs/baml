@@ -1180,7 +1180,7 @@ fn check_dependencies_sorted(
     errors
 }
 
-/// Check that doctests are disabled in [lib] section.
+/// Check that doctests are disabled in `[lib]` section.
 /// Doctests should be disabled because they are slow and often redundant with unit tests.
 fn check_doctest_disabled(
     crate_name: &str,
@@ -1357,10 +1357,19 @@ fn fix_cargo_toml(
             if doc.get("lib").is_none() {
                 // Create new [lib] table
                 let mut lib_table = Table::new();
-                lib_table.insert("doctest", Item::Value(Value::Boolean(Formatted::new(false))));
+                lib_table.insert(
+                    "doctest",
+                    Item::Value(Value::Boolean(Formatted::new(false))),
+                );
                 doc.insert("lib", Item::Table(lib_table));
             } else if let Some(lib) = doc.get_mut("lib").and_then(|l| l.as_table_mut()) {
-                lib.insert("doctest", Item::Value(Value::Boolean(Formatted::new(false))));
+                lib.insert(
+                    "doctest",
+                    Item::Value(Value::Boolean(Formatted::new(false))),
+                );
+            } else if let Some(lib) = doc.get_mut("lib").and_then(|l| l.as_inline_table_mut()) {
+                // Handle inline tables like `lib = { doctest = true }`
+                lib.insert("doctest", Value::Boolean(Formatted::new(false)));
             }
             modified = true;
         }
