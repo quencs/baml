@@ -47,7 +47,7 @@ baml-log = { path = "../baml-lib/baml-log" }
 
 tracing = { version = "0.1.40" }
 
-tracing-subscriber = { version = "0.3.18", default-features = false, features = [
+tracing-subscriber = { version = "0.3.20", default-features = false, features = [
     "env-filter",
     "fmt",
 ] }
