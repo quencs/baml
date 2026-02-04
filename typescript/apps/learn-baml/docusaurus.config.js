@@ -1,5 +1,6 @@
 // @ts-check
 import { themes as prismThemes } from 'prism-react-renderer';
+import devProxyPlugin from './src/plugins/dev-proxy/index.js';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -59,6 +60,7 @@ const config = {
   },
 
   plugins: [
+    devProxyPlugin,
     [
       '@signalwire/docusaurus-plugin-llms-txt',
       {

@@ -2,15 +2,24 @@
 
 The canonical learning experience for BAML — a domain-specific language for building reliable AI features with typed LLM functions.
 
+> [!IMPORTANT]  
+> If you're an AI Agent or a human wanting to use AI to help write documentation, use the [CLAUDE.md](./CLAUDE.md) file. Read its entirety.
+
 ## Getting Started
 
 ```bash
 cd typescript/apps/learn-baml
 pnpm install
+pnpm build
 pnpm dev
 ```
 
+> [!NOTE]  
+> `pnpm build` runs `pnpm build:embeddings` which is important for local development. Run this so the AI agent always has up-to-date documentation. Embeddings are cached and saved to [./static/embeddings.json](./static/embeddings.json).
+
 Open [http://localhost:3000](http://localhost:3000) to view the site.
+The Bun API server listens on `3001` by default; set `BAML_API_PORT` to override.
+Set `BAML_API_ORIGIN` if you need the dev proxy to point to a custom host.
 
 ## Project Structure
 
@@ -74,12 +83,12 @@ function Example(input: string) -> string {
 
 ### MDX Frontmatter
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `title` | Yes | Page title (h1 and metadata) |
-| `description` | Yes | Shown on index page |
-| `tags` | No | Array of tags for filtering |
-| `order` | No | Sort order (lower = first) |
+| Field         | Required | Description                  |
+| ------------- | -------- | ---------------------------- |
+| `title`       | Yes      | Page title (h1 and metadata) |
+| `description` | Yes      | Shown on index page          |
+| `tags`        | No       | Array of tags for filtering  |
+| `order`       | No       | Sort order (lower = first)   |
 
 ### Adding Other Content Types
 
@@ -93,10 +102,10 @@ The same pattern works for tutorials, how-to guides, and concepts:
 
 We follow the [Diátaxis framework](https://diataxis.fr/) for documentation:
 
-|  | **Learning-Oriented** | **Task-Oriented** |
-|--|----------------------|-------------------|
-| **Practical** | **Tutorials** | **How-To Guides** |
-| **Theoretical** | **Concepts** | **Reference** |
+|                 | **Learning-Oriented** | **Task-Oriented** |
+| --------------- | --------------------- | ----------------- |
+| **Practical**   | **Tutorials**         | **How-To Guides** |
+| **Theoretical** | **Concepts**          | **Reference**     |
 
 Additionally:
 - **Tour:** Interactive, in-browser introduction (inspired by Go Tour, Gleam)
@@ -119,15 +128,24 @@ Additionally:
 ## Development
 
 ```bash
-# Start dev server
+# Start Docusaurus + Bun API server
 pnpm dev
+
+# Start only the Docusaurus dev server
+pnpm dev:site
+
+# Start only the Bun API server (chat)
+pnpm dev:api
 
 # Build for production
 pnpm build
 
 # Run production build locally
-pnpm start
+pnpm start:server
 ```
+
+When documentation changes, regenerate embeddings before building or deploying:
+`pnpm build:embeddings`
 
 ## Related Documents
 
