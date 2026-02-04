@@ -1180,6 +1180,55 @@ fn check_dependencies_sorted(
     errors
 }
 
+/// Check that doctests are disabled in [lib] section.
+/// Doctests should be disabled because they are slow and often redundant with unit tests.
+fn check_doctest_disabled(
+    crate_name: &str,
+    doc: &DocumentMut,
+    cargo_path: &Path,
+) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+
+    // Check if the crate has a library target (either explicit [lib] or implicit via src/lib.rs)
+    let crate_dir = cargo_path.parent().unwrap_or(Path::new("."));
+    let has_lib_rs = crate_dir.join("src/lib.rs").exists();
+
+    // If no lib.rs exists, this is a binary-only crate - no doctest check needed
+    if !has_lib_rs {
+        return errors;
+    }
+
+    // Check if [lib] section exists and has doctest = false
+    if let Some(lib) = doc.get("lib").and_then(|l| l.as_table_like()) {
+        if let Some(doctest) = lib.get("doctest") {
+            if doctest.as_bool() != Some(false) {
+                errors.push(ValidationError {
+                    crate_name: crate_name.to_string(),
+                    file_path: cargo_path.to_path_buf(),
+                    message: "Library crate must have `doctest = false` in [lib] section"
+                        .to_string(),
+                });
+            }
+        } else {
+            // [lib] exists but doctest is not set
+            errors.push(ValidationError {
+                crate_name: crate_name.to_string(),
+                file_path: cargo_path.to_path_buf(),
+                message: "Library crate must have `doctest = false` in [lib] section".to_string(),
+            });
+        }
+    } else {
+        // No [lib] section but has lib.rs - needs [lib] with doctest = false
+        errors.push(ValidationError {
+            crate_name: crate_name.to_string(),
+            file_path: cargo_path.to_path_buf(),
+            message: "Library crate must have [lib] section with `doctest = false`".to_string(),
+        });
+    }
+
+    errors
+}
+
 // =============================================================================
 // FIX FUNCTIONS
 // =============================================================================
@@ -1286,6 +1335,33 @@ fn fix_cargo_toml(
 
             // Sort dependencies - always mark as modified since we may reorder
             sort_dependencies_table(deps, config);
+            modified = true;
+        }
+    }
+
+    // Fix doctest setting for library crates
+    let crate_dir = cargo_path.parent().unwrap_or(Path::new("."));
+    let has_lib_rs = crate_dir.join("src/lib.rs").exists();
+
+    if has_lib_rs {
+        let needs_doctest_fix = if let Some(lib) = doc.get("lib").and_then(|l| l.as_table_like()) {
+            // Check if doctest is already set to false
+            lib.get("doctest").and_then(toml_edit::Item::as_bool) != Some(false)
+        } else {
+            // No [lib] section exists
+            true
+        };
+
+        if needs_doctest_fix {
+            // Ensure [lib] section exists and set doctest = false
+            if doc.get("lib").is_none() {
+                // Create new [lib] table
+                let mut lib_table = Table::new();
+                lib_table.insert("doctest", Item::Value(Value::Boolean(Formatted::new(false))));
+                doc.insert("lib", Item::Table(lib_table));
+            } else if let Some(lib) = doc.get_mut("lib").and_then(|l| l.as_table_mut()) {
+                lib.insert("doctest", Item::Value(Value::Boolean(Formatted::new(false))));
+            }
             modified = true;
         }
     }
@@ -2411,6 +2487,11 @@ fn main() {
             &crate_info.doc,
             &crate_info.cargo_path,
             &config,
+        ));
+        all_errors.extend(check_doctest_disabled(
+            &crate_info.crate_name,
+            &crate_info.doc,
+            &crate_info.cargo_path,
         ));
     }
 
