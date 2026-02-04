@@ -6,4 +6,7 @@ description = "Type tag constants for BAML runtime type identification"
 license = "MIT"
 
 [dependencies]
+
+[lib]
+doctest = false
 # No dependencies - this is a leaf crate containing only constants

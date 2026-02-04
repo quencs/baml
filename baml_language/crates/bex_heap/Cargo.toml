@@ -18,3 +18,6 @@ sharded-slab = { workspace = true }
 [features]
 default = [  ]
 heap_debug = [ "bex_vm_types/heap_debug" ]
+
+[lib]
+doctest = false

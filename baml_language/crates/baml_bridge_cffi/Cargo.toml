@@ -9,6 +9,7 @@ license.workspace = true
 [lib]
 name = "baml_cffi"
 crate-type = [ "cdylib" ]
+doctest = false
 
 [dependencies]
 baml_base = { workspace = true }

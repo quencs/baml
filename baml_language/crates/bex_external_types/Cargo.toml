@@ -16,3 +16,6 @@ indexmap = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = [ "fs", "net", "rt" ] }
+
+[lib]
+doctest = false
