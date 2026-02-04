@@ -40,6 +40,12 @@ pub enum TypePattern {
         params: Vec<TypePattern>,
         ret: Box<TypePattern>,
     },
+    /// Opaque resource handle (file, socket, HTTP response body).
+    Resource,
+    /// Opaque structured prompt tree for LLM calls.
+    PromptAst,
+    /// Opaque resolved LLM client.
+    PrimitiveClient,
     /// Builtin unknown type - accepts any value during type checking.
     /// Used for builtins that need to accept heterogeneous values
     /// (e.g., `build_primitive_client`'s options map).
@@ -53,9 +59,11 @@ pub enum TypePattern {
 pub struct BuiltinField {
     /// Field name (e.g., "_handle", "`status_code`").
     pub name: &'static str,
-    /// Field type pattern. None for private fields (not exposed to type checker).
-    pub ty: Option<TypePattern>,
+    /// Field type pattern. All fields have a type (including private ones).
+    /// Privacy is handled separately by the `is_private` field.
+    pub ty: TypePattern,
     /// Whether this field is private (not visible to BAML code).
+    /// Private fields are not added to the type checking map but still have types.
     pub is_private: bool,
     /// Field index in the runtime instance layout.
     pub index: usize,
@@ -584,16 +592,14 @@ mod tests {
             "Response should have at least 4 fields"
         );
 
-        // Check _handle is private
+        // Check _handle is private and has Resource type
         let handle_field = response.fields.iter().find(|f| f.name == "_handle");
         assert!(handle_field.is_some(), "_handle field should exist");
+        let handle_field = handle_field.unwrap();
+        assert!(handle_field.is_private, "_handle should be private");
         assert!(
-            handle_field.unwrap().is_private,
-            "_handle should be private"
-        );
-        assert!(
-            handle_field.unwrap().ty.is_none(),
-            "private field should have no public type"
+            matches!(handle_field.ty, TypePattern::Resource),
+            "private _handle field should have Resource type"
         );
 
         // Check status_code is public
@@ -601,13 +607,13 @@ mod tests {
         assert!(status_field.is_some(), "status_code field should exist");
         let status_field = status_field.unwrap();
         assert!(!status_field.is_private, "status_code should be public");
-        assert!(matches!(status_field.ty, Some(TypePattern::Int)));
+        assert!(matches!(status_field.ty, TypePattern::Int));
 
         // Check headers field type is Map<String, String>
         let headers_field = find_field("baml.http.Response", "headers");
         assert!(headers_field.is_some(), "headers field should exist");
         let headers_field = headers_field.unwrap();
-        assert!(matches!(headers_field.ty, Some(TypePattern::Map { .. })));
+        assert!(matches!(headers_field.ty, TypePattern::Map { .. }));
     }
 }
 

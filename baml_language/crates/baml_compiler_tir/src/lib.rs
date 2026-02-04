@@ -88,6 +88,9 @@ fn substitute_with_fallback(pattern: &baml_builtins::TypePattern, bindings: &Bin
                 .collect(),
             ret: Box::new(substitute_with_fallback(ret, bindings)),
         },
+        TypePattern::Resource => Ty::Resource,
+        TypePattern::PromptAst => Ty::PromptAst,
+        TypePattern::PrimitiveClient => Ty::PrimitiveClient,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
     }
 }
@@ -312,12 +315,7 @@ pub fn class_field_types(db: &dyn Db, project: Project) -> ClassFieldTypesMap<'_
             .fields
             .iter()
             .filter(|f| !f.is_private)
-            .map(|f| {
-                (
-                    Name::new(f.name),
-                    builtins::substitute_unknown(f.ty.as_ref().unwrap()),
-                )
-            })
+            .map(|f| (Name::new(f.name), builtins::substitute_unknown(&f.ty)))
             .collect();
         classes.insert(Name::new(builtin.path), public_fields);
     }
@@ -882,17 +880,23 @@ pub fn infer_function_body<'db>(
                 let ty = check_expr(&mut ctx, root_expr, expr_body, expected_return);
                 (ty, ErrorLocation::Expr(root_expr))
             } else {
-                (Ty::Void, ErrorLocation::Span(Span::default()))
+                (
+                    Ty::Void,
+                    ErrorLocation::Span(return_type_span.unwrap_or_default()),
+                )
             }
         }
         FunctionBody::Llm(_) => {
             // LLM functions return their declared return type
             (
                 expected_return.clone(),
-                ErrorLocation::Span(Span::default()),
+                ErrorLocation::Span(return_type_span.unwrap_or_default()),
             )
         }
-        FunctionBody::Missing => (Ty::Unknown, ErrorLocation::Span(Span::default())),
+        FunctionBody::Missing => (
+            expected_return.clone(),
+            ErrorLocation::Span(return_type_span.unwrap_or_default()),
+        ),
     };
 
     // With bidirectional type checking, return statements are already checked

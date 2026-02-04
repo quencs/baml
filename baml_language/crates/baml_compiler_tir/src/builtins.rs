@@ -115,6 +115,11 @@ fn match_pattern_inner(pattern: &TypePattern, ty: &Ty, bindings: &mut Bindings) 
         // Use full display path (e.g., "baml.fs.File") for comparison
         (TypePattern::Builtin(pattern_path), Ty::Class(fqn)) => *pattern_path == fqn.display(),
 
+        // Opaque runtime types match their corresponding patterns
+        (TypePattern::Resource, Ty::Resource) => true,
+        (TypePattern::PromptAst, Ty::PromptAst) => true,
+        (TypePattern::PrimitiveClient, Ty::PrimitiveClient) => true,
+
         // Unknown in Ty matches any pattern (for error recovery)
         (_, Ty::Unknown) => true,
 
@@ -173,6 +178,9 @@ pub fn substitute(pattern: &TypePattern, bindings: &Bindings) -> Ty {
             params: params.iter().map(|p| substitute(p, bindings)).collect(),
             ret: Box::new(substitute(ret, bindings)),
         },
+        TypePattern::Resource => Ty::Resource,
+        TypePattern::PromptAst => Ty::PromptAst,
+        TypePattern::PrimitiveClient => Ty::PrimitiveClient,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
     }
 }
@@ -201,6 +209,9 @@ pub fn substitute_unknown(pattern: &TypePattern) -> Ty {
             params: params.iter().map(substitute_unknown).collect(),
             ret: Box::new(substitute_unknown(ret)),
         },
+        TypePattern::Resource => Ty::Resource,
+        TypePattern::PromptAst => Ty::PromptAst,
+        TypePattern::PrimitiveClient => Ty::PrimitiveClient,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
     }
 }
@@ -394,5 +405,41 @@ mod tests {
     fn test_no_such_method() {
         let arr_ty = Ty::List(Box::new(Ty::Int));
         assert!(lookup_method(&arr_ty, "nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_match_opaque_types() {
+        assert!(match_pattern(&TypePattern::Resource, &Ty::Resource).is_some());
+        assert!(match_pattern(&TypePattern::PromptAst, &Ty::PromptAst).is_some());
+        assert!(match_pattern(&TypePattern::PrimitiveClient, &Ty::PrimitiveClient).is_some());
+
+        // Opaque types should not match each other
+        assert!(match_pattern(&TypePattern::Resource, &Ty::PromptAst).is_none());
+        assert!(match_pattern(&TypePattern::PromptAst, &Ty::PrimitiveClient).is_none());
+        assert!(match_pattern(&TypePattern::PrimitiveClient, &Ty::Resource).is_none());
+    }
+
+    #[test]
+    fn test_substitute_opaque_types() {
+        let bindings = HashMap::new();
+        assert_eq!(substitute(&TypePattern::Resource, &bindings), Ty::Resource);
+        assert_eq!(
+            substitute(&TypePattern::PromptAst, &bindings),
+            Ty::PromptAst
+        );
+        assert_eq!(
+            substitute(&TypePattern::PrimitiveClient, &bindings),
+            Ty::PrimitiveClient
+        );
+    }
+
+    #[test]
+    fn test_substitute_unknown_opaque_types() {
+        assert_eq!(substitute_unknown(&TypePattern::Resource), Ty::Resource);
+        assert_eq!(substitute_unknown(&TypePattern::PromptAst), Ty::PromptAst);
+        assert_eq!(
+            substitute_unknown(&TypePattern::PrimitiveClient),
+            Ty::PrimitiveClient
+        );
     }
 }

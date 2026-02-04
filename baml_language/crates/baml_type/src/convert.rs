@@ -135,6 +135,9 @@ pub fn convert_tir_ty(
         baml_compiler_tir::Ty::Unknown => Ok(Ty::Null),
         baml_compiler_tir::Ty::Error => Ok(Ty::Null),
         baml_compiler_tir::Ty::Void => Ok(Ty::Void),
+        baml_compiler_tir::Ty::Resource => Ok(Ty::Resource),
+        baml_compiler_tir::Ty::PromptAst => Ok(Ty::PromptAst),
+        baml_compiler_tir::Ty::PrimitiveClient => Ok(Ty::PrimitiveClient),
         // BuiltinUnknown is preserved for VIR type checking at call sites.
         baml_compiler_tir::Ty::BuiltinUnknown => Ok(Ty::BuiltinUnknown),
 
@@ -154,10 +157,17 @@ pub fn sanitize_for_runtime(ty: Ty) -> Result<Ty, String> {
         // Compiler-only → Null (preserves backwards compatibility)
         // Note: Unknown/Error/Never don't exist in baml_type::Ty — they were
         // already mapped to Null/Void during convert_tir_ty.
-        // BuiltinUnknown should also not reach runtime.
-        Ty::Function { .. } | Ty::Void | Ty::BuiltinUnknown => Ok(Ty::Null),
-        // WatchAccessor → unwrap inner
-        Ty::WatchAccessor(inner) => sanitize_for_runtime(*inner),
+        Ty::Void => Ok(Ty::Null),
+        Ty::BuiltinUnknown => Ok(Ty::BuiltinUnknown),
+        Ty::Function { params, ret } => Ok(Ty::Function {
+            params: params
+                .into_iter()
+                .map(sanitize_for_runtime)
+                .collect::<Result<Vec<_>, _>>()?,
+            ret: Box::new(sanitize_for_runtime(*ret)?),
+        }),
+        // WatchAccessor → recursively sanitize inner type, preserving wrapper
+        Ty::WatchAccessor(inner) => Ok(Ty::WatchAccessor(Box::new(sanitize_for_runtime(*inner)?))),
         // Recursive TypeAlias → error
         Ty::TypeAlias(ref tn) => Err(format!(
             "Recursive type alias '{}' cannot be used in class fields or function return types",
