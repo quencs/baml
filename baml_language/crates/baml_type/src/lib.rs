@@ -90,6 +90,14 @@ pub enum Ty {
     },
     Union(Vec<Ty>),
 
+    // --- Runtime-only: present at runtime, not in user-facing type syntax ---
+    /// Opaque resource handle (file, socket, HTTP response body).
+    Resource,
+    /// Opaque structured prompt tree for LLM calls.
+    PromptAst,
+    /// Opaque resolved LLM client.
+    PrimitiveClient,
+
     // --- Compiler-specific: present in VIR/MIR, absent at runtime ---
     /// Only recursive aliases survive lower_ty; non-recursive are expanded.
     TypeAlias(TypeName),
@@ -218,10 +226,9 @@ impl Ty {
                 "TypeAlias '{}' should be expanded before reaching runtime",
                 tn.display_name
             )),
-            Ty::Function { .. } => Err("Function type should not reach runtime".to_string()),
             Ty::Void => Err("Void type should not reach runtime".to_string()),
-            Ty::WatchAccessor(_) => Err("WatchAccessor type should not reach runtime".to_string()),
-            Ty::BuiltinUnknown => Err("BuiltinUnknown type should not reach runtime".to_string()),
+            Ty::WatchAccessor(inner) => inner.validate_runtime(),
+            Ty::BuiltinUnknown => Ok(()),
             // Recurse into containers
             Ty::Optional(inner) => inner.validate_runtime(),
             Ty::List(inner) => inner.validate_runtime(),
@@ -236,6 +243,12 @@ impl Ty {
                 Ok(())
             }
             // All other variants are fine at runtime
+            Ty::Function { params, ret } => {
+                for p in params {
+                    p.validate_runtime()?;
+                }
+                ret.validate_runtime()
+            }
             Ty::Int
             | Ty::Float
             | Ty::String
@@ -244,7 +257,10 @@ impl Ty {
             | Ty::Media(_)
             | Ty::Literal(_)
             | Ty::Class(_)
-            | Ty::Enum(_) => Ok(()),
+            | Ty::Enum(_)
+            | Ty::Resource
+            | Ty::PromptAst
+            | Ty::PrimitiveClient => Ok(()),
         }
     }
 }
@@ -266,6 +282,9 @@ impl fmt::Display for Ty {
             },
             Ty::Class(tn) => write!(f, "{tn}"),
             Ty::Enum(tn) => write!(f, "{tn}"),
+            Ty::Resource => write!(f, "resource"),
+            Ty::PromptAst => write!(f, "prompt_ast"),
+            Ty::PrimitiveClient => write!(f, "primitive_client"),
             Ty::TypeAlias(tn) => write!(f, "{tn}"),
             Ty::Optional(inner) => write!(f, "{inner}?"),
             Ty::List(inner) => write!(f, "{inner}[]"),
@@ -375,16 +394,22 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_runtime_accepts_opaque_types() {
+        assert!(Ty::Resource.validate_runtime().is_ok());
+        assert!(Ty::PromptAst.validate_runtime().is_ok());
+        assert!(Ty::PrimitiveClient.validate_runtime().is_ok());
+    }
+
+    #[test]
+    fn test_display_opaque_types() {
+        assert_eq!(Ty::Resource.to_string(), "resource");
+        assert_eq!(Ty::PromptAst.to_string(), "prompt_ast");
+        assert_eq!(Ty::PrimitiveClient.to_string(), "primitive_client");
+    }
+
+    #[test]
     fn test_validate_runtime_rejects_compiler_types() {
         assert!(Ty::Void.validate_runtime().is_err());
-        assert!(
-            Ty::Function {
-                params: vec![],
-                ret: Box::new(Ty::Int)
-            }
-            .validate_runtime()
-            .is_err()
-        );
         assert!(
             Ty::TypeAlias(TypeName::local(Name::new("MyAlias")))
                 .validate_runtime()

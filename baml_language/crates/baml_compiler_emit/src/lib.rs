@@ -44,7 +44,7 @@ pub(crate) struct MirCodegenContext<'ctx, 'obj> {
     pub objects: &'obj mut ObjectPool,
 }
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use baml_base::{Name, SourceFile, Span};
 use baml_compiler_hir::{
@@ -54,8 +54,9 @@ use baml_compiler_hir::{
 use baml_compiler_tir::TypeResolutionContext;
 pub use baml_compiler_vir::LoweringError;
 pub use bex_vm_types::{
-    BinOp, Bytecode, Class, CmpOp, ConstValue, Enum, Function, FunctionKind, GlobalIndex,
-    Instruction, Object, ObjectIndex, Program, SysOp, UnaryOp, Value, type_tags,
+    BinOp, Bytecode, Class, ClassField, CmpOp, ConstValue, Enum, EnumVariant, Function,
+    FunctionKind, GlobalIndex, Instruction, Object, ObjectIndex, Program, SysOp, UnaryOp, Value,
+    type_tags,
 };
 
 /// Generate bytecode for all functions in a project.
@@ -149,24 +150,34 @@ pub fn compile_files(
 
     // Inject builtin classes BEFORE user classes for stable indices
     for builtin in baml_builtins::builtin_types() {
-        let mut field_names = Vec::new();
+        let mut fields = Vec::new();
         let mut field_indices = HashMap::new();
         let mut field_types = HashMap::new();
 
         // Include ALL fields (public and private) in runtime field order
         for field in &builtin.fields {
-            let idx = field_names.len();
+            let idx = fields.len();
             field_indices.insert(field.name.to_string(), idx);
-            field_names.push(field.name.to_string());
+
+            // Determine the Ty for this field
+            let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&field.ty);
+            let field_ty = baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
+                .and_then(baml_type::sanitize_for_runtime)
+                .unwrap_or(baml_type::Ty::Null);
+
+            fields.push(ClassField {
+                name: field.name.to_string(),
+                field_type: field_ty,
+                description: None,
+                alias: None,
+            });
 
             // Only add public fields to field_types (for type checking)
             if !field.is_private {
-                if let Some(ref ty_pattern) = field.ty {
-                    field_types.insert(
-                        Name::new(field.name),
-                        baml_compiler_tir::builtins::substitute_unknown(ty_pattern),
-                    );
-                }
+                field_types.insert(
+                    Name::new(field.name),
+                    baml_compiler_tir::builtins::substitute_unknown(&field.ty),
+                );
             }
         }
 
@@ -177,7 +188,9 @@ pub fn compile_files(
         // Add Class object to program and record its index
         let class_obj = Object::Class(Class {
             name: builtin.path.to_string(),
-            field_names,
+            fields,
+            description: None,
+            alias: None,
             type_tag,
         });
         class_type_tag_counter += 1;
@@ -199,13 +212,31 @@ pub fn compile_files(
 
                 let mut field_indices = HashMap::new();
                 let mut field_types = HashMap::new();
-                let mut field_names = Vec::new();
-                for (idx, field) in class.fields.iter().enumerate() {
+                let mut fields = Vec::new();
+                // Filter @skip fields to match schema_map.rs behavior
+                let non_skip_fields: Vec<_> = class
+                    .fields
+                    .iter()
+                    .filter(|f| !f.skip.is_explicit())
+                    .collect();
+                for (idx, field) in non_skip_fields.iter().enumerate() {
                     field_indices.insert(field.name.to_string(), idx);
-                    field_names.push(field.name.to_string());
                     // Lower TypeRef to Ty for type inference
                     let (ty, _) = resolution_ctx.lower_type_ref(&field.type_ref, Span::default());
-                    field_types.insert(field.name.clone(), ty);
+                    field_types.insert(field.name.clone(), ty.clone());
+
+                    // Convert TIR Ty to baml_type::Ty for runtime
+                    let runtime_ty =
+                        baml_type::convert_tir_ty(&ty, &type_aliases, &recursive_aliases)
+                            .and_then(baml_type::sanitize_for_runtime)
+                            .unwrap_or(baml_type::Ty::Null);
+
+                    fields.push(ClassField {
+                        name: field.name.to_string(),
+                        field_type: runtime_ty,
+                        description: field.description.value().cloned(),
+                        alias: field.alias.value().cloned(),
+                    });
                 }
 
                 // Compute type tag for this class
@@ -215,7 +246,9 @@ pub fn compile_files(
                 // Add Class object to program and record its index
                 let class_obj = Object::Class(Class {
                     name: class_name.clone(),
-                    field_names,
+                    fields,
+                    description: class.description.value().cloned(),
+                    alias: class.alias.value().cloned(),
                     type_tag,
                 });
                 class_type_tag_counter += 1;
@@ -243,18 +276,25 @@ pub fn compile_files(
                 let enum_name = enum_def.name.to_string();
 
                 let mut variant_indices = HashMap::new();
-                let mut variant_names = Vec::new();
+                let mut variants = Vec::new();
                 let mut variant_name_list: Vec<Name> = Vec::new();
                 for (idx, variant) in enum_def.variants.iter().enumerate() {
                     variant_indices.insert(variant.name.to_string(), idx);
-                    variant_names.push(variant.name.to_string());
+                    variants.push(EnumVariant {
+                        name: variant.name.to_string(),
+                        description: variant.description.value().cloned(),
+                        alias: variant.alias.value().cloned(),
+                        skip: variant.skip.is_explicit(),
+                    });
                     variant_name_list.push(variant.name.clone());
                 }
 
                 // Add Enum object to program and record its index
                 let enum_obj = Object::Enum(Enum {
                     name: enum_name.clone(),
-                    variant_names,
+                    variants,
+                    description: None, // HIR Enum doesn't carry description
+                    alias: enum_def.alias.value().cloned(),
                 });
                 let enum_obj_idx = program.add_object(enum_obj);
                 enum_object_indices.insert(enum_name.clone(), enum_obj_idx);
@@ -277,6 +317,11 @@ pub fn compile_files(
             FunctionKind::NativeUnresolved
         };
 
+        let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&builtin.returns);
+        let return_type = baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
+            .and_then(baml_type::sanitize_for_runtime)
+            .unwrap_or(baml_type::Ty::Null);
+
         let builtin_fn = Function {
             name: builtin.path.to_string(),
             arity: builtin.arity(),
@@ -286,8 +331,12 @@ pub fn compile_files(
             span: baml_base::Span::fake(),
             block_notifications: Vec::new(),
             viz_nodes: Vec::new(),
+            return_type,
+            param_names: Vec::new(),
+            param_types: Vec::new(),
+            body_meta: None,
         };
-        let fn_obj_idx = program.add_object(Object::Function(builtin_fn));
+        let fn_obj_idx = program.add_object(Object::Function(Box::new(builtin_fn)));
         program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
     }
 
@@ -295,6 +344,14 @@ pub fn compile_files(
     for (path, arity) in HIDDEN_LLM_BUILTINS {
         let sys_op =
             sys_op_for_builtin_path(path).expect("hidden LLM builtin must have SysOp mapping");
+        let return_type = baml_builtins::find_builtin_by_path(path)
+            .map(|sig| {
+                let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&sig.returns);
+                baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
+                    .and_then(baml_type::sanitize_for_runtime)
+                    .unwrap_or(baml_type::Ty::Null)
+            })
+            .unwrap_or(baml_type::Ty::Null);
         let builtin_fn = Function {
             name: (*path).to_string(),
             arity: *arity,
@@ -304,8 +361,12 @@ pub fn compile_files(
             span: baml_base::Span::fake(),
             block_notifications: Vec::new(),
             viz_nodes: Vec::new(),
+            return_type,
+            param_names: Vec::new(),
+            param_types: Vec::new(),
+            body_meta: None,
         };
-        let fn_obj_idx = program.add_object(Object::Function(builtin_fn));
+        let fn_obj_idx = program.add_object(Object::Function(Box::new(builtin_fn)));
         program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
     }
 
@@ -323,14 +384,28 @@ pub fn compile_files(
                 let qualified_name = function_qualified_name(db, *func_loc);
                 let func_name = qualified_name.display();
 
+                // Compute metadata once for all body types
+                let (meta_param_names, meta_param_types, meta_return_type) =
+                    compute_function_metadata(
+                        &signature,
+                        &resolution_ctx,
+                        &type_aliases,
+                        &recursive_aliases,
+                    );
+
                 // Handle different function body types
                 let mut compiled_fn = match &*body {
-                    baml_compiler_hir::FunctionBody::Llm(_) => {
+                    baml_compiler_hir::FunctionBody::Llm(llm_body) => {
                         // LLM functions are external operations dispatched by the engine.
                         // TODO: Eventually these should compile to bytecode that calls
                         // `baml.llm.render_prompt` orchestrator.
                         let params: Vec<baml_base::Name> =
                             signature.params.iter().map(|p| p.name.clone()).collect();
+
+                        // Extract prompt template and client from LLM body
+                        let prompt_template = llm_body.prompt.text.clone();
+                        let client = llm_body.client.to_string();
+
                         Function {
                             name: signature.name.to_string(),
                             arity: params.len(),
@@ -345,12 +420,20 @@ pub fn compile_files(
                             span: baml_base::Span::fake(),
                             block_notifications: Vec::new(),
                             viz_nodes: Vec::new(),
+                            return_type: baml_type::Ty::Null,
+                            param_names: Vec::new(),
+                            param_types: Vec::new(),
+                            body_meta: Some(bex_vm_types::FunctionMeta::Llm {
+                                prompt_template,
+                                client,
+                            }),
                         }
                     }
                     baml_compiler_hir::FunctionBody::Missing => {
                         // Missing body - placeholder function
                         let params: Vec<baml_base::Name> =
                             signature.params.iter().map(|p| p.name.clone()).collect();
+
                         Function {
                             name: signature.name.to_string(),
                             arity: params.len(),
@@ -365,6 +448,10 @@ pub fn compile_files(
                             span: baml_base::Span::fake(),
                             block_notifications: Vec::new(),
                             viz_nodes: Vec::new(),
+                            return_type: baml_type::Ty::Null,
+                            param_names: Vec::new(),
+                            param_types: Vec::new(),
+                            body_meta: None,
                         }
                     }
                     baml_compiler_hir::FunctionBody::Expr(_, _) => {
@@ -420,11 +507,29 @@ pub fn compile_files(
                     }
                 };
 
+                // Always set metadata (overwrite placeholder for Expr, redundant for Llm/Missing)
+                compiled_fn.return_type = meta_return_type;
+                compiled_fn.param_names = meta_param_names;
+                compiled_fn.param_types = meta_param_types;
+
+                // Validate types at emit time (safety net)
+                debug_assert!(
+                    compiled_fn.return_type.validate_runtime().is_ok(),
+                    "Compiler-only type leaked to runtime return type: {}",
+                    compiled_fn.return_type
+                );
+                for pt in &compiled_fn.param_types {
+                    debug_assert!(
+                        pt.validate_runtime().is_ok(),
+                        "Compiler-only type leaked to runtime param type: {pt}"
+                    );
+                }
+
                 // Update function name if it's a builtin
                 compiled_fn.name.clone_from(&func_name);
 
                 // Add function object to program
-                let fn_obj_idx = program.add_object(Object::Function(compiled_fn));
+                let fn_obj_idx = program.add_object(Object::Function(Box::new(compiled_fn)));
 
                 // Register in function indices
                 program
@@ -444,6 +549,38 @@ pub fn compile_files(
     }
 
     Ok(program)
+}
+
+/// Extract param names, param types, and return type from a function signature.
+///
+/// Performs the standard `lower_type_ref` → `convert_tir_ty` → `sanitize_for_runtime`
+/// pipeline for each parameter and the return type.
+fn compute_function_metadata(
+    signature: &baml_compiler_hir::FunctionSignature,
+    resolution_ctx: &TypeResolutionContext,
+    type_aliases: &HashMap<Name, baml_compiler_tir::Ty>,
+    recursive_aliases: &HashSet<Name>,
+) -> (Vec<String>, Vec<baml_type::Ty>, baml_type::Ty) {
+    let param_names: Vec<String> = signature
+        .params
+        .iter()
+        .map(|p| p.name.to_string())
+        .collect();
+    let param_types: Vec<baml_type::Ty> = signature
+        .params
+        .iter()
+        .map(|p| {
+            let (ty, _) = resolution_ctx.lower_type_ref(&p.type_ref, Span::default());
+            baml_type::convert_tir_ty(&ty, type_aliases, recursive_aliases)
+                .and_then(baml_type::sanitize_for_runtime)
+                .unwrap_or(baml_type::Ty::Null)
+        })
+        .collect();
+    let (ret_ty, _) = resolution_ctx.lower_type_ref(&signature.return_type, Span::default());
+    let return_type = baml_type::convert_tir_ty(&ret_ty, type_aliases, recursive_aliases)
+        .and_then(baml_type::sanitize_for_runtime)
+        .unwrap_or(baml_type::Ty::Null);
+    (param_names, param_types, return_type)
 }
 
 /// Build typing context from source files.
