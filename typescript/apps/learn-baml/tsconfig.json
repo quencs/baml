@@ -8,5 +8,5 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["src/", "scripts/", "api/"]
+  "include": ["src/", "scripts/", "server/", "api/"]
 }
