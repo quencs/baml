@@ -73,6 +73,10 @@ pub struct Namespace {
     /// Example: { "`tools_stow`" = "cargo-stow" }
     #[serde(default)]
     pub name_exceptions: HashMap<String, String>,
+    /// Link crates: commonly-depended-on crates that get proxy nodes in consuming
+    /// namespaces to reduce cross-namespace edge clutter in the dependency graph.
+    #[serde(default)]
+    pub link_crates: Vec<String>,
 }
 
 /// Stow configuration - can be loaded from stow.toml or [workspace.metadata.stow]
@@ -170,8 +174,13 @@ impl Config {
                 test_crate_exceptions: std::mem::take(&mut self.test_crate_exceptions),
                 dependency_rules: vec![],
                 name_exceptions: HashMap::new(),
+                link_crates: vec![],
             }];
         }
+        // Sort namespaces by name length descending so more-specific prefixes
+        // are matched first (e.g., "baml_lsp" before "baml")
+        self.namespaces
+            .sort_by(|a, b| b.name.len().cmp(&a.name.len()));
         self
     }
 
@@ -929,7 +938,7 @@ fn check_crate_naming_convention(
             }
         }
         3 => {
-            // namespace_prefix_word_suffix (e.g., baml_ide_foo_tests)
+            // namespace_prefix_word_suffix (e.g., lsp_actions_foo_tests)
             let (prefix, _, last) = (parts[0], parts[1], parts[2]);
 
             // Must have an approved prefix AND end with auto-allowed suffix
@@ -1390,6 +1399,17 @@ fn post_process_dashed_edges(svg: &str) -> String {
             continue;
         }
 
+        // Extract the stroke color
+        let stroke_color = path_content
+            .find("stroke=\"")
+            .and_then(|s| {
+                let start = s + 8;
+                path_content[start..]
+                    .find('"')
+                    .map(|end| &path_content[start..start + end])
+            })
+            .unwrap_or("#999999");
+
         // Extract the d= attribute
         let Some(d_start) = path_content.find(" d=\"") else {
             continue;
@@ -1402,7 +1422,7 @@ fn post_process_dashed_edges(svg: &str) -> String {
 
         // Parse path to get line segments and add arrow at midpoint of each
         let points = parse_path_points(path_data);
-        for arrow in generate_midpoint_arrows(&points) {
+        for arrow in generate_midpoint_arrows(&points, stroke_color) {
             arrows_to_add.push(arrow);
         }
     }
@@ -1489,7 +1509,7 @@ fn flush_num(buf: &mut String, nums: &mut Vec<f64>) {
 /// - Short segments (< 80px): no mid arrow
 /// - Medium segments: arrow at midpoint
 /// - Long segments (> 200px): arrow near source + midpoint
-fn generate_midpoint_arrows(points: &[(f64, f64)]) -> Vec<String> {
+fn generate_midpoint_arrows(points: &[(f64, f64)], color: &str) -> Vec<String> {
     let mut arrows = Vec::new();
 
     for i in 0..points.len().saturating_sub(1) {
@@ -1513,13 +1533,13 @@ fn generate_midpoint_arrows(points: &[(f64, f64)]) -> Vec<String> {
             let t = 0.2;
             let ax = x1 + dx * t;
             let ay = y1 + dy * t;
-            arrows.push(make_chevron_arrow(ax, ay, angle));
+            arrows.push(make_chevron_arrow(ax, ay, angle, color));
         }
 
         // Midpoint arrow
         let mx = (x1 + x2) / 2.0;
         let my = (y1 + y2) / 2.0;
-        arrows.push(make_chevron_arrow(mx, my, angle));
+        arrows.push(make_chevron_arrow(mx, my, angle, color));
     }
 
     arrows
@@ -1527,7 +1547,7 @@ fn generate_midpoint_arrows(points: &[(f64, f64)]) -> Vec<String> {
 
 /// Create a small filled triangle arrow at the given position pointing in the given direction
 /// Sized to match the graphviz arrowheads (~5px)
-fn make_chevron_arrow(x: f64, y: f64, angle: f64) -> String {
+fn make_chevron_arrow(x: f64, y: f64, angle: f64, color: &str) -> String {
     // Match graphviz arrowhead size (about 5px wide, 7px long)
     let length = 5.0;
     let width = 3.5;
@@ -1539,7 +1559,7 @@ fn make_chevron_arrow(x: f64, y: f64, angle: f64) -> String {
     let base_y = y - length * 0.5 * angle.sin();
 
     format!(
-        r##"<polygon fill="#666666" stroke="#666666" points="{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}"/>"##,
+        r##"<polygon fill="{color}" stroke="{color}" points="{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}"/>"##,
         tip_x,
         tip_y,
         base_x + width * angle.sin(),
@@ -1831,11 +1851,13 @@ fn generate_dependency_graph_svg(
 
     // Extract namespace and tag from crate name
     let get_crate_parts = |name: &str| -> (String, Option<String>) {
+        // Check name_exceptions across all namespaces first, before prefix matching
         for ns in &config.namespaces {
-            // Check if this crate is a name exception for this namespace
             if ns.name_exceptions.values().any(|v| v == name) {
                 return (ns.name.clone(), None);
             }
+        }
+        for ns in &config.namespaces {
             // Standard prefix match
             if let Some(suffix) = name.strip_prefix(&format!("{}_", ns.name)) {
                 let parts: Vec<&str> = suffix.split('_').collect();
@@ -1999,6 +2021,29 @@ fn generate_dependency_graph_svg(
         }
     };
 
+    // Build proxy mapping for link_crates: for each link crate, track which namespaces consume it
+    let all_link_crates: HashSet<&str> = config
+        .namespaces
+        .iter()
+        .flat_map(|ns| ns.link_crates.iter().map(String::as_str))
+        .collect();
+
+    // For each link crate -> set of consuming namespaces (namespaces different from the crate's own)
+    let mut link_crate_consumers: HashMap<&str, HashSet<String>> = HashMap::new();
+    for (from, to) in &sorted_edges {
+        if all_link_crates.contains(to) {
+            let (from_ns, _) = get_crate_parts(from);
+            let (to_ns, _) = get_crate_parts(to);
+            if from_ns != to_ns && from_ns != "external" {
+                link_crate_consumers.entry(to).or_default().insert(from_ns);
+            }
+        }
+    }
+
+    let proxy_node_id = |ns: &str, crate_name: &str| -> String {
+        format!("proxy_{}_{}", ns, crate_name.replace('-', "_"))
+    };
+
     // Build DOT format string directly
     let mut dot = String::new();
     dot.push_str("digraph dependencies {\n");
@@ -2007,9 +2052,13 @@ fn generate_dependency_graph_svg(
     dot.push_str("    rankdir=TB;\n");
     dot.push_str("    bgcolor=\"#f8f9fa\";\n");
     dot.push_str("    splines=ortho;\n");
-    dot.push_str("    nodesep=0.5;\n");
+    dot.push_str("    nodesep=0.8;\n");
     dot.push_str("    ranksep=0.8;\n");
     dot.push_str("    compound=true;\n");
+    // NOTE: concentrate=true is incompatible with link_crates proxy nodes inside clusters
+    // (graphviz fails with "contain_nodes clust ... missing node"). The link_crates feature
+    // already reduces cross-namespace edge clutter, making concentrate unnecessary.
+    dot.push_str("    newrank=true;\n");
 
     // Default node attributes
     dot.push_str("    node [shape=box, style=filled, fontname=\"Helvetica\", fontsize=11];\n");
@@ -2060,6 +2109,26 @@ fn generate_dependency_graph_svg(
             );
         }
 
+        // Add proxy nodes for link crates consumed by this namespace (sorted for deterministic output)
+        // Proxy nodes use the colors of the link crate's *original* namespace, not the consuming one
+        let mut ns_link_crates: Vec<&&str> = link_crate_consumers
+            .keys()
+            .filter(|lc| link_crate_consumers[*lc].contains(namespace))
+            .collect();
+        ns_link_crates.sort_unstable();
+        for link_crate in ns_link_crates {
+            let pid = proxy_node_id(namespace, link_crate);
+            let (origin_ns, _) = get_crate_parts(link_crate);
+            let (proxy_border, proxy_fill) = namespace_colors
+                .get(&origin_ns)
+                .cloned()
+                .unwrap_or_else(|| (external_border.clone(), external_fill.clone()));
+            let _ = writeln!(
+                dot,
+                "        {pid} [label=\"{link_crate}\", style=\"filled,dashed\", fillcolor=\"{proxy_fill}\", color=\"{proxy_border}\", penwidth=2];"
+            );
+        }
+
         // Add external deps used by this namespace (one node per unique feature set)
         for key in external_dep_nodes.keys() {
             if key.namespace != *namespace {
@@ -2091,6 +2160,29 @@ fn generate_dependency_graph_svg(
         let to_is_external = to_ns == "external";
 
         let from_id = node_id(from);
+
+        // Check if this edge should be redirected to a proxy node
+        let is_link_crate_cross_ns = all_link_crates.contains(to)
+            && from_ns != to_ns
+            && from_ns != "external"
+            && link_crate_consumers
+                .get(to)
+                .is_some_and(|c| c.contains(&from_ns));
+
+        if is_link_crate_cross_ns {
+            // Redirect to the proxy node in from's namespace
+            let pid = proxy_node_id(&from_ns, to);
+            let edge_color = namespace_colors
+                .get(&from_ns)
+                .map(|(border, _)| border.as_str())
+                .unwrap_or("#999999");
+            let _ = writeln!(
+                dot,
+                "    {from_id} -> {pid} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
+            );
+            continue;
+        }
+
         let to_id = if to_is_external {
             // External dep - find the matching node with the right features
             let features: Vec<String> = if let Some(feat_info) = external_dep_features.get(to) {
@@ -2120,13 +2212,38 @@ fn generate_dependency_graph_svg(
         // Edges crossing namespace boundaries should be dashed
         let crosses_boundary = from_ns != to_ns && !to_is_external;
         if crosses_boundary {
+            let edge_color = namespace_colors
+                .get(&from_ns)
+                .map(|(border, _)| border.as_str())
+                .unwrap_or("#999999");
             let _ = writeln!(
                 dot,
-                "    {from_id} -> {to_id} [style=dashed, color=\"#666666\", penwidth=1.5];"
+                "    {from_id} -> {to_id} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
             );
         } else {
-            let _ = writeln!(dot, "    {from_id} -> {to_id};");
+            let _ = writeln!(dot, "    {from_id} -> {to_id} [weight=1];");
         }
+    }
+
+    // Emit proxy-to-real dashed edges for link crates (sorted for deterministic output)
+    let mut proxy_edges: Vec<(&str, &str)> = Vec::new();
+    for (link_crate, consumers) in &link_crate_consumers {
+        for ns in consumers {
+            proxy_edges.push((ns.as_str(), *link_crate));
+        }
+    }
+    proxy_edges.sort_unstable();
+    for (ns, link_crate) in &proxy_edges {
+        let pid = proxy_node_id(ns, link_crate);
+        let real_id = node_id(link_crate);
+        let edge_color = namespace_colors
+            .get(*ns)
+            .map(|(border, _)| border.as_str())
+            .unwrap_or("#999999");
+        let _ = writeln!(
+            dot,
+            "    {pid} -> {real_id} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
+        );
     }
 
     dot.push_str("}\n");

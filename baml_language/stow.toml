@@ -39,28 +39,27 @@ graph_external_deps = ["serde", "tokio", "clap", "anyhow", "salsa", "rowan"]
 # Global dependency rules (apply to ALL crate namespaces)
 [[dependency_rules]]
 pattern = "anyhow"
-allowed_prefixes = ["lsp"]
-allowed_crates = ["*_cli", "tools_*"]
+allowed_crates = ["*_cli", "tools_*", "baml_lsp_*"]
 regular_deps_only = true
 reason = "Use thiserror for proper error types in library crates."
 
 # baml namespace configuration
 [[namespaces]]
 name = "baml"
-approved_prefixes = ["compiler", "builtins", "playground", "codegen", "bridge"]
+approved_prefixes = ["compiler", "builtins", "codegen"]
 test_crate_exceptions = ["baml_tests", "baml_codegen_tests"]
 
 # baml-specific dependency rules
 [[namespaces.dependency_rules]]
 pattern = "baml_compiler*"
 allowed_prefixes = ["compiler"]
-allowed_crates = ["baml_db", "baml_project", "baml_bridge_cffi", "baml_type"]
+allowed_crates = ["baml_db", "baml_project", "bridge_cffi", "baml_type"]
 reason = "Use baml_db or baml_project to access compiler interfaces."
 
 [[namespaces.dependency_rules]]
 pattern.select = "bex_*"
 pattern.exclude = ["bex_vm_types"]
-allowed_crates = ["baml_bridge_cffi"]
+allowed_crates = ["bridge_cffi"]
 reason = "baml_* crates should not depend on bex_* crates."
 
 [[namespaces.dependency_rules]]
@@ -78,8 +77,27 @@ name_exceptions = { "tools_stow" = "cargo-stow" }
 # bex namespace configuration
 [[namespaces]]
 name = "bex"
-approved_prefixes = ["jinja"]
+link_crates = ["baml_type", "sys_resource_types"]
 
-# bex namespace configuration
+# llm namespace configuration
+[[namespaces]]
+name = "llm"
+link_crates = ["bex_external_types"]
+
+# lsp namespace configuration
+[[namespaces]]
+name = "baml_lsp"
+link_crates = ["baml_project"]
+
+# bridge namespace configuration
+[[namespaces]]
+name = "bridge"
+
+# sys namespace configuration
 [[namespaces]]
 name = "sys"
+link_crates = ["bex_heap"]
+
+[[namespaces]]
+name = "surface"
+name_exceptions = {"baml_cli" = "baml_cli", "baml_playground_wasm" = "baml_playground_wasm" }
