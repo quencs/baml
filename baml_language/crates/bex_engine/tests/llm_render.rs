@@ -5,11 +5,15 @@
 //! 2. `get_client_function` returns the correct client chain
 //! 3. `render_prompt` correctly renders templates with arguments
 
+use baml_builtins::{PromptAst as BuiltinPromptAst, PromptAstSimple};
 use bex_engine::Ty;
+use bex_external_types::BexExternalAdt;
+use bex_heap::BexExternalValue;
+use llm_ops::PrimitiveClient;
+use sys_types::SysOp;
 
 #[tokio::test]
 async fn test_render_prompt_directly() {
-    use bex_external_types::{BexExternalValue, PrimitiveClientValue};
     use indexmap::IndexMap;
 
     // Test the Jinja rendering directly
@@ -21,7 +25,7 @@ async fn test_render_prompt_directly() {
     );
     args.insert("age".to_string(), BexExternalValue::Int(30));
 
-    let client = PrimitiveClientValue {
+    let client = PrimitiveClient {
         name: "test".to_string(),
         provider: "openai".to_string(),
         default_role: "user".to_string(),
@@ -48,8 +52,11 @@ async fn test_render_prompt_directly() {
     let result = llm_jinja::render_prompt(template, &args, &ctx).unwrap();
 
     match result {
-        bex_vm_types::PromptAst::String(s) => {
-            assert_eq!(s, "Hello, Alice! You are 30 years old.");
+        BuiltinPromptAst::Simple(s) => {
+            assert_eq!(
+                s,
+                std::sync::Arc::new("Hello, Alice! You are 30 years old.".to_string().into())
+            );
         }
         _ => panic!("Expected string result"),
     }
@@ -57,7 +64,6 @@ async fn test_render_prompt_directly() {
 
 #[tokio::test]
 async fn test_render_prompt_with_chat_roles() {
-    use bex_external_types::{BexExternalValue, PrimitiveClientValue};
     use indexmap::IndexMap;
 
     let template = r#"
@@ -72,7 +78,7 @@ You are a helpful assistant.
         BexExternalValue::String("What is 2+2?".to_string()),
     );
 
-    let client = PrimitiveClientValue {
+    let client = PrimitiveClient {
         name: "test".to_string(),
         provider: "openai".to_string(),
         default_role: "user".to_string(),
@@ -100,15 +106,15 @@ You are a helpful assistant.
 
     // Result should be a Vec of messages
     match result {
-        bex_vm_types::PromptAst::Vec(messages) => {
+        BuiltinPromptAst::Vec(messages) => {
             assert_eq!(messages.len(), 2);
 
             // Check first message (system)
-            match &messages[0] {
-                bex_vm_types::PromptAst::Message { role, content, .. } => {
+            match messages[0].as_ref() {
+                BuiltinPromptAst::Message { role, content, .. } => {
                     assert_eq!(role, "system");
                     match content.as_ref() {
-                        bex_vm_types::PromptAst::String(s) => {
+                        PromptAstSimple::String(s) => {
                             assert!(s.contains("helpful assistant"));
                         }
                         _ => panic!("Expected string content"),
@@ -118,11 +124,11 @@ You are a helpful assistant.
             }
 
             // Check second message (user)
-            match &messages[1] {
-                bex_vm_types::PromptAst::Message { role, content, .. } => {
+            match messages[1].as_ref() {
+                BuiltinPromptAst::Message { role, content, .. } => {
                     assert_eq!(role, "user");
                     match content.as_ref() {
-                        bex_vm_types::PromptAst::String(s) => {
+                        PromptAstSimple::String(s) => {
                             assert!(s.contains("What is 2+2?"));
                         }
                         _ => panic!("Expected string content"),
@@ -177,7 +183,10 @@ async fn test_render_prompt_with_enums() {
     let result = llm_jinja::render_prompt(template, &args, &ctx).unwrap();
 
     match result {
-        bex_vm_types::PromptAst::String(s) => {
+        BuiltinPromptAst::Simple(s) => {
+            let PromptAstSimple::String(s) = s.as_ref() else {
+                panic!("Expected string content");
+            };
             assert_eq!(s, "Category: SPORTS");
         }
         _ => panic!("Expected string result"),
@@ -230,7 +239,7 @@ function test_render() -> int {
     let engine = BexEngine::new(snapshot, HashMap::new(), sys_types::SysOps::native())
         .expect("Failed to create engine");
 
-    let result = engine.call_function("test_render", &[]).await;
+    let result = engine.call_function("test_render", vec![]).await;
 
     match result {
         Ok(value) => {
@@ -280,21 +289,26 @@ function get_prompt() -> PromptAst {
     let engine = BexEngine::new(snapshot, HashMap::new(), sys_types::SysOps::native())
         .expect("Failed to create engine");
 
-    let result = engine.call_function("get_prompt", &[]).await;
+    let result = engine.call_function("get_prompt", vec![]).await;
 
     match result {
         Ok(value) => {
-            // Verify it's a PromptAst
+            // Verify it's a PromptAst (wrapped in Adt)
             match &value {
-                BexExternalValue::PromptAst(ast) => {
+                BexExternalValue::Adt(BexExternalAdt::PromptAst(ast)) => {
                     // The template "Hello, {{ name }}!" with name="World" should render to PromptAst::String
-                    let bex_external_types::PromptAst::String(content) = ast else {
-                        panic!("Expected PromptAst::String, got {ast:?}");
-                    };
-                    assert_eq!(content, "Hello, World!");
+                    match ast.as_ref() {
+                        BuiltinPromptAst::Simple(s) => {
+                            let PromptAstSimple::String(s) = s.as_ref() else {
+                                panic!("Expected string content");
+                            };
+                            assert_eq!(s, "Hello, World!");
+                        }
+                        _ => panic!("Expected simple content"),
+                    }
                 }
                 other => {
-                    panic!("Expected PromptAst, got {other:?}");
+                    panic!("Expected Adt(PromptAst), got {other:?}");
                 }
             }
         }
@@ -341,17 +355,12 @@ function test_build_request() -> int {
     let engine = BexEngine::new(snapshot, HashMap::new(), sys_types::SysOps::native())
         .expect("Failed to create engine");
 
-    let result = engine.call_function("test_build_request", &[]).await;
+    let result = engine.call_function("test_build_request", vec![]).await;
     assert!(result.is_ok(), "build_request should succeed: {result:?}");
 }
 
-/// Test that `call_llm_function` panics (parse response not yet implemented).
-///
-/// This test verifies the `baml.llm.call_llm_function` entry point is callable
-/// but panics because the underlying `LlmParseResponse` `SysOp` is not implemented.
 #[tokio::test]
-#[should_panic(expected = "LlmParseResponse SysOp not yet implemented")]
-async fn test_call_llm_function_panics() {
+async fn test_call_llm_function_string() {
     use std::collections::HashMap;
 
     use bex_engine::BexEngine;
@@ -384,5 +393,78 @@ function test_call_llm() -> string {
 
     // build_request now succeeds; this should panic at the next unimplemented
     // step: "LlmParseResponse SysOp not yet implemented"
-    let _ = engine.call_function("test_call_llm", &[]).await;
+    let result = engine.call_function("test_call_llm", vec![]).await;
+
+    match result {
+        Ok(value) => {
+            // Verify we got an error response without asserting exact upstream message
+            if let BexExternalValue::String(s) = &value {
+                assert!(s.contains("error"), "Expected error response, got: {s}");
+                assert!(
+                    s.contains("invalid_request_error") || s.contains("API key"),
+                    "Expected API key error, got: {s}"
+                );
+            } else {
+                panic!("Expected String result, got {value:?}");
+            }
+        }
+        Err(e) => {
+            panic!("test_call_llm failed: {e}");
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_call_llm_function_non_string_returns_error() {
+    use std::collections::HashMap;
+
+    use bex_engine::BexEngine;
+    use sys_native::SysOpsExt;
+
+    let source = r##"
+client TestClient {
+    provider openai
+    options {
+        model "gpt-4"
+    }
+}
+
+function Greet(name: string) -> map<string, int> {
+    client TestClient
+    prompt #"
+        Hello, {{ name }}!
+    "#
+}
+
+function test_call_llm() -> string {
+    let args = { "name": "World" };
+    baml.llm.call_llm_function("Greet", args)
+}
+"##;
+
+    let snapshot = common::compile_for_engine(source);
+    let engine = BexEngine::new(snapshot, HashMap::new(), sys_types::SysOps::native())
+        .expect("Failed to create engine");
+
+    // build_request now succeeds; this should panic at the next unimplemented
+    // step: "LlmParseResponse SysOp not yet implemented"
+    let result = engine.call_function("test_call_llm", vec![]).await;
+
+    match result {
+        Ok(value) => {
+            panic!("test_call_llm should return an error: {value:?}");
+        }
+        Err(e) => {
+            assert!(
+                matches!(
+                    e,
+                    bex_engine::EngineError::ExternalOpFailed(sys_types::OpError {
+                        kind: sys_types::OpErrorKind::NotImplemented { message: _ },
+                        fn_name: SysOp::LlmParseResponse,
+                    })
+                ),
+                "Expected NotImplemented error, got {e}"
+            );
+        }
+    }
 }

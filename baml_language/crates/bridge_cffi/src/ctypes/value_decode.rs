@@ -1,6 +1,9 @@
-//! HostValue -> BexValue conversion.
+//! Decode C FFI / protobuf host values into `BexExternalValue`.
+//!
+//! Converts `HostValue` (from the C bridge) to the engine's `BexExternalValue` representation
+//! so the BEX engine can use them as function arguments.
 
-use bex_external_types::{BexExternalValue, BexValue, Ty};
+use bex_external_types::{BexExternalValue, Ty};
 use indexmap::IndexMap;
 
 use crate::{
@@ -11,13 +14,7 @@ use crate::{
     error::BridgeError,
 };
 
-/// Convert a protobuf HostValue to a BexValue.
-pub fn host_value_to_bex_value(value: HostValue) -> Result<BexValue, BridgeError> {
-    let external = host_value_to_external(value)?;
-    Ok(BexValue::External(external))
-}
-
-/// Convert a protobuf HostValue to a BexExternalValue.
+/// Decode a protobuf `HostValue` into a `BexExternalValue` for use by the BEX engine.
 pub fn host_value_to_external(value: HostValue) -> Result<BexExternalValue, BridgeError> {
     match value.value {
         None => Ok(BexExternalValue::Null),
@@ -102,18 +99,18 @@ fn extract_string_key(entry: &HostMapEntry) -> Result<String, BridgeError> {
     }
 }
 
-/// Convert kwargs from protobuf to BexValue map.
+/// Decode protobuf kwargs into an `IndexMap<String, BexExternalValue>` for engine call arguments.
 pub fn kwargs_to_bex_values(
     kwargs: Vec<HostMapEntry>,
-) -> Result<IndexMap<String, BexValue>, BridgeError> {
+) -> Result<IndexMap<String, BexExternalValue>, BridgeError> {
     let mut result = IndexMap::new();
     for entry in kwargs {
         let key = extract_string_key(&entry)?;
         let value = entry
             .value
-            .map(host_value_to_bex_value)
+            .map(host_value_to_external)
             .transpose()?
-            .unwrap_or(BexValue::default());
+            .unwrap_or(BexExternalValue::Null);
         result.insert(key, value);
     }
     Ok(result)
