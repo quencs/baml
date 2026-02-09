@@ -59,6 +59,8 @@ minijinja = { git = "https://github.com/boundaryml/minijinja.git", branch = "mai
   "debug",
   "preserve_order",
   "serde",
+  "unstable_machinery",
+  "unstable_machinery_serde",
 ] }
 baml_workspace = { path = "crates/baml_workspace" }
 
@@ -140,6 +142,7 @@ shellexpand = { version = "3.0.0" }
 similar = { version = "2.4.0", features = [ "inline" ] }
 simple-logging = "2.0.2"
 smol_str = { version = "0.3" }
+strsim = { version = "0.11.1" }
 syn = { version = "2", features = [ "full" ] }
 taplo = { version = "0.13" }
 tempfile = { version = "3" }

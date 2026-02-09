@@ -68,6 +68,13 @@ ast_node!(ConfigItem, CONFIG_ITEM);
 ast_node!(ClientField, CLIENT_FIELD);
 ast_node!(PromptField, PROMPT_FIELD);
 ast_node!(RawStringLiteral, RAW_STRING_LITERAL);
+ast_node!(StringLiteral, STRING_LITERAL);
+
+// Jinja template components (inside raw strings)
+ast_node!(JinjaExpression, TEMPLATE_INTERPOLATION);
+ast_node!(JinjaStatement, TEMPLATE_CONTROL);
+ast_node!(JinjaComment, TEMPLATE_COMMENT);
+ast_node!(PromptText, PROMPT_TEXT);
 
 ast_node!(TypeExpr, TYPE_EXPR);
 ast_node!(Attribute, ATTRIBUTE);
@@ -688,6 +695,28 @@ impl FunctionDef {
     }
 }
 
+impl TemplateStringDef {
+    /// Get the template string name.
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| {
+                token.kind() == SyntaxKind::WORD && token.parent() == Some(self.syntax.clone())
+            })
+    }
+
+    /// Get the parameter list.
+    pub fn param_list(&self) -> Option<ParameterList> {
+        self.syntax.children().find_map(ParameterList::cast)
+    }
+
+    /// Get the raw string literal containing the template body.
+    pub fn raw_string(&self) -> Option<RawStringLiteral> {
+        self.syntax.children().find_map(RawStringLiteral::cast)
+    }
+}
+
 impl LlmFunctionBody {
     /// Get the client field if present.
     ///
@@ -705,14 +734,33 @@ impl LlmFunctionBody {
 }
 
 impl ClientField {
-    /// Get the client name token.
+    /// Get the client name token if it's a simple identifier.
     ///
     /// For `client GPT4`, returns the `GPT4` token.
+    /// For `client "openai/gpt-4o"`, returns None (use `name_or_string()` instead).
     pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::WORD)
+    }
+
+    /// Get the client value as a string, whether it's an identifier or a string literal.
+    ///
+    /// For `client GPT4`, returns "GPT4".
+    /// For `client "openai/gpt-4o"`, returns "openai/gpt-4o".
+    pub fn value(&self) -> Option<String> {
+        // First try to get it as a simple identifier (WORD token)
+        if let Some(token) = self.name() {
+            return Some(token.text().to_string());
+        }
+
+        // Otherwise, try to get it as a string literal
+        if let Some(string_node) = self.syntax.children().find_map(StringLiteral::cast) {
+            return Some(string_node.value());
+        }
+
+        None
     }
 }
 
@@ -725,11 +773,122 @@ impl PromptField {
     }
 }
 
+impl StringLiteral {
+    /// Get the value of the string literal, without the surrounding quotes.
+    ///
+    /// For `"hello world"`, returns `hello world`.
+    pub fn value(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // String literals are of the form: "..." (tokens: Quote, words/spaces, Quote)
+        // Strip leading and trailing quote characters
+        if text.starts_with('"') && text.ends_with('"') && text.len() > 2 {
+            text[1..text.len() - 1].to_string()
+        } else {
+            text
+        }
+    }
+}
+
 impl RawStringLiteral {
     /// Get the full text of the raw string literal, including delimiters.
     ///
     /// For `#"Hello"#`, returns `#"Hello"#`.
     pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+
+    /// Get all Jinja expressions in the raw string.
+    ///
+    /// For `#"Hello {{ name }}"#`, returns the `{{ name }}` node.
+    pub fn jinja_expressions(&self) -> impl Iterator<Item = JinjaExpression> {
+        self.syntax.children().filter_map(JinjaExpression::cast)
+    }
+
+    /// Get all Jinja statements in the raw string.
+    ///
+    /// For `#"{% if x %}...{% endif %}"#`, returns the `{% if x %}` and `{% endif %}` nodes.
+    pub fn jinja_statements(&self) -> impl Iterator<Item = JinjaStatement> {
+        self.syntax.children().filter_map(JinjaStatement::cast)
+    }
+
+    /// Get all Jinja comments in the raw string.
+    ///
+    /// For `#"{# comment #}"#`, returns the `{# comment #}` node.
+    pub fn jinja_comments(&self) -> impl Iterator<Item = JinjaComment> {
+        self.syntax.children().filter_map(JinjaComment::cast)
+    }
+
+    /// Get all prompt text nodes in the raw string.
+    ///
+    /// For `#"Hello {{ name }}"#`, returns the `Hello ` text node.
+    pub fn prompt_texts(&self) -> impl Iterator<Item = PromptText> {
+        self.syntax.children().filter_map(PromptText::cast)
+    }
+}
+
+impl JinjaExpression {
+    /// Get the inner text of the Jinja expression, without the {{ }} delimiters.
+    ///
+    /// For `{{ input.name }}`, returns `input.name` (with whitespace trimmed).
+    pub fn inner_text(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // Strip {{ and }}
+        if text.starts_with("{{") && text.ends_with("}}") {
+            text[2..text.len() - 2].trim().to_string()
+        } else {
+            text
+        }
+    }
+
+    /// Get the full text of the Jinja expression, including {{ }} delimiters.
+    pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+}
+
+impl JinjaStatement {
+    /// Get the inner text of the Jinja statement, without the {% %} delimiters.
+    ///
+    /// For `{% if condition %}`, returns `if condition` (with whitespace trimmed).
+    pub fn inner_text(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // Strip {% and %}
+        if text.starts_with("{%") && text.ends_with("%}") {
+            text[2..text.len() - 2].trim().to_string()
+        } else {
+            text
+        }
+    }
+
+    /// Get the full text of the Jinja statement, including {% %} delimiters.
+    pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+}
+
+impl JinjaComment {
+    /// Get the inner text of the Jinja comment, without the {# #} delimiters.
+    ///
+    /// For `{# this is a comment #}`, returns `this is a comment` (with whitespace trimmed).
+    pub fn inner_text(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // Strip {# and #}
+        if text.starts_with("{#") && text.ends_with("#}") {
+            text[2..text.len() - 2].trim().to_string()
+        } else {
+            text
+        }
+    }
+
+    /// Get the full text of the Jinja comment, including {# #} delimiters.
+    pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+}
+
+impl PromptText {
+    /// Get the text content.
+    pub fn text(&self) -> String {
         self.syntax.text().to_string()
     }
 }

@@ -19,7 +19,7 @@ use baml_base::{FileId, Name, Span};
 use baml_compiler_diagnostics::TypeError;
 use baml_compiler_hir::{
     ErrorLocation, ExprBody, ExprId, FunctionBody, FunctionLoc, FunctionSignature, HirSourceMap,
-    MatchArmId, PatId, Pattern, SignatureSourceMap, StmtId, TirContext, TypeId,
+    MatchArmId, PatId, Pattern, PromptTemplate, SignatureSourceMap, StmtId, TirContext, TypeId,
 };
 use baml_workspace::Project;
 
@@ -36,6 +36,7 @@ pub type TirTypeError = TypeError<TirContext<Ty>>;
 pub mod builtins;
 mod cycles;
 mod exhaustiveness;
+pub mod jinja;
 mod lower;
 mod normalize;
 pub mod pretty;
@@ -84,7 +85,7 @@ fn substitute_with_fallback(pattern: &baml_builtins::TypePattern, bindings: &Bin
         TypePattern::Function { params, ret } => Ty::Function {
             params: params
                 .iter()
-                .map(|p| substitute_with_fallback(p, bindings))
+                .map(|p| (None, substitute_with_fallback(p, bindings)))
                 .collect(),
             ret: Box::new(substitute_with_fallback(ret, bindings)),
         },
@@ -160,6 +161,8 @@ pub struct EnumVariantsMap<'db> {
 }
 
 /// Tracked struct holding function types (function name -> function type).
+///
+/// Parameter names are stored in `Ty::Function` for Jinja template validation.
 #[salsa::tracked]
 pub struct TypingContextMap<'db> {
     #[tracked]
@@ -168,19 +171,32 @@ pub struct TypingContextMap<'db> {
 }
 
 /// Tracked struct holding class field types (class name -> field name -> field type).
+///
+/// Also includes any type errors found during lowering (e.g., unknown types).
+/// Following rust-analyzer's pattern of returning `(Data, Diagnostics)` from queries.
 #[salsa::tracked]
 pub struct ClassFieldTypesMap<'db> {
     #[tracked]
     #[returns(ref)]
     pub classes: HashMap<Name, HashMap<Name, Ty>>,
+
+    #[tracked]
+    #[returns(ref)]
+    pub errors: Vec<TirTypeError>,
 }
 
 /// Tracked struct holding type aliases (alias name -> resolved type).
+///
+/// Also includes any type errors found during lowering (e.g., unknown types).
 #[salsa::tracked]
 pub struct TypeAliasesMap<'db> {
     #[tracked]
     #[returns(ref)]
     pub aliases: HashMap<Name, Ty>,
+
+    #[tracked]
+    #[returns(ref)]
+    pub errors: Vec<TirTypeError>,
 }
 
 /// Tracked struct holding class names.
@@ -242,7 +258,8 @@ pub fn enum_variants(db: &dyn Db, project: Project) -> EnumVariantsMap<'_> {
 
 /// Query: Get the typing context for a project.
 ///
-/// Maps function names to their arrow types.
+/// Maps function names and template string names to their arrow types.
+/// Parameter names are stored in `Ty::Function` for Jinja template validation.
 #[salsa::tracked]
 pub fn typing_context(db: &dyn Db, project: Project) -> TypingContextMap<'_> {
     let resolution_ctx = TypeResolutionContext::new(db, project);
@@ -253,29 +270,67 @@ pub fn typing_context(db: &dyn Db, project: Project) -> TypingContextMap<'_> {
         let items = items_struct.items(db);
 
         for item in items {
-            if let baml_compiler_hir::ItemId::Function(func_loc) = item {
-                let signature = baml_compiler_hir::function_signature(db, *func_loc);
-                let qualified_name = baml_compiler_hir::function_qualified_name(db, *func_loc);
-                let span = Span::default(); // TODO: get proper span from signature
+            match item {
+                baml_compiler_hir::ItemId::Function(func_loc) => {
+                    let hir_signature = baml_compiler_hir::function_signature(db, *func_loc);
+                    let qualified_name = baml_compiler_hir::function_qualified_name(db, *func_loc);
 
-                let param_types: Vec<Ty> = signature
-                    .params
-                    .iter()
-                    .map(|p| resolution_ctx.lower_type_ref(&p.type_ref, span).0)
-                    .collect();
+                    // We don't care about the span here because any errors produced by
+                    // this lowering will be immediately discarded. `infer_function` will
+                    // lower the same types, and in that context, there are error locations
+                    // to send, and those are the `lower_type_ref` calls whose errors we
+                    // would surface to the user.
+                    let span = Span::default();
 
-                let return_type = resolution_ctx
-                    .lower_type_ref(&signature.return_type, span)
-                    .0;
+                    let params: Vec<(Option<Name>, Ty)> = hir_signature
+                        .params
+                        .iter()
+                        .map(|p| {
+                            let ty = resolution_ctx.lower_type_ref(&p.type_ref, span).0;
+                            (Some(p.name.clone()), ty)
+                        })
+                        .collect();
 
-                let func_type = Ty::Function {
-                    params: param_types,
-                    ret: Box::new(return_type),
-                };
+                    let return_type = resolution_ctx
+                        .lower_type_ref(&hir_signature.return_type, span)
+                        .0;
 
-                // Use the qualified display name so builtin BAML functions are only
-                // callable via their namespace (e.g., "baml.llm.render_prompt").
-                context.insert(qualified_name.display_name(), func_type);
+                    let func_type = Ty::Function {
+                        params,
+                        ret: Box::new(return_type),
+                    };
+
+                    // Use the qualified display name so builtin BAML functions are only
+                    // callable via their namespace (e.g., "baml.llm.render_prompt").
+                    let func_name = qualified_name.display_name();
+                    context.insert(func_name, func_type);
+                }
+
+                baml_compiler_hir::ItemId::TemplateString(ts_loc) => {
+                    let hir_signature = baml_compiler_hir::template_string_signature(db, *ts_loc);
+                    let span = Span::default();
+
+                    let params: Vec<(Option<Name>, Ty)> = hir_signature
+                        .params
+                        .iter()
+                        .map(|p| {
+                            let ty = resolution_ctx.lower_type_ref(&p.type_ref, span).0;
+                            (Some(p.name.clone()), ty)
+                        })
+                        .collect();
+
+                    // Template strings always return String
+                    let return_type = Ty::String;
+
+                    let func_type = Ty::Function {
+                        params,
+                        ret: Box::new(return_type),
+                    };
+
+                    let ts_name = hir_signature.name.clone();
+                    context.insert(ts_name, func_type);
+                }
+                _ => {}
             }
         }
     }
@@ -285,31 +340,48 @@ pub fn typing_context(db: &dyn Db, project: Project) -> TypingContextMap<'_> {
 
 /// Query: Get class field types for a project.
 ///
-/// Maps class names to their field types.
+/// Maps class names to their field types. Also collects type errors
+/// (e.g., unknown types) with position-independent locations for caching.
+///
+/// Following rust-analyzer's pattern: queries return both data and diagnostics,
+/// making errors cacheable alongside the data they're derived from.
+/// Error locations use position-independent IDs (class name + field index)
+/// which are resolved to spans at diagnostic rendering time.
 #[salsa::tracked]
 pub fn class_field_types(db: &dyn Db, project: Project) -> ClassFieldTypesMap<'_> {
-    let hir_fields = baml_compiler_hir::project_class_fields(db, project);
+    let items = baml_compiler_hir::project_items(db, project);
     let resolution_ctx = TypeResolutionContext::new(db, project);
-    let span = Span::default(); // TODO: get proper span from fields
+    let mut classes: HashMap<Name, HashMap<Name, Ty>> = HashMap::new();
+    let mut errors: Vec<TirTypeError> = Vec::new();
 
-    let mut classes: HashMap<Name, HashMap<Name, Ty>> = hir_fields
-        .classes(db)
-        .iter()
-        .map(|(class_name, fields)| {
-            let lowered_fields = fields
-                .iter()
-                .map(|(field_name, type_ref)| {
-                    (
-                        field_name.clone(),
-                        resolution_ctx.lower_type_ref(type_ref, span).0,
-                    )
-                })
-                .collect();
-            (class_name.clone(), lowered_fields)
-        })
-        .collect();
+    // Process user-defined classes
+    for item in items.items(db) {
+        if let baml_compiler_hir::ItemId::Class(class_loc) = item {
+            let item_tree = baml_compiler_hir::file_item_tree(db, class_loc.file(db));
+            let class_data = &item_tree[class_loc.id(db)];
+            let class_name = class_data.name.clone();
 
-    // Add builtin class public fields
+            let mut lowered_fields: HashMap<Name, Ty> = HashMap::new();
+
+            // Lower each field's type with position-independent error location
+            for (field_index, field_data) in class_data.fields.iter().enumerate() {
+                // Use position-independent error location for cacheability
+                let error_location = ErrorLocation::ClassFieldType {
+                    class_name: class_name.clone(),
+                    field_index,
+                };
+
+                let (ty, field_errors) =
+                    resolution_ctx.lower_type_ref(&field_data.type_ref, error_location);
+                errors.extend(field_errors);
+                lowered_fields.insert(field_data.name.clone(), ty);
+            }
+
+            classes.insert(class_name, lowered_fields);
+        }
+    }
+
+    // Add builtin class public fields (no errors possible here)
     for builtin in baml_builtins::builtin_types() {
         let public_fields: HashMap<Name, Ty> = builtin
             .fields
@@ -320,31 +392,40 @@ pub fn class_field_types(db: &dyn Db, project: Project) -> ClassFieldTypesMap<'_
         classes.insert(Name::new(builtin.path), public_fields);
     }
 
-    ClassFieldTypesMap::new(db, classes)
+    ClassFieldTypesMap::new(db, classes, errors)
 }
 
 /// Query: Get type alias definitions for a project.
 ///
-/// Maps type alias names to their resolved types.
+/// Maps type alias names to their resolved types. Also collects type errors
+/// (e.g., unknown types) with position-independent locations for caching.
 #[salsa::tracked]
 pub fn type_aliases(db: &dyn Db, project: Project) -> TypeAliasesMap<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let resolution_ctx = TypeResolutionContext::new(db, project);
-    let span = Span::default(); // TODO: get proper span from alias
     let mut aliases = HashMap::new();
+    let mut errors: Vec<TirTypeError> = Vec::new();
 
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::TypeAlias(alias_loc) = item {
-            let file = alias_loc.file(db);
-            let item_tree = baml_compiler_hir::file_item_tree(db, file);
+            let item_tree = baml_compiler_hir::file_item_tree(db, alias_loc.file(db));
             let alias_data = &item_tree[alias_loc.id(db)];
 
-            let lowered_ty = resolution_ctx.lower_type_ref(&alias_data.type_ref, span).0;
+            // Use position-independent error location for cacheability
+            // Start with empty path; the path will be updated as we recurse into nested types
+            let error_location = ErrorLocation::TypeAliasType {
+                alias_name: alias_data.name.clone(),
+                path: vec![],
+            };
+
+            let (lowered_ty, alias_errors) =
+                resolution_ctx.lower_type_ref(&alias_data.type_ref, error_location);
+            errors.extend(alias_errors);
             aliases.insert(alias_data.name.clone(), lowered_ty);
         }
     }
 
-    TypeAliasesMap::new(db, aliases)
+    TypeAliasesMap::new(db, aliases, errors)
 }
 
 /// Query: Get class names for a project.
@@ -428,17 +509,21 @@ impl TypeResolutionContext {
     }
 
     /// Lower a type reference with full resolution.
+    ///
+    /// The `location` parameter can be either:
+    /// - A `Span` for direct span-based error reporting
+    /// - An `ErrorLocation` for position-independent error locations (used by cached queries)
     pub fn lower_type_ref(
         &self,
         type_ref: &baml_compiler_hir::TypeRef,
-        span: Span,
+        location: impl Into<ErrorLocation>,
     ) -> (Ty, Vec<TirTypeError>) {
         lower_type_ref(
             type_ref,
             &self.type_alias_names,
             &self.class_names,
             &self.enum_names,
-            span,
+            location,
         )
     }
 }
@@ -886,7 +971,10 @@ pub fn infer_function_body<'db>(
                 )
             }
         }
-        FunctionBody::Llm(_) => {
+        FunctionBody::Llm(llm_body) => {
+            // Validate Jinja templates in the prompt
+            validate_llm_prompt(&mut ctx, &llm_body.prompt, &param_types);
+
             // LLM functions return their declared return type
             (
                 expected_return.clone(),
@@ -956,6 +1044,352 @@ pub fn infer_function_body<'db>(
     }
 }
 
+/// Add built-in BAML types to a Jinja type environment.
+///
+/// This adds the special variables `_` and `ctx` along with their class definitions:
+/// - `_` (`baml::BuiltIn)`: has `chat` and `role` function properties
+/// - `ctx` (`baml::Context)`: has `output_format`, `client`, and `tags` properties
+/// - `baml::Client`: has `name` and `provider` string properties
+/// - `jinja::loop`: has standard Jinja loop variables (index, first, last, etc.)
+fn add_builtin_jinja_types(jinja_env: &mut jinja::JinjaTypeEnv) {
+    use jinja::JinjaType;
+
+    // Define baml::Client class
+    jinja_env.add_class(
+        "baml::Client",
+        indexmap::IndexMap::from([
+            ("name".to_string(), JinjaType::String),
+            ("provider".to_string(), JinjaType::String),
+        ]),
+    );
+
+    // Define baml::Context class
+    // output_format can be used as a string or called as a function
+    jinja_env.add_class(
+        "baml::Context",
+        indexmap::IndexMap::from([
+            ("output_format".to_string(), JinjaType::String), // Simplified: just String for now
+            (
+                "client".to_string(),
+                JinjaType::ClassRef("baml::Client".to_string()),
+            ),
+            (
+                "tags".to_string(),
+                JinjaType::Map(Box::new(JinjaType::String), Box::new(JinjaType::String)),
+            ),
+        ]),
+    );
+
+    // Define baml::BuiltIn class (for `_`)
+    // chat and role are functions that set the chat role
+    jinja_env.add_class(
+        "baml::BuiltIn",
+        indexmap::IndexMap::from([
+            (
+                "chat".to_string(),
+                JinjaType::FunctionRef("baml::Chat".to_string()),
+            ),
+            (
+                "role".to_string(),
+                JinjaType::FunctionRef("baml::Chat".to_string()),
+            ),
+        ]),
+    );
+
+    // Define jinja::loop class (available inside for loops)
+    jinja_env.add_class(
+        "jinja::loop",
+        indexmap::IndexMap::from([
+            ("index".to_string(), JinjaType::Int),
+            ("index0".to_string(), JinjaType::Int),
+            ("revindex".to_string(), JinjaType::Int),
+            ("revindex0".to_string(), JinjaType::Int),
+            ("first".to_string(), JinjaType::Bool),
+            ("last".to_string(), JinjaType::Bool),
+            ("length".to_string(), JinjaType::Int),
+            ("depth".to_string(), JinjaType::Int),
+            ("depth0".to_string(), JinjaType::Int),
+        ]),
+    );
+
+    // Define baml::Chat function as String -> ()
+    jinja_env.add_function(
+        "baml::Chat".to_string(),
+        JinjaType::None, // Returns null/void
+        vec![("role".to_string(), JinjaType::String)],
+    );
+
+    // Add the special variables
+    jinja_env.add_variable("_", JinjaType::ClassRef("baml::BuiltIn".to_string()));
+    jinja_env.add_variable("ctx", JinjaType::ClassRef("baml::Context".to_string()));
+}
+
+/// Convert a Jinja type error to a TIR type error.
+///
+/// This maps the structured `jinja::TypeError` enum to the compiler's `TypeError` enum,
+/// preserving all error data while converting the span to an `ErrorLocation`.
+fn jinja_error_to_tir(error: jinja::TypeError) -> TirTypeError {
+    let span = error.span();
+    // Minijinja spans are 0-based and point to the character *before* the actual token.
+    // We add 1 to both offsets to correct for this off-by-one.
+    let location = ErrorLocation::JinjaTemplate {
+        start_offset: span.start_offset + 1,
+        end_offset: span.end_offset + 1,
+    };
+
+    match error {
+        jinja::TypeError::UnresolvedVariable {
+            name, suggestions, ..
+        } => TypeError::JinjaUnresolvedVariable {
+            name,
+            suggestions,
+            location,
+        },
+        jinja::TypeError::FunctionReferenceWithoutCall { function_name, .. } => {
+            TypeError::JinjaFunctionReferenceWithoutCall {
+                function_name,
+                location,
+            }
+        }
+        jinja::TypeError::InvalidFilter {
+            filter_name,
+            suggestions,
+            ..
+        } => TypeError::JinjaInvalidFilter {
+            filter_name,
+            suggestions,
+            location,
+        },
+        jinja::TypeError::InvalidType {
+            expression,
+            expected,
+            found,
+            ..
+        } => TypeError::JinjaInvalidType {
+            expression,
+            expected,
+            found,
+            location,
+        },
+        jinja::TypeError::PropertyNotDefined {
+            variable,
+            class_name,
+            property,
+            ..
+        } => TypeError::JinjaPropertyNotDefined {
+            variable,
+            class_name,
+            property,
+            location,
+        },
+        jinja::TypeError::EnumValuePropertyAccess {
+            variable,
+            enum_value,
+            property,
+            ..
+        } => TypeError::JinjaEnumValuePropertyAccess {
+            variable,
+            enum_value,
+            property,
+            location,
+        },
+        jinja::TypeError::EnumStringComparison { enum_name, .. } => {
+            TypeError::JinjaEnumStringComparison {
+                enum_name,
+                location,
+            }
+        }
+        jinja::TypeError::PropertyNotFoundInUnion {
+            property,
+            missing_on,
+            ..
+        } => TypeError::JinjaPropertyNotFoundInUnion {
+            property,
+            missing_on,
+            location,
+        },
+        jinja::TypeError::PropertyTypeMismatchInUnion { property, .. } => {
+            TypeError::JinjaPropertyTypeMismatchInUnion { property, location }
+        }
+        jinja::TypeError::NonClassInUnion {
+            variable,
+            property,
+            non_class_type,
+            ..
+        } => TypeError::JinjaNonClassInUnion {
+            variable,
+            property,
+            non_class_type,
+            location,
+        },
+        jinja::TypeError::WrongArgCount {
+            function_name,
+            expected,
+            found,
+            ..
+        } => TypeError::JinjaWrongArgCount {
+            function_name,
+            expected,
+            found,
+            location,
+        },
+        jinja::TypeError::MissingArg {
+            function_name,
+            arg_name,
+            ..
+        } => TypeError::JinjaMissingArg {
+            function_name,
+            arg_name,
+            location,
+        },
+        jinja::TypeError::UnknownArg {
+            function_name,
+            arg_name,
+            suggestions,
+            ..
+        } => TypeError::JinjaUnknownArg {
+            function_name,
+            arg_name,
+            suggestions,
+            location,
+        },
+        jinja::TypeError::WrongArgType {
+            function_name,
+            arg_name,
+            expected,
+            found,
+            ..
+        } => TypeError::JinjaWrongArgType {
+            function_name,
+            arg_name,
+            expected,
+            found,
+            location,
+        },
+        jinja::TypeError::UnsupportedFeature { feature, .. } => {
+            TypeError::JinjaUnsupportedFeature { feature, location }
+        }
+        jinja::TypeError::InvalidSyntax { message, .. } => {
+            TypeError::JinjaInvalidSyntax { message, location }
+        }
+        jinja::TypeError::InvalidTest {
+            test_name,
+            suggestions,
+            ..
+        } => TypeError::JinjaInvalidTest {
+            test_name,
+            suggestions,
+            location,
+        },
+    }
+}
+
+/// Validate Jinja templates in an LLM function's prompt.
+///
+/// This builds a Jinja type environment from the TIR context and validates
+/// the prompt template, converting any Jinja type errors to TIR type errors.
+#[allow(clippy::cast_possible_truncation)]
+fn validate_llm_prompt(
+    ctx: &mut TypeContext<'_>,
+    prompt: &PromptTemplate,
+    param_types: &HashMap<Name, Ty>,
+) {
+    use jinja::{JinjaType, JinjaTypeEnv};
+
+    // Build a Jinja type environment from the TIR context
+    let mut jinja_env = JinjaTypeEnv::new();
+
+    let aliases = &ctx.type_aliases;
+
+    // Add function parameters
+    for (param_name, param_ty) in param_types {
+        let jinja_ty = JinjaType::from_ty(param_ty, aliases);
+        jinja_env.add_variable(param_name.to_string(), jinja_ty);
+    }
+
+    // Add built-in BAML types for Jinja templates
+    add_builtin_jinja_types(&mut jinja_env);
+
+    // Add class definitions from the context
+    for (class_name, fields) in &ctx.class_fields {
+        let field_types: indexmap::IndexMap<String, JinjaType> = fields
+            .iter()
+            .map(|(fname, fty)| (fname.to_string(), JinjaType::from_ty(fty, aliases)))
+            .collect();
+        jinja_env.add_class(class_name.to_string(), field_types);
+    }
+
+    // Add enum definitions from the context
+    for (enum_name, variants) in &ctx.enum_variants {
+        jinja_env.add_enum(
+            enum_name.to_string(),
+            variants
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
+        );
+    }
+
+    // Add template string functions from globals
+    // Functions in scope are available to call in templates
+    // We add them both as functions (for signature checking) and as variables
+    // (so {{ Foo() }} resolves "Foo" as a callable)
+    for (func_name, func_ty) in ctx.scopes.first().unwrap_or(&HashMap::new()) {
+        if let Ty::Function { params, ret } = func_ty {
+            // Extract parameter names and types from Ty::Function
+            // Names are stored directly in params as (Option<Name>, Ty)
+            let jinja_params: Vec<(String, JinjaType)> = params
+                .iter()
+                .enumerate()
+                .map(|(i, (name, ty))| {
+                    let param_name = name
+                        .as_ref()
+                        .map(std::string::ToString::to_string)
+                        .unwrap_or_else(|| format!("arg{i}"));
+                    (param_name, JinjaType::from_ty(ty, aliases))
+                })
+                .collect();
+            let jinja_ret = JinjaType::from_ty(ret.as_ref(), aliases);
+
+            // Add function to the function map (for signature validation)
+            jinja_env.add_function(func_name.to_string(), jinja_ret, jinja_params);
+
+            // Also add as a variable with FunctionRef type (so Var lookup succeeds)
+            jinja_env.add_variable(
+                func_name.to_string(),
+                JinjaType::FunctionRef(func_name.to_string()),
+            );
+        }
+    }
+
+    // Validate the entire prompt template
+    match jinja::validate_template(&prompt.text, &mut jinja_env) {
+        Ok(errors) => {
+            // Convert Jinja errors to TIR errors with position-independent locations.
+            // The jinja span is relative to the prompt text start.
+            // We store relative offsets here; they'll be converted to absolute spans
+            // at diagnostic rendering time by looking up the prompt's file offset from CST.
+            for error in errors {
+                ctx.push_error(jinja_error_to_tir(error));
+            }
+        }
+        Err(parse_error) => {
+            // Jinja parse error - report the error location if available.
+            let (start_offset, end_offset) = parse_error
+                .range()
+                .map(|r| (r.start as u32, r.end as u32))
+                .unwrap_or((0, 1));
+            ctx.push_error(TypeError::JinjaParseError {
+                message: parse_error.to_string(),
+                location: ErrorLocation::JinjaTemplate {
+                    start_offset,
+                    end_offset,
+                },
+            });
+        }
+    }
+}
+
 /// Salsa tracked query for function type inference.
 ///
 /// This caches the type inference results for a function, enabling
@@ -1009,6 +1443,161 @@ pub fn function_type_inference<'db>(
     Arc::new(result)
 }
 
+/// Validate a template string's Jinja template body.
+///
+/// Template strings don't need full type inference like functions - they just need
+/// their Jinja templates validated against available variables (parameters, globals, etc.)
+///
+/// This also validates that parameter types exist (e.g., no unknown types).
+pub fn validate_template_string_body(
+    db: &dyn Db,
+    ts_loc: baml_compiler_hir::TemplateStringLoc<'_>,
+) -> Vec<TirTypeError> {
+    use baml_compiler_hir::{template_string_body, template_string_signature};
+    use baml_compiler_parser::syntax_tree;
+    use baml_compiler_syntax::ast::{Item, Parameter, SourceFile};
+    use jinja::{JinjaType, JinjaTypeEnv};
+    use rowan::ast::AstNode;
+
+    let signature = template_string_signature(db, ts_loc);
+    let body = template_string_body(db, ts_loc);
+    let project = db.project();
+
+    // Get file_id for span conversion
+    let file = ts_loc.file(db);
+    let file_id = file.file_id(db);
+
+    // Get the typing context (functions/template strings available)
+    let typing_ctx = typing_context(db, project);
+    let globals = typing_ctx.functions(db);
+
+    // Get class field types
+    let class_field_types = class_field_types(db, project);
+    let class_fields = class_field_types.classes(db);
+
+    // Get enum variants
+    let enum_variants_map = enum_variants(db, project);
+    let enum_variants = enum_variants_map.enums(db);
+
+    // Get type aliases for resolving alias types in Jinja
+    let type_aliases_map = type_aliases(db, project);
+    let aliases = type_aliases_map.aliases(db);
+
+    // Build a Jinja type environment
+    let mut jinja_env = JinjaTypeEnv::new();
+
+    // Collect parameter type errors with proper spans
+    let mut type_errors: Vec<TirTypeError> = Vec::new();
+    let resolution_ctx = TypeResolutionContext::new(db, project);
+
+    // Get CST to find parameter type spans
+    let item_tree = baml_compiler_hir::file_item_tree(db, file);
+    let ts_data = &item_tree[ts_loc.id(db)];
+    let ts_name = ts_data.name.as_str();
+    let occurrence = ts_loc.id(db).index();
+
+    let tree = syntax_tree(db, file);
+    let source_file = SourceFile::cast(tree).unwrap();
+
+    let ts_def = source_file
+        .items()
+        .filter_map(|item| match item {
+            Item::TemplateString(t) => Some(t),
+            _ => None,
+        })
+        .filter(|t| t.name().map(|n| n.text() == ts_name).unwrap_or(false))
+        .nth(occurrence as usize);
+
+    let cst_params: Vec<Parameter> = ts_def
+        .and_then(|ts| ts.param_list())
+        .map(|pl| pl.params().collect())
+        .unwrap_or_default();
+
+    // Add template string parameters with proper span-based error collection
+    for (idx, param) in signature.params.iter().enumerate() {
+        let span = cst_params
+            .get(idx)
+            .and_then(baml_compiler_syntax::Parameter::ty)
+            .map(|te| Span::new(file_id, te.syntax().text_range()))
+            .unwrap_or_default();
+
+        let (ty, param_errors) = resolution_ctx.lower_type_ref(&param.type_ref, span);
+        type_errors.extend(param_errors);
+
+        let jinja_ty = JinjaType::from_ty(&ty, aliases);
+        jinja_env.add_variable(param.name.to_string(), jinja_ty);
+    }
+
+    // Add built-in BAML types for Jinja templates
+    add_builtin_jinja_types(&mut jinja_env);
+
+    // Add class definitions
+    for (class_name, fields) in class_fields {
+        let field_types: indexmap::IndexMap<String, JinjaType> = fields
+            .iter()
+            .map(|(fname, fty)| (fname.to_string(), JinjaType::from_ty(fty, aliases)))
+            .collect();
+        jinja_env.add_class(class_name.to_string(), field_types);
+    }
+
+    // Add enum definitions
+    for (enum_name, variants) in enum_variants {
+        jinja_env.add_enum(
+            enum_name.to_string(),
+            variants
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
+        );
+    }
+
+    // Add functions (including other template strings) from globals
+    for (func_name, func_ty) in globals {
+        if let Ty::Function { params, ret } = func_ty {
+            // Extract parameter names and types from Ty::Function
+            // Names are stored directly in params as (Option<Name>, Ty)
+            let jinja_params: Vec<(String, JinjaType)> = params
+                .iter()
+                .enumerate()
+                .map(|(i, (name, ty))| {
+                    let param_name = name
+                        .as_ref()
+                        .map(std::string::ToString::to_string)
+                        .unwrap_or_else(|| format!("arg{i}"));
+                    (param_name, JinjaType::from_ty(ty, aliases))
+                })
+                .collect();
+            let jinja_ret = JinjaType::from_ty(ret.as_ref(), aliases);
+
+            jinja_env.add_function(func_name.to_string(), jinja_ret, jinja_params);
+            jinja_env.add_variable(
+                func_name.to_string(),
+                JinjaType::FunctionRef(func_name.to_string()),
+            );
+        }
+    }
+
+    // Validate the template with position-independent error locations
+    match jinja::validate_template(&body.text, &mut jinja_env) {
+        Ok(jinja_errors) => {
+            for error in jinja_errors {
+                type_errors.push(jinja_error_to_tir(error));
+            }
+        }
+        Err(parse_error) => {
+            type_errors.push(TypeError::JinjaParseError {
+                message: parse_error.to_string(),
+                location: ErrorLocation::JinjaTemplate {
+                    start_offset: 0,
+                    end_offset: 1,
+                },
+            });
+        }
+    }
+
+    type_errors
+}
+
 /// Infer types for a function given its signature and body.
 ///
 /// This queries the database for known type names and validates that all type
@@ -1048,22 +1637,27 @@ pub fn infer_function<'db>(
     let enum_name_set = enum_names(db, project).names(db).clone();
 
     let file_id = function_loc.file(db).file_id(db);
-    // Use a placeholder span for now - ideally we'd have spans on TypeRef
-    let placeholder_span = Span::new(file_id, TextRange::empty(0.into()));
 
     let mut type_errors: Vec<TirTypeError> = Vec::new();
 
     // Convert parameter TypeRefs to Tys with validation and resolution
+    // Use type spans from the source map when available for accurate error locations
     let param_types: HashMap<Name, Ty> = signature
         .params
         .iter()
-        .map(|param| {
+        .enumerate()
+        .map(|(idx, param)| {
+            // Get the type span from SignatureSourceMap if available (just the type, not the whole param)
+            let span = sig_source_map
+                .and_then(|sm| sm.param_type_span(idx))
+                .map(|range| Span::new(file_id, range))
+                .unwrap_or_default();
             let (ty, errors) = lower_type_ref(
                 &param.type_ref,
                 &type_alias_name_set,
                 &class_name_set,
                 &enum_name_set,
-                placeholder_span,
+                span,
             );
             type_errors.extend(errors);
             (param.name.clone(), ty)
@@ -1071,28 +1665,28 @@ pub fn infer_function<'db>(
         .collect();
 
     // Convert return type with validation and resolution
+    // Use span from the source map when available
+    let return_type_span = sig_source_map
+        .and_then(SignatureSourceMap::return_type_span)
+        .map(|range| Span::new(file_id, range))
+        .unwrap_or_default();
     let (expected_return, errors) = lower_type_ref(
         &signature.return_type,
         &type_alias_name_set,
         &class_name_set,
         &enum_name_set,
-        placeholder_span,
+        return_type_span,
     );
     type_errors.extend(errors);
 
-    // Convert return type TextRange to Span for diagnostics (if source map provided)
-    let return_type_span = sig_source_map
-        .and_then(SignatureSourceMap::return_type_span)
-        .map(|range| Span::new(file_id, range));
-
     // Validate map key types in function signature
-    // Check return type for invalid map keys
-    if let Some(span) = return_type_span {
+    // Check return type for invalid map keys (only if we have a valid span)
+    if return_type_span != Span::default() {
         let invalid_return_keys = normalize::find_invalid_map_keys(&expected_return, &type_aliases);
         for invalid_key in invalid_return_keys {
             type_errors.push(TypeError::InvalidMapKeyType {
                 ty: invalid_key,
-                location: ErrorLocation::Span(span),
+                location: ErrorLocation::Span(return_type_span),
             });
         }
     }
@@ -1101,7 +1695,7 @@ pub fn infer_function<'db>(
     if let Some(source_map) = sig_source_map {
         for (idx, param) in signature.params.iter().enumerate() {
             if let Some(param_ty) = param_types.get(&param.name) {
-                if let Some(range) = source_map.param_span(idx) {
+                if let Some(range) = source_map.param_type_span(idx) {
                     let span = Span::new(file_id, range);
                     let invalid_param_keys =
                         normalize::find_invalid_map_keys(param_ty, &type_aliases);
@@ -1117,12 +1711,18 @@ pub fn infer_function<'db>(
     }
 
     // Delegate to the body inference function
+    // Convert return_type_span to Option (None if default/empty)
+    let return_type_span_opt = if return_type_span == Span::default() {
+        None
+    } else {
+        Some(return_type_span)
+    };
     let mut result = infer_function_body(
         db,
         body,
         param_types,
         &expected_return,
-        return_type_span,
+        return_type_span_opt,
         globals,
         class_fields,
         Some(type_aliases),
@@ -1229,12 +1829,15 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     );
 
                     // It's a builtin function - return its function type
-                    let mut param_types: Vec<Ty> = Vec::new();
+                    let mut param_types: Vec<(Option<Name>, Ty)> = Vec::new();
                     if let Some(ref receiver_pattern) = def.receiver {
-                        param_types.push(builtins::substitute_unknown(receiver_pattern));
+                        param_types.push((None, builtins::substitute_unknown(receiver_pattern)));
                     }
-                    for (_, pattern) in &def.params {
-                        param_types.push(builtins::substitute_unknown(pattern));
+                    for (param_name, pattern) in &def.params {
+                        param_types.push((
+                            Some(Name::new(*param_name)),
+                            builtins::substitute_unknown(pattern),
+                        ));
                     }
                     let return_type = builtins::substitute_unknown(&def.returns);
                     return Ty::Function {
@@ -1428,12 +2031,15 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         builtins::lookup_method(&receiver_ty, field.as_str())
                     {
                         // Build the function type from the builtin definition
-                        let mut param_types: Vec<Ty> = Vec::new();
+                        let mut param_types: Vec<(Option<Name>, Ty)> = Vec::new();
                         if def.receiver.is_some() {
-                            param_types.push(receiver_ty.clone());
+                            param_types.push((None, receiver_ty.clone()));
                         }
-                        for (_, pattern) in &def.params {
-                            param_types.push(builtins::substitute(pattern, &bindings));
+                        for (param_name, pattern) in &def.params {
+                            param_types.push((
+                                Some(Name::new(*param_name)),
+                                builtins::substitute(pattern, &bindings),
+                            ));
                         }
                         let return_type = builtins::substitute(&def.returns, &bindings);
                         let callee_ty = Ty::Function {
@@ -1512,7 +2118,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         }
 
                         // Phase 2: Compute expected parameter types using bindings
-                        let param_types: Vec<Ty> = all_param_patterns
+                        let param_types_only: Vec<Ty> = all_param_patterns
                             .iter()
                             .map(|p| {
                                 if bindings.is_empty() {
@@ -1527,7 +2133,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         // This allows empty maps/arrays to pick up their expected types
                         let arg_types_with_spans: Vec<(Ty, Option<ErrorLocation>)> = args
                             .iter()
-                            .zip(param_types.iter())
+                            .zip(param_types_only.iter())
                             .map(|(arg, expected_ty)| {
                                 let ty = check_expr(ctx, *arg, body, expected_ty);
                                 let arg_location = Some(ErrorLocation::Expr(*arg));
@@ -1541,8 +2147,20 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                             substitute_with_fallback(&def.returns, &bindings)
                         };
 
+                        // Build params with names for Ty::Function
+                        let mut params: Vec<(Option<Name>, Ty)> = Vec::new();
+                        let mut ty_iter = param_types_only.into_iter();
+                        if def.receiver.is_some() {
+                            if let Some(ty) = ty_iter.next() {
+                                params.push((None, ty));
+                            }
+                        }
+                        for ((param_name, _), ty) in def.params.iter().zip(ty_iter) {
+                            params.push((Some(Name::new(*param_name)), ty));
+                        }
+
                         let callee_ty = Ty::Function {
-                            params: param_types,
+                            params,
                             ret: Box::new(return_type),
                         };
                         // Store the callee type so downstream passes (VIR, MIR) can find it
@@ -1620,7 +2238,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     }
 
                     // Check argument types - use each argument's location for precise error location
-                    for ((arg_ty, arg_location), param_ty) in
+                    for ((arg_ty, arg_location), (_, param_ty)) in
                         effective_args.iter().zip(params.iter())
                     {
                         if !ctx.is_subtype_of(arg_ty, param_ty) {
@@ -2590,7 +3208,10 @@ fn infer_field_access(
                 // Returns null (void operation)
                 return Ty::Function {
                     // First param is receiver (the watched value), second is filter
-                    params: vec![*inner_ty.clone(), Ty::Unknown], // Filter type is flexible
+                    params: vec![
+                        (None, *inner_ty.clone()),
+                        (Some(Name::new("filter")), Ty::Unknown),
+                    ], // Filter type is flexible
                     ret: Box::new(Ty::Null),
                 };
             }
@@ -2598,7 +3219,7 @@ fn infer_field_access(
                 // $watch.notify() - manually trigger notification
                 // Returns null (void operation)
                 return Ty::Function {
-                    params: vec![*inner_ty.clone()], // Just the receiver
+                    params: vec![(None, *inner_ty.clone())], // Just the receiver
                     ret: Box::new(Ty::Null),
                 };
             }
@@ -2651,17 +3272,20 @@ fn infer_field_access(
                 ResolvedValue::BuiltinFunction(QualifiedName::from_builtin_path(def.path)),
             );
         }
-        let mut param_types: Vec<Ty> = Vec::new();
+        let mut params: Vec<(Option<Name>, Ty)> = Vec::new();
         if def.receiver.is_some() {
-            param_types.push(base.clone());
+            params.push((None, base.clone()));
         }
-        for (_, pattern) in &def.params {
-            param_types.push(builtins::substitute(pattern, &bindings));
+        for (param_name, pattern) in &def.params {
+            params.push((
+                Some(Name::new(*param_name)),
+                builtins::substitute(pattern, &bindings),
+            ));
         }
         let return_type = builtins::substitute(&def.returns, &bindings);
 
         return Ty::Function {
-            params: param_types,
+            params,
             ret: Box::new(return_type),
         };
     }

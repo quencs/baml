@@ -9,17 +9,21 @@
 
 use std::collections::HashSet;
 
-use baml_base::{Name, Span};
+use baml_base::Name;
 use baml_compiler_diagnostics::TypeError;
 use baml_compiler_hir::{ErrorLocation, TypeRef};
 
 use crate::{LiteralValue, TirTypeError, Ty};
 
-/// Lower a `TypeRef` to a Ty with validation AND resolution of class/enum types.
+/// Lower a `TypeRef` to a `Ty`, validating and resolving type names.
 ///
 /// This combines validation (checking types exist) with resolution (converting
 /// Named types to Class/Enum). This is the preferred function for type checking
 /// contexts where you need fully resolved types.
+///
+/// The `location` parameter can be either:
+/// - A `Span` for direct span-based error reporting
+/// - An `ErrorLocation` for position-independent error locations (used by cached queries)
 ///
 /// Returns the lowered type and any errors encountered.
 pub fn lower_type_ref(
@@ -27,9 +31,14 @@ pub fn lower_type_ref(
     type_alias_names: &HashSet<Name>,
     class_names: &HashSet<Name>,
     enum_names: &HashSet<Name>,
-    span: Span,
+    location: impl Into<ErrorLocation>,
 ) -> (Ty, Vec<TirTypeError>) {
-    let mut ctx = TypeLoweringContextResolved::new(type_alias_names, class_names, enum_names, span);
+    let mut ctx = TypeLoweringContextResolved::new(
+        type_alias_names,
+        class_names,
+        enum_names,
+        location.into(),
+    );
     let ty = lower_type_ref_resolved_with_ctx(&mut ctx, type_ref);
     (ty, ctx.errors)
 }
@@ -39,7 +48,10 @@ struct TypeLoweringContextResolved<'a> {
     type_alias_names: &'a HashSet<Name>,
     class_names: &'a HashSet<Name>,
     enum_names: &'a HashSet<Name>,
-    span: Span,
+    /// Base error location (e.g., `TypeAliasType` with `alias_name`)
+    base_location: ErrorLocation,
+    /// Current path within nested type constructors (for `TypeAliasType`)
+    current_path: Vec<usize>,
     errors: Vec<TirTypeError>,
 }
 
@@ -48,14 +60,26 @@ impl<'a> TypeLoweringContextResolved<'a> {
         type_alias_names: &'a HashSet<Name>,
         class_names: &'a HashSet<Name>,
         enum_names: &'a HashSet<Name>,
-        span: Span,
+        location: ErrorLocation,
     ) -> Self {
         Self {
             type_alias_names,
             class_names,
             enum_names,
-            span,
+            base_location: location,
+            current_path: Vec::new(),
             errors: Vec::new(),
+        }
+    }
+
+    /// Get the current error location, incorporating the path for `TypeAliasType`.
+    fn current_location(&self) -> ErrorLocation {
+        match &self.base_location {
+            ErrorLocation::TypeAliasType { alias_name, .. } => ErrorLocation::TypeAliasType {
+                alias_name: alias_name.clone(),
+                path: self.current_path.clone(),
+            },
+            other => other.clone(),
         }
     }
 
@@ -66,20 +90,28 @@ impl<'a> TypeLoweringContextResolved<'a> {
     fn unknown_type_error(&mut self, name: &Name) -> Ty {
         self.errors.push(TypeError::UnknownType {
             name: name.to_string(),
-            location: ErrorLocation::Span(self.span),
+            location: self.current_location(),
         });
         Ty::Error
     }
 
     fn resolve_name(&self, name: &Name) -> Option<Ty> {
         use baml_compiler_hir::QualifiedName;
+
+        // First check user-defined types (they shadow prelude)
         if self.class_names.contains(name) {
-            Some(Ty::Class(QualifiedName::local(name.clone())))
-        } else if self.enum_names.contains(name) {
-            Some(Ty::Enum(QualifiedName::local(name.clone())))
-        } else {
-            None
+            return Some(Ty::Class(QualifiedName::local(name.clone())));
         }
+        if self.enum_names.contains(name) {
+            return Some(Ty::Enum(QualifiedName::local(name.clone())));
+        }
+
+        // Check prelude for builtin types
+        if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
+            return Some(Ty::Class(QualifiedName::from_builtin_path(qualified_path)));
+        }
+
+        None
     }
 }
 
@@ -102,20 +134,30 @@ fn lower_type_ref_resolved_with_ctx(
         // Named type via path
         TypeRef::Path(path) => lower_path_type_resolved_with_ctx(ctx, path),
 
-        // Type constructors
+        // Type constructors - track path for error location
         TypeRef::Optional(inner) => {
+            ctx.current_path.push(0); // Optional inner is at index 0
             let inner_ty = lower_type_ref_resolved_with_ctx(ctx, inner);
+            ctx.current_path.pop();
             Ty::Optional(Box::new(inner_ty))
         }
 
         TypeRef::List(inner) => {
+            ctx.current_path.push(0); // List element is at index 0
             let inner_ty = lower_type_ref_resolved_with_ctx(ctx, inner);
+            ctx.current_path.pop();
             Ty::List(Box::new(inner_ty))
         }
 
         TypeRef::Map { key, value } => {
+            ctx.current_path.push(0); // Map key is at index 0
             let key_ty = lower_type_ref_resolved_with_ctx(ctx, key);
+            ctx.current_path.pop();
+
+            ctx.current_path.push(1); // Map value is at index 1
             let value_ty = lower_type_ref_resolved_with_ctx(ctx, value);
+            ctx.current_path.pop();
+
             Ty::Map {
                 key: Box::new(key_ty),
                 value: Box::new(value_ty),
@@ -125,7 +167,13 @@ fn lower_type_ref_resolved_with_ctx(
         TypeRef::Union(types) => {
             let tys: Vec<Ty> = types
                 .iter()
-                .map(|t| lower_type_ref_resolved_with_ctx(ctx, t))
+                .enumerate()
+                .map(|(i, t)| {
+                    ctx.current_path.push(i); // Union variant is at its index
+                    let ty = lower_type_ref_resolved_with_ctx(ctx, t);
+                    ctx.current_path.pop();
+                    ty
+                })
                 .collect();
             normalize_union(tys)
         }
@@ -136,13 +184,20 @@ fn lower_type_ref_resolved_with_ctx(
         TypeRef::BoolLiteral(b) => Ty::Literal(LiteralValue::Bool(*b)),
 
         // Function types: (x: int, y: int) -> bool
-        // Note: parameter names are discarded - they are for documentation only
         TypeRef::Function { params, ret } => {
-            let param_tys: Vec<Ty> = params
+            let param_tys: Vec<(Option<Name>, Ty)> = params
                 .iter()
-                .map(|p| lower_type_ref_resolved_with_ctx(ctx, &p.ty))
+                .enumerate()
+                .map(|(i, p)| {
+                    ctx.current_path.push(i);
+                    let ty = lower_type_ref_resolved_with_ctx(ctx, &p.ty);
+                    ctx.current_path.pop();
+                    (p.name.clone(), ty)
+                })
                 .collect();
+            ctx.current_path.push(params.len());
             let ret_ty = lower_type_ref_resolved_with_ctx(ctx, ret);
+            ctx.current_path.pop();
             Ty::Function {
                 params: param_tys,
                 ret: Box::new(ret_ty),
@@ -181,6 +236,9 @@ fn lower_path_type_resolved_with_ctx(
                 "audio" => Ty::Media(baml_base::MediaKind::Audio),
                 "video" => Ty::Media(baml_base::MediaKind::Video),
                 "pdf" => Ty::Media(baml_base::MediaKind::Pdf),
+                // map with wrong arity - the arity error is already reported by HIR,
+                // so we don't report an unknown type error here
+                "map" => Ty::Error,
                 // User-defined type - resolve to Class/Enum or validate
                 _ => {
                     use baml_compiler_hir::QualifiedName;

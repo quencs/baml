@@ -275,7 +275,7 @@ fn is_valid_map_key_type(ty: &Ty, aliases: &HashMap<Name, Ty>) -> bool {
             StructuralTy::Null => false,
             StructuralTy::Media(_) => false,
             StructuralTy::Class(_) => false,
-            StructuralTy::Enum(_) => false,
+            StructuralTy::Enum(_) => true,
             StructuralTy::Optional(_) => false,
             StructuralTy::List(_) => false,
             StructuralTy::Map { .. } => false,
@@ -327,7 +327,7 @@ fn find_invalid_map_keys_recursive(
             }
         }
         Ty::Function { params, ret } => {
-            for p in params {
+            for (_, p) in params {
                 find_invalid_map_keys_recursive(p, aliases, invalid_keys);
             }
             find_invalid_map_keys_recursive(ret, aliases, invalid_keys);
@@ -422,7 +422,7 @@ fn normalize_impl(
         Ty::Function { params, ret } => StructuralTy::Function {
             params: params
                 .iter()
-                .map(|t| normalize_impl(t, aliases, recursive, expanding))
+                .map(|(_, t)| normalize_impl(t, aliases, recursive, expanding))
                 .collect(),
             ret: Box::new(normalize_impl(ret, aliases, recursive, expanding)),
         },
@@ -488,7 +488,7 @@ fn ty_has_cycle(
         Ty::Function { params, ret } => {
             params
                 .iter()
-                .any(|t| ty_has_cycle(t, aliases, visited, stack))
+                .any(|(_, t)| ty_has_cycle(t, aliases, visited, stack))
                 || ty_has_cycle(ret, aliases, visited, stack)
         }
         _ => false,
@@ -604,10 +604,10 @@ mod tests {
     // FUNCTION SUBTYPING TESTS
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// Helper to create a function type
+    /// Helper to create a function type (without parameter names)
     fn func(params: Vec<Ty>, ret: Ty) -> Ty {
         Ty::Function {
-            params,
+            params: params.into_iter().map(|t| (None, t)).collect(),
             ret: Box::new(ret),
         }
     }

@@ -52,8 +52,10 @@ pub use path::*;
 pub use pretty::{body_to_code, expr_to_code, stmt_to_code, type_ref_to_str};
 pub use reserved_names::{OutputType, ReservedNamesMode};
 // Re-export signature types explicitly (no wildcards to avoid conflicts)
-pub use signature::{FunctionSignature, Param};
-pub use source_map::{ErrorLocation, HirSourceMap, SignatureSourceMap, TirContext};
+pub use signature::{FunctionSignature, Param, TemplateStringSignature};
+pub use source_map::{
+    ErrorLocation, HirSourceMap, SignatureSourceMap, SpanResolutionContext, TirContext,
+};
 pub use symbol_table::*;
 pub use type_ref::*;
 
@@ -447,18 +449,20 @@ fn lower_method_signature(
         for param_node in param_list.params() {
             if let Some(name_token) = param_node.name() {
                 let param_name = name_token.text();
+                let type_node = param_node.ty();
                 let type_ref = if param_name == "self" {
                     // 'self' gets the class type
                     TypeRef::named(class_name.into())
                 } else {
-                    param_node
-                        .ty()
-                        .map(|t| TypeRef::from_ast(&t))
+                    type_node
+                        .as_ref()
+                        .map(TypeRef::from_ast)
                         .unwrap_or(TypeRef::Unknown)
                 };
 
-                // Store the span in the source map
+                // Store the spans in the source map
                 source_map.push_param_span(Some(param_node.syntax().text_range()));
+                source_map.push_param_type_span(type_node.map(|t| t.syntax().text_range()));
 
                 params.push(Param {
                     name: Name::new(param_name),
@@ -655,6 +659,344 @@ pub fn project_type_item_spans(
     std::sync::Arc::new(spans)
 }
 
+/// Returns class field type spans for error location resolution.
+///
+/// Maps (`class_name`, `field_index`) to the span of the field's type annotation.
+/// Used by `ErrorLocation::ClassFieldType` to resolve to accurate spans.
+pub fn project_class_field_type_spans(
+    db: &dyn Db,
+    root: baml_workspace::Project,
+) -> std::sync::Arc<std::collections::HashMap<(Name, usize), Span>> {
+    let items = project_items(db, root);
+    let mut spans = std::collections::HashMap::new();
+
+    for item in items.items(db) {
+        if let ItemId::Class(loc) = item {
+            let file = loc.file(db);
+            let item_tree = file_item_tree(db, file);
+            let class = &item_tree[loc.id(db)];
+            let class_name = class.name.clone();
+
+            // Get the CST to find field type spans
+            let tree = syntax_tree(db, file);
+            let source_file = baml_compiler_syntax::ast::SourceFile::cast(tree).unwrap();
+            let file_id = file.file_id(db);
+
+            // Find the class in the CST
+            if let Some(class_node) = source_file.items().find_map(|item| {
+                if let baml_compiler_syntax::ast::Item::Class(c) = item {
+                    if c.name().as_ref().map(SyntaxToken::text) == Some(&class_name) {
+                        return Some(c);
+                    }
+                }
+                None
+            }) {
+                // Extract field type spans
+                for (field_index, field) in class_node.fields().enumerate() {
+                    if let Some(type_expr) = field.ty() {
+                        let range = type_expr.syntax().text_range();
+                        let span = Span::new(file_id, range);
+                        spans.insert((class_name.clone(), field_index), span);
+                    }
+                }
+            }
+        }
+    }
+
+    std::sync::Arc::new(spans)
+}
+
+/// Returns type alias type spans for error location resolution.
+///
+/// Maps (`alias_name`, `path`) to the span of a specific type within the alias's RHS.
+/// The path navigates nested type constructors:
+/// - For List: index 0 is the element type
+/// - For Map: index 0 is the key type, index 1 is the value type
+/// - For Union: index is the variant number (0, 1, 2, ...)
+/// - For Optional: index 0 is the inner type
+/// - Empty path means the entire RHS type expression
+///
+/// Used by `ErrorLocation::TypeAliasType` to resolve to accurate spans.
+pub fn project_type_alias_type_spans(
+    db: &dyn Db,
+    root: baml_workspace::Project,
+) -> std::sync::Arc<std::collections::HashMap<(Name, Vec<usize>), Span>> {
+    let items = project_items(db, root);
+    let mut spans = std::collections::HashMap::new();
+
+    for item in items.items(db) {
+        if let ItemId::TypeAlias(loc) = item {
+            let file = loc.file(db);
+            let item_tree = file_item_tree(db, file);
+            let alias = &item_tree[loc.id(db)];
+            let alias_name = alias.name.clone();
+
+            // Get the CST to find type spans
+            let tree = syntax_tree(db, file);
+            let source_file = baml_compiler_syntax::ast::SourceFile::cast(tree).unwrap();
+            let file_id = file.file_id(db);
+
+            // Find the type alias in the CST
+            if let Some(alias_node) = source_file.items().find_map(|item| {
+                if let baml_compiler_syntax::ast::Item::TypeAlias(a) = item {
+                    if a.name().as_ref().map(SyntaxToken::text) == Some(&alias_name) {
+                        return Some(a);
+                    }
+                }
+                None
+            }) {
+                // Get the RHS type expression
+                if let Some(type_expr) = alias_node.ty() {
+                    // Collect spans for all paths within this type expression
+                    collect_type_expr_spans(
+                        &type_expr,
+                        file_id,
+                        &alias_name,
+                        &mut vec![],
+                        &mut spans,
+                    );
+                }
+            }
+        }
+    }
+
+    std::sync::Arc::new(spans)
+}
+
+/// Recursively collect spans for all paths within a type expression.
+fn collect_type_expr_spans(
+    type_expr: &baml_compiler_syntax::ast::TypeExpr,
+    file_id: FileId,
+    alias_name: &Name,
+    current_path: &mut Vec<usize>,
+    spans: &mut std::collections::HashMap<(Name, Vec<usize>), Span>,
+) {
+    use rowan::ast::AstNode;
+
+    // Record the span for the current path
+    let range = type_expr.syntax().text_range();
+    let span = Span::new(file_id, range);
+    spans.insert((alias_name.clone(), current_path.clone()), span);
+
+    // Check if this is a union type
+    if type_expr.is_union() {
+        // For unions, use union_member_parts() to get each member's tokens/nodes
+        for (i, member) in type_expr.union_member_parts().iter().enumerate() {
+            current_path.push(i);
+
+            // Record the span for this union member
+            if let Some(range) = compute_union_member_range(member) {
+                let span = Span::new(file_id, range);
+                spans.insert((alias_name.clone(), current_path.clone()), span);
+            }
+
+            // If the member has a nested TYPE_EXPR (e.g., parenthesized type), recurse into it
+            if let Some(inner_type_expr) = member.type_expr() {
+                collect_type_expr_spans(&inner_type_expr, file_id, alias_name, current_path, spans);
+            }
+
+            // If the member has TYPE_ARGS (e.g., map<K, V>), recurse into those
+            if let Some(type_args_node) = member.type_args() {
+                let type_arg_exprs: Vec<_> = type_args_node
+                    .children()
+                    .filter(|n| n.kind() == baml_compiler_syntax::SyntaxKind::TYPE_EXPR)
+                    .collect();
+                for (j, arg_node) in type_arg_exprs.iter().enumerate() {
+                    if let Some(arg_type_expr) =
+                        baml_compiler_syntax::ast::TypeExpr::cast(arg_node.clone())
+                    {
+                        current_path.push(j);
+                        collect_type_expr_spans(
+                            &arg_type_expr,
+                            file_id,
+                            alias_name,
+                            current_path,
+                            spans,
+                        );
+                        current_path.pop();
+                    }
+                }
+            }
+
+            current_path.pop();
+        }
+        return;
+    }
+
+    // Check if this is an optional type (trailing ?)
+    if type_expr.is_optional() {
+        // The inner type is the same node without the ? modifier
+        // We need to find the base type - for simple cases, use child type exprs
+        // For now, record index 0 for the inner part
+        // Note: This is a simplification; the actual inner type span might need refinement
+        if let Some(inner) = type_expr.inner_type_expr() {
+            current_path.push(0);
+            collect_type_expr_spans(&inner, file_id, alias_name, current_path, spans);
+            current_path.pop();
+        }
+        return;
+    }
+
+    // Check if this is an array type (trailing [])
+    if type_expr.is_array() {
+        // Similar to optional, the element type needs to be found
+        // For now, use inner_type_expr or child_type_exprs
+        if let Some(inner) = type_expr.inner_type_expr() {
+            current_path.push(0);
+            collect_type_expr_spans(&inner, file_id, alias_name, current_path, spans);
+            current_path.pop();
+        }
+        return;
+    }
+
+    // Check for generic types like map<K, V>
+    let type_args = type_expr.type_arg_exprs();
+    if !type_args.is_empty() {
+        for (i, arg) in type_args.iter().enumerate() {
+            current_path.push(i);
+            collect_type_expr_spans(arg, file_id, alias_name, current_path, spans);
+            current_path.pop();
+        }
+        return;
+    }
+
+    // Check for parenthesized types
+    if type_expr.is_parenthesized() {
+        if let Some(inner) = type_expr.inner_type_expr() {
+            // Don't add to path for parentheses - they're just grouping
+            collect_type_expr_spans(&inner, file_id, alias_name, current_path, spans);
+        }
+    }
+
+    // For simple named types, function types, etc., we already recorded the span above
+}
+
+/// Compute the text range of a union member from its tokens and child nodes.
+fn compute_union_member_range(
+    member: &baml_compiler_syntax::ast::UnionMemberParts,
+) -> Option<TextRange> {
+    let mut start: Option<rowan::TextSize> = None;
+    let mut end: Option<rowan::TextSize> = None;
+
+    // Consider all tokens
+    for token in &member.tokens {
+        let range = token.text_range();
+        match start {
+            None => start = Some(range.start()),
+            Some(s) if range.start() < s => start = Some(range.start()),
+            _ => {}
+        }
+        match end {
+            None => end = Some(range.end()),
+            Some(e) if range.end() > e => end = Some(range.end()),
+            _ => {}
+        }
+    }
+
+    // Consider all child nodes
+    for node in &member.child_nodes {
+        let range = node.text_range();
+        match start {
+            None => start = Some(range.start()),
+            Some(s) if range.start() < s => start = Some(range.start()),
+            _ => {}
+        }
+        match end {
+            None => end = Some(range.end()),
+            Some(e) if range.end() > e => end = Some(range.end()),
+            _ => {}
+        }
+    }
+
+    match (start, end) {
+        (Some(s), Some(e)) => Some(TextRange::new(s, e)),
+        _ => None,
+    }
+}
+
+/// Returns the file offset of a template string's raw string literal.
+///
+/// This is used at diagnostic rendering time to convert relative Jinja error
+/// positions to absolute file positions, without storing the offset in cached data.
+pub fn template_string_file_offset<'db>(
+    db: &'db dyn Db,
+    template_string: TemplateStringLoc<'db>,
+) -> Option<u32> {
+    let file = template_string.file(db);
+    let item_tree = file_item_tree(db, file);
+    let ts = &item_tree[template_string.id(db)];
+    let ts_name = &ts.name;
+
+    let tree = syntax_tree(db, file);
+    let source_file = baml_compiler_syntax::ast::SourceFile::cast(tree)?;
+
+    for item in source_file.items() {
+        if let baml_compiler_syntax::ast::Item::TemplateString(ts_node) = item {
+            if ts_node.name().as_ref().map(SyntaxToken::text) == Some(ts_name) {
+                if let Some(raw_string) = ts_node.raw_string() {
+                    return Some(PromptTemplate::get_file_offset(&raw_string));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Returns the file offset of an LLM function's prompt raw string literal.
+///
+/// This is used at diagnostic rendering time to convert relative Jinja error
+/// positions to absolute file positions, without storing the offset in cached data.
+pub fn llm_function_file_offset<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Option<u32> {
+    let file = function.file(db);
+    let item_tree = file_item_tree(db, file);
+    let func = &item_tree[function.id(db)];
+    let func_name = &func.name;
+
+    let tree = syntax_tree(db, file);
+    let source_file = baml_compiler_syntax::ast::SourceFile::cast(tree)?;
+
+    // Find the function in the CST
+    for item in source_file.items() {
+        match item {
+            baml_compiler_syntax::ast::Item::Function(func_node) => {
+                if func_node.name().as_ref().map(SyntaxToken::text) == Some(func_name) {
+                    if let Some(llm_body) = func_node.llm_body() {
+                        if let Some(prompt_field) = llm_body.prompt_field() {
+                            if let Some(raw_string) = prompt_field.raw_string() {
+                                return Some(PromptTemplate::get_file_offset(&raw_string));
+                            }
+                        }
+                    }
+                }
+            }
+            baml_compiler_syntax::ast::Item::Class(class_node) => {
+                // Also check class methods
+                for method in class_node.methods() {
+                    if let (Some(method_name), Some(class_name_token)) =
+                        (method.name(), class_node.name())
+                    {
+                        let qualified = QualifiedName::local_method_from_str(
+                            class_name_token.text(),
+                            method_name.text(),
+                        );
+                        if qualified.as_str() == func_name.as_str() {
+                            if let Some(llm_body) = method.llm_body() {
+                                if let Some(prompt_field) = llm_body.prompt_field() {
+                                    if let Some(raw_string) = prompt_field.raw_string() {
+                                        return Some(PromptTemplate::get_file_offset(&raw_string));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 /// Returns the names and spans of all functions defined in the project.
 ///
 /// This is a convenience function for WASM/external consumers that just need
@@ -837,6 +1179,101 @@ pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<Fu
 }
 
 //
+// ────────────────────────────────────────────────── TEMPLATE STRING QUERIES ─────
+//
+
+/// Returns the signature of a template string (parameters).
+///
+/// This is separate from the `ItemTree` to provide fine-grained incrementality.
+#[salsa::tracked]
+pub fn template_string_signature<'db>(
+    db: &'db dyn Db,
+    template_string: TemplateStringLoc<'db>,
+) -> Arc<TemplateStringSignature> {
+    let (signature, _source_map) = template_string_signature_with_source_map(db, template_string);
+    signature
+}
+
+/// Returns the source map for a template string signature (parameter spans).
+#[salsa::tracked]
+pub fn template_string_signature_source_map<'db>(
+    db: &'db dyn Db,
+    template_string: TemplateStringLoc<'db>,
+) -> SignatureSourceMap {
+    let (_signature, source_map) = template_string_signature_with_source_map(db, template_string);
+    source_map
+}
+
+/// Internal helper that computes both signature and source map together.
+fn template_string_signature_with_source_map<'db>(
+    db: &'db dyn Db,
+    template_string: TemplateStringLoc<'db>,
+) -> (Arc<TemplateStringSignature>, SignatureSourceMap) {
+    let file = template_string.file(db);
+    let item_tree = file_item_tree(db, file);
+    let ts = &item_tree[template_string.id(db)];
+    let ts_name = ts.name.clone();
+
+    let tree = syntax_tree(db, file);
+    let source_file = baml_compiler_syntax::ast::SourceFile::cast(tree).unwrap();
+
+    let default_signature = (
+        Arc::new(TemplateStringSignature {
+            name: ts.name.clone(),
+            params: vec![],
+        }),
+        SignatureSourceMap::default(),
+    );
+
+    let ts_def = source_file.items().find_map(|item| {
+        if let baml_compiler_syntax::ast::Item::TemplateString(ts_node) = item {
+            if ts_node.name().as_ref().map(SyntaxToken::text) == Some(&ts_name) {
+                return Some(TemplateStringSignature::lower(&ts_node));
+            }
+        }
+        None
+    });
+
+    ts_def.unwrap_or(default_signature)
+}
+
+/// Returns the body (prompt template) of a template string.
+#[salsa::tracked]
+pub fn template_string_body<'db>(
+    db: &'db dyn Db,
+    template_string: TemplateStringLoc<'db>,
+) -> Arc<PromptTemplate> {
+    let file = template_string.file(db);
+    let item_tree = file_item_tree(db, file);
+    let ts = &item_tree[template_string.id(db)];
+    let ts_name = ts.name.clone();
+
+    let tree = syntax_tree(db, file);
+    let source_file = baml_compiler_syntax::ast::SourceFile::cast(tree).unwrap();
+
+    let ts_def = source_file.items().find_map(|item| {
+        if let baml_compiler_syntax::ast::Item::TemplateString(ts_node) = item {
+            if ts_node.name().as_ref().map(SyntaxToken::text) == Some(&ts_name) {
+                return Some(ts_node);
+            }
+        }
+        None
+    });
+
+    if let Some(ts_node) = ts_def {
+        if let Some(raw_string) = ts_node.raw_string() {
+            let prompt = PromptTemplate::from_raw_string(&raw_string);
+            return Arc::new(prompt);
+        }
+    }
+
+    Arc::new(PromptTemplate {
+        text: String::new(),
+        interpolations: vec![],
+    })
+}
+
+//
 // ──────────────────────────────────────────────────────── INTERN HELPERS ─────
 //
 
@@ -901,6 +1338,14 @@ fn intern_all_items<'db>(db: &'db dyn Db, file: SourceFile, tree: &ItemTree) -> 
     for local_id in generators {
         let loc = GeneratorLoc::new(db, file, local_id);
         items.push(ItemId::Generator(loc));
+    }
+
+    // Intern template strings
+    let mut template_strings: Vec<_> = tree.template_strings.keys().copied().collect();
+    template_strings.sort_by_key(|id| id.as_u32());
+    for local_id in template_strings {
+        let loc = TemplateStringLoc::new(db, file, local_id);
+        items.push(ItemId::TemplateString(loc));
     }
 
     items
@@ -1006,6 +1451,11 @@ fn lower_item(tree: &mut ItemTree, node: &SyntaxNode, ctx: &mut LoweringContext)
         SyntaxKind::GENERATOR_DEF => {
             if let Some(g) = generator::lower_generator(node, ctx) {
                 tree.alloc_generator(g);
+            }
+        }
+        SyntaxKind::TEMPLATE_STRING_DEF => {
+            if let Some(ts) = lower_template_string(node) {
+                tree.alloc_template_string(ts);
             }
         }
         SyntaxKind::LET_STMT => {
@@ -1514,6 +1964,16 @@ fn lower_function(node: &SyntaxNode) -> Option<Function> {
     })
 }
 
+/// Extract template string from CST.
+fn lower_template_string(node: &SyntaxNode) -> Option<item_tree::TemplateString> {
+    use baml_compiler_syntax::ast::TemplateStringDef;
+
+    let ts = TemplateStringDef::cast(node.clone())?;
+    let name = ts.name()?.text().into();
+
+    Some(item_tree::TemplateString { name })
+}
+
 /// Extract type alias from CST.
 pub(crate) fn lower_type_alias(node: &SyntaxNode) -> Option<TypeAlias> {
     use baml_compiler_syntax::ast::TypeAliasDef;
@@ -1723,6 +2183,29 @@ fn validate_duplicate_names(db: &dyn Db, root: baml_workspace::Project) -> Vec<N
                         );
                     }
                 }
+            }
+            ItemId::TemplateString(loc) => {
+                let file = loc.file(db);
+                let item_tree = file_item_tree(db, file);
+                let local_id = loc.id(db);
+                let ts = &item_tree[local_id];
+                let span = get_item_name_span(
+                    db,
+                    file,
+                    "template_string",
+                    ts.name.as_str(),
+                    local_id.index(),
+                )
+                .unwrap_or_else(|| Span::new(file.file_id(db), TextRange::empty(0.into())));
+                let path = file.path(db).display().to_string();
+                check_duplicate(
+                    &mut seen,
+                    &mut errors,
+                    ts.name.clone(),
+                    "template_string",
+                    span,
+                    path,
+                );
             }
         }
     }
@@ -2160,7 +2643,10 @@ pub fn get_item_name_span(
 ) -> Option<Span> {
     use baml_compiler_syntax::{
         SyntaxKind,
-        ast::{ClassDef, ClientDef, EnumDef, FunctionDef, GeneratorDef, TestDef, TypeAliasDef},
+        ast::{
+            ClassDef, ClientDef, EnumDef, FunctionDef, GeneratorDef, TemplateStringDef, TestDef,
+            TypeAliasDef,
+        },
     };
 
     let tree = baml_compiler_parser::syntax_tree(db, file);
@@ -2268,6 +2754,18 @@ pub fn get_item_name_span(
             "test" if node.kind() == SyntaxKind::TEST_DEF => {
                 if let Some(test) = TestDef::cast(node) {
                     if let Some(name_token) = test.name() {
+                        if name_token.text() == name {
+                            if matches_found == occurrence {
+                                return Some(Span::new(file_id, name_token.text_range()));
+                            }
+                            matches_found += 1;
+                        }
+                    }
+                }
+            }
+            "template_string" if node.kind() == SyntaxKind::TEMPLATE_STRING_DEF => {
+                if let Some(ts) = TemplateStringDef::cast(node) {
+                    if let Some(name_token) = ts.name() {
                         if name_token.text() == name {
                             if matches_found == occurrence {
                                 return Some(Span::new(file_id, name_token.text_range()));
@@ -2548,6 +3046,16 @@ pub fn definition_name_span(db: &dyn Db, def: Definition<'_>) -> Span {
             (
                 file,
                 "test",
+                item_tree[loc.id(db)].name.clone(),
+                loc.id(db).index(),
+            )
+        }
+        Definition::TemplateString(loc) => {
+            let file = loc.file(db);
+            let item_tree = file_item_tree(db, file);
+            (
+                file,
+                "template_string",
                 item_tree[loc.id(db)].name.clone(),
                 loc.id(db).index(),
             )

@@ -50,11 +50,11 @@ function FooBar(arg) -> bar {
 //    │ Note: Error code: E0010
 // ───╯
 // Error: Unknown type `bar`
-//    ╭─[ functions_v2_invalid.baml:1:1 ]
+//    ╭─[ functions_v2_invalid.baml:6:24 ]
 //    │
-//  1 │ function Foo() -> {
-//    │ │ 
-//    │ ╰─ Unknown type `bar`
+//  6 │ function FooBar(arg) -> bar {
+//    │                        ──┬─  
+//    │                          ╰─── Unknown type `bar`
 //    │ 
 //    │ Note: Error code: E0002
 // ───╯

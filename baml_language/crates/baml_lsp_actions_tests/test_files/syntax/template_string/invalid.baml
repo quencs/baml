@@ -35,4 +35,21 @@ template_string FunctionWithBadParams(
 
 //----
 //- diagnostics
-// <no-diagnostics-expected>
+// Error: Unknown type `Unknown`
+//    ╭─[ template_string_invalid.baml:2:11 ]
+//    │
+//  2 │     param: Unknown,
+//    │           ────┬───  
+//    │               ╰───── Unknown type `Unknown`
+//    │ 
+//    │ Note: Error code: E0002
+// ───╯
+// Error: Unknown type `Unknown2`
+//    ╭─[ template_string_invalid.baml:3:12 ]
+//    │
+//  3 │     param2: Unknown2[],
+//    │            ─────┬─────  
+//    │                 ╰─────── Unknown type `Unknown2`
+//    │ 
+//    │ Note: Error code: E0002
+// ───╯
