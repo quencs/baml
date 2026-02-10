@@ -395,39 +395,12 @@ pub fn compile_files(
 
                 // Handle different function body types
                 let mut compiled_fn = match &*body {
-                    baml_compiler_hir::FunctionBody::Llm(llm_body) => {
-                        // LLM functions are external operations dispatched by the engine.
-                        // TODO: Eventually these should compile to bytecode that calls
-                        // `baml.llm.render_prompt` orchestrator.
-                        let params: Vec<baml_base::Name> =
-                            signature.params.iter().map(|p| p.name.clone()).collect();
-
-                        // Extract prompt template and client from LLM body
-                        let prompt_template = llm_body.prompt.text.clone();
-                        let client = llm_body.client.to_string();
-
-                        Function {
-                            name: signature.name.to_string(),
-                            arity: params.len(),
-                            bytecode: Bytecode::new(),
-                            kind: FunctionKind::SysOp(SysOp::BamlLlmPrimitiveClientRenderPrompt),
-                            locals_in_scope: vec![
-                                params
-                                    .iter()
-                                    .map(std::string::ToString::to_string)
-                                    .collect(),
-                            ],
-                            span: baml_base::Span::fake(),
-                            block_notifications: Vec::new(),
-                            viz_nodes: Vec::new(),
-                            return_type: baml_type::Ty::Null,
-                            param_names: Vec::new(),
-                            param_types: Vec::new(),
-                            body_meta: Some(bex_vm_types::FunctionMeta::Llm {
-                                prompt_template,
-                                client,
-                            }),
-                        }
+                    baml_compiler_hir::FunctionBody::Llm(_) => {
+                        // LLM functions are now lowered to synthetic Expr bodies
+                        // during HIR lowering. This branch should be unreachable.
+                        unreachable!(
+                            "FunctionBody::Llm should have been converted to Expr during HIR lowering"
+                        );
                     }
                     baml_compiler_hir::FunctionBody::Missing => {
                         // Missing body - placeholder function
@@ -507,10 +480,18 @@ pub fn compile_files(
                     }
                 };
 
-                // Always set metadata (overwrite placeholder for Expr, redundant for Llm/Missing)
+                // Always set metadata (overwrite placeholder for Expr, redundant for Missing)
                 compiled_fn.return_type = meta_return_type;
                 compiled_fn.param_names = meta_param_names;
                 compiled_fn.param_types = meta_param_types;
+
+                // If this is an LLM function, attach prompt/client metadata
+                if let Some(llm_meta) = baml_compiler_hir::llm_function_meta(db, *func_loc) {
+                    compiled_fn.body_meta = Some(bex_vm_types::FunctionMeta::Llm {
+                        prompt_template: llm_meta.prompt.text.clone(),
+                        client: llm_meta.client.to_string(),
+                    });
+                }
 
                 // Validate types at emit time (safety net)
                 debug_assert!(

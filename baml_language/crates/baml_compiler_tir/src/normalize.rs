@@ -65,8 +65,6 @@ enum StructuralTy {
     Error,
     Void,
     Resource,
-    PromptAst,
-    PrimitiveClient,
     /// Internal-only type for builtins - any type is assignable to it.
     BuiltinUnknown,
     WatchAccessor(Box<StructuralTy>),
@@ -152,10 +150,16 @@ impl StructuralTy {
             }
 
             // Map covariance in value, invariant in key
+            // (with error-recovery: Unknown keys are compatible with any key type)
             (
                 StructuralTy::Map { key: k1, value: v1 },
                 StructuralTy::Map { key: k2, value: v2 },
-            ) => k1 == k2 && v1.is_subtype_of(v2, assumptions),
+            ) => {
+                let keys_compatible = k1 == k2
+                    || matches!(k1.as_ref(), StructuralTy::Unknown | StructuralTy::Error)
+                    || matches!(k2.as_ref(), StructuralTy::Unknown | StructuralTy::Error);
+                keys_compatible && v1.is_subtype_of(v2, assumptions)
+            }
 
             // Int <: Float
             (StructuralTy::Int, StructuralTy::Float) => true,
@@ -285,8 +289,6 @@ fn is_valid_map_key_type(ty: &Ty, aliases: &HashMap<Name, Ty>) -> bool {
             StructuralTy::Unknown => false,
             StructuralTy::Void => false,
             StructuralTy::Resource => false,
-            StructuralTy::PromptAst => false,
-            StructuralTy::PrimitiveClient => false,
             StructuralTy::BuiltinUnknown => false,
             StructuralTy::WatchAccessor(_) => false,
         }
@@ -363,8 +365,6 @@ fn normalize_impl(
         Ty::Error => StructuralTy::Error,
         Ty::Void => StructuralTy::Void,
         Ty::Resource => StructuralTy::Resource,
-        Ty::PromptAst => StructuralTy::PromptAst,
-        Ty::PrimitiveClient => StructuralTy::PrimitiveClient,
         Ty::BuiltinUnknown => StructuralTy::BuiltinUnknown,
         Ty::Literal(lit) => StructuralTy::Literal(lit.clone()),
         Ty::Class(fqn) => StructuralTy::Class(fqn.name.clone()),

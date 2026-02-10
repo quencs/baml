@@ -4,6 +4,38 @@ use rowan::ast::AstNode;
 
 use crate::{SyntaxKind, SyntaxNode, SyntaxToken};
 
+/// Extract a dotted name from a token sequence (e.g., `baml.http.Request` → `"baml.http.Request"`).
+///
+/// Finds the first WORD token, then consumes alternating DOT + WORD pairs.
+fn extract_dotted_name<'a>(tokens: impl Iterator<Item = &'a SyntaxToken>) -> Option<String> {
+    let mut parts = Vec::new();
+    let mut iter = tokens.filter(|t| !t.kind().is_trivia());
+
+    // Find first WORD
+    let first = loop {
+        match iter.next() {
+            Some(t) if t.kind() == SyntaxKind::WORD => break t,
+            Some(_) => continue,
+            None => return None,
+        }
+    };
+    parts.push(first.text().to_string());
+
+    // Consume alternating DOT + WORD
+    while let Some(t) = iter.next() {
+        if t.kind() != SyntaxKind::DOT {
+            break;
+        }
+        let Some(word) = iter.next() else { break };
+        if word.kind() != SyntaxKind::WORD {
+            break;
+        }
+        parts.push(word.text().to_string());
+    }
+
+    Some(parts.join("."))
+}
+
 /// Trait for all AST nodes.
 pub trait BamlAstNode: AstNode<Language = crate::BamlLanguage> {
     /// Get the syntax kind of this node.
@@ -113,6 +145,14 @@ impl UnionMemberParts {
             .iter()
             .find(|t| t.kind() == SyntaxKind::WORD)
             .map(rowan::SyntaxToken::text)
+    }
+
+    /// Get the full dotted name (all WORD tokens joined by DOTs).
+    ///
+    /// For `baml.http.Request` returns `Some("baml.http.Request")`.
+    /// For `MyClass` returns `Some("MyClass")`.
+    pub fn dotted_name(&self) -> Option<String> {
+        extract_dotted_name(self.tokens.iter())
     }
 
     /// Check if this member has a trailing `?` (optional modifier).
@@ -381,6 +421,20 @@ impl TypeExpr {
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|t| t.kind() == SyntaxKind::WORD)
             .map(|t| t.text().to_string())
+    }
+
+    /// Get the full dotted type name (all WORD tokens joined by DOTs).
+    ///
+    /// For `baml.http.Request` returns `Some("baml.http.Request")`.
+    /// For `int` returns `Some("int")`.
+    /// For `"user"` returns `None`.
+    pub fn dotted_name(&self) -> Option<String> {
+        let tokens: Vec<_> = self
+            .syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .collect();
+        extract_dotted_name(tokens.iter())
     }
 
     /// Check if this is a string literal type like `"user"`.
