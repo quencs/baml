@@ -475,6 +475,40 @@ Before submitting:
 
 ---
 
+## Agent Surface Contract (Required)
+
+When docs change, keep the agent-facing surface reliable.
+
+### Required Build/Serve Workflow
+
+- Use `pnpm build` to generate post-build artifacts.
+- Use `pnpm serve` (not `pnpm start`) to validate built artifacts.
+- `pnpm start` runs source-mode dev server and may not expose `llms.txt` artifacts.
+
+### Required Checks
+
+- `pnpm build`
+- `pnpm check:agent-surface`
+- Verify `llms.txt` includes high-signal routes:
+  - `/agent-start-here`
+  - `/tour/hello-baml`
+  - `/tutorials/getting-started`
+  - `/reference/baml-syntax`
+
+### If You Add A New Top-Level Section
+
+- Update `llmsTxt.sections` in `docusaurus.config.js`
+- Add at least one "start here" page for that section
+- Add cross-links from at least two existing pages
+
+### Monthly Maintenance
+
+- Confirm `/llms.txt` and `/llms-full.txt` are reachable in production
+- Confirm `robots.txt` and `sitemap.xml` are reachable
+- Run agent quality checks and fix broken/stale routes
+
+---
+
 ## Anti-Patterns
 
 ### Wall of Text
