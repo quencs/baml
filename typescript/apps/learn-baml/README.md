@@ -21,6 +21,21 @@ Open [http://localhost:3000](http://localhost:3000) to view the site.
 The Bun API server listens on `3001` by default; set `BAML_API_PORT` to override.
 Set `BAML_API_ORIGIN` if you need the dev proxy to point to a custom host.
 
+## Serving Modes (`start` vs `serve`)
+
+This distinction is important for LLM artifacts:
+
+- `pnpm start` runs `docusaurus start` (dev server from source files). It does **not** serve post-build artifacts like `llms.txt` and `llms-full.txt`.
+- `pnpm serve` runs `docusaurus serve` (serves the built `build/` output). Use this when validating crawler/agent artifacts.
+
+To verify local `llms.txt` output:
+
+```bash
+pnpm build
+pnpm serve
+# then open http://localhost:3000/llms.txt
+```
+
 ## Project Structure
 
 ```
@@ -131,7 +146,7 @@ Additionally:
 # Start Docusaurus + Bun API server
 pnpm dev
 
-# Start only the Docusaurus dev server
+# Start only the Docusaurus dev server (source mode)
 pnpm dev:site
 
 # Start only the Bun API server (chat)
@@ -140,12 +155,28 @@ pnpm dev:api
 # Build for production
 pnpm build
 
-# Run production build locally
+# Serve built static output (includes llms.txt / llms-full.txt)
+pnpm serve
+
+# Run production Bun server
 pnpm start:server
 ```
 
 When documentation changes, regenerate embeddings before building or deploying:
 `pnpm build:embeddings`
+
+## Agent Surface Checks
+
+After building, run:
+
+```bash
+pnpm check:agent-surface
+```
+
+This validates that key agent-facing artifacts and routes are present:
+- `build/llms.txt`
+- `build/llms-full.txt`
+- seed routes such as `/agent-start-here`, `/tour/hello-baml`, and `/reference/baml-syntax`
 
 ## Related Documents
 
