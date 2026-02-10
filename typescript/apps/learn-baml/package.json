@@ -11,6 +11,7 @@
     "build:embeddings": "tsx scripts/build-embeddings.ts",
     "build:site": "docusaurus build",
     "build": "pnpm build:embeddings && pnpm build:site",
+    "check:agent-surface": "node scripts/check-agent-surface.mjs",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
