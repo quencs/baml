@@ -850,6 +850,8 @@ dependencies = [
 name = "bex_heap"
 version = "0.0.0"
 dependencies = [
+ "baml_builtins",
+ "baml_builtins_macros",
  "baml_type",
  "bex_external_types",
  "bex_resource_types",
