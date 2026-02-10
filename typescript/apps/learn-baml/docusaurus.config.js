@@ -2,6 +2,8 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import devProxyPlugin from './src/plugins/dev-proxy/index.js';
 
+const isCI = process.env.CI === 'true';
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Learn BAML',
@@ -46,11 +48,11 @@ const config = {
   organizationName: 'Boundary',
   projectName: 'baml',
 
-  onBrokenLinks: 'warn',
+  onBrokenLinks: isCI ? 'throw' : 'warn',
 
   markdown: {
     hooks: {
-      onBrokenMarkdownLinks: 'warn',
+      onBrokenMarkdownLinks: isCI ? 'throw' : 'warn',
     },
   },
 
@@ -68,12 +70,66 @@ const config = {
           enableFiles: true,
           includeDocs: true,
           includeBlog: false,
-          includePages: false,
+          includePages: true,
         },
         llmsTxt: {
           siteTitle: 'Learn BAML',
           siteDescription: 'Build reliable AI applications with structured outputs',
           includeDocs: true,
+          includeBlog: false,
+          includePages: true,
+          enableLlmsFullTxt: true,
+          sections: [
+            {
+              id: 'agent-start',
+              name: 'Agent Start Here',
+              description: 'Fast orientation for AI agents and retrieval pipelines.',
+              position: 1,
+              routes: [{ route: '/agent-start-here' }],
+            },
+            {
+              id: 'tour',
+              name: 'Tour',
+              description: 'Interactive onboarding modules for first success.',
+              position: 2,
+              routes: [{ route: '/tour/**' }],
+            },
+            {
+              id: 'tutorials',
+              name: 'Tutorials',
+              description: 'Step-by-step learning paths.',
+              position: 3,
+              routes: [{ route: '/tutorials/**' }],
+            },
+            {
+              id: 'how-to',
+              name: 'How-to Guides',
+              description: 'Task-oriented implementation guides.',
+              position: 4,
+              routes: [{ route: '/how-to/**' }],
+            },
+            {
+              id: 'concepts',
+              name: 'Concepts',
+              description: 'Mental models and tradeoffs.',
+              position: 5,
+              routes: [{ route: '/concepts/**' }],
+            },
+            {
+              id: 'reference',
+              name: 'Reference',
+              description: 'Complete API and language reference.',
+              position: 6,
+              routes: [{ route: '/reference/**' }],
+            },
+            {
+              id: 'cookbook',
+              name: 'Cookbook',
+              description: 'Production-oriented patterns and recipes.',
+              position: 7,
+              routes: [{ route: '/cookbook/**' }],
+            },
+          ],
         },
         ui: {
           copyPageContent: {
