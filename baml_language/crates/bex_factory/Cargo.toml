@@ -1,5 +1,5 @@
 [package]
-name = "baml_compiler_hir"
+name = "bex_factory"
 version = { workspace = true }
 publish = false
 authors = { workspace = true }
@@ -9,6 +9,7 @@ homepage = { workspace = true }
 documentation = { workspace = true }
 repository = { workspace = true }
 license = { workspace = true }
+description = "Reusable compile-and-run runtime for BAML programs"
 
 [lib]
 doctest = false
@@ -19,10 +20,10 @@ workspace = true
 [dependencies]
 baml_base = { workspace = true }
 baml_compiler_diagnostics = { workspace = true }
-baml_compiler_parser = { workspace = true }
-baml_compiler_syntax = { workspace = true }
-baml_workspace = { workspace = true }
-la-arena = { workspace = true }
-rowan = { workspace = true }
-rustc-hash = { workspace = true }
-salsa = { workspace = true }
+baml_compiler_emit = { workspace = true }
+baml_project = { workspace = true }
+bex_engine = { workspace = true }
+bex_external_types = { workspace = true }
+bex_heap = { workspace = true }
+sys_types = { workspace = true }
+thiserror = { workspace = true }
