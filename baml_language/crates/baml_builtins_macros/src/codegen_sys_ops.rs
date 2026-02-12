@@ -67,16 +67,19 @@ pub(crate) fn generate(collected: &CollectedBuiltins) -> TokenStream2 {
 
                     let output_type = sys_op_output_type(d, &collected.builtin_types);
 
+                    // Clean method: &self + params. Implementors override this.
                     let clean_method = quote! {
                         #[allow(unused_variables)]
-                        fn #fn_name(#clean_params #ctx_param) -> #output_type {
+                        fn #fn_name(&self, #clean_params #ctx_param) -> #output_type {
                             SysOpOutput::err(OpErrorKind::Unsupported)
                         }
                     };
 
+                    // Glue: instance method that extracts args and calls self.#fn_name(...).
                     let glue_method = quote! {
                         #[doc(hidden)]
                         fn #glue_fn_name(
+                            &self,
                             heap: &::std::sync::Arc<BexHeap>,
                             args: Vec<bex_heap::BexValue<'_>>,
                             ctx: &SysOpContext,
@@ -91,7 +94,7 @@ pub(crate) fn generate(collected: &CollectedBuiltins) -> TokenStream2 {
                                 )));
                             }
                             #extraction
-                            Self::#fn_name(#clean_call_args #ctx_arg).into_result(SysOp::#variant_name)
+                            self.#fn_name(#clean_call_args #ctx_arg).into_result(SysOp::#variant_name)
                         }
                     };
 
@@ -125,14 +128,16 @@ pub(crate) fn generate(collected: &CollectedBuiltins) -> TokenStream2 {
         .map(|d| {
             let fn_name = &d.fn_name;
             let glue_fn_name = format_ident!("__{}", fn_name);
-            quote! { #fn_name: ::std::sync::Arc::new(T::#glue_fn_name), }
+            quote! {
+                #fn_name: ::std::sync::Arc::new(move |heap, args, ctx| T::default().#glue_fn_name(heap, args, ctx)),
+            }
         })
         .collect();
 
     let from_impl_method = quote! {
         impl SysOps {
             /// Build a `SysOps` table from a type that implements the per-module traits.
-            pub fn from_impl<T: #(#trait_names)+* + 'static>() -> Self {
+            pub fn from_impl<T: Default + #(#trait_names)+* + 'static>() -> Self {
                 Self {
                     #(#field_assignments)*
                 }
@@ -140,9 +145,79 @@ pub(crate) fn generate(collected: &CollectedBuiltins) -> TokenStream2 {
         }
     };
 
+    // Generate SysOpsBuilder::with_<module>::<T>() and with_<module>_instance for each non-llm module.
+    // Skip "llm": LLM ops use a blanket impl (SysOpLlm for T) and are not overridable via the builder.
+    let builder_methods: Vec<_> = module_order
+        .iter()
+        .filter(|m| m.as_str() != "llm")
+        .flat_map(|module_name| {
+            let ops = &module_ops[module_name];
+            let trait_name = format_ident!("SysOp{}", to_pascal_case(module_name));
+            let method_name = format_ident!("with_{}", module_name);
+            let instance_method_name = format_ident!("with_{}_instance", module_name);
+
+            let assignments: Vec<_> = ops
+                .iter()
+                .map(|d| {
+                    let fn_name = &d.fn_name;
+                    let glue_fn_name = format_ident!("__{}", fn_name);
+                    quote! {
+                        self.inner.#fn_name = ::std::sync::Arc::new(move |heap, args, ctx| T::default().#glue_fn_name(heap, args, ctx));
+                    }
+                })
+                .collect();
+
+            let doc = format!(
+                "Override the `{module_name}` module operations with the given implementation (type must implement `Default`)."
+            );
+            let with_module = quote! {
+                #[doc = #doc]
+                pub fn #method_name<T: Default + #trait_name + 'static>(mut self) -> Self {
+                    #(#assignments)*
+                    self
+                }
+            };
+
+            let instance_assignments: Vec<_> = ops
+                .iter()
+                .map(|d| {
+                    let fn_name = &d.fn_name;
+                    let glue_fn_name = format_ident!("__{}", fn_name);
+                    quote! {
+                        self.inner.#fn_name = {
+                            let __instance = ::std::sync::Arc::clone(&instance);
+                            ::std::sync::Arc::new(move |heap, args, ctx| __instance.#glue_fn_name(heap, args, ctx))
+                        };
+                    }
+                })
+                .collect();
+            let instance_doc = format!(
+                "Override the `{module_name}` module with an existing instance (e.g. when the type has no `Default`)."
+            );
+            let with_instance = quote! {
+                #[doc = #instance_doc]
+                pub fn #instance_method_name(
+                    mut self,
+                    instance: ::std::sync::Arc<dyn #trait_name + Send + Sync + 'static>,
+                ) -> Self {
+                    #(#instance_assignments)*
+                    self
+                }
+            };
+            vec![with_module, with_instance]
+        })
+        .collect();
+
+    let builder_impl = quote! {
+        impl SysOpsBuilder {
+            #(#builder_methods)*
+        }
+    };
+
     quote! {
         #(#trait_defs)*
         #from_impl_method
+        #builder_impl
     }
 }
 
