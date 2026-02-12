@@ -15,18 +15,21 @@
 //! // Initialize the WASM module
 //! await init();
 //!
-//! // Create a runtime with source files and HTTP callback
+//! // Create a runtime with source files and callbacks object
 //! const runtime = BamlWasmRuntime.create(
 //!     '/project',
 //!     JSON.stringify({ 'main.baml': 'function Greet(name: string) -> string { ... }' }),
-//!     async (method, url, headers, body) => {
-//!         const response = await fetch(url, { method, headers: JSON.parse(headers), body });
-//!         return {
-//!             status: response.status,
-//!             headersJson: JSON.stringify(Object.fromEntries(response.headers)),
-//!             url: response.url,
-//!             bodyPromise: response.text(),  // body is read when .text() is called in BAML
-//!         };
+//!     {
+//!         fetch: async (method, url, headers, body) => {
+//!             const response = await fetch(url, { method, headers: JSON.parse(headers), body });
+//!             return {
+//!                 status: response.status,
+//!                 headersJson: JSON.stringify(Object.fromEntries(response.headers)),
+//!                 url: response.url,
+//!                 bodyPromise: response.text(),  // body is read when .text() is called in BAML
+//!             };
+//!         },
+//!         env: (variable) => process.env[variable],  // or (variable) => undefined to disable env lookups
 //!     }
 //! );
 //!
@@ -37,6 +40,7 @@
 mod error;
 mod registry;
 mod send_wrapper;
+mod wasm_env;
 mod wasm_http;
 
 use std::collections::HashMap;
@@ -81,15 +85,24 @@ export type WasmFetchCallback = (
   headersJson: string,
   body: string,
 ) => Promise<{ status: number; headersJson: string; url: string; bodyPromise: Promise<string> }>;
+
+export type WasmEnvVarsCallback = (variable: string) => string | undefined;
 "#;
 
-// Typed `create` declaration (the auto-generated one is suppressed via skip_typescript).
-#[wasm_bindgen(typescript_custom_section)]
-const TS_CREATE_METHOD: &str = r#"
-export namespace BamlWasmRuntime {
-  function create(root_path: string, src_files_json: string, fetch_fn: WasmFetchCallback): BamlWasmRuntime;
+#[wasm_bindgen]
+extern "C" {
+    /// Callback bundle passed to [`BamlWasmRuntime::create`].
+    ///
+    /// From JS, pass a plain object: `{ fetch: ..., env: ... }`.
+    #[wasm_bindgen(typescript_type = "{ fetch: WasmFetchCallback; env: WasmEnvVarsCallback }")]
+    pub type WasmCallbacks;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn fetch(this: &WasmCallbacks) -> Function;
+
+    #[wasm_bindgen(method, getter, structural, js_name = "env")]
+    fn env(this: &WasmCallbacks) -> Function;
 }
-"#;
 
 /// A BAML runtime for WASM environments.
 ///
@@ -109,20 +122,23 @@ impl BamlWasmRuntime {
     /// * `root_path` - Root path for BAML files (e.g., "/project")
     /// * `src_files_json` - JSON object mapping filenames to content
     ///   e.g., `{"main.baml": "function Greet(name: string) -> string { ... }"}`
-    /// * `fetch_fn` - JS function for HTTP requests (see `WasmFetchCallback` type).
-    #[wasm_bindgen(skip_typescript)]
+    /// * `callbacks` - Object containing callback functions (see `WasmCallbacks` interface).
     pub fn create(
         root_path: &str,
         src_files_json: &str,
-        fetch_fn: Function,
+        callbacks: &WasmCallbacks,
     ) -> Result<BamlWasmRuntime, JsError> {
+        let fetch_fn = callbacks.fetch();
+        let env_vars_fn = callbacks.env();
+
         // Parse source files
         let src_files: HashMap<String, String> = serde_json::from_str(src_files_json)
             .map_err(|e| JsError::new(&format!("Failed to parse src_files_json: {e}")))?;
 
-        // Build SysOps with WASM HTTP implementation (each runtime gets its own WasmHttp holding fetch_fn)
+        // Build SysOps with WASM HTTP and env implementations
         let sys_ops = sys_types::SysOpsBuilder::new()
             .with_http_instance(std::sync::Arc::new(wasm_http::WasmHttp::new(fetch_fn)))
+            .with_env_instance(std::sync::Arc::new(wasm_env::WasmEnv::new(env_vars_fn)))
             .build();
 
         // Create the engine via factory
