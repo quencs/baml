@@ -3,6 +3,7 @@ import { existsSync, statSync } from 'fs';
 import { extname, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 import { handleChatRequest } from './chat-handler';
+import { handleTourReplRequest } from './tour-repl-handler';
 
 declare const Bun: any;
 
@@ -67,6 +68,10 @@ const server = Bun.serve({
 
     if (url.pathname === '/api/chat') {
       return handleChatRequest(req);
+    }
+
+    if (url.pathname === '/api/tour/repl') {
+      return handleTourReplRequest(req);
     }
 
     if (shouldServeStatic) {
