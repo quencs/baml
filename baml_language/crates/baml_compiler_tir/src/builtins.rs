@@ -5,10 +5,39 @@
 
 use std::collections::HashMap;
 
-use baml_base::baml_debug;
+use baml_base::{Name, baml_debug};
 use baml_builtins::{BuiltinSignature, TypePattern};
+use baml_compiler_hir::QualifiedName;
 
 use crate::Ty;
+
+/// Parse a builtin path string like "baml.http.Response" into an FQN.
+///
+/// The path is expected to start with "baml." and have at least one segment after.
+pub fn parse_builtin_path(path: &str) -> QualifiedName {
+    assert!(
+        path.starts_with("baml."),
+        "builtin path must start with 'baml.'"
+    );
+    // Strip "baml." prefix if present
+    let without_prefix = path.strip_prefix("baml.").unwrap_or(path);
+    let segments: Vec<&str> = without_prefix.split('.').collect();
+
+    assert!(
+        !segments.is_empty(),
+        "builtin path must have at least one segment"
+    );
+
+    if segments.len() == 1 {
+        // Just a name with no path, e.g., "Array"
+        QualifiedName::builtin_primitive(Name::new(segments[0]))
+    } else {
+        // Multiple segments: all but last are path, last is name
+        let (path_segments, name) = segments.split_at(segments.len() - 1);
+        let path: Vec<Name> = path_segments.iter().map(|s| Name::new(*s)).collect();
+        QualifiedName::builtin(path, Name::new(name[0]))
+    }
+}
 
 /// Type variable bindings from pattern matching.
 ///
@@ -82,11 +111,18 @@ fn match_pattern_inner(pattern: &TypePattern, ty: &Ty, bindings: &mut Bindings) 
         }
         (TypePattern::Media, Ty::Media(_)) => true,
 
-        // Builtin types match exactly by path
-        (TypePattern::Builtin(pattern_path), Ty::Builtin(ty_path)) => *pattern_path == ty_path,
+        // Builtin types match exactly by path - they are represented as Ty::Class now
+        // Use full display path (e.g., "baml.fs.File") for comparison
+        (TypePattern::Builtin(pattern_path), Ty::Class(fqn)) => *pattern_path == fqn.display(),
+
+        // Opaque runtime types match their corresponding patterns
+        (TypePattern::Resource, Ty::Resource) => true,
 
         // Unknown in Ty matches any pattern (for error recovery)
         (_, Ty::Unknown) => true,
+
+        // BuiltinUnknown accepts any type (for builtins that need heterogeneous values)
+        (TypePattern::BuiltinUnknown, _) => true,
 
         // No match
         _ => false,
@@ -118,7 +154,8 @@ pub fn substitute(pattern: &TypePattern, bindings: &Bindings) -> Ty {
         TypePattern::Var(name) => bindings
             .get(name)
             .cloned()
-            .unwrap_or_else(|| panic!("unbound type variable: {name}")),
+            // Fall back to Unknown for unbound type variables (e.g., "Any")
+            .unwrap_or(Ty::Unknown),
 
         TypePattern::Int => Ty::Int,
         TypePattern::Float => Ty::Float,
@@ -134,7 +171,16 @@ pub fn substitute(pattern: &TypePattern, bindings: &Bindings) -> Ty {
         },
         TypePattern::Media => Ty::Media(baml_base::MediaKind::Generic),
         TypePattern::Optional(inner) => Ty::Optional(Box::new(substitute(inner, bindings))),
-        TypePattern::Builtin(path) => Ty::Builtin((*path).to_string()),
+        TypePattern::Builtin(path) => Ty::Class(parse_builtin_path(path)),
+        TypePattern::Function { params, ret } => Ty::Function {
+            params: params
+                .iter()
+                .map(|p| (None, substitute(p, bindings)))
+                .collect(),
+            ret: Box::new(substitute(ret, bindings)),
+        },
+        TypePattern::Resource => Ty::Resource,
+        TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
     }
 }
 
@@ -157,7 +203,16 @@ pub fn substitute_unknown(pattern: &TypePattern) -> Ty {
         },
         TypePattern::Media => Ty::Media(baml_base::MediaKind::Generic),
         TypePattern::Optional(inner) => Ty::Optional(Box::new(substitute_unknown(inner))),
-        TypePattern::Builtin(path) => Ty::Builtin((*path).to_string()),
+        TypePattern::Builtin(path) => Ty::Class(parse_builtin_path(path)),
+        TypePattern::Function { params, ret } => Ty::Function {
+            params: params
+                .iter()
+                .map(|p| (None, substitute_unknown(p)))
+                .collect(),
+            ret: Box::new(substitute_unknown(ret)),
+        },
+        TypePattern::Resource => Ty::Resource,
+        TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
     }
 }
 
@@ -350,5 +405,24 @@ mod tests {
     fn test_no_such_method() {
         let arr_ty = Ty::List(Box::new(Ty::Int));
         assert!(lookup_method(&arr_ty, "nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_match_opaque_types() {
+        assert!(match_pattern(&TypePattern::Resource, &Ty::Resource).is_some());
+
+        // Resource should not match other types
+        assert!(match_pattern(&TypePattern::Resource, &Ty::Int).is_none());
+    }
+
+    #[test]
+    fn test_substitute_opaque_types() {
+        let bindings = HashMap::new();
+        assert_eq!(substitute(&TypePattern::Resource, &bindings), Ty::Resource);
+    }
+
+    #[test]
+    fn test_substitute_unknown_opaque_types() {
+        assert_eq!(substitute_unknown(&TypePattern::Resource), Ty::Resource);
     }
 }

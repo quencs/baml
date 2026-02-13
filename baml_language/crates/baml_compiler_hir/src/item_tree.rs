@@ -12,8 +12,8 @@ use rustc_hash::FxHashMap;
 use crate::{
     ids::{ItemKind, LocalItemId, hash_name},
     loc::{
-        ClassMarker, ClientMarker, EnumMarker, FunctionMarker, GeneratorMarker, TestMarker,
-        TypeAliasMarker,
+        ClassMarker, ClientMarker, EnumMarker, FunctionMarker, GeneratorMarker,
+        TemplateStringMarker, TestMarker, TypeAliasMarker,
     },
     type_ref::TypeRef,
 };
@@ -75,6 +75,7 @@ pub struct ItemTree {
     pub(crate) clients: FxHashMap<LocalItemId<ClientMarker>, Client>,
     pub(crate) generators: FxHashMap<LocalItemId<GeneratorMarker>, Generator>,
     pub(crate) tests: FxHashMap<LocalItemId<TestMarker>, Test>,
+    pub(crate) template_strings: FxHashMap<LocalItemId<TemplateStringMarker>, TemplateString>,
 
     /// Collision tracker: (`ItemKind`, hash) -> next available index.
     /// Single map for all item types, following rust-analyzer's pattern.
@@ -98,6 +99,7 @@ impl ItemTree {
             clients: FxHashMap::default(),
             generators: FxHashMap::default(),
             tests: FxHashMap::default(),
+            template_strings: FxHashMap::default(),
             next_index: FxHashMap::default(),
         }
     }
@@ -161,10 +163,36 @@ impl ItemTree {
         id
     }
 
+    /// Add a template string and return its local ID.
+    pub fn alloc_template_string(
+        &mut self,
+        template_string: TemplateString,
+    ) -> LocalItemId<TemplateStringMarker> {
+        let id = self.alloc_id(ItemKind::TemplateString, &template_string.name);
+        self.template_strings.insert(id, template_string);
+        id
+    }
+
     /// Iterate over all classes in the item tree.
     pub fn iter_classes(&self) -> impl Iterator<Item = (&LocalItemId<ClassMarker>, &Class)> {
         self.classes.iter()
     }
+}
+
+/// Metadata for compiler-generated functions.
+///
+/// These functions are created by the compiler during HIR lowering,
+/// not by the user. They skip type inference and have special handling.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompilerGenerated {
+    /// Client resolve function - evaluates options and returns `PrimitiveClient`.
+    /// Contains the client name (e.g., "GPT4" for "GPT4.resolve").
+    ClientResolve { client_name: Name },
+    /// LLM function - its body is synthetically generated to call
+    /// `baml.llm.call_llm_function(name, args)`.
+    /// This is a marker only; metadata (prompt, client) is in a separate query
+    /// to preserve `ItemTree` early cutoff on body changes.
+    LlmFunction,
 }
 
 /// A function definition in the `ItemTree`.
@@ -174,6 +202,9 @@ impl ItemTree {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
     pub name: Name,
+    /// If this function is compiler-generated, contains the metadata.
+    /// `None` for user-defined functions.
+    pub compiler_generated: Option<CompilerGenerated>,
 }
 
 /// A class definition.
@@ -247,6 +278,10 @@ pub struct TypeAlias {
 pub struct Client {
     pub name: Name,
     pub provider: Name,
+    /// Default role for chat messages (e.g., "user").
+    pub default_role: Option<String>,
+    /// Allowed roles for chat messages.
+    pub allowed_roles: Vec<String>,
 }
 
 /// Test definition.
@@ -302,6 +337,15 @@ pub struct Generator {
     pub client_package_name: Option<String>,
     /// Module format for TypeScript: "cjs" or "esm".
     pub module_format: Option<String>,
+}
+
+/// Template string definition.
+///
+/// Template strings are reusable prompt fragments that can be called
+/// from within function prompts. They have parameters and a body template.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TemplateString {
+    pub name: Name,
 }
 
 //
@@ -371,5 +415,15 @@ impl Index<LocalItemId<GeneratorMarker>> for ItemTree {
         self.generators
             .get(&index)
             .expect("Generator not found in ItemTree")
+    }
+}
+
+/// Index `ItemTree` by `TemplateStringMarker` to get `TemplateString` data.
+impl Index<LocalItemId<TemplateStringMarker>> for ItemTree {
+    type Output = TemplateString;
+    fn index(&self, index: LocalItemId<TemplateStringMarker>) -> &Self::Output {
+        self.template_strings
+            .get(&index)
+            .expect("TemplateString not found in ItemTree")
     }
 }

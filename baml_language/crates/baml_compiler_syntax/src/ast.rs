@@ -4,6 +4,38 @@ use rowan::ast::AstNode;
 
 use crate::{SyntaxKind, SyntaxNode, SyntaxToken};
 
+/// Extract a dotted name from a token sequence (e.g., `baml.http.Request` → `"baml.http.Request"`).
+///
+/// Finds the first WORD token, then consumes alternating DOT + WORD pairs.
+fn extract_dotted_name<'a>(tokens: impl Iterator<Item = &'a SyntaxToken>) -> Option<String> {
+    let mut parts = Vec::new();
+    let mut iter = tokens.filter(|t| !t.kind().is_trivia());
+
+    // Find first WORD
+    let first = loop {
+        match iter.next() {
+            Some(t) if t.kind() == SyntaxKind::WORD => break t,
+            Some(_) => continue,
+            None => return None,
+        }
+    };
+    parts.push(first.text().to_string());
+
+    // Consume alternating DOT + WORD
+    while let Some(t) = iter.next() {
+        if t.kind() != SyntaxKind::DOT {
+            break;
+        }
+        let Some(word) = iter.next() else { break };
+        if word.kind() != SyntaxKind::WORD {
+            break;
+        }
+        parts.push(word.text().to_string());
+    }
+
+    Some(parts.join("."))
+}
+
 /// Trait for all AST nodes.
 pub trait BamlAstNode: AstNode<Language = crate::BamlLanguage> {
     /// Get the syntax kind of this node.
@@ -68,6 +100,13 @@ ast_node!(ConfigItem, CONFIG_ITEM);
 ast_node!(ClientField, CLIENT_FIELD);
 ast_node!(PromptField, PROMPT_FIELD);
 ast_node!(RawStringLiteral, RAW_STRING_LITERAL);
+ast_node!(StringLiteral, STRING_LITERAL);
+
+// Jinja template components (inside raw strings)
+ast_node!(JinjaExpression, TEMPLATE_INTERPOLATION);
+ast_node!(JinjaStatement, TEMPLATE_CONTROL);
+ast_node!(JinjaComment, TEMPLATE_COMMENT);
+ast_node!(PromptText, PROMPT_TEXT);
 
 ast_node!(TypeExpr, TYPE_EXPR);
 ast_node!(Attribute, ATTRIBUTE);
@@ -106,6 +145,14 @@ impl UnionMemberParts {
             .iter()
             .find(|t| t.kind() == SyntaxKind::WORD)
             .map(rowan::SyntaxToken::text)
+    }
+
+    /// Get the full dotted name (all WORD tokens joined by DOTs).
+    ///
+    /// For `baml.http.Request` returns `Some("baml.http.Request")`.
+    /// For `MyClass` returns `Some("MyClass")`.
+    pub fn dotted_name(&self) -> Option<String> {
+        extract_dotted_name(self.tokens.iter())
     }
 
     /// Check if this member has a trailing `?` (optional modifier).
@@ -184,6 +231,17 @@ impl UnionMemberParts {
         self.child_nodes
             .iter()
             .find(|n| n.kind() == SyntaxKind::TYPE_ARGS)
+            .cloned()
+    }
+
+    /// Get the `FUNCTION_TYPE_PARAM` child node if present.
+    ///
+    /// This is used for parenthesized types like `(Union | Union)` which have
+    /// `L_PAREN`, `FUNCTION_TYPE_PARAM`, `R_PAREN` as direct children.
+    pub fn function_type_param(&self) -> Option<SyntaxNode> {
+        self.child_nodes
+            .iter()
+            .find(|n| n.kind() == SyntaxKind::FUNCTION_TYPE_PARAM)
             .cloned()
     }
 
@@ -280,15 +338,45 @@ impl TypeExpr {
 
     /// Get the inner `TypeExpr` for parenthesized types like `(int | string)`.
     ///
-    /// Returns None if this is not a parenthesized type.
+    /// Returns None if this is not a parenthesized type or if it's a function type.
+    /// For function types, use `function_type_params()` and `function_return_type()` instead.
     pub fn inner_type_expr(&self) -> Option<TypeExpr> {
         if !self.is_parenthesized() {
             return None;
         }
-        self.syntax
+        // If this is a function type, don't return the inner type
+        // (use function_type_params/function_return_type instead)
+        if self.is_function_type() {
+            return None;
+        }
+
+        // First, try to find a direct TYPE_EXPR child (legacy structure)
+        if let Some(n) = self
+            .syntax
             .children()
             .find(|n| n.kind() == SyntaxKind::TYPE_EXPR)
-            .map(|n| TypeExpr { syntax: n })
+        {
+            return Some(TypeExpr { syntax: n });
+        }
+
+        // With the new parser, parenthesized types have FUNCTION_TYPE_PARAM children
+        // that wrap the inner TYPE_EXPR. If there's exactly one FUNCTION_TYPE_PARAM
+        // (and no arrow, which we already checked above), get its inner type.
+        let params: Vec<_> = self
+            .syntax
+            .children()
+            .filter(|n| n.kind() == SyntaxKind::FUNCTION_TYPE_PARAM)
+            .collect();
+
+        if params.len() == 1 {
+            // Get the TYPE_EXPR from inside the FUNCTION_TYPE_PARAM
+            return params[0]
+                .children()
+                .find(|n| n.kind() == SyntaxKind::TYPE_EXPR)
+                .map(|n| TypeExpr { syntax: n });
+        }
+
+        None
     }
 
     /// Get all child `TypeExpr` nodes.
@@ -333,6 +421,20 @@ impl TypeExpr {
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|t| t.kind() == SyntaxKind::WORD)
             .map(|t| t.text().to_string())
+    }
+
+    /// Get the full dotted type name (all WORD tokens joined by DOTs).
+    ///
+    /// For `baml.http.Request` returns `Some("baml.http.Request")`.
+    /// For `int` returns `Some("int")`.
+    /// For `"user"` returns `None`.
+    pub fn dotted_name(&self) -> Option<String> {
+        let tokens: Vec<_> = self
+            .syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .collect();
+        extract_dotted_name(tokens.iter())
     }
 
     /// Check if this is a string literal type like `"user"`.
@@ -424,7 +526,127 @@ impl TypeExpr {
     pub fn text_range(&self) -> rowan::TextRange {
         self.syntax.text_range()
     }
+
+    /// Check if this is a function type: `(x: int, y: int) -> bool` or `(int) -> bool`.
+    ///
+    /// A function type has:
+    /// - An `L_PAREN` token
+    /// - Zero or more `FUNCTION_TYPE_PARAM` children
+    /// - An `R_PAREN` token
+    /// - An `ARROW` token
+    /// - A return type `TYPE_EXPR`
+    pub fn is_function_type(&self) -> bool {
+        // Check for ARROW token at the top level (not inside nested TYPE_EXPR)
+        // The arrow must be a direct child token, not inside a child node
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .any(|t| t.kind() == SyntaxKind::ARROW)
+    }
+
+    /// Get the parameters of a function type.
+    ///
+    /// Returns an empty vec if this is not a function type.
+    /// Each parameter is wrapped in a `FunctionTypeParam` which provides
+    /// access to the optional name and the type.
+    pub fn function_type_params(&self) -> Vec<FunctionTypeParam> {
+        self.syntax
+            .children()
+            .filter(|n| n.kind() == SyntaxKind::FUNCTION_TYPE_PARAM)
+            .map(|n| FunctionTypeParam { syntax: n })
+            .collect()
+    }
+
+    /// Get the return type of a function type.
+    ///
+    /// For `(x: int) -> string`, returns the `TypeExpr` for `string`.
+    /// Returns None if this is not a function type or if the return type is missing.
+    pub fn function_return_type(&self) -> Option<TypeExpr> {
+        if !self.is_function_type() {
+            return None;
+        }
+        // The return type is the TYPE_EXPR that comes after the ARROW
+        // We need to find the TYPE_EXPR that is NOT inside a FUNCTION_TYPE_PARAM
+        // Since FUNCTION_TYPE_PARAMs contain their own TYPE_EXPRs, we look for
+        // the direct child TYPE_EXPR (which is the return type)
+        self.syntax
+            .children()
+            .filter(|n| n.kind() == SyntaxKind::TYPE_EXPR)
+            .map(|n| TypeExpr { syntax: n })
+            .last() // The return type is typically the last TYPE_EXPR
+    }
 }
+
+/// A parameter in a function type expression.
+///
+/// Can be either:
+/// - Named: `x: int`
+/// - Unnamed: `int`
+///
+/// Parameter names are for documentation only and do not affect type equality.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FunctionTypeParam {
+    syntax: SyntaxNode,
+}
+
+impl BamlAstNode for FunctionTypeParam {}
+
+impl AstNode for FunctionTypeParam {
+    type Language = crate::BamlLanguage;
+
+    fn can_cast(kind: <Self::Language as rowan::Language>::Kind) -> bool {
+        kind == SyntaxKind::FUNCTION_TYPE_PARAM
+    }
+
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+}
+
+impl FunctionTypeParam {
+    /// Get the parameter name if present.
+    ///
+    /// For `x: int`, returns `Some("x")`.
+    /// For just `int`, returns `None`.
+    pub fn name(&self) -> Option<String> {
+        // If there's a COLON, the first WORD before it is the name
+        let has_colon = self
+            .syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .any(|t| t.kind() == SyntaxKind::COLON);
+
+        if has_colon {
+            self.syntax
+                .children_with_tokens()
+                .filter_map(rowan::NodeOrToken::into_token)
+                .find(|t| t.kind() == SyntaxKind::WORD)
+                .map(|t| t.text().to_string())
+        } else {
+            None
+        }
+    }
+
+    /// Get the type of this parameter.
+    ///
+    /// For `x: int`, returns the `TypeExpr` for `int`.
+    /// For just `int`, returns the `TypeExpr` for `int`.
+    pub fn ty(&self) -> Option<TypeExpr> {
+        self.syntax
+            .children()
+            .find(|n| n.kind() == SyntaxKind::TYPE_EXPR)
+            .map(|n| TypeExpr { syntax: n })
+    }
+}
+
 ast_node!(BlockAttribute, BLOCK_ATTRIBUTE);
 
 ast_node!(Expr, EXPR);
@@ -466,6 +688,7 @@ ast_node!(BreakStmt, BREAK_STMT);
 ast_node!(ContinueStmt, CONTINUE_STMT);
 ast_node!(PathExpr, PATH_EXPR);
 ast_node!(FieldAccessExpr, FIELD_ACCESS_EXPR);
+ast_node!(EnvAccessExpr, ENV_ACCESS_EXPR);
 ast_node!(MatchExpr, MATCH_EXPR);
 ast_node!(MatchArm, MATCH_ARM);
 ast_node!(MatchPattern, MATCH_PATTERN);
@@ -527,6 +750,28 @@ impl FunctionDef {
     }
 }
 
+impl TemplateStringDef {
+    /// Get the template string name.
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| {
+                token.kind() == SyntaxKind::WORD && token.parent() == Some(self.syntax.clone())
+            })
+    }
+
+    /// Get the parameter list.
+    pub fn param_list(&self) -> Option<ParameterList> {
+        self.syntax.children().find_map(ParameterList::cast)
+    }
+
+    /// Get the raw string literal containing the template body.
+    pub fn raw_string(&self) -> Option<RawStringLiteral> {
+        self.syntax.children().find_map(RawStringLiteral::cast)
+    }
+}
+
 impl LlmFunctionBody {
     /// Get the client field if present.
     ///
@@ -544,14 +789,33 @@ impl LlmFunctionBody {
 }
 
 impl ClientField {
-    /// Get the client name token.
+    /// Get the client name token if it's a simple identifier.
     ///
     /// For `client GPT4`, returns the `GPT4` token.
+    /// For `client "openai/gpt-4o"`, returns None (use `name_or_string()` instead).
     pub fn name(&self) -> Option<SyntaxToken> {
         self.syntax
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|token| token.kind() == SyntaxKind::WORD)
+    }
+
+    /// Get the client value as a string, whether it's an identifier or a string literal.
+    ///
+    /// For `client GPT4`, returns "GPT4".
+    /// For `client "openai/gpt-4o"`, returns "openai/gpt-4o".
+    pub fn value(&self) -> Option<String> {
+        // First try to get it as a simple identifier (WORD token)
+        if let Some(token) = self.name() {
+            return Some(token.text().to_string());
+        }
+
+        // Otherwise, try to get it as a string literal
+        if let Some(string_node) = self.syntax.children().find_map(StringLiteral::cast) {
+            return Some(string_node.value());
+        }
+
+        None
     }
 }
 
@@ -564,11 +828,122 @@ impl PromptField {
     }
 }
 
+impl StringLiteral {
+    /// Get the value of the string literal, without the surrounding quotes.
+    ///
+    /// For `"hello world"`, returns `hello world`.
+    pub fn value(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // String literals are of the form: "..." (tokens: Quote, words/spaces, Quote)
+        // Strip leading and trailing quote characters
+        if text.starts_with('"') && text.ends_with('"') && text.len() > 2 {
+            text[1..text.len() - 1].to_string()
+        } else {
+            text
+        }
+    }
+}
+
 impl RawStringLiteral {
     /// Get the full text of the raw string literal, including delimiters.
     ///
     /// For `#"Hello"#`, returns `#"Hello"#`.
     pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+
+    /// Get all Jinja expressions in the raw string.
+    ///
+    /// For `#"Hello {{ name }}"#`, returns the `{{ name }}` node.
+    pub fn jinja_expressions(&self) -> impl Iterator<Item = JinjaExpression> {
+        self.syntax.children().filter_map(JinjaExpression::cast)
+    }
+
+    /// Get all Jinja statements in the raw string.
+    ///
+    /// For `#"{% if x %}...{% endif %}"#`, returns the `{% if x %}` and `{% endif %}` nodes.
+    pub fn jinja_statements(&self) -> impl Iterator<Item = JinjaStatement> {
+        self.syntax.children().filter_map(JinjaStatement::cast)
+    }
+
+    /// Get all Jinja comments in the raw string.
+    ///
+    /// For `#"{# comment #}"#`, returns the `{# comment #}` node.
+    pub fn jinja_comments(&self) -> impl Iterator<Item = JinjaComment> {
+        self.syntax.children().filter_map(JinjaComment::cast)
+    }
+
+    /// Get all prompt text nodes in the raw string.
+    ///
+    /// For `#"Hello {{ name }}"#`, returns the `Hello ` text node.
+    pub fn prompt_texts(&self) -> impl Iterator<Item = PromptText> {
+        self.syntax.children().filter_map(PromptText::cast)
+    }
+}
+
+impl JinjaExpression {
+    /// Get the inner text of the Jinja expression, without the {{ }} delimiters.
+    ///
+    /// For `{{ input.name }}`, returns `input.name` (with whitespace trimmed).
+    pub fn inner_text(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // Strip {{ and }}
+        if text.starts_with("{{") && text.ends_with("}}") {
+            text[2..text.len() - 2].trim().to_string()
+        } else {
+            text
+        }
+    }
+
+    /// Get the full text of the Jinja expression, including {{ }} delimiters.
+    pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+}
+
+impl JinjaStatement {
+    /// Get the inner text of the Jinja statement, without the {% %} delimiters.
+    ///
+    /// For `{% if condition %}`, returns `if condition` (with whitespace trimmed).
+    pub fn inner_text(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // Strip {% and %}
+        if text.starts_with("{%") && text.ends_with("%}") {
+            text[2..text.len() - 2].trim().to_string()
+        } else {
+            text
+        }
+    }
+
+    /// Get the full text of the Jinja statement, including {% %} delimiters.
+    pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+}
+
+impl JinjaComment {
+    /// Get the inner text of the Jinja comment, without the {# #} delimiters.
+    ///
+    /// For `{# this is a comment #}`, returns `this is a comment` (with whitespace trimmed).
+    pub fn inner_text(&self) -> String {
+        let text = self.syntax.text().to_string();
+        // Strip {# and #}
+        if text.starts_with("{#") && text.ends_with("#}") {
+            text[2..text.len() - 2].trim().to_string()
+        } else {
+            text
+        }
+    }
+
+    /// Get the full text of the Jinja comment, including {# #} delimiters.
+    pub fn full_text(&self) -> String {
+        self.syntax.text().to_string()
+    }
+}
+
+impl PromptText {
+    /// Get the text content.
+    pub fn text(&self) -> String {
         self.syntax.text().to_string()
     }
 }
@@ -913,6 +1288,15 @@ impl ConfigItem {
             .unwrap_or(false)
     }
 
+    /// Get the `CONFIG_VALUE` syntax node if present.
+    ///
+    /// This gives access to the raw syntax tree for examining expression structure.
+    pub fn config_value_node(&self) -> Option<SyntaxNode> {
+        self.syntax
+            .children()
+            .find(|child| child.kind() == SyntaxKind::CONFIG_VALUE)
+    }
+
     /// Get array elements, returning only those that are string literals.
     ///
     /// Returns `None` if this is not an array.
@@ -1028,20 +1412,23 @@ impl TestDef {
     /// Get all function names that this test is for.
     /// Pattern: `test <TestName> { functions [<Func1>, <Func2>, ...] ... }`
     pub fn function_names(&self) -> Vec<SyntaxToken> {
-        // Look for a ConfigItem with key "functions" and extract all function names
-        // The function names are inside a CONFIG_VALUE node: functions [Func1, Func2]
+        // Look for a ConfigItem with key "functions" and extract all function names.
+        // The function names are inside a CONFIG_VALUE child node, not in attributes.
         self.syntax
             .descendants()
             .filter_map(ConfigItem::cast)
             .find(|item| item.matches_key("functions"))
-            .map(|item| {
-                // Look for WORD tokens within the config item's descendants
-                // Skip the first one (which is the key "functions")
+            .and_then(|item| {
+                // Find the CONFIG_VALUE child (excludes attributes which are siblings)
                 item.syntax()
+                    .children()
+                    .find(|child| child.kind() == SyntaxKind::CONFIG_VALUE)
+            })
+            .map(|config_value| {
+                config_value
                     .descendants_with_tokens()
                     .filter_map(rowan::NodeOrToken::into_token)
                     .filter(|token| token.kind() == SyntaxKind::WORD)
-                    .skip(1) // Skip "functions" key
                     .collect()
             })
             .unwrap_or_default()
@@ -1930,6 +2317,7 @@ impl BlockExpr {
                         | SyntaxKind::BLOCK_EXPR
                         | SyntaxKind::PATH_EXPR
                         | SyntaxKind::FIELD_ACCESS_EXPR
+                        | SyntaxKind::ENV_ACCESS_EXPR
                         | SyntaxKind::INDEX_EXPR
                         | SyntaxKind::PAREN_EXPR
                         | SyntaxKind::ARRAY_LITERAL
@@ -1989,6 +2377,16 @@ impl FieldAccessExpr {
             .filter_map(rowan::NodeOrToken::into_token)
             .filter(|token| token.kind() == SyntaxKind::WORD)
             .last() // The field name is the last WORD token
+    }
+}
+
+impl EnvAccessExpr {
+    /// Get the field name (the env var name or method name after `env.`).
+    pub fn field(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|t| t.kind() == SyntaxKind::WORD)
     }
 }
 

@@ -28,7 +28,7 @@
 //! ## LSP Conversion
 //!
 //! LSP-specific conversion (to `lsp_types::Diagnostic`) lives in the
-//! `baml_lsp` crate, keeping this crate free of LSP dependencies.
+//! `lsp_server` crate, keeping this crate free of LSP dependencies.
 
 pub mod diagnostic;
 pub mod errors;
@@ -37,11 +37,7 @@ pub mod to_diagnostic;
 
 // Re-export error types
 // Re-export the unified diagnostic types
-pub use diagnostic::{
-    Annotation, Diagnostic, DiagnosticId, DiagnosticPhase, RelatedInfo, Severity, ToDiagnostic,
-};
-pub use errors::{ErrorContext, HirDiagnostic, NameError, ParseError, SpanContext, TypeError};
+pub use diagnostic::{Diagnostic, DiagnosticId, DiagnosticPhase, Severity, ToDiagnostic};
+pub use errors::{ErrorContext, HirDiagnostic, NameError, ParseError, TypeError};
 // Re-export the rendering functions and types
-pub use render::{
-    DiagnosticFormat, RenderConfig, SourceCache, render_diagnostic, render_diagnostics,
-};
+pub use render::{RenderConfig, render_diagnostic};

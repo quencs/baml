@@ -1,5 +1,197 @@
 ---
-source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
+source: target/debug/build/baml_tests-d8c3d4c38f908488/out/generated_tests.rs
 expression: output
 ---
 === MIR ===
+fn MyClient.resolve() -> baml.llm.PrimitiveClient {
+    // Locals:
+    let _0: baml.llm.PrimitiveClient // return
+    let _1: (string, string, string, string[], map<string, unknown>) -> baml.llm.PrimitiveClient
+    let _2: "MyClient"
+    let _3: "baml-openai-chat"
+    let _4: "user"
+    let _5: string[]
+    let _6: "user"
+    let _7: "assistant"
+    let _8: "system"
+    let _9: map<string, unknown>
+    let _10: "max_tokens"
+    let _11: 100
+    let _12: "array_key_with_quoted_unquoted"
+    let _13: string[]
+    let _14: "abc"
+    let _15: "abc"
+    let _16: "ccc"
+    let _17: "key2"
+    let _18: "some random value"
+    let _19: "hello"
+    let _20: "world"
+    let _21: "thing"
+    let _22: "hello"
+    let _23: "block_string"
+    let _24: "hello there my frien
+                d"
+    let _25: "inline_raw_string"
+    let _26: "inline "raw" string,,"
+    let _27: "keyStringNoSpacesWorksWithoutQuotes"
+    let _28: "NoQuotes"
+    let _29: "unquoted_string_whitespace"
+    let _30: "hello"
+    let _31: "filePathString"
+    let _32: "this-is-also-a-string"
+    let _33: "booleanValue"
+    let _34: true
+    let _35: "stringKey"
+    let _36: "true"
+    let _37: "array1"
+    let _38: string[]
+    let _39: "one"
+    let _40: "two"
+    let _41: "array2"
+    let _42: string[]
+    let _43: "one"
+    let _44: "two"
+    let _45: "array3Numbers"
+    let _46: int[]
+    let _47: 1
+    let _48: 2
+    let _49: 3
+    let _50: "nestedKey"
+    let _51: map<string, string>
+    let _52: "key"
+    let _53: "value"
+    let _54: "key2"
+    let _55: "value2"
+    let _56: "nestedArray"
+    let _57: string[]
+    let _58: "yes"
+    let _59: "queen"
+    let _60: "number"
+    let _61: 10
+    let _62: "oneMoreValueToTestBrokenness"
+    let _63: "value"
+    let _64: "myInteger"
+    let _65: 100
+    let _66: "tools"
+    let _67: map<string, string>[]
+    let _68: map<string, string>
+    let _69: "server_label"
+    let _70: "parallel_web_search"
+    let _71: "server_url"
+    let _72: "https://example.com"
+    let _73: "headers"
+    let _74: map<string, string>
+    let _75: "authorization"
+    let _76: "Bearer token"
+    let _77: "type"
+    let _78: "mcp"
+    let _79: map<string, string>
+    let _80: "another_tool"
+    let _81: "value"
+    let _82: "block_string"
+    let _83: "
+      hello there my friend
+      {# a comment in a prompt #}
+    "
+    let _84: null
+
+    bb0: {
+        _1 = const fn baml.llm.build_primitive_client;
+        _2 = const "MyClient";
+        _3 = const "baml-openai-chat";
+        _4 = const "user";
+        _6 = const "user";
+        _7 = const "assistant";
+        _8 = const "system";
+        _5 = [copy _6, copy _7, copy _8];
+        _10 = const "max_tokens";
+        _11 = const 100_i64;
+        _12 = const "array_key_with_quoted_unquoted";
+        _14 = const "abc";
+        _15 = const "abc";
+        _16 = const "ccc";
+        _13 = [copy _14, copy _15, copy _16];
+        _17 = const "key2";
+        _18 = const "some random value";
+        _19 = const "hello";
+        _20 = const "world";
+        _21 = const "thing";
+        _22 = const "hello";
+        _23 = const "block_string";
+        _24 = const "hello there my frien\n                d";
+        _25 = const "inline_raw_string";
+        _26 = const "inline \"raw\" string,,";
+        _27 = const "keyStringNoSpacesWorksWithoutQuotes";
+        _28 = const "NoQuotes";
+        _29 = const "unquoted_string_whitespace";
+        _30 = const "hello";
+        _31 = const "filePathString";
+        _32 = const "this-is-also-a-string";
+        _33 = const "booleanValue";
+        _34 = const true;
+        _35 = const "stringKey";
+        _36 = const "true";
+        _37 = const "array1";
+        _39 = const "one";
+        _40 = const "two";
+        _38 = [copy _39, copy _40];
+        _41 = const "array2";
+        _43 = const "one";
+        _44 = const "two";
+        _42 = [copy _43, copy _44];
+        _45 = const "array3Numbers";
+        _47 = const 1_i64;
+        _48 = const 2_i64;
+        _49 = const 3_i64;
+        _46 = [copy _47, copy _48, copy _49];
+        _50 = const "nestedKey";
+        _52 = const "key";
+        _53 = const "value";
+        _54 = const "key2";
+        _55 = const "value2";
+        _56 = const "nestedArray";
+        _58 = const "yes";
+        _59 = const "queen";
+        _57 = [copy _58, copy _59];
+        _60 = const "number";
+        _61 = const 10_i64;
+        _51 = { copy _52: copy _53, copy _54: copy _55, copy _56: copy _57, copy _60: copy _61 };
+        _62 = const "oneMoreValueToTestBrokenness";
+        _63 = const "value";
+        _64 = const "myInteger";
+        _65 = const 100_i64;
+        _66 = const "tools";
+        _69 = const "server_label";
+        _70 = const "parallel_web_search";
+        _71 = const "server_url";
+        _72 = const "https://example.com";
+        _73 = const "headers";
+        _75 = const "authorization";
+        _76 = const "Bearer token";
+        _74 = { copy _75: copy _76 };
+        _77 = const "type";
+        _78 = const "mcp";
+        _68 = { copy _69: copy _70, copy _71: copy _72, copy _73: copy _74, copy _77: copy _78 };
+        _80 = const "another_tool";
+        _81 = const "value";
+        _79 = { copy _80: copy _81 };
+        _67 = [copy _68, copy _79];
+        _82 = const "block_string";
+        _83 = const "\n      hello there my friend\n      {# a comment in a prompt #}\n    ";
+        _9 = { copy _10: copy _11, copy _12: copy _13, copy _17: copy _18, copy _19: copy _20, copy _21: copy _22, copy _23: copy _24, copy _25: copy _26, copy _27: copy _28, copy _29: copy _30, copy _31: copy _32, copy _33: copy _34, copy _35: copy _36, copy _37: copy _38, copy _41: copy _42, copy _45: copy _46, copy _50: copy _51, copy _62: copy _63, copy _64: copy _65, copy _66: copy _67, copy _82: copy _83 };
+        _84 = dispatch_future copy _1(copy _2, copy _3, copy _4, copy _5, copy _9) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _0 = await _84 -> [bb3];
+    }
+
+    bb3: {
+        goto -> bb1;
+    }
+
+}

@@ -1,5 +1,5 @@
 ---
-source: target/debug/build/baml_tests-3c66388e75d3efcb/out/generated_tests.rs
+source: target/debug/build/baml_tests-d8c3d4c38f908488/out/generated_tests.rs
 expression: output
 ---
 === DIAGNOSTICS ===
@@ -93,12 +93,32 @@ expression: output
     │ Note: Error code: E0010
 ────╯
 
-  [parse] Error: Expected LLM function missing 'prompt' field, found '}'
+  [parse] Error: Expected '}', found client
+    ╭─[ invalid_syntax.baml:11:3 ]
+    │
+ 11 │   client GPT4
+    │   ───┬──  
+    │      ╰──── Expected '}', found client
+    │ 
+    │ Note: Error code: E0010
+────╯
+
+  [parse] Error: Expected config block, found '}'
     ╭─[ invalid_syntax.baml:12:1 ]
     │
  12 │ }
     │ ┬  
-    │ ╰── Expected LLM function missing 'prompt' field, found '}'
+    │ ╰── Expected config block, found '}'
+    │ 
+    │ Note: Error code: E0010
+────╯
+
+  [parse] Error: Expected top-level declaration, found '}'
+    ╭─[ invalid_syntax.baml:12:1 ]
+    │
+ 12 │ }
+    │ ┬  
+    │ ╰── Expected top-level declaration, found '}'
     │ 
     │ Note: Error code: E0010
 ────╯
@@ -251,4 +271,46 @@ expression: output
    │  ╰── Expected '}', found EOF
    │ 
    │ Note: Error code: E0010
+───╯
+
+  [hir] Error: Missing `provider` field in client. e.g. `provider openai`
+    ╭─[ invalid_syntax.baml:10:20 ]
+    │
+ 10 │ ╭─▶ function Foo() -> {  // Missing return type
+ 11 │ ├─▶   client GPT4
+    │ │                   
+    │ ╰─────────────────── Missing `provider` field in client. e.g. `provider openai`
+    │     
+    │     Note: Error code: E0026
+────╯
+
+  [type] Error: Unknown type `str`
+   ╭─[ partial_input.baml:3:9 ]
+   │
+ 3 │   field1 str  // Incomplete type name
+   │         ──┬─  
+   │           ╰─── Unknown type `str`
+   │ 
+   │ Note: Error code: E0002
+───╯
+
+  [type] Error: Unknown type `field5`
+   ╭─[ partial_input.baml:6:23 ]
+   │
+ 6 │ ╭─▶   field4 string @alias(  // Unclosed attribute
+ 7 │ ├─▶   field5 string  // This should parse correctly
+   │ │                                                     
+   │ ╰───────────────────────────────────────────────────── Unknown type `field5`
+   │     
+   │     Note: Error code: E0002
+───╯
+
+  [type] Error: Unknown type `closed`
+   ╭─[ unclosed_string.baml:4:32 ]
+   │
+ 4 │   field3 string @alias("another closed string")  // Should still parse this
+   │                                ───┬───  
+   │                                   ╰───── Unknown type `closed`
+   │ 
+   │ Note: Error code: E0002
 ───╯

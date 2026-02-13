@@ -10,7 +10,7 @@ use baml_compiler_mir::{
     AggregateKind, BasicBlock, BinOp, BlockId, Constant, IndexKind, Local, MirFunction, Operand,
     Place, Rvalue, StatementKind, Terminator, UnaryOp,
 };
-use baml_compiler_tir::Ty;
+use baml_type::Ty;
 use bex_vm_types::{
     BinOp as VmBinOp, Bytecode, CmpOp, ConstValue, Function, FunctionKind, GlobalIndex,
     Instruction, Object, ObjectIndex, ObjectPool, UnaryOp as VmUnaryOp,
@@ -220,7 +220,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
         // 5. Build the Function
         Function {
-            name: mir.name.clone(),
+            name: mir.name.to_string(),
             arity: mir.arity,
             bytecode: self.bytecode,
             kind: FunctionKind::Bytecode,
@@ -228,6 +228,10 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             span: baml_base::Span::fake(),
             block_notifications: self.block_notifications,
             viz_nodes,
+            return_type: baml_type::Ty::Null,
+            param_names: Vec::new(),
+            param_types: Vec::new(),
+            body_meta: None,
         }
     }
 
@@ -693,8 +697,8 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 self.emit_operand_pull(operand, mir);
                 // Emit instanceof check using CmpOp::InstanceOf
                 // The type should be a class name - look up the class object
-                if let Ty::Class(fqn) | Ty::TypeAlias(fqn) = ty {
-                    let class_name_str = fqn.name.as_str();
+                if let Ty::Class(tn) | Ty::TypeAlias(tn) = ty {
+                    let class_name_str = tn.display_name.as_str();
                     if let Some(&class_obj_idx) = self.class_object_indices.get(class_name_str) {
                         // Load the Class object for the type check
                         let class_const = self
@@ -741,8 +745,9 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 let idx = self.add_constant(ConstValue::Null);
                 self.emit(Instruction::LoadConst(idx));
             }
-            Constant::Function(name) => {
-                let name_str = name.to_string();
+            Constant::Function(qn) => {
+                // Convert QualifiedName to runtime string for function lookup
+                let name_str = qn.to_runtime_string();
                 let global_idx = self
                     .globals
                     .get(&name_str)
@@ -753,9 +758,10 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 let idx = self.add_constant(ConstValue::Null);
                 self.emit(Instruction::LoadConst(idx));
             }
-            Constant::EnumVariant { enum_name, variant } => {
+            Constant::EnumVariant { enum_qn, variant } => {
                 // Look up the enum object index
-                let enum_name_str = enum_name.to_string();
+                // Convert QualifiedName to runtime string for lookup
+                let enum_name_str = enum_qn.to_runtime_string();
                 let enum_obj_idx = *self
                     .enum_object_indices
                     .get(&enum_name_str)

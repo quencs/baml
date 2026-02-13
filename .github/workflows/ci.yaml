@@ -230,27 +230,33 @@ jobs:
         with:
           persist-credentials: false
 
+      # Install Rust toolchain BEFORE rust-cache so cache key uses correct Rust version
+      - name: "Install Rust toolchain"
+        run: rustup toolchain install
+        working-directory: baml_language
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "baml_language -> target"
+          # Share cache across similar Linux jobs for better hit rates
+          shared-key: "linux-cargo"
 
-      - name: "Install Rust toolchain"
-        run: rustup show
-        working-directory: baml_language
-
-      - name: "Install clippy and wasm target"
+      - name: "Install cargo-binstall"
         run: |
-          rustup component add clippy
-          rustup target add wasm32-unknown-unknown
+          curl -L --proto '=https' --tlsv1.2 -sSf \
+            https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh \
+            | bash
         working-directory: baml_language
 
       - name: "Install uv"
         uses: astral-sh/setup-uv@v5
 
-      - name: "Install prek"
-        uses: j178/prek-action@v1
+      - name: "Install mise"
+        uses: jdx/mise-action@v2
+        # Pinning to old version because newer versions time out on the npm backend,
+        # see https://github.com/jdx/mise/discussions/7630
         with:
-          install-only: true
+          version: 2025.12.12
 
       - name: "Cache prek"
         uses: actions/cache@v4
@@ -263,7 +269,7 @@ jobs:
           echo '```console' > "$GITHUB_STEP_SUMMARY"
           # Enable color output for prek and remove it for the summary
           # Use --hook-stage=manual to enable slower hooks that are skipped by default
-          prek run --all-files --show-diff-on-failure --color always --hook-stage manual | \
+          SKIP=no-commit-to-branch prek run --all-files --show-diff-on-failure --color always --hook-stage manual | \
             tee >(sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mGK]//g' >> "$GITHUB_STEP_SUMMARY") >&1
           exit_code="${PIPESTATUS[0]}"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -364,13 +370,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "baml_language -> target"
-
+      # Install Rust toolchain BEFORE rust-cache so cache key uses correct Rust version
       - name: "Install Rust toolchain"
         run: rustup show
         working-directory: baml_language
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "baml_language -> target"
+          # Share cache across similar Linux jobs for better hit rates
+          shared-key: "linux-cargo"
 
       - name: "Install codspeed"
         uses: taiki-e/install-action@v2

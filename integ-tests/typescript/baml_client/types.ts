@@ -345,13 +345,6 @@ export interface DummyJsonTodo {
   
 }
 
-export interface DummyJsonTodoUpdate {
-  todo: string
-  completed: boolean
-  userId: number
-  
-}
-
 export interface DummyOutput {
   nonce: string
   nonce2: string
@@ -540,9 +533,9 @@ export interface LiteralClassTwo {
 }
 
 export interface MaintainFieldOrder {
-  a: string
-  b: string
   c: string
+  b: string
+  a: string
   
 }
 

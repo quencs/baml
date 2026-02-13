@@ -33,7 +33,12 @@
 //! ```
 
 // CLI tool - print statements and exit are expected
-#![allow(clippy::print_stdout, clippy::print_stderr, clippy::exit)]
+#![allow(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::exit,
+    clippy::doc_link_with_quotes
+)]
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet, VecDeque},
@@ -73,6 +78,26 @@ pub struct Namespace {
     /// Example: { "`tools_stow`" = "cargo-stow" }
     #[serde(default)]
     pub name_exceptions: HashMap<String, String>,
+    /// Link crates: commonly-depended-on crates that get proxy nodes in consuming
+    /// namespaces to reduce cross-namespace edge clutter in the dependency graph.
+    #[serde(default)]
+    pub link_crates: Vec<String>,
+    /// Embed crates: crates from other namespaces that are visually placed inside
+    /// this namespace's cluster (with dashed border to indicate they're guests).
+    /// Useful for crates that primarily interact with this namespace.
+    #[serde(default)]
+    pub embed_crates: Vec<String>,
+}
+
+/// Graph visualization settings
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct GraphConfig {
+    /// External dependencies to include in the dependency graph
+    pub external_deps: Vec<String>,
+    /// Implied dependencies: when a crate depends on both the key and a value,
+    /// the edge to the value is hidden (it's visually implied by the key).
+    pub implied_deps: HashMap<String, Vec<String>>,
 }
 
 /// Stow configuration - can be loaded from stow.toml or [workspace.metadata.stow]
@@ -88,9 +113,9 @@ pub struct Config {
     /// Crate name patterns to ignore entirely (e.g., "rig_*")
     #[serde(default)]
     pub ignore_crates: Vec<String>,
-    /// External dependencies to include in the dependency graph visualization
+    /// Graph visualization settings
     #[serde(default)]
-    pub graph_external_deps: Vec<String>,
+    pub graph: GraphConfig,
 
     // Legacy fields for backward compatibility (converted to single namespace)
     #[serde(default)]
@@ -170,8 +195,14 @@ impl Config {
                 test_crate_exceptions: std::mem::take(&mut self.test_crate_exceptions),
                 dependency_rules: vec![],
                 name_exceptions: HashMap::new(),
+                link_crates: vec![],
+                embed_crates: vec![],
             }];
         }
+        // Sort namespaces by name length descending so more-specific prefixes
+        // are matched first (e.g., "baml_lsp" before "baml")
+        self.namespaces
+            .sort_by_key(|b| std::cmp::Reverse(b.name.len()));
         self
     }
 
@@ -929,7 +960,7 @@ fn check_crate_naming_convention(
             }
         }
         3 => {
-            // namespace_prefix_word_suffix (e.g., baml_ide_foo_tests)
+            // namespace_prefix_word_suffix (e.g., lsp_actions_foo_tests)
             let (prefix, _, last) = (parts[0], parts[1], parts[2]);
 
             // Must have an approved prefix AND end with auto-allowed suffix
@@ -1212,8 +1243,8 @@ fn sort_dependencies_table(table: &mut Table, config: &Config) {
         .collect();
 
     // Sort each group
-    internal.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
-    external.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+    internal.sort_by_key(|a| a.0.to_lowercase());
+    external.sort_by_key(|a| a.0.to_lowercase());
 
     let has_internal = !internal.is_empty();
     let has_external = !external.is_empty();
@@ -1390,6 +1421,17 @@ fn post_process_dashed_edges(svg: &str) -> String {
             continue;
         }
 
+        // Extract the stroke color
+        let stroke_color = path_content
+            .find("stroke=\"")
+            .and_then(|s| {
+                let start = s + 8;
+                path_content[start..]
+                    .find('"')
+                    .map(|end| &path_content[start..start + end])
+            })
+            .unwrap_or("#999999");
+
         // Extract the d= attribute
         let Some(d_start) = path_content.find(" d=\"") else {
             continue;
@@ -1402,7 +1444,7 @@ fn post_process_dashed_edges(svg: &str) -> String {
 
         // Parse path to get line segments and add arrow at midpoint of each
         let points = parse_path_points(path_data);
-        for arrow in generate_midpoint_arrows(&points) {
+        for arrow in generate_midpoint_arrows(&points, stroke_color) {
             arrows_to_add.push(arrow);
         }
     }
@@ -1489,7 +1531,7 @@ fn flush_num(buf: &mut String, nums: &mut Vec<f64>) {
 /// - Short segments (< 80px): no mid arrow
 /// - Medium segments: arrow at midpoint
 /// - Long segments (> 200px): arrow near source + midpoint
-fn generate_midpoint_arrows(points: &[(f64, f64)]) -> Vec<String> {
+fn generate_midpoint_arrows(points: &[(f64, f64)], color: &str) -> Vec<String> {
     let mut arrows = Vec::new();
 
     for i in 0..points.len().saturating_sub(1) {
@@ -1513,13 +1555,13 @@ fn generate_midpoint_arrows(points: &[(f64, f64)]) -> Vec<String> {
             let t = 0.2;
             let ax = x1 + dx * t;
             let ay = y1 + dy * t;
-            arrows.push(make_chevron_arrow(ax, ay, angle));
+            arrows.push(make_chevron_arrow(ax, ay, angle, color));
         }
 
         // Midpoint arrow
         let mx = (x1 + x2) / 2.0;
         let my = (y1 + y2) / 2.0;
-        arrows.push(make_chevron_arrow(mx, my, angle));
+        arrows.push(make_chevron_arrow(mx, my, angle, color));
     }
 
     arrows
@@ -1527,7 +1569,7 @@ fn generate_midpoint_arrows(points: &[(f64, f64)]) -> Vec<String> {
 
 /// Create a small filled triangle arrow at the given position pointing in the given direction
 /// Sized to match the graphviz arrowheads (~5px)
-fn make_chevron_arrow(x: f64, y: f64, angle: f64) -> String {
+fn make_chevron_arrow(x: f64, y: f64, angle: f64, color: &str) -> String {
     // Match graphviz arrowhead size (about 5px wide, 7px long)
     let length = 5.0;
     let width = 3.5;
@@ -1539,7 +1581,7 @@ fn make_chevron_arrow(x: f64, y: f64, angle: f64) -> String {
     let base_y = y - length * 0.5 * angle.sin();
 
     format!(
-        r##"<polygon fill="#666666" stroke="#666666" points="{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}"/>"##,
+        r##"<polygon fill="{color}" stroke="{color}" points="{:.2},{:.2} {:.2},{:.2} {:.2},{:.2}"/>"##,
         tip_x,
         tip_y,
         base_x + width * angle.sin(),
@@ -1579,7 +1621,8 @@ fn generate_dependency_graph_svg(
 
     // Build external deps lookup set
     let graph_external_deps: HashSet<&str> = config
-        .graph_external_deps
+        .graph
+        .external_deps
         .iter()
         .map(std::string::String::as_str)
         .collect();
@@ -1699,6 +1742,31 @@ fn generate_dependency_graph_svg(
             dfs(i, i, &adjacency, &mut reachable);
         }
 
+        // Also compute same-namespace reachability: only follow edges where both
+        // endpoints are in the same namespace. This prevents cross-namespace paths
+        // from incorrectly making intra-namespace edges appear redundant.
+        // (e.g., sys_native -> bex_resource_types should NOT be reduced just because
+        //  sys_types can reach bex_resource_types via bex_vm_types)
+        let mut same_ns_adjacency: Vec<Vec<usize>> = vec![vec![]; n];
+        for (from, to) in &edges {
+            if let (Some(&src), Some(&dst)) = (node_index.get(from), node_index.get(to)) {
+                let from_ns = config.get_namespace_for_crate(from);
+                let to_ns = config.get_namespace_for_crate(to);
+                let is_same_ns = match (from_ns, to_ns) {
+                    (Some(f), Some(t)) => f.name == t.name,
+                    _ => false,
+                };
+                if is_same_ns {
+                    same_ns_adjacency[src].push(dst);
+                }
+            }
+        }
+
+        let mut same_ns_reachable: Vec<Vec<bool>> = vec![vec![false; n]; n];
+        for i in 0..n {
+            dfs(i, i, &same_ns_adjacency, &mut same_ns_reachable);
+        }
+
         let mut reduced_edges: Vec<(&str, &str)> = Vec::new();
         for (from, to) in &edges {
             let Some(&src) = node_index.get(from) else {
@@ -1719,18 +1787,27 @@ fn generate_dependency_graph_svg(
                 None
             };
 
+            // Cross-namespace edges to internal crates are always shown --
+            // they represent important architectural boundaries.
+            let is_cross_ns_internal = !is_external_target
+                && match (source_namespace, target_namespace) {
+                    (Some(s), Some(t)) => s.name != t.name,
+                    _ => false,
+                };
+            if is_cross_ns_internal {
+                reduced_edges.push((*from, *to));
+                continue;
+            }
+
             // Transitive reduction rules:
-            // - For internal targets: reduce if intermediate is in same namespace as TARGET
-            //   This keeps first cross-namespace edge but reduces redundant ones
-            //   (e.g., ns1_A -> ns2_B is reduced when ns1_A -> ns2_A -> ns2_B exists)
-            // - For external targets: reduce if intermediate is in same namespace as SOURCE
-            //   This keeps one edge per namespace to external deps
+            // - For same-namespace internal targets: reduce if intermediate is in
+            //   the same namespace AND can reach the target through same-namespace
+            //   nodes only.
+            // - For external targets: reduce if intermediate is in same namespace
+            //   as SOURCE. This keeps one edge per namespace to external deps.
             //   (e.g., baml_compiler_hir -> salsa reduced when baml_base -> salsa exists)
             let is_redundant = adjacency[src].iter().any(|&intermediate| {
                 if intermediate == dst {
-                    return false;
-                }
-                if !reachable[intermediate][dst] {
                     return false;
                 }
                 let intermediate_name = nodes[intermediate];
@@ -1749,8 +1826,14 @@ fn generate_dependency_graph_svg(
                 if !same_namespace {
                     return false;
                 }
-                // For external targets, also check if features are the same
+
                 if is_external_target {
+                    // For external targets, use full reachability (cross-namespace
+                    // paths are fine since the target is external anyway)
+                    if !reachable[intermediate][dst] {
+                        return false;
+                    }
+                    // Also check if features are the same
                     let intermediate_features = crate_features
                         .get(intermediate_name)
                         .and_then(|deps| deps.get(*to));
@@ -1760,7 +1843,11 @@ fn generate_dependency_graph_svg(
                         _ => false,
                     }
                 } else {
-                    true
+                    // For internal targets, only reduce if the intermediate can
+                    // reach the target through same-namespace nodes. This prevents
+                    // paths like sys_types -> bex_vm_types -> bex_resource_types
+                    // from making sys_native -> bex_resource_types appear redundant.
+                    same_ns_reachable[intermediate][dst]
                 }
             });
 
@@ -1792,6 +1879,45 @@ fn generate_dependency_graph_svg(
             .collect()
     };
 
+    // Filter implied deps: if a crate depends on both X and Y where Y is implied
+    // by X (per graph_implied_deps config), hide the edge to Y.
+    let edges = if config.graph.implied_deps.is_empty() {
+        edges
+    } else {
+        // Build a reverse lookup: implied_dep -> set of crates that imply it
+        let mut implied_by: HashMap<&str, HashSet<&str>> = HashMap::new();
+        for (primary, implied_list) in &config.graph.implied_deps {
+            for implied in implied_list {
+                implied_by
+                    .entry(implied.as_str())
+                    .or_default()
+                    .insert(primary.as_str());
+            }
+        }
+
+        // Build adjacency: for each source crate, the set of its targets
+        let mut deps_of: HashMap<&str, HashSet<&str>> = HashMap::new();
+        for &(from, to) in &edges {
+            deps_of.entry(from).or_default().insert(to);
+        }
+
+        edges
+            .into_iter()
+            .filter(|(from, to)| {
+                // Keep the edge unless `to` is implied by some other dep that `from` also has
+                if let Some(primaries) = implied_by.get(to) {
+                    if let Some(from_deps) = deps_of.get(from) {
+                        // If `from` depends on any primary that implies `to`, hide this edge
+                        if primaries.iter().any(|p| from_deps.contains(p)) {
+                            return false;
+                        }
+                    }
+                }
+                true
+            })
+            .collect()
+    };
+
     // Sort for deterministic output
     let mut sorted_crates: Vec<&str> = included_crates.iter().copied().collect();
     sorted_crates.sort_unstable();
@@ -1802,7 +1928,7 @@ fn generate_dependency_graph_svg(
     // For each external dep, collect features added by each crate beyond workspace defaults
     let mut external_dep_features: HashMap<&str, ExternalDepFeatures> = HashMap::new();
 
-    for ext_dep in &config.graph_external_deps {
+    for ext_dep in &config.graph.external_deps {
         let ws_features = workspace_deps
             .get(ext_dep)
             .map(|d| d.features.clone())
@@ -1831,11 +1957,13 @@ fn generate_dependency_graph_svg(
 
     // Extract namespace and tag from crate name
     let get_crate_parts = |name: &str| -> (String, Option<String>) {
+        // Check name_exceptions across all namespaces first, before prefix matching
         for ns in &config.namespaces {
-            // Check if this crate is a name exception for this namespace
             if ns.name_exceptions.values().any(|v| v == name) {
                 return (ns.name.clone(), None);
             }
+        }
+        for ns in &config.namespaces {
             // Standard prefix match
             if let Some(suffix) = name.strip_prefix(&format!("{}_", ns.name)) {
                 let parts: Vec<&str> = suffix.split('_').collect();
@@ -1917,7 +2045,19 @@ fn generate_dependency_graph_svg(
     let external_border = "#606060".to_string();
     let external_fill = "#d0d0d0".to_string();
 
-    // Group local crates by namespace (excluding external)
+    // Build embed_crates mapping: crate_name -> host namespace
+    let embed_map: HashMap<&str, &str> = config
+        .namespaces
+        .iter()
+        .flat_map(|ns| {
+            ns.embed_crates
+                .iter()
+                .map(move |c| (c.as_str(), ns.name.as_str()))
+        })
+        .collect();
+
+    // Group local crates by namespace (excluding external).
+    // Crates stay in their real namespace; embed_crates creates proxy nodes separately.
     let mut local_crates_by_namespace: BTreeMap<String, Vec<&str>> = BTreeMap::new();
     let mut external_crates: Vec<&str> = Vec::new();
     for crate_name in &sorted_crates {
@@ -1967,7 +2107,7 @@ fn generate_dependency_graph_svg(
             };
 
             let key = ExternalDepKey {
-                namespace: from_ns.clone(),
+                namespace: from_ns,
                 dep_name: (*to).to_string(),
                 features,
             };
@@ -1999,6 +2139,55 @@ fn generate_dependency_graph_svg(
         }
     };
 
+    // Build per-namespace link_crate mapping: namespace -> set of link_crates it declared.
+    // link_crates are per-namespace: declaring bex_vm_types as a link_crate in `sys`
+    // only creates a proxy in the `sys` cluster, not in every consuming namespace.
+    let ns_link_crates_config: HashMap<&str, HashSet<&str>> = config
+        .namespaces
+        .iter()
+        .map(|ns| {
+            (
+                ns.name.as_str(),
+                ns.link_crates.iter().map(String::as_str).collect(),
+            )
+        })
+        .collect();
+
+    // For each link crate -> set of consuming namespaces that declared it as a link_crate
+    let mut link_crate_consumers: HashMap<&str, HashSet<String>> = HashMap::new();
+    for (from, to) in &sorted_edges {
+        let (from_ns, _) = get_crate_parts(from);
+        let (to_ns, _) = get_crate_parts(to);
+        if from_ns != to_ns && from_ns != "external" {
+            // Only register if `from_ns` declared `to` as a link_crate
+            let is_link_for_from_ns = ns_link_crates_config
+                .get(from_ns.as_str())
+                .is_some_and(|lcs| lcs.contains(to));
+            if is_link_for_from_ns {
+                link_crate_consumers.entry(to).or_default().insert(from_ns);
+            }
+        }
+    }
+
+    // Remove embedded crate namespaces from link_crate_consumers when the host
+    // namespace also consumes the same link_crate. The embed proxy routes those
+    // edges through the host namespace's proxy, making a separate proxy in the
+    // embedded crate's namespace unnecessary.
+    for (&embedded_crate, &host_ns) in &embed_map {
+        let (origin_ns, _) = get_crate_parts(embedded_crate);
+        for (link_crate, consumers) in &mut link_crate_consumers {
+            let (lc_ns, _) = get_crate_parts(link_crate);
+            let host_also_consumes = consumers.contains(host_ns) || lc_ns == host_ns;
+            if consumers.contains(&origin_ns) && host_also_consumes {
+                consumers.remove(&origin_ns);
+            }
+        }
+    }
+
+    let proxy_node_id = |ns: &str, crate_name: &str| -> String {
+        format!("proxy_{}_{}", ns, crate_name.replace('-', "_"))
+    };
+
     // Build DOT format string directly
     let mut dot = String::new();
     dot.push_str("digraph dependencies {\n");
@@ -2007,9 +2196,13 @@ fn generate_dependency_graph_svg(
     dot.push_str("    rankdir=TB;\n");
     dot.push_str("    bgcolor=\"#f8f9fa\";\n");
     dot.push_str("    splines=ortho;\n");
-    dot.push_str("    nodesep=0.5;\n");
+    dot.push_str("    nodesep=0.8;\n");
     dot.push_str("    ranksep=0.8;\n");
     dot.push_str("    compound=true;\n");
+    // NOTE: concentrate=true is incompatible with link_crates proxy nodes inside clusters
+    // (graphviz fails with "contain_nodes clust ... missing node"). The link_crates feature
+    // already reduces cross-namespace edge clutter, making concentrate unnecessary.
+    dot.push_str("    newrank=true;\n");
 
     // Default node attributes
     dot.push_str("    node [shape=box, style=filled, fontname=\"Helvetica\", fontsize=11];\n");
@@ -2060,6 +2253,48 @@ fn generate_dependency_graph_svg(
             );
         }
 
+        // Add proxy nodes for link crates consumed by this namespace (sorted for deterministic output)
+        // Proxy nodes use the colors of the link crate's *original* namespace, not the consuming one
+        let mut ns_link_crates: Vec<&&str> = link_crate_consumers
+            .keys()
+            .filter(|lc| link_crate_consumers[*lc].contains(namespace))
+            .collect();
+        ns_link_crates.sort_unstable();
+        for link_crate in ns_link_crates {
+            let pid = proxy_node_id(namespace, link_crate);
+            let (origin_ns, _) = get_crate_parts(link_crate);
+            let (proxy_border, proxy_fill) = namespace_colors
+                .get(&origin_ns)
+                .cloned()
+                .unwrap_or_else(|| (external_border.clone(), external_fill.clone()));
+            let _ = writeln!(
+                dot,
+                "        {pid} [label=\"{link_crate}\", style=\"filled,dashed\", fillcolor=\"{proxy_fill}\", color=\"{proxy_border}\", penwidth=2];"
+            );
+        }
+
+        // Add proxy nodes for embedded crates assigned to this namespace
+        let mut ns_embed_crates: Vec<(&str, &str)> = embed_map
+            .iter()
+            .filter(|(&crate_name, &host)| {
+                host == namespace && included_crates.contains(crate_name)
+            })
+            .map(|(&crate_name, &host)| (crate_name, host))
+            .collect();
+        ns_embed_crates.sort_unstable();
+        for (embed_crate, _) in ns_embed_crates {
+            let pid = proxy_node_id(namespace, embed_crate);
+            let (origin_ns, _) = get_crate_parts(embed_crate);
+            let (proxy_border, proxy_fill) = namespace_colors
+                .get(&origin_ns)
+                .cloned()
+                .unwrap_or_else(|| (external_border.clone(), external_fill.clone()));
+            let _ = writeln!(
+                dot,
+                "        {pid} [label=\"{embed_crate}\", style=\"filled,dashed\", fillcolor=\"{proxy_fill}\", color=\"{proxy_border}\", penwidth=2];"
+            );
+        }
+
         // Add external deps used by this namespace (one node per unique feature set)
         for key in external_dep_nodes.keys() {
             if key.namespace != *namespace {
@@ -2084,6 +2319,9 @@ fn generate_dependency_graph_svg(
     }
 
     // Add edges (outside of clusters) - arrows point from dependent to dependency
+    // Track which embed proxies need a real->proxy edge (deduplicated)
+    let mut embed_proxy_edges_needed: HashSet<(&str, &str)> = HashSet::new();
+
     for (from, to) in &sorted_edges {
         let (from_ns, _) = get_crate_parts(from);
         let (to_ns, _) = get_crate_parts(to);
@@ -2091,6 +2329,74 @@ fn generate_dependency_graph_svg(
         let to_is_external = to_ns == "external";
 
         let from_id = node_id(from);
+
+        // Check if this edge should be redirected through an embed proxy.
+        // An embedded crate's edges to its host namespace go through a proxy.
+        if let Some(&host_ns) = embed_map.get(from) {
+            if !to_is_external && to_ns == host_ns {
+                // Redirect: proxy -> to (colored edge matching the embedded crate's namespace)
+                let pid = proxy_node_id(host_ns, from);
+                let to_id = node_id(to);
+                let edge_color = namespace_colors
+                    .get(&from_ns)
+                    .map(|(border, _)| border.as_str())
+                    .unwrap_or("#999999");
+                let _ = writeln!(
+                    dot,
+                    "    {pid} -> {to_id} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=1];"
+                );
+                // Mark that we need the real -> proxy dashed edge
+                embed_proxy_edges_needed.insert((*from, host_ns));
+                continue;
+            }
+        }
+
+        // Check if this edge should be redirected to a link_crate proxy node.
+        // link_crates are per-namespace: only redirect if from_ns declared `to` as a link_crate.
+        let is_link_crate_cross_ns = from_ns != to_ns
+            && from_ns != "external"
+            && link_crate_consumers
+                .get(to)
+                .is_some_and(|c| c.contains(&from_ns));
+
+        if is_link_crate_cross_ns {
+            // If the from crate is an embedded crate and the link_crate proxy is in
+            // the host namespace, redirect from the embed proxy instead
+            if let Some(&host_ns) = embed_map.get(from) {
+                if link_crate_consumers
+                    .get(to)
+                    .is_some_and(|c| c.contains(&host_ns.to_string()))
+                {
+                    // The link_crate proxy exists in the host namespace;
+                    // route embed_proxy -> link_proxy (colored edge matching origin ns)
+                    let embed_pid = proxy_node_id(host_ns, from);
+                    let link_pid = proxy_node_id(host_ns, to);
+                    let edge_color = namespace_colors
+                        .get(&from_ns)
+                        .map(|(border, _)| border.as_str())
+                        .unwrap_or("#999999");
+                    let _ = writeln!(
+                        dot,
+                        "    {embed_pid} -> {link_pid} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=1];"
+                    );
+                    embed_proxy_edges_needed.insert((*from, host_ns));
+                    continue;
+                }
+            }
+
+            // Standard link_crate redirect: from -> proxy in from's namespace
+            let pid = proxy_node_id(&from_ns, to);
+            let edge_color = namespace_colors
+                .get(&from_ns)
+                .map(|(border, _)| border.as_str())
+                .unwrap_or("#999999");
+            let _ = writeln!(
+                dot,
+                "    {from_id} -> {pid} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
+            );
+            continue;
+        }
+
         let to_id = if to_is_external {
             // External dep - find the matching node with the right features
             let features: Vec<String> = if let Some(feat_info) = external_dep_features.get(to) {
@@ -2120,13 +2426,55 @@ fn generate_dependency_graph_svg(
         // Edges crossing namespace boundaries should be dashed
         let crosses_boundary = from_ns != to_ns && !to_is_external;
         if crosses_boundary {
+            let edge_color = namespace_colors
+                .get(&from_ns)
+                .map(|(border, _)| border.as_str())
+                .unwrap_or("#999999");
             let _ = writeln!(
                 dot,
-                "    {from_id} -> {to_id} [style=dashed, color=\"#666666\", penwidth=1.5];"
+                "    {from_id} -> {to_id} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
             );
         } else {
-            let _ = writeln!(dot, "    {from_id} -> {to_id};");
+            let _ = writeln!(dot, "    {from_id} -> {to_id} [weight=1];");
         }
+    }
+
+    // Emit real -> embed_proxy dashed edges (one per embedded crate per host namespace)
+    let mut sorted_embed_proxy_edges: Vec<_> = embed_proxy_edges_needed.into_iter().collect();
+    sorted_embed_proxy_edges.sort_unstable();
+    for (embedded_crate, host_ns) in &sorted_embed_proxy_edges {
+        let real_id = node_id(embedded_crate);
+        let pid = proxy_node_id(host_ns, embedded_crate);
+        let (origin_ns, _) = get_crate_parts(embedded_crate);
+        let edge_color = namespace_colors
+            .get(&origin_ns)
+            .map(|(border, _)| border.as_str())
+            .unwrap_or("#999999");
+        let _ = writeln!(
+            dot,
+            "    {real_id} -> {pid} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
+        );
+    }
+
+    // Emit proxy-to-real dashed edges for link crates (sorted for deterministic output)
+    let mut proxy_edges: Vec<(&str, &str)> = Vec::new();
+    for (link_crate, consumers) in &link_crate_consumers {
+        for ns in consumers {
+            proxy_edges.push((ns.as_str(), *link_crate));
+        }
+    }
+    proxy_edges.sort_unstable();
+    for (ns, link_crate) in &proxy_edges {
+        let pid = proxy_node_id(ns, link_crate);
+        let real_id = node_id(link_crate);
+        let edge_color = namespace_colors
+            .get(*ns)
+            .map(|(border, _)| border.as_str())
+            .unwrap_or("#999999");
+        let _ = writeln!(
+            dot,
+            "    {pid} -> {real_id} [style=dashed, color=\"{edge_color}\", penwidth=1.5, weight=10];"
+        );
     }
 
     dot.push_str("}\n");

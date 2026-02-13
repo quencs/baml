@@ -1,0 +1,34 @@
+[package]
+name = "bridge_cffi"
+# Must match the version expected by baml-sys
+version = "0.218.1"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "baml_cffi"
+crate-type = [ "cdylib" ]
+
+[dependencies]
+bex_factory = { workspace = true }
+bridge_ctypes = { workspace = true }
+sys_native = { workspace = true }
+futures = { workspace = true }
+indexmap = { workspace = true }
+libc = { workspace = true }
+once_cell = { workspace = true }
+prost = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = [ "rt", "rt-multi-thread" ] }
+
+[features]
+default = [ "bundle-http" ]
+bundle-http = [ "sys_native/bundle-http" ]
+
+[build-dependencies]
+cbindgen = { workspace = true }
+
+[package.metadata.ci]
+wasm_support = false

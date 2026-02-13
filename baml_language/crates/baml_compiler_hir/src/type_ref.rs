@@ -8,6 +8,33 @@ use rowan::ast::AstNode;
 
 use crate::path::Path;
 
+/// A parameter in a function type reference.
+///
+/// Parameter names are optional and for documentation only - they do not
+/// affect type equality or type checking.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FunctionTypeParamRef {
+    /// Optional parameter name (documentation only).
+    pub name: Option<Name>,
+    /// The parameter type.
+    pub ty: TypeRef,
+}
+
+impl FunctionTypeParamRef {
+    /// Create a new function type parameter with a name.
+    pub fn named(name: Name, ty: TypeRef) -> Self {
+        Self {
+            name: Some(name),
+            ty,
+        }
+    }
+
+    /// Create a new function type parameter without a name.
+    pub fn unnamed(ty: TypeRef) -> Self {
+        Self { name: None, ty }
+    }
+}
+
 /// A type reference before name resolution.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeRef {
@@ -43,6 +70,15 @@ pub enum TypeRef {
     /// Boolean literal for pattern matching (true/false as types).
     BoolLiteral(bool),
 
+    /// Function type: `(x: int, y: int) -> bool` or `(int, int) -> bool`.
+    ///
+    /// Parameter names are optional and for documentation only - they do not
+    /// affect type equality or type checking.
+    Function {
+        params: Vec<FunctionTypeParamRef>,
+        ret: Box<TypeRef>,
+    },
+
     /// Future: Generic type application.
     /// Example: Result<User, string>
     #[allow(dead_code)]
@@ -59,8 +95,13 @@ pub enum TypeRef {
     /// Error sentinel.
     Error,
 
-    /// Unknown/inferred.
+    /// Unknown/inferred (internal use for error recovery).
     Unknown,
+
+    /// The `unknown` type keyword - accepts any value.
+    /// Used in builtin functions like `render_prompt(args: map<string, unknown>)`.
+    /// Maps to `Ty::BuiltinUnknown` in TIR.
+    BuiltinUnknown,
 }
 
 impl TypeRef {
@@ -155,9 +196,52 @@ impl TypeRef {
 
     /// Parse the base type (no optional, array, or union modifiers).
     fn from_ast_base(type_expr: &baml_compiler_syntax::ast::TypeExpr) -> Self {
+        // Handle function types like `(x: int, y: int) -> bool`
+        if type_expr.is_function_type() {
+            let params = type_expr
+                .function_type_params()
+                .iter()
+                .map(|p| {
+                    let name = p.name().map(Name::new);
+                    let ty = p
+                        .ty()
+                        .map(|t| Self::from_ast(&t))
+                        .unwrap_or(TypeRef::Unknown);
+                    FunctionTypeParamRef { name, ty }
+                })
+                .collect();
+            let ret = type_expr
+                .function_return_type()
+                .map(|t| Self::from_ast(&t))
+                .unwrap_or(TypeRef::Unknown);
+            return TypeRef::Function {
+                params,
+                ret: Box::new(ret),
+            };
+        }
+
         // Handle parenthesized types like `(int | string)`
         if let Some(inner) = type_expr.inner_type_expr() {
             return Self::from_ast(&inner);
+        }
+
+        // Handle parenthesized unions: `(A | B)` where the union is inside parens
+        // In the new parser structure, each union member is wrapped in FUNCTION_TYPE_PARAM.
+        // If there are multiple FUNCTION_TYPE_PARAMs but no arrow (not a function type),
+        // this is a parenthesized union.
+        if type_expr.is_parenthesized() && !type_expr.is_function_type() {
+            let params = type_expr.function_type_params();
+            if params.len() > 1 {
+                // This is a parenthesized union like `(A | B | C)`
+                let members: Vec<TypeRef> = params
+                    .iter()
+                    .filter_map(baml_compiler_syntax::FunctionTypeParam::ty)
+                    .map(|t| Self::from_ast(&t))
+                    .collect();
+                if !members.is_empty() {
+                    return TypeRef::Union(members);
+                }
+            }
         }
 
         Self::from_ast_base_type(type_expr)
@@ -181,7 +265,7 @@ impl TypeRef {
         }
 
         // Check for map type with type args
-        if let Some(name) = type_expr.base_name() {
+        if let Some(name) = type_expr.dotted_name() {
             if name == "map" {
                 let args = type_expr.type_arg_exprs();
                 if args.len() == 2 {
@@ -212,6 +296,22 @@ impl TypeRef {
             return Self::apply_modifiers_from_parts(inner, parts);
         }
 
+        // Check for FUNCTION_TYPE_PARAM child (new parser structure for parenthesized types)
+        // e.g., `(Union | Union)` has L_PAREN, FUNCTION_TYPE_PARAM, R_PAREN as children
+        if let Some(func_param) = parts.function_type_param() {
+            // Get the TYPE_EXPR inside the FUNCTION_TYPE_PARAM
+            if let Some(inner_type_expr) = func_param
+                .children()
+                .find(|n| n.kind() == baml_compiler_syntax::SyntaxKind::TYPE_EXPR)
+            {
+                if let Some(type_expr) = baml_compiler_syntax::ast::TypeExpr::cast(inner_type_expr)
+                {
+                    let inner = Self::from_ast(&type_expr);
+                    return Self::apply_modifiers_from_parts(inner, parts);
+                }
+            }
+        }
+
         // Check for string literal (e.g., `"user"` in `"user" | "admin"`)
         if let Some(s) = parts.string_literal() {
             let base = TypeRef::StringLiteral(s);
@@ -224,8 +324,8 @@ impl TypeRef {
             return Self::apply_modifiers_from_parts(base, parts);
         }
 
-        // Check for named/primitive type or map type (e.g., `int`, `User`, `map<K,V>`)
-        if let Some(name) = parts.first_word() {
+        // Check for named/primitive type or map type (e.g., `int`, `User`, `map<K,V>`, `baml.http.Request`)
+        if let Some(name) = parts.dotted_name() {
             // Check for map type with TYPE_ARGS
             if name == "map" {
                 if let Some(type_args_node) = parts.type_args() {
@@ -248,10 +348,10 @@ impl TypeRef {
             }
 
             // Check for boolean literals
-            let base = match name {
+            let base = match name.as_str() {
                 "true" => TypeRef::BoolLiteral(true),
                 "false" => TypeRef::BoolLiteral(false),
-                _ => Self::from_type_name(name),
+                _ => Self::from_type_name(&name),
             };
             return Self::apply_modifiers_from_parts(base, parts);
         }
@@ -283,17 +383,28 @@ impl TypeRef {
 
     /// Create a `TypeRef` from a type name string (primitive or user-defined).
     fn from_type_name(name: &str) -> Self {
-        match name.to_lowercase().as_str() {
+        // Use case-sensitive matching for type keywords.
+        // This ensures that `Unknown` is treated as a user-defined type name,
+        // not as the `unknown` builtin keyword.
+        match name {
             "int" => TypeRef::Int,
             "float" => TypeRef::Float,
             "string" => TypeRef::String,
             "bool" => TypeRef::Bool,
             "null" => TypeRef::Null,
+            "unknown" => TypeRef::BuiltinUnknown,
             "image" => TypeRef::Media(baml_base::MediaKind::Image),
             "audio" => TypeRef::Media(baml_base::MediaKind::Audio),
             "video" => TypeRef::Media(baml_base::MediaKind::Video),
             "pdf" => TypeRef::Media(baml_base::MediaKind::Pdf),
-            _ => TypeRef::Path(Path::single(Name::new(name))),
+            _ => {
+                if name.contains('.') {
+                    let segments: Vec<Name> = name.split('.').map(Name::new).collect();
+                    TypeRef::Path(Path::new(segments))
+                } else {
+                    TypeRef::Path(Path::single(Name::new(name)))
+                }
+            }
         }
     }
 }

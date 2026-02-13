@@ -153,7 +153,7 @@ class TestEnum(str, Enum):
     G = "G"
 
 # #########################################################################
-# Generated classes (109)
+# Generated classes (108)
 # #########################################################################
 
 class AddTodoItem(BaseModel):
@@ -266,11 +266,6 @@ class Document1559(BaseModel):
 
 class DummyJsonTodo(BaseModel):
     id: int
-    todo: str
-    completed: bool
-    userId: int
-
-class DummyJsonTodoUpdate(BaseModel):
     todo: str
     completed: bool
     userId: int
@@ -403,9 +398,9 @@ class LiteralClassTwo(BaseModel):
     prop: typing_extensions.Literal['two']
 
 class MaintainFieldOrder(BaseModel):
-    a: str
-    b: str
     c: str
+    b: str
+    a: str
 
 class MalformedConstraints(BaseModel):
     foo: Checked[int, typing_extensions.Literal['foo_check']]

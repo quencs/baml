@@ -11,10 +11,10 @@
 
 use std::{collections::HashMap, fmt::Write};
 
-use baml_base::MediaKind;
+use baml_type::MediaKind;
 use bex_vm_types::{
     HeapPtr,
-    types::{Future, Instance, MediaContent, MediaValue, Object, Type, Value},
+    types::{Future, Instance, MediaValue, Object, Type, Value},
 };
 use indexmap::IndexMap;
 
@@ -151,14 +151,19 @@ impl NativeFunctions for VmNatives {
     // =========================================================================
 
     fn baml_media_as_url(media: &MediaValue) -> Option<String> {
-        match &media.content {
-            MediaContent::Url { url, .. } => Some(url.clone()),
-            _ => None,
+        // SAFETY: Url content is immutable once set; no concurrent writes can occur.
+        #[allow(unsafe_code)]
+        unsafe {
+            media.read_content_unguarded(|content| match content {
+                baml_builtins::MediaContent::Url { url, .. } => Some(url.clone()),
+                _ => None,
+            })
         }
     }
 
     fn baml_media_as_base64(media: &MediaValue) -> Option<String> {
-        match &media.content {
+        use baml_builtins::MediaContent;
+        media.read_content(|content| match content {
             MediaContent::Base64 { base64_data, .. } => Some(base64_data.clone()),
             MediaContent::File {
                 base64_data: Some(base64_data),
@@ -169,30 +174,22 @@ impl NativeFunctions for VmNatives {
                 ..
             } => Some(base64_data.clone()),
             _ => None,
-        }
+        })
     }
 
     fn baml_media_as_file(media: &MediaValue) -> Option<String> {
-        match &media.content {
-            MediaContent::File { file, .. } => Some(file.clone()),
-            _ => None,
+        // SAFETY: File path is immutable once set; no concurrent writes can occur.
+        #[allow(unsafe_code)]
+        unsafe {
+            media.read_content_unguarded(|content| match content {
+                baml_builtins::MediaContent::File { file, .. } => Some(file.clone()),
+                _ => None,
+            })
         }
     }
 
     fn baml_media_mime_type(media: &MediaValue) -> Option<String> {
         media.mime_type.clone()
-    }
-
-    // =========================================================================
-    // Env functions
-    // =========================================================================
-
-    fn env_get(vm: &mut BexVm, key: &str) -> Result<String, VmError> {
-        vm.env_vars.get(key).cloned().ok_or_else(|| {
-            VmError::RuntimeError(RuntimeError::Other(format!(
-                "Environment variable '{key}' not found",
-            )))
-        })
     }
 }
 
@@ -378,11 +375,23 @@ fn deep_equals_recursive(
                 }
 
                 (Object::Enum(a_enum), Object::Enum(b_enum)) => {
-                    a_enum.name == b_enum.name && a_enum.variant_names == b_enum.variant_names
+                    a_enum.name == b_enum.name
+                        && a_enum.variants.len() == b_enum.variants.len()
+                        && a_enum
+                            .variants
+                            .iter()
+                            .zip(b_enum.variants.iter())
+                            .all(|(a, b)| a.name == b.name)
                 }
 
                 (Object::Class(a_class), Object::Class(b_class)) => {
-                    a_class.name == b_class.name && a_class.field_names == b_class.field_names
+                    a_class.name == b_class.name
+                        && a_class.fields.len() == b_class.fields.len()
+                        && a_class
+                            .fields
+                            .iter()
+                            .zip(b_class.fields.iter())
+                            .all(|(a, b)| a.name == b.name)
                 }
 
                 // Functions are compared by reference
@@ -442,15 +451,15 @@ fn format_value_recursive(vm: &mut BexVm, value: &Value, depth: usize) -> Result
                 };
 
                 let class_name = class.name.clone();
-                let field_names = class.field_names.clone();
+                let class_fields = class.fields.clone();
                 let fields = instance.fields.clone();
 
                 let mut result = format!("{class_name} {{\n");
                 let field_indent = "    ".repeat(depth + 1);
 
                 for (i, field_value) in fields.iter().enumerate() {
-                    let field_name = match field_names.get(i) {
-                        Some(name) => name.as_str(),
+                    let field_name = match class_fields.get(i) {
+                        Some(field) => field.name.as_str(),
                         None => {
                             let fallback = format!("field_{i}");
                             let formatted_value =
@@ -505,8 +514,8 @@ fn format_value_recursive(vm: &mut BexVm, value: &Value, depth: usize) -> Result
                     )));
                 };
 
-                let variant_name = match enm.variant_names.get(variant.index) {
-                    Some(name) => name.clone(),
+                let variant_name = match enm.variants.get(variant.index) {
+                    Some(v) => v.name.clone(),
                     None => format!("variant_{}", variant.index),
                 };
                 Ok(variant_name)
@@ -534,11 +543,11 @@ pub fn attach_builtins(object: Object) -> Result<Object, VmError> {
         Object::Function(function) => {
             let kind = match function.kind {
                 bex_vm_types::FunctionKind::Bytecode => bex_vm_types::FunctionKind::Bytecode,
-                bex_vm_types::FunctionKind::External(op) => {
-                    bex_vm_types::FunctionKind::External(op)
-                }
+                bex_vm_types::FunctionKind::SysOp(op) => bex_vm_types::FunctionKind::SysOp(op),
                 bex_vm_types::FunctionKind::NativeUnresolved => {
-                    let Some(native_function) = crate::get_native_fn(function.name.as_str()) else {
+                    let Some(native_function) =
+                        crate::builtins::get_native_fn(function.name.as_str())
+                    else {
                         return Err(VmError::RuntimeError(RuntimeError::Other(format!(
                             "Native function '{}' not found",
                             function.name
@@ -552,7 +561,7 @@ pub fn attach_builtins(object: Object) -> Result<Object, VmError> {
                     bex_vm_types::FunctionKind::Native(ptr)
                 }
             };
-            Object::Function(bex_vm_types::Function {
+            Object::Function(Box::new(bex_vm_types::Function {
                 name: function.name,
                 arity: function.arity,
                 bytecode: function.bytecode,
@@ -561,7 +570,11 @@ pub fn attach_builtins(object: Object) -> Result<Object, VmError> {
                 span: function.span,
                 block_notifications: function.block_notifications,
                 viz_nodes: function.viz_nodes,
-            })
+                return_type: function.return_type,
+                param_names: function.param_names,
+                param_types: function.param_types,
+                body_meta: function.body_meta,
+            }))
         }
         // All other object types pass through unchanged
         other => other,

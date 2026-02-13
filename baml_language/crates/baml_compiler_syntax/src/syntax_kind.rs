@@ -174,6 +174,8 @@ pub enum SyntaxKind {
     MAP_TYPE,
     TYPE_ARGS,
     STRING_LITERAL_TYPE, // "user" | "assistant"
+    FUNCTION_TYPE,       // (x: int, y: int) -> int
+    FUNCTION_TYPE_PARAM, // x: int (or just int)
 
     // Attributes
     ATTRIBUTE,       // @alias("name")
@@ -214,6 +216,14 @@ pub enum SyntaxKind {
     /// For field access on complex expressions (like `f().field` or `arr[0].field`),
     /// use `FIELD_ACCESS_EXPR` instead.
     PATH_EXPR,
+    /// `env.FIELD` expression (e.g., `env.API_KEY`).
+    ///
+    /// Structure: `KW_ENV DOT WORD`
+    ///
+    /// Desugared during HIR lowering:
+    /// - In non-call position: `env.FOO` → `env.get_or_panic("FOO")`
+    /// - In call position: `env.get(...)` → call to `env.get` module function
+    ENV_ACCESS_EXPR,
     PAREN_EXPR,
     BLOCK_EXPR,
     IF_EXPR,
@@ -245,10 +255,11 @@ pub enum SyntaxKind {
     UNQUOTED_STRING,
 
     // Template components (inside raw strings)
-    TEMPLATE_CONTENT,
-    TEMPLATE_INTERPOLATION, // {{ expr }}
-    TEMPLATE_CONTROL,       // {% for ... %}
-    TEMPLATE_COMMENT,       // {# comment #}
+    TEMPLATE_CONTENT,       // Plain text (deprecated, use PROMPT_TEXT)
+    TEMPLATE_INTERPOLATION, // {{ expr }} - Jinja expressions
+    TEMPLATE_CONTROL,       // {% for ... %} - Jinja statements
+    TEMPLATE_COMMENT,       // {# comment #} - Jinja comments
+    PROMPT_TEXT,            // Plain text between Jinja constructs
 
     // Error recovery
     ERROR,

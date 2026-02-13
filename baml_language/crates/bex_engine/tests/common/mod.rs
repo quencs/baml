@@ -6,11 +6,11 @@
 // Allow dead code since not all test files use all utilities
 #![allow(dead_code)]
 
-use std::{collections::HashMap, io::Write};
+use std::io::Write;
 
-use baml_tests::bytecode::compile_source_with_schema;
-use bex_engine::{BexEngine, BexExternalValue, BexValue};
-use bex_program::BexProgram;
+use baml_tests::bytecode::compile_source;
+use bex_engine::{BexEngine, BexExternalValue};
+use bex_vm_types::Program;
 use indexmap::IndexMap;
 use sys_native::SysOpsExt;
 use tempfile::TempDir;
@@ -41,9 +41,9 @@ impl Default for EngineProgram {
     }
 }
 
-/// Compile BAML source code into a snapshot with schema populated.
-pub(crate) fn compile_for_engine(source: &str) -> BexProgram {
-    compile_source_with_schema(source)
+/// Compile BAML source code into bytecode.
+pub(crate) fn compile_for_engine(source: &str) -> Program {
+    compile_source(source)
 }
 
 /// Set up the virtual filesystem for a test.
@@ -70,16 +70,10 @@ pub(crate) async fn assert_engine_executes(input: EngineProgram) -> anyhow::Resu
     let source = input.source.replace("{ROOT}", &root_path);
 
     let snapshot = compile_for_engine(&source);
-    let engine = BexEngine::new(snapshot, HashMap::new(), sys_types::SysOps::native())
-        .expect("Failed to create engine");
+    let engine =
+        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
-    // Convert BexExternalValue inputs to BexValue for call_function
-    let args: Vec<BexValue> = input
-        .inputs
-        .into_iter()
-        .map(std::convert::Into::into)
-        .collect();
-    let result = engine.call_function(input.entry, &args).await;
+    let result = engine.call_function(input.entry, input.inputs).await;
 
     match (result, input.expected) {
         (Ok(value), Ok(expected)) => {

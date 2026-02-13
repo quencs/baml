@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use baml_type::Ty;
+use bex_resource_types::ResourceHandle;
 use indexmap::IndexMap;
-use sys_resource_types::ResourceHandle;
 
 use crate::{bytecode::Bytecode, heap_ptr::HeapPtr, indexable::ObjectPool};
 
@@ -15,7 +16,7 @@ use crate::{bytecode::Bytecode, heap_ptr::HeapPtr, indexable::ObjectPool};
 /// These are used by the `TypeTag` instruction to extract a type identifier
 /// from any value for jump table dispatch on union types.
 pub mod type_tags {
-    pub use baml_typetags::*;
+    pub use baml_type::typetag::*;
 }
 
 /// Compiled program ready for execution.
@@ -35,6 +36,14 @@ pub struct Program {
 
     /// Maps function names to their object indices.
     pub function_indices: HashMap<String, usize>,
+
+    /// Maps function names to their global indices.
+    /// Used for dynamic function lookup at runtime.
+    pub function_global_indices: HashMap<String, usize>,
+
+    /// Pre-formatted Jinja `{% macro %}` definitions for all `template_strings`.
+    /// Prepended to function prompt templates by `get_jinja_template`.
+    pub template_strings_macros: String,
 }
 
 impl Program {
@@ -64,80 +73,47 @@ impl Program {
 // External Operations
 // ============================================================================
 
-/// External operation to be executed by the engine.
-///
-/// This enum enables static dispatch instead of dynamic dispatch via traits.
-/// The engine matches on this enum to execute the appropriate async operation.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ExternalOp {
-    /// LLM function call (user-defined functions with LLM body).
-    Llm,
-    /// System operation (file I/O, shell, HTTP, etc.).
-    Sys(SysOp),
-}
-
 /// System operations that run outside the VM.
 ///
-/// These are built-in async operations provided by the engine.
-/// Add new variants here as new system capabilities are added.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SysOp {
-    /// Open a file: `baml.fs.open(path: String) -> File`
-    FsOpen,
-    /// Read file contents: `File.read() -> String`
-    FsRead,
-    /// Close a file: `File.close()`
-    FsClose,
-    /// Execute a shell command: `baml.sys.shell(cmd: String) -> String`
-    Shell,
-    /// Connect to a TCP socket: `baml.net.connect(addr: String) -> Socket`
-    NetConnect,
-    /// Read from a socket: `Socket.read() -> String`
-    NetRead,
-    /// Close a socket: `Socket.close()`
-    NetClose,
-    /// HTTP fetch: `baml.http.fetch(url: String) -> Response`
-    HttpFetch,
-    /// Get response body as text: `Response.text() -> String`
-    HttpResponseText,
-    /// Get response status code: `Response.status() -> i64`
-    HttpResponseStatus,
-    /// Check if response is OK (2xx): `Response.ok() -> bool`
-    HttpResponseOk,
-    /// Get request URL: `Response.url() -> String`
-    HttpResponseUrl,
-    /// Get response headers: `Response.headers() -> Map<String, String>`
-    HttpResponseHeaders,
+/// Generated from `#[sys_op]` definitions in `baml_builtins::with_builtins!`.
+/// Adding a new `#[sys_op]` in the DSL automatically adds an enum variant here.
+///
+/// The `for_all_sys_ops!` macro carries the definitive list of variants, paths,
+/// and `snake_case` names. This enum, `path()`, `sys_op_for_path()`, and `Display`
+/// are all generated from it — no manual maintenance needed.
+macro_rules! define_sys_op_enum {
+    ($({ $Variant:ident, $path:expr, $snake:ident, $uses_ctx:expr })*) => {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum SysOp {
+            $( $Variant, )*
+        }
+
+        impl SysOp {
+            /// Get the DSL path for this `sys_op` (e.g., `"baml.fs.open"`).
+            pub const fn path(&self) -> &'static str {
+                match self {
+                    $( SysOp::$Variant => $path, )*
+                }
+            }
+        }
+
+        /// Look up a `SysOp` by its DSL path string.
+        pub fn sys_op_for_path(path: &str) -> Option<SysOp> {
+            match path {
+                $( $path => Some(SysOp::$Variant), )*
+                _ => None,
+            }
+        }
+
+        impl std::fmt::Display for SysOp {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.path())
+            }
+        }
+    };
 }
 
-impl std::fmt::Display for ExternalOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExternalOp::Llm => write!(f, "llm"),
-            ExternalOp::Sys(sys_op) => write!(f, "{sys_op}"),
-        }
-    }
-}
-
-impl std::fmt::Display for SysOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SysOp::FsOpen => write!(f, "fs.open"),
-            SysOp::FsRead => write!(f, "fs.read"),
-            SysOp::FsClose => write!(f, "fs.close"),
-            SysOp::Shell => write!(f, "sys.shell"),
-            SysOp::NetConnect => write!(f, "net.connect"),
-            SysOp::NetRead => write!(f, "net.read"),
-            SysOp::NetClose => write!(f, "net.close"),
-            SysOp::HttpFetch => write!(f, "http.fetch"),
-            SysOp::HttpResponseText => write!(f, "http.Response.text"),
-            SysOp::HttpResponseStatus => write!(f, "http.Response.status"),
-            SysOp::HttpResponseOk => write!(f, "http.Response.ok"),
-            SysOp::HttpResponseUrl => write!(f, "http.Response.url"),
-            SysOp::HttpResponseHeaders => write!(f, "http.Response.headers"),
-        }
-    }
-}
+baml_builtins::for_all_sys_ops!(define_sys_op_enum);
 
 // ============================================================================
 // Function Types
@@ -168,11 +144,11 @@ pub enum FunctionKind {
     /// The VM pushes a call frame onto the call stack and runs the bytecode.
     Bytecode,
 
-    /// External operation (LLM calls, HTTP requests, file I/O, etc.).
+    /// System operation (LLM calls, HTTP requests, file I/O, etc.).
     ///
     /// The VM yields control to the engine which executes the operation
-    /// asynchronously via static dispatch on the `ExternalOp` enum.
-    External(ExternalOp),
+    /// asynchronously via static dispatch on the `SysOp` enum.
+    SysOp(SysOp),
 
     /// Unresolved native function (placeholder).
     ///
@@ -199,6 +175,15 @@ pub enum FunctionKind {
 unsafe impl Send for FunctionKind {}
 #[allow(unsafe_code)]
 unsafe impl Sync for FunctionKind {}
+
+/// LLM-specific metadata for a function.
+#[derive(Clone, Debug)]
+pub enum FunctionMeta {
+    Llm {
+        prompt_template: String,
+        client: String,
+    },
+}
 
 /// Represents any Baml function.
 #[derive(Clone, Debug)]
@@ -235,6 +220,18 @@ pub struct Function {
     ///
     /// Stores metadata about control flow structure (branches, loops, scopes).
     pub viz_nodes: Vec<crate::bytecode::VizNodeMeta>,
+
+    /// Return type of the function.
+    pub return_type: Ty,
+
+    /// Parameter names in declaration order.
+    pub param_names: Vec<String>,
+
+    /// Parameter types in declaration order.
+    pub param_types: Vec<Ty>,
+
+    /// LLM-specific metadata (prompt template, client name). `None` for non-LLM functions.
+    pub body_meta: Option<FunctionMeta>,
 }
 
 impl std::fmt::Display for Function {
@@ -243,14 +240,29 @@ impl std::fmt::Display for Function {
     }
 }
 
+/// A field within a runtime class, carrying type and schema metadata.
+#[derive(Clone, Debug)]
+pub struct ClassField {
+    pub name: String,
+    pub field_type: Ty,
+    pub description: Option<String>,
+    pub alias: Option<String>,
+}
+
 /// Runtime class representation.
 #[derive(Clone, Debug)]
 pub struct Class {
     /// Class name.
     pub name: String,
 
-    /// Class field names. Debug info, VM doesn't need this.
-    pub field_names: Vec<String>,
+    /// Class fields with type and schema metadata.
+    pub fields: Vec<ClassField>,
+
+    /// Class-level description for LLM prompt schema rendering.
+    pub description: Option<String>,
+
+    /// Class-level serialization alias.
+    pub alias: Option<String>,
 
     /// Type tag for this class, used by `TypeTag` instruction for jump table dispatch.
     /// Assigned during codegen as `CLASS_BASE + class_index`.
@@ -279,14 +291,29 @@ impl std::fmt::Display for Instance {
     }
 }
 
-/// Runtime class representation.
+/// A variant within a runtime enum, carrying schema metadata.
+#[derive(Clone, Debug)]
+pub struct EnumVariant {
+    pub name: String,
+    pub description: Option<String>,
+    pub alias: Option<String>,
+    pub skip: bool,
+}
+
+/// Runtime enum representation.
 #[derive(Clone, Debug)]
 pub struct Enum {
     /// Enum name.
     pub name: String,
 
-    /// Enum variant names. Debug info, VM doesn't need this.
-    pub variant_names: Vec<String>,
+    /// Enum variants with schema metadata.
+    pub variants: Vec<EnumVariant>,
+
+    /// Enum-level description.
+    pub description: Option<String>,
+
+    /// Enum-level serialization alias.
+    pub alias: Option<String>,
 }
 
 impl std::fmt::Display for Enum {
@@ -391,6 +418,12 @@ impl ConstValue {
     }
 }
 
+/// Media value.
+pub type MediaValue = std::sync::Arc<baml_builtins::MediaValue>;
+
+/// Prompt AST tree node.
+pub type PromptAst = std::sync::Arc<baml_builtins::PromptAst>;
+
 /// Any data that the Baml program can reference and is allocated on heap.
 ///
 /// `Vm` (in `bex_vm` crate) should own objects and give references to them to the running Baml
@@ -402,7 +435,7 @@ impl ConstValue {
 #[derive(Clone, Debug)]
 pub enum Object {
     /// Function object.
-    Function(Function),
+    Function(Box<Function>),
 
     /// Class object.
     Class(Class),
@@ -434,15 +467,15 @@ pub enum Object {
     Map(IndexMap<String, Value>),
 
     Future(Future),
-    // TODO: Figure out media.
-    // /// Images, audio, pdf, video.
-    Media(MediaValue),
 
-    /// External resource (file handle, socket, etc.).
-    Resource(ResourceHandle),
+    /// Images, audio, pdf, video.
+    Media(MediaValue),
 
     /// Prompt AST tree node.
     PromptAst(PromptAst),
+
+    /// External resource (file handle, socket, etc.).
+    Resource(ResourceHandle),
 
     #[cfg(feature = "heap_debug")]
     Sentinel(SentinelKind),
@@ -495,83 +528,10 @@ pub enum Future {
 /// LLM calls, HTTP requests, file I/O, or shell commands.
 #[derive(Clone, Debug)]
 pub struct PendingFuture {
-    /// The external operation to execute.
-    pub operation: ExternalOp,
+    /// The system operation to execute.
+    pub operation: SysOp,
     /// Arguments to the operation.
     pub args: Vec<Value>,
-}
-
-#[derive(Clone, Debug)]
-pub struct MediaValue {
-    pub kind: baml_base::MediaKind,
-    pub content: MediaContent,
-    pub mime_type: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub enum MediaContent {
-    Url {
-        url: String,
-        base64_data: Option<String>,
-    },
-    Base64 {
-        base64_data: String,
-    },
-    File {
-        file: String,
-        base64_data: Option<String>,
-    },
-}
-
-impl std::fmt::Display for MediaValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}::{}", self.kind, self.content)
-    }
-}
-
-impl std::fmt::Display for MediaContent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MediaContent::Url { url, .. } => write!(f, "url({url})"),
-            MediaContent::Base64 { base64_data, .. } => {
-                // Show first 5, last 5, and total length for context
-                let len = base64_data.len();
-                if len <= 10 {
-                    write!(f, "base64({base64_data}, len={len})")
-                } else {
-                    let start = &base64_data[..5];
-                    let end = &base64_data[len.saturating_sub(5)..];
-                    write!(f, "base64({start}...{end}, len={len})")
-                }
-            }
-            MediaContent::File { file, .. } => write!(f, "file({file})"),
-        }
-    }
-}
-
-// ============================================================================
-// PromptAst - represents a structured prompt (recursive tree)
-// ============================================================================
-
-/// A node in the prompt AST tree.
-#[derive(Clone, Debug, PartialEq)]
-pub enum PromptAst {
-    /// A plain string.
-    String(String),
-
-    /// A media value - serializable opaque handle.
-    /// WARNING: usize is platform-dependent. Serialization must occur within the same platform.
-    Media(usize),
-
-    /// A message with a role, content, and optional metadata.
-    Message {
-        role: String,
-        content: Box<PromptAst>,
-        metadata: Value,
-    },
-
-    /// A sequence of prompt nodes.
-    Vec(Vec<PromptAst>),
 }
 
 /// Types of values.
@@ -696,7 +656,7 @@ pub enum FunctionType {
     /// Top of function type lattice: represents all function types.
     Any,
     Callable,
-    External,
+    SysOp,
 }
 
 impl std::fmt::Display for FunctionType {
@@ -704,15 +664,15 @@ impl std::fmt::Display for FunctionType {
         match self {
             FunctionType::Any => write!(f, "any"),
             FunctionType::Callable => write!(f, "callable"),
-            FunctionType::External => write!(f, "external"),
+            FunctionType::SysOp => write!(f, "sys_op"),
         }
     }
 }
 
 impl From<&FunctionKind> for FunctionType {
     fn from(value: &FunctionKind) -> Self {
-        if matches!(value, FunctionKind::External(_)) {
-            FunctionType::External
+        if matches!(value, FunctionKind::SysOp(_)) {
+            FunctionType::SysOp
         } else {
             FunctionType::Callable
         }

@@ -1282,60 +1282,6 @@ func (c DummyJsonTodo) BamlTypeName() string {
 	return "DummyJsonTodo"
 }
 
-type DummyJsonTodoUpdate struct {
-	Todo      *string `json:"todo"`
-	Completed *bool   `json:"completed"`
-	UserId    *int64  `json:"userId"`
-}
-
-func (c *DummyJsonTodoUpdate) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
-	typeName := holder.Name
-	if typeName.Namespace != cffi.CFFITypeNamespace_STREAM_TYPES {
-		panic(fmt.Sprintf("expected cffi.CFFITypeNamespace_STREAM_TYPES, got %s", string(typeName.Namespace.String())))
-	}
-	if typeName.Name != "DummyJsonTodoUpdate" {
-		panic(fmt.Sprintf("expected DummyJsonTodoUpdate, got %s", typeName.Name))
-	}
-
-	for _, field := range holder.Fields {
-		key := field.Key
-		valueHolder := field.Value
-		switch key {
-
-		case "todo":
-			c.Todo = baml.Decode(valueHolder).Interface().(*string)
-
-		case "completed":
-			c.Completed = baml.Decode(valueHolder).Interface().(*bool)
-
-		case "userId":
-			c.UserId = baml.Decode(valueHolder).Interface().(*int64)
-
-		default:
-
-			panic(fmt.Sprintf("unexpected field: %s in class DummyJsonTodoUpdate", key))
-
-		}
-	}
-
-}
-
-func (c DummyJsonTodoUpdate) Encode() (*cffi.HostValue, error) {
-	fields := map[string]any{}
-
-	fields["todo"] = c.Todo
-
-	fields["completed"] = c.Completed
-
-	fields["userId"] = c.UserId
-
-	return baml.EncodeClass("DummyJsonTodoUpdate", fields, nil)
-}
-
-func (c DummyJsonTodoUpdate) BamlTypeName() string {
-	return "DummyJsonTodoUpdate"
-}
-
 type DummyOutput struct {
 	Nonce             *string `json:"nonce"`
 	Nonce2            *string `json:"nonce2"`
@@ -2801,9 +2747,9 @@ func (c LiteralClassTwo) BamlTypeName() string {
 }
 
 type MaintainFieldOrder struct {
-	A *string `json:"a"`
-	B *string `json:"b"`
 	C *string `json:"c"`
+	B *string `json:"b"`
+	A *string `json:"a"`
 }
 
 func (c *MaintainFieldOrder) Decode(holder *cffi.CFFIValueClass, typeMap baml.TypeMap) {
@@ -2820,14 +2766,14 @@ func (c *MaintainFieldOrder) Decode(holder *cffi.CFFIValueClass, typeMap baml.Ty
 		valueHolder := field.Value
 		switch key {
 
-		case "a":
-			c.A = baml.Decode(valueHolder).Interface().(*string)
+		case "c":
+			c.C = baml.Decode(valueHolder).Interface().(*string)
 
 		case "b":
 			c.B = baml.Decode(valueHolder).Interface().(*string)
 
-		case "c":
-			c.C = baml.Decode(valueHolder).Interface().(*string)
+		case "a":
+			c.A = baml.Decode(valueHolder).Interface().(*string)
 
 		default:
 
@@ -2841,11 +2787,11 @@ func (c *MaintainFieldOrder) Decode(holder *cffi.CFFIValueClass, typeMap baml.Ty
 func (c MaintainFieldOrder) Encode() (*cffi.HostValue, error) {
 	fields := map[string]any{}
 
-	fields["a"] = c.A
+	fields["c"] = c.C
 
 	fields["b"] = c.B
 
-	fields["c"] = c.C
+	fields["a"] = c.A
 
 	return baml.EncodeClass("MaintainFieldOrder", fields, nil)
 }

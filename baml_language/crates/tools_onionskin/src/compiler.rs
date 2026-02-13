@@ -796,6 +796,14 @@ impl CompilerRunner {
                             writeln!(output).ok();
                             output_annotated.push((String::new(), LineStatus::Unknown));
                         }
+                        ItemId::TemplateString(ts_loc) => {
+                            let ts = &item_tree[ts_loc.id(&self.db)];
+                            let line = format!("template_string {}", ts.name);
+                            writeln!(output, "{line}").ok();
+                            output_annotated.push((line, status));
+                            writeln!(output).ok();
+                            output_annotated.push((String::new(), LineStatus::Unknown));
+                        }
                     }
                 }
             }
@@ -824,6 +832,7 @@ impl CompilerRunner {
         let type_aliases_map = type_aliases(&self.db, self.project_root)
             .aliases(&self.db)
             .clone();
+        let _recursive_aliases = baml_compiler_tir::find_recursive_aliases(&type_aliases_map);
         let enum_variants_map = enum_variants(&self.db, self.project_root);
         let enum_variants_data = enum_variants_map.enums(&self.db).clone();
 
@@ -934,6 +943,7 @@ impl CompilerRunner {
         let type_aliases_map = type_aliases(&self.db, self.project_root)
             .aliases(&self.db)
             .clone();
+        let recursive_aliases = baml_compiler_tir::find_recursive_aliases(&type_aliases_map);
         let enum_variants_map = enum_variants(&self.db, self.project_root);
         let enum_variants_data = enum_variants_map.enums(&self.db).clone();
 
@@ -991,7 +1001,13 @@ impl CompilerRunner {
                     writeln!(output, "{}", header).ok();
                     output_annotated.push((header, status));
 
-                    match lower_from_hir(&body, &inference_result, &resolution_ctx) {
+                    match lower_from_hir(
+                        &body,
+                        &inference_result,
+                        &resolution_ctx,
+                        &type_aliases_map,
+                        &recursive_aliases,
+                    ) {
                         Ok(typed_ir) => {
                             // Pretty print the TypedIR
                             let ir_output = pretty_print(&typed_ir);
@@ -1034,6 +1050,10 @@ impl CompilerRunner {
         let class_field_types_map = class_field_types(&self.db, self.project_root)
             .classes(&self.db)
             .clone();
+        let type_aliases_map = type_aliases(&self.db, self.project_root)
+            .aliases(&self.db)
+            .clone();
+        let recursive_aliases = baml_compiler_tir::find_recursive_aliases(&type_aliases_map);
 
         // Build classes map (class name -> field name -> field index) for MIR lowering
         // Also build class type tags for TypeTag switch optimization
@@ -1055,7 +1075,7 @@ impl CompilerRunner {
                         field_indices.insert(field.name.to_string(), idx);
                     }
                     // Compute type tag for this class (CLASS_BASE + counter)
-                    let type_tag = baml_typetags::CLASS_BASE + class_type_tag_counter;
+                    let type_tag = baml_type::typetag::CLASS_BASE + class_type_tag_counter;
                     class_type_tag_counter += 1;
                     class_type_tags.insert(class_name.clone(), type_tag);
                     classes.insert(class_name, field_indices);
@@ -1116,6 +1136,8 @@ impl CompilerRunner {
                         &body,
                         &inference_result,
                         &resolution_ctx,
+                        &type_aliases_map,
+                        &recursive_aliases,
                     ) {
                         Ok(vir) => {
                             let mir = baml_compiler_mir::lower(
@@ -1126,6 +1148,8 @@ impl CompilerRunner {
                                 &enums,
                                 &class_type_tags,
                                 &resolution_ctx,
+                                &type_aliases_map,
+                                &recursive_aliases,
                             );
                             baml_compiler_mir::pretty::display_function(&mir)
                         }
@@ -2433,10 +2457,10 @@ fn format_vm_value(value: &bex_vm_types::Value, vm: &bex_vm::BexVm) -> String {
                     let class_obj = vm.get_object(inst.class);
                     if let Object::Class(class) = class_obj {
                         let fields: Vec<String> = class
-                            .field_names
+                            .fields
                             .iter()
                             .zip(inst.fields.iter())
-                            .map(|(name, val)| format!("{}: {}", name, format_vm_value(val, vm)))
+                            .map(|(f, val)| format!("{}: {}", f.name, format_vm_value(val, vm)))
                             .collect();
                         format!("{}{{ {} }}", class.name, fields.join(", "))
                     } else {
@@ -2446,8 +2470,8 @@ fn format_vm_value(value: &bex_vm_types::Value, vm: &bex_vm::BexVm) -> String {
                 Object::Variant(var) => {
                     let enum_obj = vm.get_object(var.enm);
                     if let Object::Enum(enm) = enum_obj {
-                        if let Some(name) = enm.variant_names.get(var.index) {
-                            format!("{}::{}", enm.name, name)
+                        if let Some(v) = enm.variants.get(var.index) {
+                            format!("{}::{}", enm.name, v.name)
                         } else {
                             format!("{}::variant_{}", enm.name, var.index)
                         }

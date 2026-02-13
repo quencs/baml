@@ -1,16 +1,10 @@
 ---
-source: target/debug/build/baml_tests-fbd0fe113b2fb574/out/generated_tests.rs
+source: target/debug/build/baml_tests-d8c3d4c38f908488/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
 function FormatMessage(name: string) -> string {
-  client GPT4
-  prompt #"
-    
-        Generate a message for "{{ name }}"
-        Include quotes like: "Welcome, '{{ name }}'!"
-      
-  "#
+    baml.llm.call_llm_function("FormatMessage", { "name": name })
 }
 
 class NestedQuotes {
@@ -31,15 +25,7 @@ class NestedQuotes {
 }
 
 function ProcessText(input: string) -> string {
-  client GPT4
-  prompt #"
-    
-        Process the following text:
-        {{ input }}
-        
-        Return the processed result.
-      
-  "#
+    baml.llm.call_llm_function("ProcessText", { "input": input })
 }
 
 class RawStrings {
@@ -60,6 +46,10 @@ class Messages {
   with_escapes: string
   with_quotes: string
   hello: <unknown>
+}
+
+function GPT4.resolve() -> baml.llm.PrimitiveClient {
+    baml.llm.build_primitive_client("GPT4", "unknown", "user", ["user", "assistant", "system"], {  })
 }
 
 class UnicodeStrings {

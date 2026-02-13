@@ -73,71 +73,9 @@ fn format_node_recursive(node: &baml_db::baml_compiler_syntax::SyntaxNode, depth
     result
 }
 
-// Helper function for formatting TypeRef as code
+// Use the shared type_ref_to_str function from baml_compiler_hir
 #[cfg(test)]
-fn format_type_ref(type_ref: &baml_compiler_hir::TypeRef) -> String {
-    format_type_ref_impl(type_ref, false)
-}
-
-/// Format TypeRef, optionally wrapping unions in parentheses when needed.
-#[cfg(test)]
-fn format_type_ref_impl(type_ref: &baml_compiler_hir::TypeRef, wrap_union: bool) -> String {
-    use baml_compiler_hir::TypeRef;
-    match type_ref {
-        TypeRef::Path(path) => format_path(path),
-        TypeRef::Int => "int".to_string(),
-        TypeRef::Float => "float".to_string(),
-        TypeRef::String => "string".to_string(),
-        TypeRef::Bool => "bool".to_string(),
-        TypeRef::Null => "null".to_string(),
-        TypeRef::Media(kind) => kind.to_string(),
-        TypeRef::Optional(inner) => format!("{}?", format_type_ref_impl(inner, true)),
-        TypeRef::List(inner) => format!("{}[]", format_type_ref_impl(inner, true)),
-        TypeRef::Map { key, value } => {
-            format!(
-                "Map<{}, {}>",
-                format_type_ref_impl(key, false),
-                format_type_ref_impl(value, false)
-            )
-        }
-        TypeRef::Union(types) => {
-            let inner = types
-                .iter()
-                .map(|t| format_type_ref_impl(t, false))
-                .collect::<Vec<_>>()
-                .join(" | ");
-            if wrap_union {
-                format!("({})", inner)
-            } else {
-                inner
-            }
-        }
-        TypeRef::StringLiteral(s) => format!("\"{}\"", s),
-        TypeRef::IntLiteral(n) => n.to_string(),
-        TypeRef::FloatLiteral(f) => f.clone(),
-        TypeRef::BoolLiteral(b) => b.to_string(),
-        TypeRef::Generic { base, args } => {
-            let args_str = args
-                .iter()
-                .map(|t| format_type_ref_impl(t, false))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("{}<{}>", format_type_ref_impl(base, false), args_str)
-        }
-        TypeRef::TypeParam(name) => name.to_string(),
-        TypeRef::Error => "<error>".to_string(),
-        TypeRef::Unknown => "<unknown>".to_string(),
-    }
-}
-
-#[cfg(test)]
-fn format_path(path: &baml_compiler_hir::Path) -> String {
-    path.segments
-        .iter()
-        .map(|s| s.to_string())
-        .collect::<Vec<_>>()
-        .join(".")
-}
+use baml_compiler_hir::type_ref_to_str as format_type_ref;
 
 // Helper function for formatting HIR items from a specific file
 #[cfg(test)]
@@ -148,7 +86,7 @@ fn format_hir_file(
 ) -> String {
     use std::fmt::Write;
 
-    use baml_compiler_hir::{function_body, function_signature};
+    use baml_compiler_hir::{function_body, function_signature, template_string_signature};
     use baml_db::baml_compiler_hir::ItemId;
 
     // Get the ItemTree once and keep it alive for all lookups
@@ -182,17 +120,13 @@ fn format_hir_file(
                 match body.as_ref() {
                     baml_db::baml_compiler_hir::FunctionBody::Llm(llm) => {
                         // Show LLM function body as inline config
-                        if let Some(ref client) = llm.client {
-                            writeln!(result, "  client {}", client).unwrap();
+                        writeln!(result, "  client {}", llm.client).unwrap();
+                        // Show prompt as template string
+                        writeln!(result, "  prompt #\"").unwrap();
+                        for line in llm.prompt.text.lines() {
+                            writeln!(result, "    {}", line).unwrap();
                         }
-                        if let Some(ref prompt) = llm.prompt {
-                            // Show prompt as template string
-                            writeln!(result, "  prompt #\"").unwrap();
-                            for line in prompt.text.lines() {
-                                writeln!(result, "    {}", line).unwrap();
-                            }
-                            writeln!(result, "  \"#").unwrap();
-                        }
+                        writeln!(result, "  \"#").unwrap();
                     }
                     baml_db::baml_compiler_hir::FunctionBody::Expr(expr_body, _source_map) => {
                         // Print as code for readability
@@ -347,6 +281,27 @@ fn format_hir_file(
                 }
                 writeln!(result, "}}").unwrap();
                 writeln!(result).unwrap(); // blank line after generator
+            }
+            ItemId::TemplateString(ts_id) => {
+                let ts = &item_tree[ts_id.id(db)];
+                let sig = template_string_signature(db, *ts_id);
+
+                // Format as: template_string Name(param: Type, ...)
+                write!(result, "template_string {}(", ts.name).unwrap();
+                for (i, param) in sig.params.iter().enumerate() {
+                    if i > 0 {
+                        write!(result, ", ").unwrap();
+                    }
+                    write!(
+                        result,
+                        "{}: {}",
+                        param.name,
+                        format_type_ref(&param.type_ref)
+                    )
+                    .unwrap();
+                }
+                write!(result, ")").unwrap();
+                writeln!(result).unwrap(); // blank line after template_string
             }
         }
     }

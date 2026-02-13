@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    bytecode::TestDatabase,
+    bytecode::{assert_no_diagnostic_errors, setup_test_db},
     vm::{Instruction, Value},
 };
 
@@ -92,7 +92,6 @@ fn convert_instruction(
         bex_vm_types::Instruction::StoreField(idx) => Instruction::StoreField(*idx),
         bex_vm_types::Instruction::Pop(n) => Instruction::Pop(*n),
         bex_vm_types::Instruction::Copy(idx) => Instruction::Copy(*idx),
-        bex_vm_types::Instruction::PopReplace(n) => Instruction::PopReplace(*n),
         bex_vm_types::Instruction::Jump(offset) => Instruction::Jump(*offset),
         bex_vm_types::Instruction::PopJumpIfFalse(offset) => Instruction::PopJumpIfFalse(*offset),
         bex_vm_types::Instruction::BinOp(op) => Instruction::BinOp(*op),
@@ -186,13 +185,14 @@ type CompileResult = (Vec<(String, CompiledFunction)>, HashMap<String, usize>);
 /// Compile BAML source and return compiled functions with their object pools.
 ///
 /// Uses the production `compile_files` function to ensure tests match real behavior.
+/// Also checks for diagnostic errors.
 fn compile_source(source: &str) -> CompileResult {
-    let mut db = TestDatabase::new();
-    let file = db.add_file("test.baml", source);
-    db.set_project(vec![file]);
+    let db = setup_test_db(source);
+    assert_no_diagnostic_errors(&db);
 
-    // Use the production compile_files function
-    let program = baml_compiler_emit::compile_files(&db, &[file])
+    let project = db.get_project().unwrap();
+    let all_files = project.files(&db).clone();
+    let program = baml_compiler_emit::compile_files(&db, &all_files)
         .expect("compile_files should succeed for valid test source");
 
     // Extract functions from the program
@@ -202,7 +202,7 @@ fn compile_source(source: &str) -> CompileResult {
             functions.push((
                 name.clone(),
                 CompiledFunction {
-                    function: func.clone(),
+                    function: (**func).clone(),
                     // All objects are in the program's object pool
                     objects: program.objects.clone(),
                 },

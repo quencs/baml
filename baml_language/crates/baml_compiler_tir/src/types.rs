@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use baml_compiler_hir::FullyQualifiedName;
+use baml_compiler_hir::QualifiedName;
 
 /// The value component of a literal type.
 ///
@@ -58,14 +58,14 @@ pub enum Ty {
 
     // User-defined types (resolved with fully-qualified names)
     /// A class type with its fully-qualified name.
-    Class(FullyQualifiedName),
+    Class(QualifiedName),
     /// An enum type with its fully-qualified name.
-    Enum(FullyQualifiedName),
+    Enum(QualifiedName),
     /// A type alias with its fully-qualified name.
     /// Type aliases are NOT expanded during resolution - they stay as `TypeAlias(FQN)`.
     /// Expansion happens later during normalization when needed for subtype checks.
     /// This preserves user spelling for error messages and handles recursive types.
-    TypeAlias(FullyQualifiedName),
+    TypeAlias(QualifiedName),
 
     // Type constructors
     Optional(Box<Ty>),
@@ -77,25 +77,60 @@ pub enum Ty {
     Union(Vec<Ty>),
 
     /// Function/arrow type: `(T1, T2, ...) -> R`
+    ///
+    /// Parameter names are optional and used only for diagnostics (e.g., error messages
+    /// like "missing argument 'foo'"). They are ignored in type equality and subtyping.
     Function {
-        params: Vec<Ty>,
+        params: Vec<(Option<baml_base::Name>, Ty)>,
         ret: Box<Ty>,
     },
 
     // Special types
+    /// Type inference failed - used for error recovery.
+    /// Treated as uninhabited to prevent cascading errors.
     Unknown,
+    /// A type error occurred.
     Error,
+    /// The void/unit type for functions that return nothing.
     Void,
+
+    /// Opaque resource handle (file, socket, HTTP response body).
+    Resource,
+    /// Internal-only type for builtin functions that accept any argument.
+    ///
+    /// Similar to TypeScript's `unknown` - any value can be passed where
+    /// `BuiltinUnknown` is expected, but `BuiltinUnknown` cannot be used
+    /// where a specific type is required (it doesn't "escape").
+    ///
+    /// Used in llm.baml for functions like:
+    /// ```baml
+    /// function render_prompt(function_name: string, args: map<string, unknown>) -> PromptAst
+    /// ```
+    ///
+    /// NOTE: This is different from `Ty::Unknown` which means "type inference
+    /// failed" and is used for error recovery.
+    ///
+    /// FUTURE: Replace with proper generics/mapped types once we design the
+    /// syntax for type-safe prompt functions. The goal is something like:
+    /// ```typescript
+    /// // TypeScript equivalent of what we eventually want:
+    /// type PromptMap = {
+    ///   welcome: [user: string];
+    ///   order: [orderId: number, expedited?: boolean];
+    /// };
+    ///
+    /// function render_prompt<K extends keyof PromptMap>(f: K, ...params: PromptMap[K]) {
+    ///   // ...
+    /// }
+    /// ```
+    /// But we don't yet know the BAML syntax for this. `BuiltinUnknown` is the
+    /// interim solution that allows builtins to type-check while we design
+    /// the proper generic system.
+    BuiltinUnknown,
 
     /// Watch accessor type: represents `x.$watch` on a watched variable.
     /// Contains the inner type being watched for method resolution.
     WatchAccessor(Box<Ty>),
-
-    /// Builtin type - matches exactly by path.
-    /// E.g., `Builtin("baml.fs.File")` for file handles.
-    /// These are types defined in the builtins that users can use
-    /// but whose implementation is in the engine (resource-backed).
-    Builtin(std::string::String),
 }
 
 impl Ty {
@@ -220,15 +255,22 @@ impl fmt::Display for Ty {
             Ty::Function { params, ret } => {
                 let param_strs: Vec<std::string::String> = params
                     .iter()
-                    .map(std::string::ToString::to_string)
+                    .map(|(name, ty)| {
+                        if let Some(n) = name {
+                            format!("{n}: {ty}")
+                        } else {
+                            ty.to_string()
+                        }
+                    })
                     .collect();
                 write!(f, "({}) -> {}", param_strs.join(", "), ret)
             }
             Ty::Unknown => write!(f, "unknown"),
             Ty::Error => write!(f, "error"),
             Ty::Void => write!(f, "void"),
+            Ty::Resource => write!(f, "resource"),
+            Ty::BuiltinUnknown => write!(f, "unknown"),
             Ty::WatchAccessor(inner) => write!(f, "{inner}.$watch"),
-            Ty::Builtin(path) => write!(f, "{path}"),
         }
     }
 }

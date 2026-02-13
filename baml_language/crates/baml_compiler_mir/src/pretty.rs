@@ -57,14 +57,14 @@ pub fn write_function(f: &mut impl Write, func: &MirFunction) -> fmt::Result {
     write!(f, ")")?;
     if !func.locals.is_empty() {
         let ret = &func.locals[0];
-        write!(f, " -> {:?}", ret.ty)?;
+        write!(f, " -> {}", ret.ty)?;
     }
     writeln!(f, " {{")?;
 
     // Local declarations
     writeln!(f, "    // Locals:")?;
     for (i, local) in func.locals.iter().enumerate() {
-        write!(f, "    let _{i}: {:?}", local.ty)?;
+        write!(f, "    let _{i}: {}", local.ty)?;
         if let Some(name) = &local.name {
             write!(f, " // {name}")?;
         }
@@ -89,9 +89,9 @@ pub fn write_function(f: &mut impl Write, func: &MirFunction) -> fmt::Result {
 
 fn write_local_decl_inline(f: &mut impl Write, id: Local, decl: &LocalDecl) -> fmt::Result {
     if let Some(name) = &decl.name {
-        write!(f, "{name}: {:?}", decl.ty)
+        write!(f, "{name}: {}", decl.ty)
     } else {
-        write!(f, "{id}: {:?}", decl.ty)
+        write!(f, "{id}: {}", decl.ty)
     }
 }
 
@@ -335,8 +335,8 @@ fn write_constant(f: &mut impl Write, constant: &Constant) -> fmt::Result {
         Constant::String(s) => write!(f, "const {s:?}"),
         Constant::Bool(b) => write!(f, "const {b}"),
         Constant::Null => write!(f, "const null"),
-        Constant::Function(name) => write!(f, "const fn {name}"),
-        Constant::EnumVariant { enum_name, variant } => write!(f, "const {enum_name}.{variant}"),
+        Constant::Function(qn) => write!(f, "const fn {qn}"),
+        Constant::EnumVariant { enum_qn, variant } => write!(f, "const {enum_qn}.{variant}"),
         Constant::Ty(ty) => write!(f, "const type {ty:?}"),
     }
 }

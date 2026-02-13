@@ -366,6 +366,7 @@ fn generate_hir_test(project: &TestProject) -> TokenStream {
         #[test]
         fn test_03_hir() {
             let mut db = ProjectDatabase::new();
+            db.set_project_root(std::path::Path::new("."));
             let mut output = String::new();
             writeln!(output, "=== HIR ITEMS ===").unwrap();
 
@@ -414,8 +415,8 @@ fn generate_tir_test(project: &TestProject) -> TokenStream {
 
             #file_loaders
 
-            // Update project root with the list of files for proper Salsa tracking
-            root.set_files(&mut db).to(source_files.clone());
+            // db.add_file already adds each file to root.files() via add_or_update_file,
+            // so no need to call set_files - builtins + source_files are already there.
 
             let mut output = String::new();
             writeln!(output, "=== TYPE INFERENCE ===").unwrap();
@@ -435,7 +436,15 @@ fn generate_tir_test(project: &TestProject) -> TokenStream {
                     if let baml_compiler_hir::ItemId::Function(func_id) = item {
                         let signature = function_signature(&db, *func_id);
                         let sig_source_map = function_signature_source_map(&db, *func_id);
-                        let body = function_body(&db, *func_id);
+                        // For LLM functions, use FunctionBody::Llm for type inference
+                        // (Jinja validation + declared return type).
+                        let body = if let Some(llm_meta) = baml_compiler_hir::llm_function_meta(&db, *func_id) {
+                            std::sync::Arc::new(baml_compiler_hir::FunctionBody::Llm((*llm_meta).clone()))
+                        } else if baml_compiler_hir::is_llm_function(&db, *func_id) {
+                            std::sync::Arc::new(baml_compiler_hir::FunctionBody::Missing)
+                        } else {
+                            function_body(&db, *func_id)
+                        };
                         let result = baml_compiler_tir::infer_function(&db, &signature, Some(&sig_source_map), &body, Some(globals.clone()), Some(class_fields.clone()), Some(type_aliases_map.clone()), Some(enum_variants_data.clone()), *func_id);
 
                         writeln!(output, "  Function {}:", signature.name).unwrap();
@@ -489,8 +498,8 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
 
             #file_loaders
 
-            // Update project root with the list of files for proper Salsa tracking
-            root.set_files(&mut db).to(source_files.clone());
+            // db.add_file already adds each file to root.files() via add_or_update_file,
+            // so no need to call set_files - builtins + source_files are already there.
 
             let mut output = String::new();
             writeln!(output, "=== MIR ===").unwrap();
@@ -498,6 +507,10 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
             // Build initial typing context with all function types
             let globals = typing_context(&db, root).functions(&db).clone();
             let class_field_types_map = class_field_types(&db, root).classes(&db).clone();
+            let type_aliases_map = type_aliases(&db, root).aliases(&db).clone();
+            let recursive_aliases = baml_compiler_tir::find_recursive_aliases(&type_aliases_map);
+            let enum_variants_map = enum_variants(&db, root);
+            let enum_variants_data = enum_variants_map.enums(&db).clone();
 
             let resolution_ctx = baml_compiler_tir::TypeResolutionContext::new(&db, root);
 
@@ -520,7 +533,7 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
                             field_indices.insert(field.name.to_string(), idx);
                         }
                         // Compute type tag for this class (CLASS_BASE + counter)
-                        let type_tag = baml_typetags::CLASS_BASE + class_type_tag_counter;
+                        let type_tag = baml_type::typetag::CLASS_BASE + class_type_tag_counter;
                         class_type_tag_counter += 1;
                         class_type_tags.insert(class_name.clone(), type_tag);
                         classes.insert(class_name, field_indices);
@@ -546,12 +559,12 @@ fn generate_mir_test(project: &TestProject) -> TokenStream {
                         let signature = function_signature(&db, *func_id);
                         let sig_source_map = function_signature_source_map(&db, *func_id);
                         let body = function_body(&db, *func_id);
-                        let inference = baml_compiler_tir::infer_function(&db, &signature, Some(&sig_source_map), &body, Some(globals.clone()), Some(class_field_types_map.clone()), None, None, *func_id);
+                        let inference = baml_compiler_tir::infer_function(&db, &signature, Some(&sig_source_map), &body, Some(globals.clone()), Some(class_field_types_map.clone()), Some(type_aliases_map.clone()), Some(enum_variants_data.clone()), *func_id);
 
                         // Lower HIR → VIR → MIR
-                        let mir_output = match baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx) {
+                        let mir_output = match baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx, &type_aliases_map, &recursive_aliases) {
                             Ok(vir) => {
-                                let mir = baml_compiler_mir::lower(&signature, &vir, &db, &classes, &enums, &class_type_tags, &resolution_ctx);
+                                let mir = baml_compiler_mir::lower(&signature, &vir, &db, &classes, &enums, &class_type_tags, &resolution_ctx, &type_aliases_map, &recursive_aliases);
                                 baml_compiler_mir::pretty::display_function(&mir)
                             }
                             Err(baml_compiler_vir::LoweringError::LlmFunction) => {
@@ -611,16 +624,18 @@ fn generate_diagnostics_test(project: &TestProject) -> TokenStream {
 
             #file_loaders
 
-            // Update project root with the list of files for proper Salsa tracking
-            root.set_files(&mut db).to(source_files.clone());
+            // Collect diagnostics for ALL files (user + builtins) so that type
+            // errors inside builtin function bodies are caught.  We use
+            // db.get_source_files() which returns a Vec (deterministic order
+            // within a given run) instead of db.check() which iterates a HashMap.
+            let all_files = db.get_source_files();
+            let diagnostics = collect_diagnostics(&db, root, &all_files);
 
-            // Collect all diagnostics using the unified collect_diagnostics function
-            let diagnostics = collect_diagnostics(&db, root, &source_files);
-
-            // Build sources and file_paths maps for rendering
+            // Build sources and file_paths maps for rendering (all files including
+            // builtins, so diagnostics from builtin files render properly).
             let mut sources: HashMap<baml_db::FileId, String> = HashMap::new();
             let mut file_paths: HashMap<baml_db::FileId, PathBuf> = HashMap::new();
-            for source_file in &source_files {
+            for source_file in &all_files {
                 let file_id = source_file.file_id(&db);
                 sources.insert(file_id, source_file.text(&db).to_string());
                 file_paths.insert(file_id, source_file.path(&db));
@@ -680,16 +695,21 @@ fn generate_codegen_test(project: &TestProject) -> TokenStream {
         fn test_06_codegen() {
             let mut db = ProjectDatabase::new();
             let root = db.set_project_root(std::path::Path::new("."));
+
+            // Declare source_files Vec for file_loaders to populate
             let mut source_files = Vec::new();
 
+            // Add user source files
+            // db.add_file already adds each file to root.files() via add_or_update_file
             #file_loaders
 
-            // Update project root with the list of files for proper Salsa tracking
-            root.set_files(&mut db).to(source_files.clone());
+            // All files (builtins + user) are already in root.files()
+            let all_files: Vec<_> = root.files(&db).clone();
 
             let mut output = String::new();
 
-            match baml_compiler_emit::compile_files(&db, &source_files) {
+            // Pass all files (builtins + user) to compile_files
+            match baml_compiler_emit::compile_files(&db, &all_files) {
                 Ok(program) => {
                     writeln!(output, "=== BYTECODE ===").unwrap();
                     writeln!(output, "Functions: {}", program.function_indices.len()).unwrap();

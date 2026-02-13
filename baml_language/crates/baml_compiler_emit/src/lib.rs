@@ -44,17 +44,19 @@ pub(crate) struct MirCodegenContext<'ctx, 'obj> {
     pub objects: &'obj mut ObjectPool,
 }
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use baml_base::{Name, SourceFile, Span};
 use baml_compiler_hir::{
-    self, ItemId, function_body, function_signature, function_signature_source_map,
+    self, ItemId, function_body, function_qualified_name, function_signature,
+    function_signature_source_map, template_string_body, template_string_signature,
 };
 use baml_compiler_tir::TypeResolutionContext;
 pub use baml_compiler_vir::LoweringError;
 pub use bex_vm_types::{
-    BinOp, Bytecode, Class, CmpOp, ConstValue, Enum, ExternalOp, Function, FunctionKind,
-    GlobalIndex, Instruction, Object, ObjectIndex, Program, SysOp, UnaryOp, Value, type_tags,
+    BinOp, Bytecode, Class, ClassField, CmpOp, ConstValue, Enum, EnumVariant, Function,
+    FunctionKind, GlobalIndex, Instruction, Object, ObjectIndex, Program, SysOp, UnaryOp, Value,
+    type_tags,
 };
 
 /// Generate bytecode for all functions in a project.
@@ -78,10 +80,29 @@ pub fn compile_files(
     db: &dyn baml_compiler_mir::Db,
     files: &[SourceFile],
 ) -> Result<Program, LoweringError> {
+    // Hidden LLM builtins (not exposed to users but used by compiler-generated code)
+    // These are in the #[hide] mod llm block and not included in builtins()
+    // Format: (path, arity)
+    const HIDDEN_LLM_BUILTINS: &[(&str, usize)] = &[
+        ("baml.llm.get_jinja_template", 1),
+        ("baml.llm.build_primitive_client", 5),
+        ("baml.llm.PrimitiveClient.render_prompt", 3),
+        ("baml.llm.get_client_function", 1),
+    ];
+
+    // Note: Builtin BAML files (like llm.baml) are now loaded at project setup time
+    // in ProjectDatabase::set_project_root(), so they're already in the files list.
+
     let mut program = Program::new();
     let project = db.project();
 
     let resolution_ctx = TypeResolutionContext::new(db, project);
+
+    // Get type aliases for VIR lowering
+    let type_aliases = baml_compiler_tir::type_aliases(db, project)
+        .aliases(db)
+        .clone();
+    let recursive_aliases = baml_compiler_tir::find_recursive_aliases(&type_aliases);
 
     // Build typing context (maps function names to their types)
     let typing_context = build_typing_context(db, files, &resolution_ctx);
@@ -98,13 +119,21 @@ pub fn compile_files(
         global_idx += 1;
     }
 
-    // Then, add user-defined functions
+    // Add hidden LLM builtins to globals
+    for (path, _) in HIDDEN_LLM_BUILTINS {
+        globals.insert((*path).to_string(), global_idx);
+        global_idx += 1;
+    }
+
+    // Then, add user-defined functions (including builtin BAML files)
+    // Use function_qualified_name to get the proper namespaced name for builtins
     for file in files {
         let items_struct = baml_compiler_hir::file_items(db, *file);
         for item in items_struct.items(db) {
             if let ItemId::Function(func_loc) = item {
-                let signature = function_signature(db, *func_loc);
-                globals.insert(signature.name.to_string(), global_idx);
+                let qualified_name = baml_compiler_hir::function_qualified_name(db, *func_loc);
+                let func_name = qualified_name.display();
+                globals.insert(func_name, global_idx);
                 global_idx += 1;
             }
         }
@@ -119,6 +148,60 @@ pub fn compile_files(
     let mut class_type_tags: HashMap<String, i64> = HashMap::new();
     let mut class_type_tag_counter = 0i64;
 
+    // Inject builtin classes BEFORE user classes for stable indices
+    for builtin in baml_builtins::builtin_types() {
+        let mut fields = Vec::new();
+        let mut field_indices = HashMap::new();
+        let mut field_types = HashMap::new();
+
+        // Include ALL fields (public and private) in runtime field order
+        for field in &builtin.fields {
+            let idx = fields.len();
+            field_indices.insert(field.name.to_string(), idx);
+
+            // Determine the Ty for this field
+            let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&field.ty);
+            let field_ty = baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
+                .and_then(baml_type::sanitize_for_runtime)
+                .unwrap_or(baml_type::Ty::Null);
+
+            fields.push(ClassField {
+                name: field.name.to_string(),
+                field_type: field_ty,
+                description: None,
+                alias: None,
+            });
+
+            // Only add public fields to field_types (for type checking)
+            if !field.is_private {
+                field_types.insert(
+                    Name::new(field.name),
+                    baml_compiler_tir::builtins::substitute_unknown(&field.ty),
+                );
+            }
+        }
+
+        // Compute type tag for this builtin class
+        let type_tag = type_tags::CLASS_BASE + class_type_tag_counter;
+        class_type_tags.insert(builtin.path.to_string(), type_tag);
+
+        // Add Class object to program and record its index
+        let class_obj = Object::Class(Class {
+            name: builtin.path.to_string(),
+            fields,
+            description: None,
+            alias: None,
+            type_tag,
+        });
+        class_type_tag_counter += 1;
+        let class_obj_idx = program.add_object(class_obj);
+        class_object_indices.insert(builtin.path.to_string(), class_obj_idx);
+
+        classes.insert(builtin.path.to_string(), field_indices);
+        class_field_types.insert(Name::new(builtin.path), field_types);
+    }
+
+    // Now add user-defined classes
     for file in files {
         let item_tree = baml_compiler_hir::file_item_tree(db, *file);
         let items_struct = baml_compiler_hir::file_items(db, *file);
@@ -129,13 +212,31 @@ pub fn compile_files(
 
                 let mut field_indices = HashMap::new();
                 let mut field_types = HashMap::new();
-                let mut field_names = Vec::new();
-                for (idx, field) in class.fields.iter().enumerate() {
+                let mut fields = Vec::new();
+                // Filter @skip fields to match schema_map.rs behavior
+                let non_skip_fields: Vec<_> = class
+                    .fields
+                    .iter()
+                    .filter(|f| !f.skip.is_explicit())
+                    .collect();
+                for (idx, field) in non_skip_fields.iter().enumerate() {
                     field_indices.insert(field.name.to_string(), idx);
-                    field_names.push(field.name.to_string());
                     // Lower TypeRef to Ty for type inference
                     let (ty, _) = resolution_ctx.lower_type_ref(&field.type_ref, Span::default());
-                    field_types.insert(field.name.clone(), ty);
+                    field_types.insert(field.name.clone(), ty.clone());
+
+                    // Convert TIR Ty to baml_type::Ty for runtime
+                    let runtime_ty =
+                        baml_type::convert_tir_ty(&ty, &type_aliases, &recursive_aliases)
+                            .and_then(baml_type::sanitize_for_runtime)
+                            .unwrap_or(baml_type::Ty::Null);
+
+                    fields.push(ClassField {
+                        name: field.name.to_string(),
+                        field_type: runtime_ty,
+                        description: field.description.value().cloned(),
+                        alias: field.alias.value().cloned(),
+                    });
                 }
 
                 // Compute type tag for this class
@@ -145,7 +246,9 @@ pub fn compile_files(
                 // Add Class object to program and record its index
                 let class_obj = Object::Class(Class {
                     name: class_name.clone(),
-                    field_names,
+                    fields,
+                    description: class.description.value().cloned(),
+                    alias: class.alias.value().cloned(),
                     type_tag,
                 });
                 class_type_tag_counter += 1;
@@ -173,18 +276,25 @@ pub fn compile_files(
                 let enum_name = enum_def.name.to_string();
 
                 let mut variant_indices = HashMap::new();
-                let mut variant_names = Vec::new();
+                let mut variants = Vec::new();
                 let mut variant_name_list: Vec<Name> = Vec::new();
                 for (idx, variant) in enum_def.variants.iter().enumerate() {
                     variant_indices.insert(variant.name.to_string(), idx);
-                    variant_names.push(variant.name.to_string());
+                    variants.push(EnumVariant {
+                        name: variant.name.to_string(),
+                        description: variant.description.value().cloned(),
+                        alias: variant.alias.value().cloned(),
+                        skip: variant.skip.is_explicit(),
+                    });
                     variant_name_list.push(variant.name.clone());
                 }
 
                 // Add Enum object to program and record its index
                 let enum_obj = Object::Enum(Enum {
                     name: enum_name.clone(),
-                    variant_names,
+                    variants,
+                    description: None, // HIR Enum doesn't carry description
+                    alias: enum_def.alias.value().cloned(),
                 });
                 let enum_obj_idx = program.add_object(enum_obj);
                 enum_object_indices.insert(enum_name.clone(), enum_obj_idx);
@@ -197,15 +307,20 @@ pub fn compile_files(
 
     // Add builtin functions to globals FIRST (stable indices)
     for builtin in builtins {
-        // External builtins (like file I/O) use FunctionKind::External
+        // Sys_op builtins (like file I/O) use FunctionKind::SysOp
         // so the VM knows to dispatch them via DispatchFuture/Await
-        let kind = if builtin.is_external {
-            let external_op = external_op_for_builtin_path(builtin.path)
-                .expect("external builtin must have ExternalOp mapping");
-            FunctionKind::External(external_op)
+        let kind = if builtin.is_sys_op {
+            let sys_op = sys_op_for_builtin_path(builtin.path)
+                .expect("sys_op builtin must have SysOp mapping");
+            FunctionKind::SysOp(sys_op)
         } else {
             FunctionKind::NativeUnresolved
         };
+
+        let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&builtin.returns);
+        let return_type = baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
+            .and_then(baml_type::sanitize_for_runtime)
+            .unwrap_or(baml_type::Ty::Null);
 
         let builtin_fn = Function {
             name: builtin.path.to_string(),
@@ -216,8 +331,42 @@ pub fn compile_files(
             span: baml_base::Span::fake(),
             block_notifications: Vec::new(),
             viz_nodes: Vec::new(),
+            return_type,
+            param_names: Vec::new(),
+            param_types: Vec::new(),
+            body_meta: None,
         };
-        let fn_obj_idx = program.add_object(Object::Function(builtin_fn));
+        let fn_obj_idx = program.add_object(Object::Function(Box::new(builtin_fn)));
+        program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
+    }
+
+    // Add hidden LLM builtins to globals (these are external functions)
+    for (path, arity) in HIDDEN_LLM_BUILTINS {
+        let sys_op =
+            sys_op_for_builtin_path(path).expect("hidden LLM builtin must have SysOp mapping");
+        let return_type = baml_builtins::find_builtin_by_path(path)
+            .map(|sig| {
+                let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&sig.returns);
+                baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
+                    .and_then(baml_type::sanitize_for_runtime)
+                    .unwrap_or(baml_type::Ty::Null)
+            })
+            .unwrap_or(baml_type::Ty::Null);
+        let builtin_fn = Function {
+            name: (*path).to_string(),
+            arity: *arity,
+            bytecode: Bytecode::default(),
+            kind: FunctionKind::SysOp(sys_op),
+            locals_in_scope: Vec::new(),
+            span: baml_base::Span::fake(),
+            block_notifications: Vec::new(),
+            viz_nodes: Vec::new(),
+            return_type,
+            param_names: Vec::new(),
+            param_types: Vec::new(),
+            body_meta: None,
+        };
+        let fn_obj_idx = program.add_object(Object::Function(Box::new(builtin_fn)));
         program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
     }
 
@@ -230,32 +379,34 @@ pub fn compile_files(
                 let sig_source_map = function_signature_source_map(db, *func_loc);
                 let body = function_body(db, *func_loc);
 
+                // Get the qualified name - for builtin files this includes the namespace
+                // e.g., "baml.llm.render_prompt" for functions in <builtin>/baml/llm.baml
+                let qualified_name = function_qualified_name(db, *func_loc);
+                let func_name = qualified_name.display();
+
+                // Compute metadata once for all body types
+                let (meta_param_names, meta_param_types, meta_return_type) =
+                    compute_function_metadata(
+                        &signature,
+                        &resolution_ctx,
+                        &type_aliases,
+                        &recursive_aliases,
+                    );
+
                 // Handle different function body types
-                let compiled_fn = match &*body {
+                let mut compiled_fn = match &*body {
                     baml_compiler_hir::FunctionBody::Llm(_) => {
-                        // LLM functions have no bytecode - they are dispatched by the embedder
-                        let params: Vec<baml_base::Name> =
-                            signature.params.iter().map(|p| p.name.clone()).collect();
-                        Function {
-                            name: signature.name.to_string(),
-                            arity: params.len(),
-                            bytecode: Bytecode::new(),
-                            kind: FunctionKind::External(ExternalOp::Llm),
-                            locals_in_scope: vec![
-                                params
-                                    .iter()
-                                    .map(std::string::ToString::to_string)
-                                    .collect(),
-                            ],
-                            span: baml_base::Span::fake(),
-                            block_notifications: Vec::new(),
-                            viz_nodes: Vec::new(),
-                        }
+                        // LLM functions are now lowered to synthetic Expr bodies
+                        // during HIR lowering. This branch should be unreachable.
+                        unreachable!(
+                            "FunctionBody::Llm should have been converted to Expr during HIR lowering"
+                        );
                     }
                     baml_compiler_hir::FunctionBody::Missing => {
                         // Missing body - placeholder function
                         let params: Vec<baml_base::Name> =
                             signature.params.iter().map(|p| p.name.clone()).collect();
+
                         Function {
                             name: signature.name.to_string(),
                             arity: params.len(),
@@ -270,6 +421,10 @@ pub fn compile_files(
                             span: baml_base::Span::fake(),
                             block_notifications: Vec::new(),
                             viz_nodes: Vec::new(),
+                            return_type: baml_type::Ty::Null,
+                            param_names: Vec::new(),
+                            param_types: Vec::new(),
+                            body_meta: None,
                         }
                     }
                     baml_compiler_hir::FunctionBody::Expr(_, _) => {
@@ -292,8 +447,14 @@ pub fn compile_files(
 
                         // Lower HIR → VIR → MIR
                         // Returns early if there are Missing nodes (errors in source)
-                        let vir =
-                            baml_compiler_vir::lower_from_hir(&body, &inference, &resolution_ctx)?;
+                        let vir = baml_compiler_vir::lower_from_hir(
+                            &body,
+                            &inference,
+                            &resolution_ctx,
+                            &type_aliases,
+                            &recursive_aliases,
+                        )
+                        .map_err(|e| e.in_function(signature.name.to_string()))?;
                         let mir = baml_compiler_mir::lower(
                             &signature,
                             &vir,
@@ -302,6 +463,8 @@ pub fn compile_files(
                             &enum_variants,
                             &class_type_tags,
                             &resolution_ctx,
+                            &type_aliases,
+                            &recursive_aliases,
                         );
 
                         // Compile MIR to bytecode
@@ -317,13 +480,48 @@ pub fn compile_files(
                     }
                 };
 
+                // Always set metadata (overwrite placeholder for Expr, redundant for Missing)
+                compiled_fn.return_type = meta_return_type;
+                compiled_fn.param_names = meta_param_names;
+                compiled_fn.param_types = meta_param_types;
+
+                // If this is an LLM function, attach prompt/client metadata
+                if let Some(llm_meta) = baml_compiler_hir::llm_function_meta(db, *func_loc) {
+                    compiled_fn.body_meta = Some(bex_vm_types::FunctionMeta::Llm {
+                        prompt_template: llm_meta.prompt.text.clone(),
+                        client: llm_meta.client.to_string(),
+                    });
+                }
+
+                // Validate types at emit time (safety net)
+                debug_assert!(
+                    compiled_fn.return_type.validate_runtime().is_ok(),
+                    "Compiler-only type leaked to runtime return type: {}",
+                    compiled_fn.return_type
+                );
+                for pt in &compiled_fn.param_types {
+                    debug_assert!(
+                        pt.validate_runtime().is_ok(),
+                        "Compiler-only type leaked to runtime param type: {pt}"
+                    );
+                }
+
+                // Update function name if it's a builtin
+                compiled_fn.name.clone_from(&func_name);
+
                 // Add function object to program
-                let fn_obj_idx = program.add_object(Object::Function(compiled_fn));
+                let fn_obj_idx = program.add_object(Object::Function(Box::new(compiled_fn)));
 
                 // Register in function indices
                 program
                     .function_indices
-                    .insert(signature.name.to_string(), fn_obj_idx);
+                    .insert(func_name.clone(), fn_obj_idx);
+
+                // Track global index before adding
+                let global_idx = program.globals.len();
+                program
+                    .function_global_indices
+                    .insert(func_name.clone(), global_idx);
 
                 // Add to globals
                 program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
@@ -331,12 +529,70 @@ pub fn compile_files(
         }
     }
 
+    // --- Pass: Format template_string macros ---
+    let mut template_macros = Vec::new();
+    for file in files {
+        let items_struct = baml_compiler_hir::file_items(db, *file);
+        for item in items_struct.items(db) {
+            if let ItemId::TemplateString(ts_loc) = item {
+                let signature = template_string_signature(db, *ts_loc);
+                let body = template_string_body(db, *ts_loc);
+                let args = signature
+                    .params
+                    .iter()
+                    .map(|p| p.name.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                template_macros.push(format!(
+                    "{{% macro {name}({args}) %}}{body}{{% endmacro %}}",
+                    name = signature.name,
+                    body = body.text,
+                ));
+            }
+        }
+    }
+    program.template_strings_macros = template_macros.join("\n");
+
     Ok(program)
+}
+
+/// Extract param names, param types, and return type from a function signature.
+///
+/// Performs the standard `lower_type_ref` → `convert_tir_ty` → `sanitize_for_runtime`
+/// pipeline for each parameter and the return type.
+fn compute_function_metadata(
+    signature: &baml_compiler_hir::FunctionSignature,
+    resolution_ctx: &TypeResolutionContext,
+    type_aliases: &HashMap<Name, baml_compiler_tir::Ty>,
+    recursive_aliases: &HashSet<Name>,
+) -> (Vec<String>, Vec<baml_type::Ty>, baml_type::Ty) {
+    let param_names: Vec<String> = signature
+        .params
+        .iter()
+        .map(|p| p.name.to_string())
+        .collect();
+    let param_types: Vec<baml_type::Ty> = signature
+        .params
+        .iter()
+        .map(|p| {
+            let (ty, _) = resolution_ctx.lower_type_ref(&p.type_ref, Span::default());
+            baml_type::convert_tir_ty(&ty, type_aliases, recursive_aliases)
+                .and_then(baml_type::sanitize_for_runtime)
+                .unwrap_or(baml_type::Ty::Null)
+        })
+        .collect();
+    let (ret_ty, _) = resolution_ctx.lower_type_ref(&signature.return_type, Span::default());
+    let return_type = baml_type::convert_tir_ty(&ret_ty, type_aliases, recursive_aliases)
+        .and_then(baml_type::sanitize_for_runtime)
+        .unwrap_or(baml_type::Ty::Null);
+    (param_names, param_types, return_type)
 }
 
 /// Build typing context from source files.
 ///
-/// Maps function names to their arrow types for use during type inference.
+/// Maps function names (qualified for builtins) to their arrow types for type inference.
+/// Functions from builtin files (e.g., `<builtin>/baml/llm.baml`) are registered with
+/// their qualified names (e.g., `baml.llm.render_prompt`).
 fn build_typing_context(
     db: &dyn baml_compiler_mir::Db,
     files: &[SourceFile],
@@ -350,14 +606,18 @@ fn build_typing_context(
             if let ItemId::Function(func_loc) = item {
                 let signature = function_signature(db, *func_loc);
 
+                // Get the qualified name - for builtin files this includes the namespace
+                let qualified_name = baml_compiler_hir::function_qualified_name(db, *func_loc);
+
                 // Build the arrow type: (param_types) -> return_type
-                let param_types: Vec<baml_compiler_tir::Ty> = signature
+                let params: Vec<(Option<Name>, baml_compiler_tir::Ty)> = signature
                     .params
                     .iter()
                     .map(|p| {
-                        resolution_ctx
+                        let ty = resolution_ctx
                             .lower_type_ref(&p.type_ref, Span::default())
-                            .0
+                            .0;
+                        (Some(p.name.clone()), ty)
                     })
                     .collect();
 
@@ -365,11 +625,12 @@ fn build_typing_context(
                     resolution_ctx.lower_type_ref(&signature.return_type, Span::default());
 
                 let func_type = baml_compiler_tir::Ty::Function {
-                    params: param_types,
+                    params,
                     ret: Box::new(return_type),
                 };
 
-                context.insert(signature.name.clone(), func_type);
+                // Use the display name as the key (e.g., "baml.llm.render_prompt" or "my_func")
+                context.insert(qualified_name.display_name(), func_type);
             }
         }
     }
@@ -377,25 +638,12 @@ fn build_typing_context(
     context
 }
 
-/// Map a builtin path to its corresponding `ExternalOp`.
+/// Map a builtin path to its corresponding `SysOp`.
 ///
-/// This is used during code generation to set the correct `ExternalOp` variant
-/// for external builtin functions.
-fn external_op_for_builtin_path(path: &str) -> Option<ExternalOp> {
-    match path {
-        "baml.fs.open" => Some(ExternalOp::Sys(SysOp::FsOpen)),
-        "baml.fs.File.read" => Some(ExternalOp::Sys(SysOp::FsRead)),
-        "baml.fs.File.close" => Some(ExternalOp::Sys(SysOp::FsClose)),
-        "baml.sys.shell" => Some(ExternalOp::Sys(SysOp::Shell)),
-        "baml.net.connect" => Some(ExternalOp::Sys(SysOp::NetConnect)),
-        "baml.net.Socket.read" => Some(ExternalOp::Sys(SysOp::NetRead)),
-        "baml.net.Socket.close" => Some(ExternalOp::Sys(SysOp::NetClose)),
-        "baml.http.fetch" => Some(ExternalOp::Sys(SysOp::HttpFetch)),
-        "baml.http.Response.text" => Some(ExternalOp::Sys(SysOp::HttpResponseText)),
-        "baml.http.Response.status" => Some(ExternalOp::Sys(SysOp::HttpResponseStatus)),
-        "baml.http.Response.ok" => Some(ExternalOp::Sys(SysOp::HttpResponseOk)),
-        "baml.http.Response.url" => Some(ExternalOp::Sys(SysOp::HttpResponseUrl)),
-        "baml.http.Response.headers" => Some(ExternalOp::Sys(SysOp::HttpResponseHeaders)),
-        _ => None,
-    }
+/// This is used during code generation to set the correct `SysOp` variant
+/// for `sys_op` builtin functions.
+fn sys_op_for_builtin_path(path: &str) -> Option<SysOp> {
+    // Delegate to the generated function from bex_vm_types, which is
+    // derived from the same #[sys_op] definitions in with_builtins!.
+    bex_vm_types::sys_op_for_path(path)
 }

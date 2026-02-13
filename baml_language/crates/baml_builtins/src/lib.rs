@@ -11,6 +11,10 @@
 //! Add a new entry in the `define_builtins!` macro invocation below.
 //! This generates both the path constant and the signature in one place.
 
+mod adt;
+
+pub use adt::*;
+
 /// Type pattern for matching/constructing types with type variables.
 ///
 /// Used for generic builtin functions like `Array<T>.push(item: T)`.
@@ -34,6 +38,60 @@ pub enum TypePattern {
     /// Builtin type - matches exactly by path.
     /// E.g., `Builtin("baml.fs.File")` matches only `Ty::Builtin("baml.fs.File")`.
     Builtin(&'static str),
+    /// Function type - a callable with parameters and return type.
+    /// E.g., `Function { params: vec![], ret: Builtin("...") }` for `fn() -> T`.
+    Function {
+        params: Vec<TypePattern>,
+        ret: Box<TypePattern>,
+    },
+    /// Opaque resource handle (file, socket, HTTP response body).
+    Resource,
+    /// Builtin unknown type - accepts any value during type checking.
+    /// Used for builtins that need to accept heterogeneous values
+    /// (e.g., `build_primitive_client`'s options map).
+    /// Maps to `Ty::BuiltinUnknown` in TIR.
+    /// In builtin definitions, use the `Unknown` type annotation.
+    BuiltinUnknown,
+}
+
+/// How a builtin type is represented at runtime on the VM heap.
+///
+/// Most builtin types are stored as `Object::Instance` (same as user-defined classes).
+/// Some have dedicated `Object` variants for efficiency or because they wrap
+/// opaque Rust ADTs that can't be represented as field-based instances.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeKind {
+    /// Stored as `Object::Instance` at runtime.
+    /// Used by: Request, Response, File, Socket, `PrimitiveClient`.
+    Instance,
+    /// Stored as `Object::PromptAst` at runtime — wraps an opaque Rust ADT.
+    PromptAst,
+}
+
+/// A field in a builtin type definition.
+#[derive(Debug, Clone)]
+pub struct BuiltinField {
+    /// Field name (e.g., "_handle", "`status_code`").
+    pub name: &'static str,
+    /// Field type pattern. All fields have a type (including private ones).
+    /// Privacy is handled separately by the `is_private` field.
+    pub ty: TypePattern,
+    /// Whether this field is private (not visible to BAML code).
+    /// Private fields are not added to the type checking map but still have types.
+    pub is_private: bool,
+    /// Field index in the runtime instance layout.
+    pub index: usize,
+}
+
+/// A builtin type definition (struct with fields).
+#[derive(Debug, Clone)]
+pub struct BuiltinTypeDefinition {
+    /// Full path (e.g., "baml.http.Response").
+    pub path: &'static str,
+    /// All fields (public and private) in runtime order.
+    pub fields: Vec<BuiltinField>,
+    /// How this type is represented on the VM heap.
+    pub runtime_kind: RuntimeKind,
 }
 
 impl TypePattern {
@@ -64,9 +122,9 @@ pub struct BuiltinSignature {
     /// Return type.
     pub returns: TypePattern,
 
-    /// Whether this is an external function (runs async outside VM).
-    /// External functions use DispatchFuture/Await instead of Call.
-    pub is_external: bool,
+    /// Whether this is a `sys_op` function (runs async outside VM).
+    /// `Sys_op` functions use DispatchFuture/Await instead of Call.
+    pub is_sys_op: bool,
 }
 
 impl BuiltinSignature {
@@ -161,13 +219,14 @@ macro_rules! with_builtins {
                 mod fs {
                     #[builtin]
                     struct File {
-                        #[external]
+                        private _handle: ResourceHandle,
+                        #[sys_op]
                         fn read(self: File) -> String;
-                        #[external]
+                        #[sys_op]
                         fn close(self: File);
                     }
 
-                    #[external]
+                    #[sys_op]
                     fn open(path: String) -> File;
                 }
 
@@ -176,7 +235,7 @@ macro_rules! with_builtins {
                 // =====================================================================
                 mod sys {
                     /// Execute a shell command and return stdout.
-                    #[external]
+                    #[sys_op]
                     fn shell(command: String) -> String;
                 }
 
@@ -186,16 +245,17 @@ macro_rules! with_builtins {
                 mod net {
                     #[builtin]
                     struct Socket {
+                        private _handle: ResourceHandle,
                         /// Read data from the socket as a string.
-                        #[external]
+                        #[sys_op]
                         fn read(self: Socket) -> String;
                         /// Close the socket.
-                        #[external]
+                        #[sys_op]
                         fn close(self: Socket);
                     }
 
                     /// Connect to a TCP address (host:port).
-                    #[external]
+                    #[sys_op]
                     fn connect(addr: String) -> Socket;
                 }
 
@@ -203,45 +263,111 @@ macro_rules! with_builtins {
                 // HTTP operations
                 // =====================================================================
                 mod http {
+                    /// An HTTP request to be sent.
+                    #[builtin]
+                    struct Request {
+                        method: String,
+                        url: String,
+                        headers: Map<String, String>,
+                        body: String,
+                    }
+
                     #[builtin]
                     struct Response {
+                        private _handle: ResourceHandle,
+                        status_code: i64,
+                        headers: Map<String, String>,
+                        url: String,
                         /// Get response body as text (consumes body).
-                        #[external]
+                        #[sys_op]
                         fn text(self: Response) -> String;
-                        /// Get HTTP status code.
-                        #[external]
-                        fn status(self: Response) -> i64;
                         /// Check if status is 2xx.
-                        #[external]
+                        #[sys_op]
                         fn ok(self: Response) -> bool;
-                        /// Get request URL (may differ if redirected).
-                        #[external]
-                        fn url(self: Response) -> String;
-                        /// Get response headers.
-                        #[external]
-                        fn headers(self: Response) -> Map<String, String>;
                     }
 
                     /// Fetch a URL via HTTP GET.
-                    #[external]
+                    #[sys_op]
                     fn fetch(url: String) -> Response;
+
+                    /// Send an HTTP request and return the response.
+                    #[sys_op]
+                    fn send(request: Request) -> Response;
                 }
 
                 // =====================================================================
-                // LLM operations (hidden - internal use only)
+                // LLM operations
                 // =====================================================================
-                #[hide]
                 mod llm {
                     /// Prompt AST - a structured prompt for LLM calls.
-                    /// This is hidden from the type checker as it's for internal use.
+                    /// Opaque: stored as a dedicated heap variant, not as Instance.
                     #[builtin]
+                    #[opaque]
                     struct PromptAst {}
+
+
+                    /// A primitive LLM client (single provider, fully resolved).
+                    /// Options have been evaluated (env vars resolved, expressions computed).
+                    #[builtin]
+                    struct PrimitiveClient {
+                        name: String,
+                        provider: String,
+                        default_role: String,
+                        allowed_roles: Vec<String>,
+                        options: Map<String, Unknown>,
+
+                        /// Render a Jinja template with the given arguments.
+                        /// Returns a structured PromptAst that can be sent to an LLM.
+                        #[sys_op]
+                        fn render_prompt(self: PrimitiveClient, template: String, args: Map<String, Unknown>) -> PromptAst;
+
+                        /// Specialize a prompt for this client's provider.
+                        /// Applies provider-specific transformations (message merging, system prompt
+                        /// consolidation, metadata filtering).
+                        #[sys_op]
+                        fn specialize_prompt(self: PrimitiveClient, prompt: PromptAst) -> PromptAst;
+
+                        /// Build an HTTP request from a specialized prompt.
+                        /// Creates a provider-specific HTTP request ready to be sent.
+                        #[sys_op]
+                        fn build_request(self: PrimitiveClient, prompt: PromptAst) -> Request;
+
+                        /// Parse an HTTP response into a BAML value.
+                        /// Interprets the provider-specific response format and parses the output.
+                        #[sys_op]
+                        #[uses(engine_ctx)]
+                        fn parse(self: PrimitiveClient, http_response_body: String, function_name: String) -> Any;
+                    }
+
+                    /// Get the Jinja template for an LLM function.
+                    #[sys_op]
+                    #[uses(engine_ctx)]
+                    fn get_jinja_template(function_name: String) -> String;
+
+                    /// Build a PrimitiveClient from evaluated options.
+                    /// Called after options have been evaluated by bytecode.
+                    #[sys_op]
+                    fn build_primitive_client(
+                        name: String,
+                        provider: String,
+                        default_role: String,
+                        allowed_roles: Array<String>,
+                        options: Map<String, Unknown>
+                    ) -> PrimitiveClient;
+
+                    /// Get the client resolve function for an LLM function.
+                    /// Returns a function that, when called, returns a PrimitiveClient.
+                    #[sys_op]
+                    #[uses(engine_ctx)]
+                    fn get_client_function(function_name: String) -> fn() -> PrimitiveClient;
                 }
             }
 
             mod env {
-                #[uses(vm)]
-                fn get(key: String) -> Result<String>;
+                #[sys_op]
+                fn get(key: String) -> Option<String>;
+                #[sys_op]
+                fn get_or_panic(key: String) -> String;
             }
         }
     };
@@ -257,6 +383,22 @@ with_builtins!(baml_builtins_macros::define_builtins);
 /// Get all built-in function signatures.
 pub fn builtins() -> &'static [BuiltinSignature] {
     &BUILTINS
+}
+
+/// Get all built-in type definitions.
+pub fn builtin_types() -> &'static [BuiltinTypeDefinition] {
+    &BUILTIN_TYPES
+}
+
+/// Find a builtin type by path.
+pub fn find_builtin_type(path: &str) -> Option<&'static BuiltinTypeDefinition> {
+    builtin_types().iter().find(|td| td.path == path)
+}
+
+/// Find a field in a builtin type.
+pub fn find_field(type_path: &str, field_name: &str) -> Option<&'static BuiltinField> {
+    let type_def = find_builtin_type(type_path)?;
+    type_def.fields.iter().find(|f| f.name == field_name)
 }
 
 /// Find methods by method name.
@@ -282,6 +424,73 @@ pub fn find_function(path: &str) -> Option<&'static BuiltinSignature> {
 pub fn find_builtin_by_path(path: &str) -> Option<&'static BuiltinSignature> {
     let normalized = normalize_baml_prefix(path);
     builtins().iter().find(|def| def.path == normalized)
+}
+
+// ============================================================================
+// Prelude - commonly used types available without qualification
+// ============================================================================
+
+/// A prelude entry mapping a short name to its fully qualified path.
+#[derive(Debug, Clone, Copy)]
+pub struct PreludeEntry {
+    /// The short name (e.g., "Request")
+    pub short_name: &'static str,
+    /// The fully qualified path (e.g., "baml.http.Request")
+    pub qualified_path: &'static str,
+}
+
+/// The prelude - types that are automatically available without qualification.
+///
+/// These are commonly-used builtin types that can be referenced by their
+/// short names in BAML code. For example, `Request` resolves to `baml.http.Request`.
+///
+/// User-defined types with the same name will shadow prelude entries.
+static PRELUDE: &[PreludeEntry] = &[
+    // HTTP types
+    PreludeEntry {
+        short_name: "Request",
+        qualified_path: "baml.http.Request",
+    },
+    PreludeEntry {
+        short_name: "Response",
+        qualified_path: "baml.http.Response",
+    },
+    // LLM types
+    PreludeEntry {
+        short_name: "PromptAst",
+        qualified_path: "baml.llm.PromptAst",
+    },
+    PreludeEntry {
+        short_name: "PrimitiveClient",
+        qualified_path: "baml.llm.PrimitiveClient",
+    },
+    // File system types
+    PreludeEntry {
+        short_name: "File",
+        qualified_path: "baml.fs.File",
+    },
+    // Network types
+    PreludeEntry {
+        short_name: "Socket",
+        qualified_path: "baml.net.Socket",
+    },
+];
+
+/// Get the prelude entries.
+///
+/// Returns all type names that are automatically available without qualification.
+pub fn prelude() -> &'static [PreludeEntry] {
+    PRELUDE
+}
+
+/// Look up a short name in the prelude.
+///
+/// Returns the fully qualified path if the name is in the prelude.
+pub fn lookup_prelude(short_name: &str) -> Option<&'static str> {
+    PRELUDE
+        .iter()
+        .find(|entry| entry.short_name == short_name)
+        .map(|entry| entry.qualified_path)
 }
 
 /// Normalize the `baml` prefix, allowing any number of a's.
@@ -326,6 +535,12 @@ mod tests {
 
         let env_get = builtins().iter().find(|d| d.path == "env.get").unwrap();
         assert_eq!(env_get.method_name(), None);
+
+        let env_get_or_panic = builtins()
+            .iter()
+            .find(|d| d.path == "env.get_or_panic")
+            .unwrap();
+        assert_eq!(env_get_or_panic.method_name(), None);
     }
 
     #[test]
@@ -344,6 +559,12 @@ mod tests {
 
         let env_get = builtins().iter().find(|d| d.path == "env.get").unwrap();
         assert_eq!(env_get.arity(), 1); // key only
+
+        let env_get_or_panic = builtins()
+            .iter()
+            .find(|d| d.path == "env.get_or_panic")
+            .unwrap();
+        assert_eq!(env_get_or_panic.arity(), 1); // key only
     }
 
     #[test]
@@ -353,16 +574,40 @@ mod tests {
     }
 
     #[test]
+    fn test_env_builtins() {
+        // env.get is a sys_op returning optional string
+        let env_get = find_function("env.get").unwrap();
+        assert!(env_get.is_sys_op, "env.get should be a sys_op");
+        assert!(
+            env_get.receiver.is_none(),
+            "env.get should be a free function"
+        );
+
+        // env.get_or_panic is a sys_op returning string
+        let env_gop = find_function("env.get_or_panic").unwrap();
+        assert!(env_gop.is_sys_op, "env.get_or_panic should be a sys_op");
+        assert!(
+            env_gop.receiver.is_none(),
+            "env.get_or_panic should be a free function"
+        );
+    }
+
+    #[test]
     fn test_find_function() {
         let env_get = find_function("env.get");
         assert!(env_get.is_some());
         assert_eq!(env_get.unwrap().path, "env.get");
+
+        let env_get_or_panic = find_function("env.get_or_panic");
+        assert!(env_get_or_panic.is_some());
+        assert_eq!(env_get_or_panic.unwrap().path, "env.get_or_panic");
     }
 
     #[test]
     fn test_find_builtin_by_path() {
         assert!(find_builtin_by_path("baml.Array.length").is_some());
         assert!(find_builtin_by_path("env.get").is_some());
+        assert!(find_builtin_by_path("env.get_or_panic").is_some());
         assert!(find_builtin_by_path("nonexistent").is_none());
     }
 
@@ -372,18 +617,47 @@ mod tests {
         assert_eq!(paths::BAML_ARRAY_LENGTH, "baml.Array.length");
         assert_eq!(paths::BAML_STRING_TO_LOWER_CASE, "baml.String.toLowerCase");
         assert_eq!(paths::ENV_GET, "env.get");
+        assert_eq!(paths::ENV_GET_OR_PANIC, "env.get_or_panic");
         assert_eq!(paths::BAML_DEEP_COPY, "baml.deep_copy");
         assert_eq!(paths::BAML_UNSTABLE_STRING, "baml.unstable.string");
     }
 
     #[test]
-    fn test_hidden_llm_module() {
-        // The baml.llm module is hidden from the type checker.
-        // It should NOT appear in the builtins list, even though
-        // the VM can still use it internally.
-        assert!(find_builtin_by_path("baml.llm.PromptAst").is_none());
+    fn test_llm_module() {
+        // The baml.llm module contains LLM-related builtins
+        let render_prompt = find_builtin_by_path("baml.llm.PrimitiveClient.render_prompt");
+        assert!(render_prompt.is_some());
+        assert!(render_prompt.unwrap().is_sys_op);
 
-        // Other builtins in the same parent module are still visible
+        let get_client_fn = find_builtin_by_path("baml.llm.get_client_function");
+        assert!(
+            get_client_fn.is_some(),
+            "get_client_function should be found"
+        );
+        assert!(
+            get_client_fn.unwrap().is_sys_op,
+            "get_client_function should be sys_op"
+        );
+
+        let get_jinja = find_builtin_by_path("baml.llm.get_jinja_template");
+        assert!(get_jinja.is_some(), "get_jinja_template should be found");
+        assert!(
+            get_jinja.unwrap().is_sys_op,
+            "get_jinja_template should be sys_op"
+        );
+
+        // build_primitive_client is also a sys_op in the llm module
+        let build_client = find_builtin_by_path("baml.llm.build_primitive_client");
+        assert!(
+            build_client.is_some(),
+            "build_primitive_client should be found"
+        );
+        assert!(
+            build_client.unwrap().is_sys_op,
+            "build_primitive_client should be sys_op"
+        );
+
+        // Other builtins in the same parent module are also visible
         assert!(find_builtin_by_path("baml.http.Response.text").is_some());
         assert!(find_builtin_by_path("baml.http.fetch").is_some());
     }
@@ -430,4 +704,146 @@ mod tests {
         assert_eq!(normalize_baml_prefix("bam"), "bam"); // incomplete
         assert_eq!(normalize_baml_prefix("banal"), "banal"); // different word
     }
+
+    #[test]
+    fn test_builtin_types() {
+        let types = builtin_types();
+        // Should have at least Response, File, Socket
+        assert!(
+            types.len() >= 3,
+            "Expected at least 3 builtin types, got {}",
+            types.len()
+        );
+
+        // Find Response type
+        let response = find_builtin_type("baml.http.Response");
+        assert!(response.is_some(), "Response type should exist");
+        let response = response.unwrap();
+
+        // Response should have fields: _handle (private), status_code, headers, url
+        assert!(
+            response.fields.len() >= 4,
+            "Response should have at least 4 fields"
+        );
+
+        // Check _handle is private and has Resource type
+        let handle_field = response.fields.iter().find(|f| f.name == "_handle");
+        assert!(handle_field.is_some(), "_handle field should exist");
+        let handle_field = handle_field.unwrap();
+        assert!(handle_field.is_private, "_handle should be private");
+        assert!(
+            matches!(handle_field.ty, TypePattern::Resource),
+            "private _handle field should have Resource type"
+        );
+
+        // Check status_code is public
+        let status_field = find_field("baml.http.Response", "status_code");
+        assert!(status_field.is_some(), "status_code field should exist");
+        let status_field = status_field.unwrap();
+        assert!(!status_field.is_private, "status_code should be public");
+        assert!(matches!(status_field.ty, TypePattern::Int));
+
+        // Check headers field type is Map<String, String>
+        let headers_field = find_field("baml.http.Response", "headers");
+        assert!(headers_field.is_some(), "headers field should exist");
+        let headers_field = headers_field.unwrap();
+        assert!(matches!(headers_field.ty, TypePattern::Map { .. }));
+    }
+
+    #[test]
+    fn test_prelude() {
+        // Test that prelude entries exist
+        assert!(!prelude().is_empty(), "Prelude should not be empty");
+
+        // Test lookup_prelude
+        assert_eq!(
+            lookup_prelude("Request"),
+            Some("baml.http.Request"),
+            "Request should resolve to baml.http.Request"
+        );
+        assert_eq!(
+            lookup_prelude("Response"),
+            Some("baml.http.Response"),
+            "Response should resolve to baml.http.Response"
+        );
+        assert_eq!(
+            lookup_prelude("PromptAst"),
+            Some("baml.llm.PromptAst"),
+            "PromptAst should resolve to baml.llm.PromptAst"
+        );
+        assert_eq!(
+            lookup_prelude("PrimitiveClient"),
+            Some("baml.llm.PrimitiveClient"),
+            "PrimitiveClient should resolve to baml.llm.PrimitiveClient"
+        );
+
+        // Test that unknown names return None
+        assert_eq!(
+            lookup_prelude("UnknownType"),
+            None,
+            "Unknown types should return None"
+        );
+        assert_eq!(
+            lookup_prelude("string"),
+            None,
+            "Primitives should not be in prelude"
+        );
+    }
+}
+
+// ============================================================================
+// Embedded BAML Builtin Files
+// ============================================================================
+
+/// Embedded BAML source files for built-in functions.
+///
+/// These files are compiled together with user code and provide
+/// implementations for builtin namespaces like `baml.llm`.
+///
+/// # Structure
+///
+/// Files are organized by namespace:
+/// - `baml/llm.baml` -> `baml.llm` namespace
+///
+/// # Usage
+///
+/// ```ignore
+/// for (namespace, source) in baml_builtins::baml_sources() {
+///     // Add source to compilation context
+///     compiler.add_builtin(namespace, source);
+/// }
+/// ```
+pub mod baml_sources {
+    /// The BAML source for the `baml.llm` namespace.
+    ///
+    /// Contains the `render_prompt` orchestrator function.
+    pub const LLM: &str = include_str!("../baml/llm.baml");
+
+    /// A builtin BAML source file with its namespace.
+    #[derive(Debug, Clone, Copy)]
+    pub struct BuiltinSource {
+        /// The namespace this file provides (e.g., "baml.llm").
+        pub namespace: &'static str,
+        /// The virtual file path for diagnostics (e.g., `<builtin>/baml/llm.baml`).
+        pub path: &'static str,
+        /// The BAML source code.
+        pub source: &'static str,
+    }
+
+    /// All builtin BAML sources.
+    ///
+    /// These should be added to the compilation context before user code.
+    pub const ALL: &[BuiltinSource] = &[BuiltinSource {
+        namespace: "baml.llm",
+        path: "<builtin>/baml/llm.baml",
+        source: LLM,
+    }];
+}
+
+/// Get all builtin BAML sources.
+///
+/// Returns an iterator over all embedded BAML files that should be
+/// compiled as part of the builtin library.
+pub fn baml_sources() -> impl Iterator<Item = &'static baml_sources::BuiltinSource> {
+    baml_sources::ALL.iter()
 }

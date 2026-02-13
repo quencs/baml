@@ -9,19 +9,135 @@ use baml_base::{FileId, Span};
 use baml_compiler_diagnostics::HirDiagnostic;
 use baml_compiler_syntax::TypeExpr;
 use la_arena::{Arena, Idx};
-use rowan::{TextRange, ast::AstNode};
+use rowan::{TextRange, TextSize, ast::AstNode};
 
 use crate::{Name, source_map::HirSourceMap, type_ref::TypeRef};
 
-/// Strip quote delimiters from a string literal.
+/// Create a `PrimitiveClient` body for clients with no options block.
 ///
-/// Handles both raw strings (`#"..."#`) and regular strings (`"..."`).
-/// Returns the content without the delimiters.
+/// Returns: `baml.llm.build_primitive_client(name, provider, default_role, allowed_roles, {})`
+pub fn empty_primitive_client_body(
+    _file_id: FileId,
+    client_name: &str,
+    provider: &str,
+    default_role: &str,
+    allowed_roles: &[String],
+) -> (ExprBody, HirSourceMap) {
+    use crate::Name;
+    let mut exprs: Arena<Expr> = Arena::new();
+    let source_map = HirSourceMap::new();
+
+    // Create empty options map
+    let options_map_expr = exprs.alloc(Expr::Map { entries: vec![] });
+
+    // Create string literal arguments
+    let name_expr = exprs.alloc(Expr::Literal(Literal::String(client_name.to_string())));
+    let provider_expr = exprs.alloc(Expr::Literal(Literal::String(provider.to_string())));
+    let default_role_expr = exprs.alloc(Expr::Literal(Literal::String(default_role.to_string())));
+
+    // Create allowed_roles array
+    let role_elements: Vec<_> = allowed_roles
+        .iter()
+        .map(|role| exprs.alloc(Expr::Literal(Literal::String(role.clone()))))
+        .collect();
+    let allowed_roles_expr = exprs.alloc(Expr::Array {
+        elements: role_elements,
+    });
+
+    // Create the function call path: baml.llm.build_primitive_client
+    let callee_expr = exprs.alloc(Expr::Path(vec![
+        Name::new("baml"),
+        Name::new("llm"),
+        Name::new("build_primitive_client"),
+    ]));
+
+    // Create the call expression
+    let call_expr = exprs.alloc(Expr::Call {
+        callee: callee_expr,
+        args: vec![
+            name_expr,
+            provider_expr,
+            default_role_expr,
+            allowed_roles_expr,
+            options_map_expr,
+        ],
+    });
+
+    let body = ExprBody {
+        exprs,
+        stmts: Arena::new(),
+        patterns: Arena::new(),
+        match_arms: Arena::new(),
+        types: Arena::new(),
+        root_expr: Some(call_expr),
+        diagnostics: Vec::new(),
+    };
+
+    (body, source_map)
+}
+
+/// Create a synthetic body for LLM functions that calls `baml.llm.call_llm_function`.
 ///
-/// # Examples
-/// - `#"hello"#` -> `hello`
-/// - `"hello"` -> `hello`
-/// - `hello` -> `hello` (no change if no delimiters)
+/// For an LLM function like:
+/// ```baml
+/// function Greet(name: string) -> string {
+///     client TestClient
+///     prompt #"Hello, {{ name }}!"#
+/// }
+/// ```
+///
+/// Generates a body equivalent to:
+/// ```baml
+/// baml.llm.call_llm_function("Greet", {"name": name})
+/// ```
+pub fn lower_llm_to_call_llm_function(
+    function_name: &str,
+    param_names: &[Name],
+) -> (ExprBody, HirSourceMap) {
+    use crate::Name;
+    let mut exprs: Arena<Expr> = Arena::new();
+    let source_map = HirSourceMap::new();
+
+    // Create the args map: {"param1": param1, "param2": param2, ...}
+    let entries: Vec<(ExprId, ExprId)> = param_names
+        .iter()
+        .map(|name| {
+            let key = exprs.alloc(Expr::Literal(Literal::String(name.to_string())));
+            let value = exprs.alloc(Expr::Path(vec![name.clone()]));
+            (key, value)
+        })
+        .collect();
+    let args_map = exprs.alloc(Expr::Map { entries });
+
+    // Create function name literal
+    let fn_name_expr = exprs.alloc(Expr::Literal(Literal::String(function_name.to_string())));
+
+    // Create the function call path: baml.llm.call_llm_function
+    let callee_expr = exprs.alloc(Expr::Path(vec![
+        Name::new("baml"),
+        Name::new("llm"),
+        Name::new("call_llm_function"),
+    ]));
+
+    // Create the call expression
+    let call_expr = exprs.alloc(Expr::Call {
+        callee: callee_expr,
+        args: vec![fn_name_expr, args_map],
+    });
+
+    let body = ExprBody {
+        exprs,
+        stmts: Arena::new(),
+        patterns: Arena::new(),
+        match_arms: Arena::new(),
+        types: Arena::new(),
+        root_expr: Some(call_expr),
+        diagnostics: Vec::new(),
+    };
+
+    (body, source_map)
+}
+
 pub fn strip_string_delimiters(text: &str) -> &str {
     let text = text.trim();
     if text.starts_with("#\"") && text.ends_with("\"#") {
@@ -37,7 +153,7 @@ pub fn strip_string_delimiters(text: &str) -> &str {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum FunctionBody {
-    /// LLM function: has `LLM_FUNCTION_BODY` in CST
+    /// LLM function: has `LLM_FUNCTION_BODY` in CST.
     Llm(LlmBody),
 
     /// Expression function: has `EXPR_FUNCTION_BODY` in CST.
@@ -52,10 +168,10 @@ pub enum FunctionBody {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LlmBody {
     /// The client to use (e.g., "GPT4")
-    pub client: Option<Name>,
+    pub client: Name,
 
     /// The prompt template
-    pub prompt: Option<PromptTemplate>,
+    pub prompt: PromptTemplate,
 }
 
 /// A prompt template with interpolations.
@@ -68,14 +184,104 @@ pub struct PromptTemplate {
     pub interpolations: Vec<Interpolation>,
 }
 
-/// A {{ var }} interpolation in a prompt.
+impl PromptTemplate {
+    #[allow(clippy::cast_possible_truncation)]
+    /// Parse a prompt template from a raw string literal.
+    ///
+    /// Note: This does not store file offsets. To get the template's file offset
+    /// for diagnostic rendering, use `get_file_offset()` or look it up from the CST.
+    pub fn from_raw_string(raw_string: &baml_compiler_syntax::ast::RawStringLiteral) -> Self {
+        use baml_compiler_syntax::ast::{JinjaExpression, JinjaStatement, PromptText};
+
+        let mut text = String::new();
+        let mut interpolations = Vec::new();
+        let mut current_offset = 0u32;
+
+        // Iterate through the children of the raw string in order
+        for child in raw_string.syntax().children() {
+            match child.kind() {
+                baml_compiler_syntax::SyntaxKind::PROMPT_TEXT => {
+                    // Plain text - add directly to output
+                    if let Some(prompt_text) = PromptText::cast(child.clone()) {
+                        let content = prompt_text.text();
+                        text.push_str(&content);
+                        current_offset += content.len() as u32;
+                    }
+                }
+                baml_compiler_syntax::SyntaxKind::TEMPLATE_INTERPOLATION => {
+                    // Jinja expression {{ ... }}
+                    if let Some(jinja_expr) = JinjaExpression::cast(child.clone()) {
+                        let inner = jinja_expr.inner_text();
+                        let full_text = jinja_expr.full_text();
+
+                        // Store the expression text for later validation by minijinja
+                        interpolations.push(Interpolation {
+                            expr_text: inner.clone(),
+                            offset: current_offset,
+                            length: full_text.len() as u32,
+                        });
+
+                        // Keep the {{ }} in the text for now (will be replaced at runtime)
+                        let placeholder = full_text;
+                        text.push_str(&placeholder);
+                        current_offset += placeholder.len() as u32;
+                    }
+                }
+                baml_compiler_syntax::SyntaxKind::TEMPLATE_CONTROL => {
+                    // Jinja statement {% ... %} - keep in text as-is for minijinja to evaluate
+                    if let Some(jinja_stmt) = JinjaStatement::cast(child.clone()) {
+                        let content = jinja_stmt.full_text();
+                        text.push_str(&content);
+                        current_offset += content.len() as u32;
+                    }
+                }
+                baml_compiler_syntax::SyntaxKind::TEMPLATE_COMMENT => {
+                    // Keep Jinja comments in text so byte offsets stay aligned with file positions.
+                    // Minijinja handles {# ... #} natively and ignores them during evaluation.
+                    if let Some(jinja_comment) =
+                        baml_compiler_syntax::ast::JinjaComment::cast(child.clone())
+                    {
+                        let content = jinja_comment.full_text();
+                        text.push_str(&content);
+                        current_offset += content.len() as u32;
+                    }
+                }
+                _ => {
+                    // Other tokens (delimiters, etc.) - skip
+                }
+            }
+        }
+
+        PromptTemplate {
+            text,
+            interpolations,
+        }
+    }
+
+    /// Get the file offset where the template text starts from a raw string literal.
+    ///
+    /// This is used at diagnostic rendering time to convert relative Jinja error
+    /// offsets to absolute file positions.
+    pub fn get_file_offset(raw_string: &baml_compiler_syntax::ast::RawStringLiteral) -> u32 {
+        // The raw string syntax is: #"..."# where the content starts after #"
+        let raw_string_start = raw_string.syntax().text_range().start();
+        // Skip the #" prefix (2 characters)
+        u32::from(raw_string_start) + 2
+    }
+}
+
+/// A {{ expr }} interpolation in a prompt.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Interpolation {
-    /// Variable name referenced
-    pub var_name: Name,
+    /// The raw expression text inside the {{ }} delimiters.
+    /// This will be parsed by minijinja during Jinja validation.
+    pub expr_text: String,
 
-    /// Source offset in the prompt string
+    /// Source offset in the prompt string (points to the opening `{{`)
     pub offset: u32,
+
+    /// Length of the full interpolation including delimiters (e.g., `{{ foo }}`)
+    pub length: u32,
 }
 
 /// Body of an expression function (turing-complete).
@@ -422,7 +628,7 @@ impl FunctionBody {
 
         // Check which body type we have
         if let Some(llm_body) = func_node.llm_body() {
-            Arc::new(FunctionBody::Llm(Self::lower_llm_body(&llm_body)))
+            Arc::new(Self::lower_llm_body(&llm_body))
         } else if let Some(expr_body) = func_node.expr_body() {
             let (body, source_map) = Self::lower_expr_body(&expr_body, file_id, &param_names);
             Arc::new(FunctionBody::Expr(body, source_map))
@@ -431,65 +637,31 @@ impl FunctionBody {
         }
     }
 
-    fn lower_llm_body(llm_body: &baml_compiler_syntax::ast::LlmFunctionBody) -> LlmBody {
+    fn lower_llm_body(llm_body: &baml_compiler_syntax::ast::LlmFunctionBody) -> FunctionBody {
         // Extract client name using AST accessor
+        // Use value() to handle both identifier (`client Foo`) and string (`client "openai/gpt-4o"`) forms
         let client = llm_body
             .client_field()
-            .and_then(|cf| cf.name())
-            .map(|name_token| Name::new(name_token.text()));
+            .and_then(|cf| cf.value())
+            .map(|name| Name::new(&name));
 
         // Extract prompt using AST accessor
         let prompt = llm_body
             .prompt_field()
             .and_then(|pf| pf.raw_string())
-            .map(|raw_str| Self::parse_prompt(&raw_str.full_text()));
+            .map(|raw_str| Self::parse_prompt(&raw_str));
 
-        LlmBody { client, prompt }
-    }
-
-    fn parse_prompt(prompt_text: &str) -> PromptTemplate {
-        // Strip #"..."# or "..." delimiters
-        let prompt_text = prompt_text.trim();
-        let content = if prompt_text.starts_with("#\"") && prompt_text.ends_with("\"#") {
-            &prompt_text[2..prompt_text.len() - 2]
-        } else if prompt_text.starts_with('"') && prompt_text.ends_with('"') {
-            &prompt_text[1..prompt_text.len() - 1]
+        if let (Some(client), Some(prompt)) = (client, prompt) {
+            FunctionBody::Llm(LlmBody { client, prompt })
         } else {
-            prompt_text
-        };
-
-        // Parse {{ var }} interpolations
-        let interpolations = Self::parse_interpolations(content);
-
-        PromptTemplate {
-            text: content.to_string(),
-            interpolations,
+            // TODO: Better would be to error here, with a new FunctionBody::Invalid
+            // that has errors in it.
+            FunctionBody::Missing
         }
     }
 
-    fn parse_interpolations(prompt: &str) -> Vec<Interpolation> {
-        let mut interpolations = Vec::new();
-        let mut offset = 0;
-
-        while let Some(start) = prompt[offset..].find("{{") {
-            let abs_start = offset + start;
-            if let Some(end) = prompt[abs_start..].find("}}") {
-                let abs_end = abs_start + end;
-                let var_text = prompt[abs_start + 2..abs_end].trim();
-
-                #[allow(clippy::cast_possible_truncation)]
-                interpolations.push(Interpolation {
-                    var_name: Name::new(var_text),
-                    offset: abs_start as u32, // Prompt strings are unlikely to exceed 4GB
-                });
-
-                offset = abs_end + 2;
-            } else {
-                break;
-            }
-        }
-
-        interpolations
+    fn parse_prompt(raw_string: &baml_compiler_syntax::ast::RawStringLiteral) -> PromptTemplate {
+        PromptTemplate::from_raw_string(raw_string)
     }
 
     fn lower_expr_body(
@@ -513,6 +685,80 @@ impl FunctionBody {
             .map(|block| ctx.lower_block_expr(&block));
 
         ctx.finish(root_expr)
+    }
+
+    /// Lower a client options block to a `PrimitiveClient` expression.
+    ///
+    /// Used for client `.resolve` functions. Takes the options config block
+    /// and client metadata, and creates a `FunctionBody` that returns:
+    /// ```baml
+    /// baml.llm.build_primitive_client(name, provider, default_role, allowed_roles, options_map)
+    /// ```
+    pub fn lower_client_options_to_primitive_client(
+        config_block: &baml_compiler_syntax::ast::ConfigBlock,
+        file_id: FileId,
+        client_name: &str,
+        provider: &str,
+        default_role: &str,
+        allowed_roles: &[String],
+    ) -> (ExprBody, HirSourceMap) {
+        use crate::Name;
+        let mut ctx = LoweringContext::new(file_id);
+        let range = config_block.syntax().text_range();
+
+        // Build the options map expression
+        let options_map_expr = ctx.lower_config_block_to_map_expr(config_block);
+
+        // Create string literal arguments
+        let name_expr = ctx.alloc_expr(
+            Expr::Literal(Literal::String(client_name.to_string())),
+            range,
+        );
+        let provider_expr =
+            ctx.alloc_expr(Expr::Literal(Literal::String(provider.to_string())), range);
+        let default_role_expr = ctx.alloc_expr(
+            Expr::Literal(Literal::String(default_role.to_string())),
+            range,
+        );
+
+        // Create allowed_roles array
+        let role_elements: Vec<ExprId> = allowed_roles
+            .iter()
+            .map(|role| ctx.alloc_expr(Expr::Literal(Literal::String(role.clone())), range))
+            .collect();
+        let allowed_roles_expr = ctx.alloc_expr(
+            Expr::Array {
+                elements: role_elements,
+            },
+            range,
+        );
+
+        // Create the function call path: baml.llm.build_primitive_client
+        let callee_expr = ctx.alloc_expr(
+            Expr::Path(vec![
+                Name::new("baml"),
+                Name::new("llm"),
+                Name::new("build_primitive_client"),
+            ]),
+            range,
+        );
+
+        // Create the call expression
+        let call_expr = ctx.alloc_expr(
+            Expr::Call {
+                callee: callee_expr,
+                args: vec![
+                    name_expr,
+                    provider_expr,
+                    default_role_expr,
+                    allowed_roles_expr,
+                    options_map_expr,
+                ],
+            },
+            range,
+        );
+
+        ctx.finish(Some(call_expr))
     }
 }
 
@@ -538,11 +784,14 @@ struct LoweringContext {
 /// Used to track partial state while scanning tokens in a pattern.
 enum PatternElement {
     /// Simple identifier (could become binding or enum start)
-    Ident(Name),
+    /// Stores (name, `start_position`) for span tracking
+    Ident(Name, TextSize),
     /// Seen `EnumName.` - waiting for variant name
-    EnumStart(Name),
+    /// Stores (`enum_name`, `start_position`) for span tracking
+    EnumStart(Name, TextSize),
     /// Seen `name:` - waiting for type expression
-    TypedBindingStart(Name),
+    /// Stores (name, `start_position`) for span tracking
+    TypedBindingStart(Name, TextSize),
 }
 
 impl LoweringContext {
@@ -570,27 +819,35 @@ impl LoweringContext {
         Span::new(self.file_id, node.text_range())
     }
 
-    /// Create a span from a syntax node, but skip any leading trivia (whitespace, newlines, comments).
-    /// This is useful for error spans that should point to the actual code, not preceding whitespace.
-    fn span_from_node_skip_trivia(&self, node: &baml_compiler_syntax::SyntaxNode) -> Span {
-        // Find the first non-trivia token
-        let mut first_significant_start = node.text_range().start();
+    /// Find the start position of the first non-trivia token in a syntax node.
+    /// Falls back to the node's start position if no non-trivia token is found.
+    fn first_significant_start(node: &baml_compiler_syntax::SyntaxNode) -> TextSize {
         for element in node.descendants_with_tokens() {
             if let Some(token) = element.as_token() {
                 if !token.kind().is_trivia() {
-                    first_significant_start = token.text_range().start();
-                    break;
+                    return token.text_range().start();
                 }
             }
         }
+        node.text_range().start()
+    }
 
-        let range = TextRange::new(first_significant_start, node.text_range().end());
+    /// Create a span from a syntax node, but skip any leading trivia (whitespace, newlines, comments).
+    /// This is useful for error spans that should point to the actual code, not preceding whitespace.
+    fn span_from_node_skip_trivia(&self, node: &baml_compiler_syntax::SyntaxNode) -> Span {
+        let range = TextRange::new(Self::first_significant_start(node), node.text_range().end());
         Span::new(self.file_id, range)
     }
 
     /// Create a span from a text range.
     fn span_from_range(&self, range: TextRange) -> Span {
         Span::new(self.file_id, range)
+    }
+
+    /// Get the text range of a syntax node, skipping any leading trivia (whitespace, newlines, comments).
+    /// This is useful for synthetic expressions that should point to the actual code, not preceding whitespace.
+    fn text_range_skip_trivia(node: &baml_compiler_syntax::SyntaxNode) -> TextRange {
+        TextRange::new(Self::first_significant_start(node), node.text_range().end())
     }
 
     fn alloc_expr(&mut self, expr: Expr, range: TextRange) -> ExprId {
@@ -809,6 +1066,7 @@ impl LoweringContext {
             }
             SyntaxKind::PATH_EXPR => self.lower_path_expr(node),
             SyntaxKind::FIELD_ACCESS_EXPR => self.lower_field_access_expr(node),
+            SyntaxKind::ENV_ACCESS_EXPR => self.lower_env_access_expr(node),
             SyntaxKind::INDEX_EXPR => self.lower_index_expr(node),
             SyntaxKind::PAREN_EXPR => {
                 // Unwrap parentheses - just lower the inner expression
@@ -1437,15 +1695,17 @@ impl LoweringContext {
                             let text = token.text().to_string();
 
                             // First, check if we're completing an enum variant
-                            if let Some(PatternElement::EnumStart(enum_name)) =
+                            if let Some(PatternElement::EnumStart(enum_name, start)) =
                                 current_element.take()
                             {
                                 // Complete the enum variant: EnumName.Variant
                                 let variant = Name::new(&text);
-                                elements.push(
-                                    self.patterns
-                                        .alloc(Pattern::EnumVariant { enum_name, variant }),
-                                );
+                                // Compute span from enum name start to variant end
+                                let range = TextRange::new(start, token.text_range().end());
+                                elements.push(self.alloc_pattern(
+                                    Pattern::EnumVariant { enum_name, variant },
+                                    range,
+                                ));
                                 continue;
                             }
 
@@ -1479,20 +1739,28 @@ impl LoweringContext {
                                         elements.push(self.finalize_pattern_element(el));
                                     }
                                     // Regular identifier - could be binding or start of enum variant
-                                    current_element = Some(PatternElement::Ident(Name::new(&text)));
+                                    // Track the start position for span tracking
+                                    current_element = Some(PatternElement::Ident(
+                                        Name::new(&text),
+                                        token.text_range().start(),
+                                    ));
                                 }
                             }
                         }
                         SyntaxKind::DOT => {
                             // Transition: Ident.Variant (enum variant pattern)
-                            if let Some(PatternElement::Ident(enum_name)) = current_element.take() {
-                                current_element = Some(PatternElement::EnumStart(enum_name));
+                            if let Some(PatternElement::Ident(enum_name, start)) =
+                                current_element.take()
+                            {
+                                current_element = Some(PatternElement::EnumStart(enum_name, start));
                             }
                         }
                         SyntaxKind::COLON => {
                             // Transition: ident: Type (typed binding pattern)
-                            if let Some(PatternElement::Ident(name)) = current_element.take() {
-                                current_element = Some(PatternElement::TypedBindingStart(name));
+                            if let Some(PatternElement::Ident(name, start)) = current_element.take()
+                            {
+                                current_element =
+                                    Some(PatternElement::TypedBindingStart(name, start));
                             }
                         }
                         SyntaxKind::MINUS => {
@@ -1571,15 +1839,21 @@ impl LoweringContext {
                         }
                         SyntaxKind::TYPE_EXPR => {
                             // Complete typed binding: ident: Type
-                            if let Some(PatternElement::TypedBindingStart(name)) =
+                            if let Some(PatternElement::TypedBindingStart(name, start)) =
                                 current_element.take()
                             {
                                 if let Some(type_expr) =
-                                    baml_compiler_syntax::ast::TypeExpr::cast(child_node)
+                                    baml_compiler_syntax::ast::TypeExpr::cast(child_node.clone())
                                 {
                                     let ty = crate::type_ref::TypeRef::from_ast(&type_expr);
+                                    // Compute span from name start to type end
+                                    let range =
+                                        TextRange::new(start, child_node.text_range().end());
                                     elements.push(
-                                        self.patterns.alloc(Pattern::TypedBinding { name, ty }),
+                                        self.alloc_pattern(
+                                            Pattern::TypedBinding { name, ty },
+                                            range,
+                                        ),
                                     );
                                 } else {
                                     // Failed to cast - treat as simple binding
@@ -1633,12 +1907,12 @@ impl LoweringContext {
     /// Finalize a partially-built pattern element.
     fn finalize_pattern_element(&mut self, element: PatternElement) -> PatId {
         match element {
-            PatternElement::Ident(name) => self.patterns.alloc(Pattern::Binding(name)),
-            PatternElement::EnumStart(enum_name) => {
+            PatternElement::Ident(name, _start) => self.patterns.alloc(Pattern::Binding(name)),
+            PatternElement::EnumStart(enum_name, _start) => {
                 // Incomplete enum variant (missing variant name) - treat as binding
                 self.patterns.alloc(Pattern::Binding(enum_name))
             }
-            PatternElement::TypedBindingStart(name) => {
+            PatternElement::TypedBindingStart(name, _start) => {
                 // Incomplete typed binding (missing type) - treat as simple binding
                 self.patterns.alloc(Pattern::Binding(name))
             }
@@ -1660,7 +1934,22 @@ impl LoweringContext {
             .find(|n| !matches!(n.kind(), SyntaxKind::CALL_ARGS));
 
         let callee = if let Some(n) = callee_node {
-            self.lower_expr(&n)
+            if n.kind() == SyntaxKind::ENV_ACCESS_EXPR {
+                // env.method(...) → Path(["env", method])
+                // Don't use lower_expr which would desugar to get_or_panic
+                use baml_compiler_syntax::ast::EnvAccessExpr;
+                use rowan::ast::AstNode;
+                if let Some(field_token) = EnvAccessExpr::cast(n.clone()).and_then(|e| e.field()) {
+                    self.alloc_expr(
+                        Expr::Path(vec![Name::new("env"), Name::new(field_token.text())]),
+                        n.text_range(),
+                    )
+                } else {
+                    self.alloc_expr(Expr::Missing, n.text_range())
+                }
+            } else {
+                self.lower_expr(&n)
+            }
         } else {
             // No callee node - check for a WORD token (simple function name)
             let word_token = node
@@ -1697,6 +1986,7 @@ impl LoweringContext {
                                     | SyntaxKind::CALL_EXPR
                                     | SyntaxKind::PATH_EXPR
                                     | SyntaxKind::FIELD_ACCESS_EXPR
+                                    | SyntaxKind::ENV_ACCESS_EXPR
                                     | SyntaxKind::INDEX_EXPR
                                     | SyntaxKind::IF_EXPR
                                     | SyntaxKind::BLOCK_EXPR
@@ -1819,6 +2109,41 @@ impl LoweringContext {
             .unwrap_or_else(|| Name::new(""));
 
         self.alloc_expr(Expr::FieldAccess { base, field }, node.text_range())
+    }
+
+    /// Lower an `ENV_ACCESS_EXPR` to a desugared call.
+    ///
+    /// In non-call position (standalone `env.FOO`), desugars to:
+    ///   `env.get_or_panic("FOO")`
+    ///
+    /// When used as a callee in a `CALL_EXPR` (e.g. `env.get(...)`), the
+    /// `lower_call_expr` method handles it specially — converting the
+    /// `ENV_ACCESS_EXPR` callee into a path into the env module.
+    fn lower_env_access_expr(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
+        use baml_compiler_syntax::ast::EnvAccessExpr;
+        use rowan::ast::AstNode;
+
+        let Some(field_token) = EnvAccessExpr::cast(node.clone()).and_then(|e| e.field()) else {
+            return self.alloc_expr(Expr::Missing, node.text_range());
+        };
+        let field_name = field_token.text().to_string();
+
+        // Synthesize: env.get_or_panic("FIELD_NAME")
+        let callee = self.alloc_expr(
+            Expr::Path(vec![Name::new("env"), Name::new("get_or_panic")]),
+            node.text_range(),
+        );
+        let arg = self.alloc_expr(
+            Expr::Literal(Literal::String(field_name)),
+            node.text_range(),
+        );
+        self.alloc_expr(
+            Expr::Call {
+                callee,
+                args: vec![arg],
+            },
+            node.text_range(),
+        )
     }
 
     fn lower_index_expr(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
@@ -2136,6 +2461,7 @@ impl LoweringContext {
                                     | SyntaxKind::MAP_LITERAL
                                     | SyntaxKind::INDEX_EXPR
                                     | SyntaxKind::FIELD_ACCESS_EXPR
+                                    | SyntaxKind::ENV_ACCESS_EXPR
                             )
                         })
                         .map(|n| self.lower_expr(&n))
@@ -2359,6 +2685,7 @@ impl LoweringContext {
                     | SyntaxKind::CALL_EXPR
                     | SyntaxKind::PATH_EXPR
                     | SyntaxKind::FIELD_ACCESS_EXPR
+                    | SyntaxKind::ENV_ACCESS_EXPR
                     | SyntaxKind::INDEX_EXPR
                     | SyntaxKind::IF_EXPR
                     | SyntaxKind::BLOCK_EXPR
@@ -2433,6 +2760,7 @@ impl LoweringContext {
                         | SyntaxKind::CALL_EXPR
                         | SyntaxKind::PATH_EXPR
                         | SyntaxKind::FIELD_ACCESS_EXPR
+                        | SyntaxKind::ENV_ACCESS_EXPR
                         | SyntaxKind::INDEX_EXPR
                         | SyntaxKind::IF_EXPR
                         | SyntaxKind::BLOCK_EXPR
@@ -2717,6 +3045,10 @@ impl LoweringContext {
     /// }
     /// ```
     fn desugar_for_in(&mut self, for_expr: &baml_compiler_syntax::ast::ForExpr) -> StmtId {
+        // Get the for expression's range for synthetic expressions, skipping leading trivia
+        // This ensures errors point to the actual `for` keyword, not preceding comments
+        let for_range = Self::text_range_skip_trivia(for_expr.syntax());
+
         // Generate unique names for synthetic variables FIRST
         // This ensures outer loops claim _iter, _len, _i before inner loops
         let arr_name = self.gensym("iter");
@@ -2727,7 +3059,7 @@ impl LoweringContext {
         let user_body = for_expr
             .body()
             .map(|block| self.lower_block_expr(&block))
-            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, for_range));
 
         // 1. let _arr_N = <iterator>
         // First try to get iterator as a child node (for complex expressions like arrays, calls, etc.)
@@ -2746,10 +3078,11 @@ impl LoweringContext {
                             if token.kind() == SyntaxKind::KW_IN {
                                 seen_in = true;
                             } else if seen_in && token.kind() == SyntaxKind::WORD {
-                                // Found the iterator identifier
-                                return Some(
-                                    self.exprs.alloc(Expr::Path(vec![Name::new(token.text())])),
-                                );
+                                // Found the iterator identifier - use token's range
+                                return Some(self.alloc_expr(
+                                    Expr::Path(vec![Name::new(token.text())]),
+                                    token.text_range(),
+                                ));
                             }
                         }
                         baml_compiler_syntax::NodeOrToken::Node(_) => {}
@@ -2757,7 +3090,7 @@ impl LoweringContext {
                 }
                 None
             })
-            .unwrap_or_else(|| self.exprs.alloc(Expr::Missing));
+            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, for_range));
 
         let arr_pat = self.patterns.alloc(Pattern::Binding(arr_name.clone()));
         let arr_let = self.stmts.alloc(Stmt::Let {
@@ -2770,15 +3103,22 @@ impl LoweringContext {
         // 2. let _len_N = _arr_N.length()
         // This is a method call: FieldAccess followed by Call with no arguments.
         // The typechecker will resolve `length` as a method on arrays.
-        let arr_ref = self.exprs.alloc(Expr::Path(vec![arr_name.clone()]));
-        let length_method = self.exprs.alloc(Expr::FieldAccess {
-            base: arr_ref,
-            field: Name::new("length"),
-        });
-        let length_call = self.exprs.alloc(Expr::Call {
-            callee: length_method,
-            args: vec![],
-        });
+        // Use for_range for synthetic expressions so errors point to the for statement.
+        let arr_ref = self.alloc_expr(Expr::Path(vec![arr_name.clone()]), for_range);
+        let length_method = self.alloc_expr(
+            Expr::FieldAccess {
+                base: arr_ref,
+                field: Name::new("length"),
+            },
+            for_range,
+        );
+        let length_call = self.alloc_expr(
+            Expr::Call {
+                callee: length_method,
+                args: vec![],
+            },
+            for_range,
+        );
         let len_pat = self.patterns.alloc(Pattern::Binding(len_name.clone()));
         let len_let = self.stmts.alloc(Stmt::Let {
             pattern: len_pat,
@@ -2788,7 +3128,7 @@ impl LoweringContext {
         });
 
         // 3. let _i_N = 0
-        let zero = self.exprs.alloc(Expr::Literal(Literal::Int(0)));
+        let zero = self.alloc_expr(Expr::Literal(Literal::Int(0)), for_range);
         let idx_pat = self.patterns.alloc(Pattern::Binding(idx_name.clone()));
         let idx_let = self.stmts.alloc(Stmt::Let {
             pattern: idx_pat,
@@ -2798,13 +3138,16 @@ impl LoweringContext {
         });
 
         // 4. Condition: _i_N < _len_N
-        let idx_ref = self.exprs.alloc(Expr::Path(vec![idx_name.clone()]));
-        let len_ref = self.exprs.alloc(Expr::Path(vec![len_name]));
-        let condition = self.exprs.alloc(Expr::Binary {
-            op: BinaryOp::Lt,
-            lhs: idx_ref,
-            rhs: len_ref,
-        });
+        let idx_ref = self.alloc_expr(Expr::Path(vec![idx_name.clone()]), for_range);
+        let len_ref = self.alloc_expr(Expr::Path(vec![len_name]), for_range);
+        let condition = self.alloc_expr(
+            Expr::Binary {
+                op: BinaryOp::Lt,
+                lhs: idx_ref,
+                rhs: len_ref,
+            },
+            for_range,
+        );
 
         // 5. Loop body: let x = _arr_N[_i_N]
         let user_pattern = for_expr
@@ -2822,12 +3165,15 @@ impl LoweringContext {
             })
             .unwrap_or_else(|| self.patterns.alloc(Pattern::Binding(Name::new("_"))));
 
-        let arr_ref2 = self.exprs.alloc(Expr::Path(vec![arr_name]));
-        let idx_ref2 = self.exprs.alloc(Expr::Path(vec![idx_name.clone()]));
-        let element_access = self.exprs.alloc(Expr::Index {
-            base: arr_ref2,
-            index: idx_ref2,
-        });
+        let arr_ref2 = self.alloc_expr(Expr::Path(vec![arr_name]), for_range);
+        let idx_ref2 = self.alloc_expr(Expr::Path(vec![idx_name.clone()]), for_range);
+        let element_access = self.alloc_expr(
+            Expr::Index {
+                base: arr_ref2,
+                index: idx_ref2,
+            },
+            for_range,
+        );
         let elem_let = self.stmts.alloc(Stmt::Let {
             pattern: user_pattern,
             type_annotation: None,
@@ -2836,8 +3182,8 @@ impl LoweringContext {
         });
 
         // 6. Increment: _i_N += 1
-        let idx_target = self.exprs.alloc(Expr::Path(vec![idx_name]));
-        let one = self.exprs.alloc(Expr::Literal(Literal::Int(1)));
+        let idx_target = self.alloc_expr(Expr::Path(vec![idx_name]), for_range);
+        let one = self.alloc_expr(Expr::Literal(Literal::Int(1)), for_range);
         let idx_assign = self.stmts.alloc(Stmt::AssignOp {
             target: idx_target,
             op: AssignOp::Add,
@@ -2854,16 +3200,22 @@ impl LoweringContext {
             if let Some(tail) = tail_expr {
                 body_stmts.push(self.stmts.alloc(Stmt::Expr(*tail)));
             }
-            self.exprs.alloc(Expr::Block {
-                stmts: body_stmts,
-                tail_expr: None,
-            })
+            self.alloc_expr(
+                Expr::Block {
+                    stmts: body_stmts,
+                    tail_expr: None,
+                },
+                for_range,
+            )
         } else {
             let body_stmt = self.stmts.alloc(Stmt::Expr(user_body));
-            self.exprs.alloc(Expr::Block {
-                stmts: vec![elem_let, idx_assign, body_stmt],
-                tail_expr: None,
-            })
+            self.alloc_expr(
+                Expr::Block {
+                    stmts: vec![elem_let, idx_assign, body_stmt],
+                    tail_expr: None,
+                },
+                for_range,
+            )
         };
 
         // 8. While statement with ForLoop origin
@@ -2876,10 +3228,13 @@ impl LoweringContext {
         });
 
         // 9. Wrap in outer block
-        let outer_block = self.exprs.alloc(Expr::Block {
-            stmts: vec![arr_let, len_let, idx_let, while_stmt],
-            tail_expr: None,
-        });
+        let outer_block = self.alloc_expr(
+            Expr::Block {
+                stmts: vec![arr_let, len_let, idx_let, while_stmt],
+                tail_expr: None,
+            },
+            for_range,
+        );
 
         self.stmts.alloc(Stmt::Expr(outer_block))
     }
@@ -2923,5 +3278,146 @@ impl LoweringContext {
         let name = Name::new(&name);
 
         self.alloc_stmt(Stmt::HeaderComment { name, level }, node.text_range())
+    }
+
+    /// Lower a `CONFIG_VALUE` node to an expression.
+    ///
+    /// `CONFIG_VALUE` can contain various expression types or legacy unquoted strings.
+    fn lower_config_value(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        // First check for child expression nodes
+        for child in node.children() {
+            match child.kind() {
+                SyntaxKind::STRING_LITERAL
+                | SyntaxKind::RAW_STRING_LITERAL
+                | SyntaxKind::BINARY_EXPR
+                | SyntaxKind::PATH_EXPR
+                | SyntaxKind::ENV_ACCESS_EXPR
+                | SyntaxKind::CALL_EXPR
+                | SyntaxKind::MAP_LITERAL => {
+                    return self.lower_expr(&child);
+                }
+                // Config arrays have CONFIG_VALUE or CONFIG_BLOCK children, not expression children
+                SyntaxKind::ARRAY_LITERAL => {
+                    return self.lower_config_array(&child);
+                }
+                // Nested config block becomes a map
+                SyntaxKind::CONFIG_BLOCK => {
+                    if let Some(block) = baml_compiler_syntax::ast::ConfigBlock::cast(child.clone())
+                    {
+                        return self.lower_config_block_to_map_expr(&block);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Check for literal tokens directly under CONFIG_VALUE
+        for item in node.children_with_tokens() {
+            if let rowan::NodeOrToken::Token(token) = item {
+                match token.kind() {
+                    SyntaxKind::INTEGER_LITERAL => {
+                        if let Ok(val) = token.text().parse::<i64>() {
+                            return self
+                                .alloc_expr(Expr::Literal(Literal::Int(val)), token.text_range());
+                        }
+                    }
+                    SyntaxKind::FLOAT_LITERAL => {
+                        return self.alloc_expr(
+                            Expr::Literal(Literal::Float(token.text().to_string())),
+                            token.text_range(),
+                        );
+                    }
+                    SyntaxKind::WORD => {
+                        let text = token.text();
+                        if text == "true" {
+                            return self.alloc_expr(
+                                Expr::Literal(Literal::Bool(true)),
+                                token.text_range(),
+                            );
+                        } else if text == "false" {
+                            return self.alloc_expr(
+                                Expr::Literal(Literal::Bool(false)),
+                                token.text_range(),
+                            );
+                        }
+                        // Single word - treat as string (legacy unquoted string)
+                        return self.alloc_expr(
+                            Expr::Literal(Literal::String(text.to_string())),
+                            token.text_range(),
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Fall back: collect all text content as a string (legacy unquoted strings)
+        let text: String = node
+            .descendants_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .filter(|t| {
+                !matches!(
+                    t.kind(),
+                    SyntaxKind::WHITESPACE | SyntaxKind::NEWLINE | SyntaxKind::COMMA
+                )
+            })
+            .map(|t| t.text().to_string())
+            .collect();
+
+        if text.is_empty() {
+            self.alloc_expr(Expr::Missing, node.text_range())
+        } else {
+            self.alloc_expr(Expr::Literal(Literal::String(text)), node.text_range())
+        }
+    }
+
+    /// Lower a config array to an array expression.
+    ///
+    /// Config arrays have `CONFIG_VALUE` or `CONFIG_BLOCK` children (not regular expression children).
+    fn lower_config_array(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let elements: Vec<ExprId> = node
+            .children()
+            .filter_map(|child| match child.kind() {
+                SyntaxKind::CONFIG_VALUE => Some(self.lower_config_value(&child)),
+                SyntaxKind::CONFIG_BLOCK => baml_compiler_syntax::ast::ConfigBlock::cast(child)
+                    .map(|block| self.lower_config_block_to_map_expr(&block)),
+                _ => None,
+            })
+            .collect();
+
+        self.alloc_expr(Expr::Array { elements }, node.text_range())
+    }
+
+    /// Lower a config block to a map expression.
+    fn lower_config_block_to_map_expr(
+        &mut self,
+        block: &baml_compiler_syntax::ast::ConfigBlock,
+    ) -> ExprId {
+        let entries: Vec<(ExprId, ExprId)> = block
+            .items()
+            .filter_map(|item| {
+                let key = item.key()?;
+                let key_text = key.text().to_string();
+
+                let key_expr =
+                    self.alloc_expr(Expr::Literal(Literal::String(key_text)), key.text_range());
+
+                let value_expr = if let Some(config_value_node) = item.config_value_node() {
+                    self.lower_config_value(&config_value_node)
+                } else if let Some(nested_block) = item.nested_block() {
+                    self.lower_config_block_to_map_expr(&nested_block)
+                } else {
+                    self.alloc_expr(Expr::Missing, key.text_range())
+                };
+
+                Some((key_expr, value_expr))
+            })
+            .collect();
+
+        self.alloc_expr(Expr::Map { entries }, block.syntax().text_range())
     }
 }

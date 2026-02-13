@@ -22,10 +22,10 @@
 //! }
 //! ```
 
-// Re-export Ty from bex_program for convenience
-pub use bex_program::Ty;
+// Re-export Ty and TypeName from baml_type for convenience
+pub use baml_type::{Ty, TypeName};
+use bex_resource_types::ResourceHandle;
 use indexmap::IndexMap;
-use sys_resource_types::ResourceHandle;
 
 /// Metadata about a union type, embedded with values from union-typed contexts.
 ///
@@ -80,12 +80,18 @@ impl UnionMetadata {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum BexExternalAdt {
+    Media(bex_vm_types::MediaValue),
+    PromptAst(bex_vm_types::PromptAst),
+}
+
 /// A deep-copied value tree with no heap references.
 ///
 /// Use `BexEngine::call_function` to get the result. When the return type
 /// is a union, the value will be wrapped in the `Union` variant with metadata.
 ///
-/// # When to use BexExternalValue vs BexValue
+/// # When to use BexValue vs BexExternalValue
 ///
 /// - **BexValue**: When you want to keep data in the heap and access lazily.
 ///   Good for passing handles across FFI without copying.
@@ -152,13 +158,40 @@ pub enum BexExternalValue {
         metadata: UnionMetadata,
     },
 
-    Media {
-        handle: crate::Handle,
-        kind: baml_base::MediaKind,
-    },
-
     /// Resource handle (file, socket, etc.) for sys operations.
     Resource(ResourceHandle),
+
+    /// Reference to a function by its global index.
+    ///
+    /// Used to return callable function references from SysOps.
+    /// The global_index corresponds to the function's position in the VM's globals array.
+    FunctionRef {
+        /// Global index of the function.
+        global_index: usize,
+    },
+
+    Handle(crate::Handle),
+
+    // This is a tagged union.
+    // Once BAML has support for ADTs, we can remove this
+    // and use instances of ADT variants directly similar to how we handle
+    // builtin classes and enums.
+    Adt(BexExternalAdt),
+}
+
+impl BexExternalAdt {
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            BexExternalAdt::Media(media) => match media.kind {
+                baml_type::MediaKind::Image => "image",
+                baml_type::MediaKind::Audio => "audio",
+                baml_type::MediaKind::Video => "video",
+                baml_type::MediaKind::Pdf => "pdf",
+                baml_type::MediaKind::Generic => "media",
+            },
+            BexExternalAdt::PromptAst(_) => "prompt_ast",
+        }
+    }
 }
 
 impl BexExternalValue {
@@ -175,18 +208,106 @@ impl BexExternalValue {
             BexExternalValue::Instance { .. } => "instance",
             BexExternalValue::Variant { .. } => "variant",
             BexExternalValue::Union { .. } => "union",
-            BexExternalValue::Media { kind, .. } => match kind {
-                baml_base::MediaKind::Image => "image",
-                baml_base::MediaKind::Audio => "audio",
-                baml_base::MediaKind::Video => "video",
-                baml_base::MediaKind::Pdf => "pdf",
-                baml_base::MediaKind::Generic => "media",
-            },
             BexExternalValue::Resource(handle) => match handle.kind() {
-                sys_resource_types::ResourceType::File => "file",
-                sys_resource_types::ResourceType::Socket => "socket",
-                sys_resource_types::ResourceType::HttpResponse => "http-response",
+                bex_resource_types::ResourceType::File => "file",
+                bex_resource_types::ResourceType::Socket => "socket",
+                bex_resource_types::ResourceType::Response => "http-response",
             },
+            BexExternalValue::Adt(adt) => adt.type_name(),
+            BexExternalValue::FunctionRef { .. } => "function",
+            BexExternalValue::Handle(_) => "handle",
+        }
+    }
+}
+
+impl From<i64> for BexExternalValue {
+    fn from(value: i64) -> Self {
+        BexExternalValue::Int(value)
+    }
+}
+
+impl From<f64> for BexExternalValue {
+    fn from(value: f64) -> Self {
+        BexExternalValue::Float(value)
+    }
+}
+
+impl From<bool> for BexExternalValue {
+    fn from(value: bool) -> Self {
+        BexExternalValue::Bool(value)
+    }
+}
+
+impl From<crate::Handle> for BexExternalValue {
+    fn from(value: crate::Handle) -> Self {
+        BexExternalValue::Handle(value)
+    }
+}
+
+impl From<String> for BexExternalValue {
+    fn from(value: String) -> Self {
+        BexExternalValue::String(value)
+    }
+}
+
+impl From<&str> for BexExternalValue {
+    fn from(value: &str) -> Self {
+        BexExternalValue::String(value.to_string())
+    }
+}
+
+/// Trait for types that can be converted to a [`BexExternalValue`].
+///
+/// Implemented by owned builtin types (`FsFile`, `HttpResponse`, etc.)
+/// and simple types (`String`, `bool`, `()`).
+///
+/// Used by `SysOpOutput<T>::into_result()` to convert typed results
+/// back to the common `BexExternalValue` representation.
+pub trait AsBexExternalValue {
+    fn into_bex_external_value(self) -> BexExternalValue;
+}
+
+impl AsBexExternalValue for BexExternalValue {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        self
+    }
+}
+
+impl AsBexExternalValue for () {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::Null
+    }
+}
+
+impl AsBexExternalValue for String {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::String(self)
+    }
+}
+
+impl AsBexExternalValue for bool {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::Bool(self)
+    }
+}
+
+impl AsBexExternalValue for bex_vm_types::PromptAst {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::Adt(BexExternalAdt::PromptAst(self))
+    }
+}
+
+impl AsBexExternalValue for bex_vm_types::MediaValue {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::Adt(BexExternalAdt::Media(self))
+    }
+}
+
+impl<T: AsBexExternalValue> AsBexExternalValue for Option<T> {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        match self {
+            Some(v) => v.into_bex_external_value(),
+            None => BexExternalValue::Null,
         }
     }
 }
@@ -198,9 +319,9 @@ mod tests {
     #[test]
     fn test_resource_variant_construction() {
         // Test that we can construct a Resource variant with an opaque handle
-        let handle = sys_resource_types::ResourceHandle::new_without_cleanup(
+        let handle = bex_resource_types::ResourceHandle::new_without_cleanup(
             1,
-            sys_resource_types::ResourceType::File,
+            bex_resource_types::ResourceType::File,
             "test.txt".to_string(),
         );
 
@@ -212,9 +333,9 @@ mod tests {
 
     #[test]
     fn test_resource_socket_type_name() {
-        let handle = sys_resource_types::ResourceHandle::new_without_cleanup(
+        let handle = bex_resource_types::ResourceHandle::new_without_cleanup(
             2,
-            sys_resource_types::ResourceType::Socket,
+            bex_resource_types::ResourceType::Socket,
             "localhost:8080".to_string(),
         );
 

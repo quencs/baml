@@ -1124,45 +1124,195 @@ impl<'a> Parser<'a> {
             }
             p.bump(); // Opening "
 
-            // Collect content until we find Quote followed by same number of hashes
-            let mut loop_counter = 0;
-            loop {
-                loop_counter += 1;
-                if loop_counter > 100_000 {
-                    p.error_unexpected_token(
-                        "Raw string parsing exceeded iteration limit".to_string(),
-                    );
+            // Parse raw string content with Jinja template support
+            p.parse_raw_string_content(opening_hashes);
+        });
+
+        true
+    }
+
+    /// Parse the content inside a raw string, recognizing Jinja template constructs
+    fn parse_raw_string_content(&mut self, opening_hashes: usize) {
+        let mut loop_counter = 0;
+
+        loop {
+            loop_counter += 1;
+            if loop_counter > 100_000 {
+                self.error_unexpected_token(
+                    "Raw string parsing exceeded iteration limit".to_string(),
+                );
+                break;
+            }
+
+            if self.at_end() {
+                self.error_unexpected_token(format!(
+                    "Unclosed raw string (expected \"{}\")",
+                    "#".repeat(opening_hashes)
+                ));
+                break;
+            }
+
+            // Check for closing delimiter
+            if self.at_raw(TokenKind::Quote) {
+                let closing_hashes = self.count_consecutive_hashes_after_quote();
+                if closing_hashes == opening_hashes {
+                    // Found matching closing delimiter
+                    self.bump(); // Closing "
+                    for _ in 0..closing_hashes {
+                        self.bump(); // #
+                    }
                     break;
                 }
+            }
 
-                if p.at_end() {
-                    p.error_unexpected_token(format!(
-                        "Unclosed raw string (expected \"{}\")",
-                        "#".repeat(opening_hashes)
-                    ));
+            // Check for Jinja constructs
+            if self.at_jinja_expression() {
+                self.parse_jinja_expression(opening_hashes);
+            } else if self.at_jinja_statement() {
+                self.parse_jinja_statement(opening_hashes);
+            } else if self.at_jinja_comment() {
+                self.parse_jinja_comment(opening_hashes);
+            } else {
+                // Plain text content - collect tokens until we hit a Jinja construct or closing delimiter
+                self.parse_prompt_text(opening_hashes);
+            }
+        }
+    }
+
+    /// Check if we're at the start of a Jinja expression: {{
+    fn at_jinja_expression(&self) -> bool {
+        self.at_raw(TokenKind::LBrace)
+            && self.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::LBrace)
+    }
+
+    /// Check if we're at the start of a Jinja statement: {%
+    fn at_jinja_statement(&self) -> bool {
+        self.at_raw(TokenKind::LBrace)
+            && self.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::Percent)
+    }
+
+    /// Check if we're at the start of a Jinja comment: {#
+    fn at_jinja_comment(&self) -> bool {
+        self.at_raw(TokenKind::LBrace)
+            && self.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::Hash)
+    }
+
+    /// Parse a Jinja expression: {{ ... }}
+    fn parse_jinja_expression(&mut self, opening_hashes: usize) {
+        self.with_node(SyntaxKind::TEMPLATE_INTERPOLATION, |p| {
+            p.bump(); // {
+            p.bump(); // {
+
+            // Collect tokens until we find }}
+            let mut depth = 1;
+            while !p.at_end() && depth > 0 {
+                if p.at_raw(TokenKind::Quote)
+                    && p.count_consecutive_hashes_after_quote() == opening_hashes
+                {
+                    p.error_unexpected_token("Unclosed Jinja expression (expected }})".to_string());
+                    return;
+                }
+                if p.at_raw(TokenKind::LBrace)
+                    && p.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::LBrace)
+                {
+                    depth += 1;
+                    p.bump_raw();
+                    p.bump_raw();
+                } else if p.at_raw(TokenKind::RBrace)
+                    && p.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::RBrace)
+                {
+                    depth -= 1;
+                    if depth == 0 {
+                        p.bump(); // }
+                        p.bump(); // }
+                        break;
+                    }
+                    p.bump_raw();
+                    p.bump_raw();
+                } else {
+                    p.bump_raw();
+                }
+            }
+
+            if depth > 0 {
+                p.error_unexpected_token("Unclosed Jinja expression (expected }})".to_string());
+            }
+        });
+    }
+
+    /// Parse a Jinja statement: {% ... %}
+    fn parse_jinja_statement(&mut self, opening_hashes: usize) {
+        self.with_node(SyntaxKind::TEMPLATE_CONTROL, |p| {
+            p.bump(); // {
+            p.bump(); // %
+
+            // Collect tokens until we find %}
+            while !p.at_end() {
+                if p.at_raw(TokenKind::Quote)
+                    && p.count_consecutive_hashes_after_quote() == opening_hashes
+                {
+                    p.error_unexpected_token("Unclosed Jinja statement (expected %})".to_string());
+                    return;
+                }
+                if p.at_raw(TokenKind::Percent)
+                    && p.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::RBrace)
+                {
+                    p.bump(); // %
+                    p.bump(); // }
                     break;
                 }
+                p.bump_raw();
+            }
+        });
+    }
 
-                if p.at(TokenKind::Quote) {
-                    // Check if followed by correct number of hashes
+    /// Parse a Jinja comment: {# ... #}
+    fn parse_jinja_comment(&mut self, opening_hashes: usize) {
+        self.with_node(SyntaxKind::TEMPLATE_COMMENT, |p| {
+            p.bump(); // {
+            p.bump(); // #
+
+            // Collect tokens until we find #}
+            while !p.at_end() {
+                if p.at_raw(TokenKind::Quote)
+                    && p.count_consecutive_hashes_after_quote() == opening_hashes
+                {
+                    p.error_unexpected_token("Unclosed Jinja comment (expected #})".to_string());
+                    return;
+                }
+                if p.at_raw(TokenKind::Hash)
+                    && p.peek_impl(1, false).map(|t| t.kind) == Some(TokenKind::RBrace)
+                {
+                    p.bump(); // #
+                    p.bump(); // }
+                    break;
+                }
+                p.bump_raw();
+            }
+        });
+    }
+
+    /// Parse plain text content between Jinja constructs
+    fn parse_prompt_text(&mut self, opening_hashes: usize) {
+        self.with_node(SyntaxKind::PROMPT_TEXT, |p| {
+            // Collect tokens until we hit a Jinja construct or closing delimiter
+            while !p.at_end() {
+                // Check for closing delimiter
+                if p.at_raw(TokenKind::Quote) {
                     let closing_hashes = p.count_consecutive_hashes_after_quote();
                     if closing_hashes == opening_hashes {
-                        // Found matching closing delimiter
-                        p.bump(); // Closing "
-                        for _ in 0..closing_hashes {
-                            p.bump(); // #
-                        }
                         break;
                     }
                 }
 
-                // Not the closing delimiter, consume as content
-                // Use bump_raw() to avoid treating // as comments inside raw strings
+                // Check for Jinja constructs
+                if p.at_jinja_expression() || p.at_jinja_statement() || p.at_jinja_comment() {
+                    break;
+                }
+
                 p.bump_raw();
             }
         });
-
-        true
     }
 
     /// Parse a string or raw string (dispatches to correct method)
@@ -1372,6 +1522,17 @@ impl<'a> Parser<'a> {
             // Note: true/false are Word tokens, and they become BoolLiteral types
             self.bump();
 
+            // Consume dot-separated path segments (e.g., baml.http.Request)
+            while self.at(TokenKind::Dot) {
+                self.bump(); // dot
+                if self.at(TokenKind::Word) {
+                    self.bump(); // next segment
+                } else {
+                    self.error_unexpected_token("type name segment after '.'".to_string());
+                    break;
+                }
+            }
+
             // Check for generic arguments: map<K, V>
             if self.at(TokenKind::Less) {
                 self.type_args_depth += 1;
@@ -1404,28 +1565,104 @@ impl<'a> Parser<'a> {
                 }
             }
         } else if self.at(TokenKind::LParen) {
-            // Tuple type or parenthesized type
-            self.bump(); // (
-            self.parse_type();
-            while self.eat(TokenKind::Comma) {
-                self.parse_type();
-            }
-            // Error recovery: if we're not at ')' yet, skip tokens until we find ')' or reach a recovery point
-            if !self.at(TokenKind::RParen) {
-                if let Some(token) = self.current() {
-                    let message = if token.kind == TokenKind::Dot {
-                        "Path identifiers (e.g., 'a.b') are not supported in type expressions"
-                            .to_string()
-                    } else {
-                        format!("Unexpected '{}' in type expression", token.text)
-                    };
-                    self.error(message, token.span);
-                }
-                self.skip_to_balanced_paren();
-            }
-            self.expect(TokenKind::RParen);
+            // Could be:
+            // 1. Parenthesized type: (int | string)
+            // 2. Function type: (x: int, y: int) -> bool  OR  (int, int) -> bool
+            //
+            // We parse the contents as function type parameters (which can be either
+            // `name: type` or just `type`), then check for `->` to determine which case.
+            self.parse_paren_or_function_type();
         } else {
             self.error_unexpected_token("type".to_string());
+        }
+    }
+
+    /// Parse either a parenthesized type or a function type.
+    ///
+    /// Called when we see `(` in a type position. Could be:
+    /// - Parenthesized type: `(int | string)` - single type, no arrow
+    /// - Function type: `(x: int, y: int) -> bool` or `(int, int) -> bool`
+    ///
+    /// The key distinguisher is the presence of `->` after the closing `)`.
+    fn parse_paren_or_function_type(&mut self) {
+        // We'll parse the content first, then decide based on whether `->` follows.
+        // For function types, we wrap in FUNCTION_TYPE; for parens, we just have the inner type.
+
+        self.bump(); // (
+
+        // Track whether any parameter had a name (which would make it invalid as parenthesized type)
+        let mut had_named_param = false;
+
+        // Parse parameters/types inside parens
+        if !self.at(TokenKind::RParen) {
+            had_named_param |= self.parse_function_type_param_inner();
+
+            while self.eat(TokenKind::Comma) {
+                had_named_param |= self.parse_function_type_param_inner();
+            }
+        }
+
+        // Error recovery: if we're not at ')' yet, skip tokens until we find ')' or reach a recovery point
+        if !self.at(TokenKind::RParen) {
+            if let Some(token) = self.current() {
+                let message = format!("Unexpected '{}' in type expression", token.text);
+                self.error(message, token.span);
+            }
+            self.skip_to_balanced_paren();
+        }
+
+        self.expect(TokenKind::RParen);
+
+        // Now check for `->` to determine if this is a function type
+        if self.at(TokenKind::Arrow) {
+            // This is a function type: wrap everything in FUNCTION_TYPE node
+            // Note: The tokens are already emitted, we just need to parse the return type
+            self.bump(); // ->
+            self.parse_type(); // return type
+        // The caller's with_node(TYPE_EXPR) will wrap this appropriately
+        } else {
+            // Not a function type - should be a parenthesized type
+            if had_named_param {
+                // Error: named parameters require `->` to form a function type
+                if let Some(token) = self.current() {
+                    self.error(
+                        "Named parameters in type expression require `->` to form a function type"
+                            .to_string(),
+                        token.span,
+                    );
+                }
+            }
+            // Note: We don't emit an error for multiple types without `->` because:
+            // 1. Tuple types might be added in the future
+            // 2. It allows for better error recovery
+            // 3. The type checker will catch invalid types anyway
+            // For single unnamed type, this is just a parenthesized type - that's fine
+        }
+    }
+
+    /// Parse a single function type parameter: either `name: type` or just `type`.
+    ///
+    /// Returns `true` if this parameter had a name.
+    fn parse_function_type_param_inner(&mut self) -> bool {
+        // Check if this is `name: type` by looking ahead
+        // If we see WORD followed by COLON (skipping trivia), it's a named param
+        let is_named =
+            self.at(TokenKind::Word) && self.peek(1).map(|t| t.kind) == Some(TokenKind::Colon);
+
+        if is_named {
+            // Named parameter: `name: type`
+            self.with_node(SyntaxKind::FUNCTION_TYPE_PARAM, |p| {
+                p.bump(); // name
+                p.bump(); // :
+                p.parse_type();
+            });
+            true
+        } else {
+            // Unnamed parameter: just `type`
+            self.with_node(SyntaxKind::FUNCTION_TYPE_PARAM, |p| {
+                p.parse_type();
+            });
+            false
         }
     }
 
@@ -1769,17 +2006,19 @@ impl<'a> Parser<'a> {
                     if text == "client" || text == "prompt" {
                         return true;
                     }
-                    if text == "let"
-                        || text == "return"
-                        || text == "if"
-                        || text == "while"
-                        || text == "for"
-                    {
-                        return false;
-                    }
                 }
                 // Check for Client keyword token (not just Word with text "client")
                 TokenKind::Client if brace_depth == 1 => return true,
+                // Check for expression function keywords
+                TokenKind::Let
+                | TokenKind::Return
+                | TokenKind::If
+                | TokenKind::While
+                | TokenKind::For
+                    if brace_depth == 1 =>
+                {
+                    return false;
+                }
                 _ => {}
             }
             i += 1;
@@ -2691,6 +2930,9 @@ impl<'a> Parser<'a> {
         } else if self.at(TokenKind::Match) {
             // Match expression
             self.parse_match_expr();
+        } else if self.at(TokenKind::Env) {
+            // env.FIELD or env.method(...)
+            self.parse_env_access();
         } else {
             self.error_unexpected_token("expression".to_string());
             // Consume the unexpected token to avoid infinite loops
@@ -2698,6 +2940,25 @@ impl<'a> Parser<'a> {
                 self.bump();
             }
         }
+    }
+
+    /// Parse `env.FIELD` expressions.
+    ///
+    /// Produces an `ENV_ACCESS_EXPR` node: `KW_ENV DOT WORD`.
+    /// HIR lowering decides how to desugar based on context.
+    fn parse_env_access(&mut self) {
+        self.with_node(SyntaxKind::ENV_ACCESS_EXPR, |p| {
+            p.bump(); // consume `env` (TokenKind::Env)
+            if p.eat(TokenKind::Dot) {
+                if p.at(TokenKind::Word) {
+                    p.bump(); // consume field name
+                } else {
+                    p.error_unexpected_token("identifier after 'env.'".to_string());
+                }
+            } else {
+                p.error_unexpected_token("'.' after 'env'".to_string());
+            }
+        });
     }
 
     fn parse_call_args(&mut self) {
@@ -3332,16 +3593,12 @@ impl<'a> Parser<'a> {
     fn parse_config_value(&mut self) {
         self.with_node(SyntaxKind::CONFIG_VALUE, |p| {
             // Config values can be:
-            // - Strings: "value"
-            // - Raw strings: #"value"#
+            // - Strings: "value", #"value"#
             // - Arrays: [item1, item2]
-            // - Unquoted strings: gpt-4o, env.OPENAI_API_KEY
+            // - Nested blocks: { key: value }
+            // - Expressions: env.MY_MODEL, "Bearer " + env.FOO_KEY
             // - Numbers: 123, 3.14
-
-            if p.parse_any_string() {
-                // String value
-                return;
-            }
+            // - Unquoted strings (legacy): gpt-4o, path/to/file
 
             // Array in config context: uses config-style parsing for nested objects
             if p.at(TokenKind::LBracket) {
@@ -3355,9 +3612,18 @@ impl<'a> Parser<'a> {
                 return;
             }
 
-            // Parse unquoted string - consume tokens until newline, comma, or brace/bracket
+            // Check if this looks like an expression that should be parsed as such:
+            // - String literals (quoted)
+            // - Numbers (integer or float literals)
+            // - `env.` prefix (environment variable access)
+            // - `true` / `false` (boolean literals)
+            if p.looks_like_config_expression() {
+                p.parse_expr();
+                return;
+            }
+
+            // Fall back to legacy unquoted string parsing - consume tokens until delimiter
             while !p.at_end() {
-                // Check if we should stop - at brace/bracket/comma OR newline is ahead
                 if p.at(TokenKind::RBrace)
                     || p.at(TokenKind::LBrace)
                     || p.at(TokenKind::RBracket)
@@ -3369,6 +3635,52 @@ impl<'a> Parser<'a> {
                 p.bump();
             }
         });
+    }
+
+    /// Check if the current position looks like an expression that should be parsed
+    /// as such, rather than as a legacy unquoted string.
+    fn looks_like_config_expression(&self) -> bool {
+        // Regular string literals are always expressions
+        if self.at(TokenKind::Quote) {
+            return true;
+        }
+
+        // Block strings start with #" - check for both tokens
+        // (Just # alone like `#helloworld` is a legacy unquoted string)
+        if self.at(TokenKind::Hash) {
+            if let Some(next) = self.peek(1) {
+                if next.kind == TokenKind::Quote {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Number literals
+        if self.at(TokenKind::IntegerLiteral) || self.at(TokenKind::FloatLiteral) {
+            return true;
+        }
+
+        // Check for `env.` prefix - environment variable access
+        if self.at(TokenKind::Env) {
+            if let Some(next) = self.peek(1) {
+                if next.kind == TokenKind::Dot {
+                    return true;
+                }
+            }
+        }
+
+        // Boolean literals
+        if self.at(TokenKind::Word) {
+            if let Some(token) = self.current() {
+                let text = token.text.as_str();
+                if text == "true" || text == "false" {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     /// Parse an array in config context - uses config-style parsing for nested objects

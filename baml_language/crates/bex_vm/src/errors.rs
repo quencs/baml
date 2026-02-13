@@ -36,8 +36,8 @@ pub enum InternalError {
     #[error("array index is negative: {0}")]
     ArrayIndexIsNegative(i64),
 
-    #[error("negative instruction pointer: {0}")]
-    NegativeInstructionPtr(isize),
+    #[error("jump offset overflowed instruction pointer")]
+    InvalidJump,
 }
 
 /// Errors that can happen at runtime.
@@ -84,7 +84,7 @@ impl From<InternalError> for VmError {
 #[derive(Debug, Clone)]
 pub struct ErrorLocation {
     pub function_name: String,
-    pub function_span: baml_base::Span,
+    pub function_span: baml_type::Span,
     pub error_line: usize,
 }
 

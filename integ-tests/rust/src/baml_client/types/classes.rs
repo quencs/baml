@@ -381,22 +381,6 @@ impl AsRef<DummyJsonTodo> for DummyJsonTodo {
     }
 }
 
-#[derive(Debug, Clone, Default, BamlEncode, BamlDecode)]
-
-pub struct DummyJsonTodoUpdate {
-    pub todo: String,
-
-    pub completed: bool,
-
-    pub userId: i64,
-}
-
-impl AsRef<DummyJsonTodoUpdate> for DummyJsonTodoUpdate {
-    fn as_ref(&self) -> &DummyJsonTodoUpdate {
-        self
-    }
-}
-
 #[derive(Debug, Clone, BamlEncode, BamlDecode)]
 #[baml(dynamic)]
 
@@ -1176,11 +1160,11 @@ impl AsRef<LiteralClassTwo> for LiteralClassTwo {
 #[derive(Debug, Clone, Default, BamlEncode, BamlDecode)]
 
 pub struct MaintainFieldOrder {
-    pub a: String,
+    pub c: String,
 
     pub b: String,
 
-    pub c: String,
+    pub a: String,
 }
 
 impl AsRef<MaintainFieldOrder> for MaintainFieldOrder {

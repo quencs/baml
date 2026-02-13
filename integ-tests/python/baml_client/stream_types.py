@@ -23,7 +23,7 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
     state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 # #########################################################################
-# Generated classes (109)
+# Generated classes (108)
 # #########################################################################
 
 class AddTodoItem(BaseModel):
@@ -136,11 +136,6 @@ class Document1559(BaseModel):
 
 class DummyJsonTodo(BaseModel):
     id: typing.Optional[int] = None
-    todo: typing.Optional[str] = None
-    completed: typing.Optional[bool] = None
-    userId: typing.Optional[int] = None
-
-class DummyJsonTodoUpdate(BaseModel):
     todo: typing.Optional[str] = None
     completed: typing.Optional[bool] = None
     userId: typing.Optional[int] = None
@@ -273,9 +268,9 @@ class LiteralClassTwo(BaseModel):
     prop: typing.Optional[typing_extensions.Literal['two']] = None
 
 class MaintainFieldOrder(BaseModel):
-    a: typing.Optional[str] = None
-    b: typing.Optional[str] = None
     c: typing.Optional[str] = None
+    b: typing.Optional[str] = None
+    a: typing.Optional[str] = None
 
 class MalformedConstraints(BaseModel):
     foo: typing.Optional[types.Checked[int, typing_extensions.Literal['foo_check']]] = None

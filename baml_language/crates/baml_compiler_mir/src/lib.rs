@@ -48,7 +48,6 @@ mod ir;
 mod lower;
 pub mod pretty;
 
-pub use builder::MirBuilder;
 pub use ir::*;
 pub use lower::lower;
 
@@ -56,6 +55,6 @@ pub use lower::lower;
 // Database Trait
 // ============================================================================
 
-/// Database trait for MIR queries. Extends `baml_compiler_tir::Db`.
+/// Database trait for MIR queries. Extends `baml_compiler_vir::Db`.
 #[salsa::db]
-pub trait Db: baml_compiler_tir::Db {}
+pub trait Db: baml_compiler_vir::Db {}

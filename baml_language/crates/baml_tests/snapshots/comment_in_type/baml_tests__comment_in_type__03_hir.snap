@@ -1,20 +1,18 @@
 ---
-source: target/debug/build/baml_tests-ddc6647912a5d7c4/out/generated_tests.rs
+source: target/debug/build/baml_tests-d8c3d4c38f908488/out/generated_tests.rs
 expression: output
 ---
 === HIR ITEMS ===
 function CommentAfterArrow() -> string {
-  client TestClient
-  prompt #"
-    test
-  "#
+    baml.llm.call_llm_function("CommentAfterArrow", {  })
 }
 
 function FunctionWithComments(a: string, b: int) -> string {
-  client TestClient
-  prompt #"
-    test
-  "#
+    baml.llm.call_llm_function("FunctionWithComments", { "a": a, "b": b })
+}
+
+function TestClient.resolve() -> baml.llm.PrimitiveClient {
+    baml.llm.build_primitive_client("TestClient", "baml-openai-chat", "user", ["user", "assistant", "system"], {  })
 }
 
 client TestClient {
