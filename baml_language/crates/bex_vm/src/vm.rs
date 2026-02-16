@@ -271,6 +271,8 @@ pub struct BytecodeProgram {
     pub function_global_indices: HashMap<String, usize>,
     /// Pre-formatted Jinja `{% macro %}` definitions for all `template_strings`.
     pub template_strings_macros: String,
+    /// Client build metadata, passed through to `SysOpContext`.
+    pub client_metadata: HashMap<String, bex_vm_types::ClientBuildMeta>,
 }
 
 /// Convert a compiled `Program` to a `BytecodeProgram` with native functions attached.
@@ -315,6 +317,7 @@ pub fn convert_program(program: bex_vm_types::Program) -> Result<BytecodeProgram
         resolved_enums_names,
         function_global_indices: program.function_global_indices,
         template_strings_macros: program.template_strings_macros,
+        client_metadata: program.client_metadata,
     })
 }
 

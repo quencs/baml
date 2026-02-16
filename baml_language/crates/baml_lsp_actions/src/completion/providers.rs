@@ -228,6 +228,9 @@ pub(super) fn complete_symbols(db: &dyn Db, project: Project) -> Vec<CompletionI
                         .with_sort_text(format!("1{name}")),
                 );
             }
+            ItemId::RetryPolicy(_) => {
+                // Retry policies are not offered as symbol completions.
+            }
         }
     }
 

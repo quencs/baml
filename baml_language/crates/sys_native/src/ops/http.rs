@@ -52,13 +52,20 @@ pub(crate) async fn send_async(
         builder = builder.body(req.body);
     }
 
-    let response = builder.send().await.map_err(|e| {
-        OpErrorKind::Other(format!(
-            "HTTP request failed for '{}': {}",
-            req.url,
-            format_error_chain(&e)
-        ))
-    })?;
+    let response = match builder.send().await {
+        Ok(resp) => resp,
+        Err(_e) => {
+            // Network error: return a synthetic response with status_code=0
+            // so BAML orchestration code can check ok() and fall back.
+            let handle = REGISTRY.register_error_http_response(req.url.clone());
+            return Ok(builtin_types::owned::HttpResponse {
+                status_code: 0,
+                headers: indexmap::IndexMap::new(),
+                url: req.url,
+                _handle: handle,
+            });
+        }
+    };
 
     // Capture metadata before storing
     let status = response.status().as_u16();

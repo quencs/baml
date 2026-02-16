@@ -110,6 +110,14 @@ impl SysOpFs for NativeSysOps {
 // ============================================================================
 
 impl SysOpSys for NativeSysOps {
+    fn baml_sys_sleep(&self, delay_ms: i64) -> SysOpOutput<()> {
+        let millis = delay_ms.max(0) as u64;
+        SysOpOutput::async_op(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(millis)).await;
+            Ok(())
+        })
+    }
+
     fn baml_sys_shell(&self, command: String) -> SysOpOutput<String> {
         SysOpOutput::async_op(async move {
             let output = tokio::process::Command::new("sh")

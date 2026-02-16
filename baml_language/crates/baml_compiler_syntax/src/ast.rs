@@ -1083,6 +1083,24 @@ impl ClientDef {
     }
 }
 
+impl RetryPolicyDef {
+    /// Get the retry policy name.
+    pub fn name(&self) -> Option<SyntaxToken> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .filter(|token| {
+                token.kind() == SyntaxKind::WORD && token.parent() == Some(self.syntax.clone())
+            })
+            .nth(0)
+    }
+
+    /// Get the config block.
+    pub fn config_block(&self) -> Option<ConfigBlock> {
+        self.syntax.children().find_map(ConfigBlock::cast)
+    }
+}
+
 impl GeneratorDef {
     /// Get the generator name.
     pub fn name(&self) -> Option<SyntaxToken> {

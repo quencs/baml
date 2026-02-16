@@ -115,6 +115,9 @@ fn match_pattern_inner(pattern: &TypePattern, ty: &Ty, bindings: &mut Bindings) 
         // Use full display path (e.g., "baml.fs.File") for comparison
         (TypePattern::Builtin(pattern_path), Ty::Class(fqn)) => *pattern_path == fqn.display(),
 
+        // Builtin enums match exactly by path
+        (TypePattern::Enum(path), Ty::Enum(fqn)) => *path == fqn.display(),
+
         // Opaque runtime types match their corresponding patterns
         (TypePattern::Resource, Ty::Resource) => true,
 
@@ -181,6 +184,7 @@ pub fn substitute(pattern: &TypePattern, bindings: &Bindings) -> Ty {
         },
         TypePattern::Resource => Ty::Resource,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
+        TypePattern::Enum(path) => Ty::Enum(parse_builtin_path(path)),
     }
 }
 
@@ -213,6 +217,7 @@ pub fn substitute_unknown(pattern: &TypePattern) -> Ty {
         },
         TypePattern::Resource => Ty::Resource,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
+        TypePattern::Enum(path) => Ty::Enum(parse_builtin_path(path)),
     }
 }
 

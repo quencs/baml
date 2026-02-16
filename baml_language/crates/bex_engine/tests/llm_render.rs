@@ -2,7 +2,7 @@
 //!
 //! These tests verify that:
 //! 1. `get_jinja_template` returns the correct template for LLM functions
-//! 2. `get_client_function` returns the correct client chain
+//! 2. `get_client` returns the correct client chain
 //! 3. `render_prompt` correctly renders templates with arguments
 
 use baml_builtins::{PromptAst as BuiltinPromptAst, PromptAstSimple};

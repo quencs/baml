@@ -263,8 +263,27 @@ impl BexEngine {
                 }
                 vm.alloc_instance(*class_ptr, values)
             }
-            BexExternalValue::Variant { .. } => {
-                panic!("Unexpected Variant from sys op")
+            BexExternalValue::Variant {
+                enum_name,
+                variant_name,
+            } => {
+                let enum_ptr = self
+                    .resolved_enum_names
+                    .get(&enum_name)
+                    .unwrap_or_else(|| panic!("Enum '{enum_name}' not found in resolved_enum_names"));
+                #[allow(unsafe_code)]
+                let enum_obj = match unsafe { enum_ptr.get() } {
+                    bex_vm_types::Object::Enum(e) => e,
+                    _ => panic!("Expected Object::Enum for '{enum_name}'"),
+                };
+                let index = enum_obj
+                    .variants
+                    .iter()
+                    .position(|v| v.name == variant_name)
+                    .unwrap_or_else(|| {
+                        panic!("Variant '{variant_name}' not found in enum '{enum_name}'")
+                    });
+                vm.alloc_variant(*enum_ptr, index)
             }
             BexExternalValue::Union { value, .. } => {
                 self.convert_external_to_vm_value(vm, *value, guard)

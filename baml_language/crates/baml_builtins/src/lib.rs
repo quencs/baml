@@ -52,6 +52,9 @@ pub enum TypePattern {
     /// Maps to `Ty::BuiltinUnknown` in TIR.
     /// In builtin definitions, use the `Unknown` type annotation.
     BuiltinUnknown,
+    /// Builtin enum type - matches exactly by path.
+    /// E.g., `Enum("baml.llm.ClientType")` matches only `Ty::Enum("baml.llm.ClientType")`.
+    Enum(&'static str),
 }
 
 /// How a builtin type is represented at runtime on the VM heap.
@@ -92,6 +95,15 @@ pub struct BuiltinTypeDefinition {
     pub fields: Vec<BuiltinField>,
     /// How this type is represented on the VM heap.
     pub runtime_kind: RuntimeKind,
+}
+
+/// A builtin enum definition (enum with variants).
+#[derive(Debug, Clone)]
+pub struct BuiltinEnumDefinition {
+    /// Full path (e.g., "baml.llm.ClientType").
+    pub path: &'static str,
+    /// Variant names (e.g., ["Primitive", "Fallback", "RoundRobin"]).
+    pub variants: Vec<&'static str>,
 }
 
 impl TypePattern {
@@ -237,6 +249,10 @@ macro_rules! with_builtins {
                     /// Execute a shell command and return stdout.
                     #[sys_op]
                     fn shell(command: String) -> String;
+
+                    /// Sleep for the given number of milliseconds.
+                    #[sys_op]
+                    fn sleep(delay_ms: i64);
                 }
 
                 // =====================================================================
@@ -305,6 +321,33 @@ macro_rules! with_builtins {
                     #[opaque]
                     struct PromptAst {}
 
+                    /// The type of an LLM client (primitive, fallback, or round-robin).
+                    #[builtin]
+                    enum ClientType {
+                        Primitive,
+                        Fallback,
+                        RoundRobin,
+                    }
+
+                    /// A retry policy for LLM calls.
+                    #[builtin]
+                    struct RetryPolicy {
+                        max_retries: i64,
+                        initial_delay_ms: i64,
+                        multiplier: f64,
+                        max_delay_ms: i64,
+                    }
+
+                    /// An LLM client (primitive, fallback, or round-robin).
+                    /// Built by get_client from compiler metadata.
+                    /// Complex fields: accessor/owned codegen is skipped (written manually).
+                    #[builtin]
+                    struct Client {
+                        name: String,
+                        client_type: ClientType,
+                        sub_clients: Array<Client>,
+                        retry_policy: Option<RetryPolicy>,
+                    }
 
                     /// A primitive LLM client (single provider, fully resolved).
                     /// Options have been evaluated (env vars resolved, expressions computed).
@@ -356,10 +399,29 @@ macro_rules! with_builtins {
                     ) -> PrimitiveClient;
 
                     /// Get the client resolve function for an LLM function.
-                    /// Returns a function that, when called, returns a PrimitiveClient.
+                    /// Returns a function that resolves to a PrimitiveClient when called.
                     #[sys_op]
                     #[uses(engine_ctx)]
                     fn get_client_function(function_name: String) -> fn() -> PrimitiveClient;
+
+                    /// Get a Client tree for an LLM function.
+                    /// Returns a Client with type, sub-clients, retry policy, and resolve_fn.
+                    /// Not yet used — will be activated when orchestration is implemented.
+                    #[sys_op]
+                    #[uses(engine_ctx)]
+                    fn get_client(function_name: String) -> Client;
+
+                    /// Get the resolve function for a client by name.
+                    /// Returns a function that resolves to a PrimitiveClient when called.
+                    #[sys_op]
+                    #[uses(engine_ctx)]
+                    fn resolve_client(client_name: String) -> fn() -> PrimitiveClient;
+
+                    /// Get the next round-robin index for a client.
+                    /// Returns the current counter value and increments it atomically.
+                    #[sys_op]
+                    #[uses(engine_ctx)]
+                    fn round_robin_next(client_name: String) -> i64;
                 }
             }
 
@@ -390,9 +452,19 @@ pub fn builtin_types() -> &'static [BuiltinTypeDefinition] {
     &BUILTIN_TYPES
 }
 
+/// Get all built-in enum definitions.
+pub fn builtin_enums() -> &'static [BuiltinEnumDefinition] {
+    &BUILTIN_ENUMS
+}
+
 /// Find a builtin type by path.
 pub fn find_builtin_type(path: &str) -> Option<&'static BuiltinTypeDefinition> {
     builtin_types().iter().find(|td| td.path == path)
+}
+
+/// Find a builtin enum by path.
+pub fn find_builtin_enum(path: &str) -> Option<&'static BuiltinEnumDefinition> {
+    builtin_enums().iter().find(|ed| ed.path == path)
 }
 
 /// Find a field in a builtin type.
@@ -463,6 +535,23 @@ static PRELUDE: &[PreludeEntry] = &[
     PreludeEntry {
         short_name: "PrimitiveClient",
         qualified_path: "baml.llm.PrimitiveClient",
+    },
+    PreludeEntry {
+        short_name: "Client",
+        qualified_path: "baml.llm.Client",
+    },
+    PreludeEntry {
+        short_name: "ClientType",
+        qualified_path: "baml.llm.ClientType",
+    },
+    PreludeEntry {
+        short_name: "RetryPolicy",
+        qualified_path: "baml.llm.RetryPolicy",
+    },
+    // Orchestration types (BAML-defined classes in llm.baml)
+    PreludeEntry {
+        short_name: "OrchestrationStep",
+        qualified_path: "baml.llm.OrchestrationStep",
     },
     // File system types
     PreludeEntry {
@@ -629,14 +718,27 @@ mod tests {
         assert!(render_prompt.is_some());
         assert!(render_prompt.unwrap().is_sys_op);
 
-        let get_client_fn = find_builtin_by_path("baml.llm.get_client_function");
+        let get_client_fn = find_builtin_by_path("baml.llm.get_client");
         assert!(
             get_client_fn.is_some(),
-            "get_client_function should be found"
+            "get_client should be found"
+        );
+        let get_client_fn = get_client_fn.unwrap();
+        assert!(
+            get_client_fn.is_sys_op,
+            "get_client should be sys_op"
+        );
+        assert_eq!(
+            get_client_fn.arity(), 1,
+            "get_client should have arity 1 (function_name param)"
+        );
+        assert_eq!(
+            get_client_fn.params.len(), 1,
+            "get_client should have 1 param"
         );
         assert!(
-            get_client_fn.unwrap().is_sys_op,
-            "get_client_function should be sys_op"
+            get_client_fn.receiver.is_none(),
+            "get_client should not have a receiver"
         );
 
         let get_jinja = find_builtin_by_path("baml.llm.get_jinja_template");

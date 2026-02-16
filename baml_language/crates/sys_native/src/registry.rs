@@ -141,6 +141,30 @@ impl ResourceRegistry {
     }
 
     #[cfg(feature = "bundle-http")]
+    /// Register a synthetic error HTTP response (no body, status_code=0).
+    ///
+    /// Used when a network error occurs, so BAML code can check `ok() == false`
+    /// instead of crashing.
+    pub fn register_error_http_response(self: &Arc<Self>, url: String) -> ResourceHandle {
+        let key = self.next_key.fetch_add(1, Ordering::SeqCst);
+        let resource = ResponseResource {
+            response: Arc::new(TokioMutex::new(None)),
+        };
+
+        self.entries
+            .write()
+            .unwrap()
+            .insert(key, RegistryEntry::Response(resource));
+
+        ResourceHandle::new(
+            key,
+            ResourceType::Response,
+            url,
+            Arc::clone(self) as Arc<dyn ResourceRegistryRef>,
+        )
+    }
+
+    #[cfg(feature = "bundle-http")]
     /// Get the HTTP response mutex for body consumption.
     pub fn get_http_response_body(
         &self,

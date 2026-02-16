@@ -249,6 +249,31 @@ pub struct SysOpContext {
     /// Pre-formatted Jinja `{% macro %}` definitions for all `template_strings`.
     /// Prepended to templates by `get_jinja_template`.
     pub template_strings_macros: String,
+
+    /// Client metadata for building full client trees, keyed by client name.
+    /// Used by `get_client` to recursively construct `LlmClient` with sub-clients and retry policies.
+    pub client_metadata: std::collections::HashMap<String, ClientBuildMeta>,
+
+    /// Atomic round-robin counters, keyed by client name.
+    /// Used by `round_robin_next` to cycle through sub-clients.
+    pub round_robin_counters:
+        std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicUsize>>,
+}
+
+/// Pre-extracted metadata for building a Client tree at runtime.
+///
+/// Populated from HIR `Client` and `RetryPolicy` items during compilation.
+/// Used by `get_client` to recursively build `LlmClient` objects.
+#[derive(Debug, Clone)]
+pub struct ClientBuildMeta {
+    /// The client type (Primitive, Fallback, RoundRobin).
+    pub client_type: bex_heap::builtin_types::owned::LlmClientType,
+    /// Sub-client names (for composite clients: fallback/round-robin).
+    pub sub_client_names: Vec<String>,
+    /// Retry policy, if one was specified.
+    pub retry_policy: Option<bex_heap::builtin_types::owned::LlmRetryPolicy>,
+    /// Name of the resolve function (e.g., "MyClient.resolve").
+    pub resolve_fn_name: String,
 }
 
 /// Pre-extracted metadata for an LLM function.
@@ -271,6 +296,8 @@ impl SysOpContext {
             llm_functions: std::collections::HashMap::new(),
             function_global_indices: std::collections::HashMap::new(),
             template_strings_macros: String::new(),
+            client_metadata: std::collections::HashMap::new(),
+            round_robin_counters: std::collections::HashMap::new(),
         }
     }
 }
@@ -594,6 +621,86 @@ impl<T> SysOpLlm for T {
                 .into_external(),
         )
     }
+
+    fn baml_llm_get_client(
+        &self,
+        function_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<bex_heap::builtin_types::owned::LlmClient> {
+        let Some(info) = ctx.llm_functions.get(&function_name) else {
+            return SysOpOutput::err(OpErrorKind::Other(format!(
+                "LLM function not found: {function_name}"
+            )));
+        };
+
+        match build_client_tree(&info.client_name, &ctx.client_metadata) {
+            Ok(client) => SysOpOutput::ok(client),
+            Err(e) => SysOpOutput::err(OpErrorKind::Other(e)),
+        }
+    }
+
+    fn baml_llm_resolve_client(
+        &self,
+        client_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput {
+        let resolve_fn_name = format!("{}.resolve", client_name);
+        let Some(global_index) = ctx.function_global_indices.get(&resolve_fn_name) else {
+            return SysOpOutput::err(OpErrorKind::Other(format!(
+                "Client resolve function not found: {resolve_fn_name}"
+            )));
+        };
+
+        SysOpOutput::ok(
+            FunctionRef::<bex_heap::builtin_types::owned::LlmPrimitiveClient>::new(*global_index)
+                .into_external(),
+        )
+    }
+
+    fn baml_llm_round_robin_next(
+        &self,
+        client_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<i64> {
+        let counter = ctx
+            .round_robin_counters
+            .get(&client_name)
+            .cloned()
+            .unwrap_or_default();
+        let val = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        SysOpOutput::ok(val as i64)
+    }
+}
+
+// ============================================================================
+// Client Tree Builder
+// ============================================================================
+
+/// Recursively build a `LlmClient` tree from `ClientBuildMeta`.
+///
+/// For primitive clients, this returns a leaf node.
+/// For composite clients (fallback/round-robin), this recursively builds
+/// sub-client trees from the metadata.
+fn build_client_tree(
+    client_name: &str,
+    metadata: &std::collections::HashMap<String, ClientBuildMeta>,
+) -> Result<bex_heap::builtin_types::owned::LlmClient, String> {
+    let Some(meta) = metadata.get(client_name) else {
+        return Err(format!("Client not found: {client_name}"));
+    };
+
+    let sub_clients = meta
+        .sub_client_names
+        .iter()
+        .map(|sub_name| build_client_tree(sub_name, metadata))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(bex_heap::builtin_types::owned::LlmClient {
+        name: client_name.to_string(),
+        client_type: meta.client_type.clone(),
+        sub_clients,
+        retry_policy: meta.retry_policy.clone(),
+    })
 }
 
 // ============================================================================

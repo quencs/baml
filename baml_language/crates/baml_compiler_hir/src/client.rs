@@ -74,13 +74,25 @@ pub(crate) fn lower_client(
     // Extract and validate config block fields
     let mut default_role: Option<String> = None;
     let mut allowed_roles: Vec<String> = Vec::new();
+    let mut retry_policy_name: Option<Name> = None;
+    let mut sub_client_names: Vec<Name> = Vec::new();
 
     if let Some(config_block) = client_def.config_block() {
+        // Extract retry_policy reference if present
+        if let Some(rp_item) = config_block
+            .items()
+            .find(|item| item.matches_key("retry_policy"))
+        {
+            if let Some(word) = rp_item.value_word() {
+                retry_policy_name = Some(Name::new(word.text()));
+            }
+        }
         // Check for unknown properties in client config block
         for item in config_block.items() {
             if let Some(key) = item.key() {
                 let key_text = key.text();
-                if key_text != "provider" && key_text != "options" {
+                if key_text != "provider" && key_text != "options" && key_text != "retry_policy"
+                {
                     ctx.push_diagnostic(HirDiagnostic::UnknownClientProperty {
                         client_name: client_name.clone(),
                         field_name: key_text.to_string(),
@@ -122,6 +134,36 @@ pub(crate) fn lower_client(
                         allowed_roles = elements.into_iter().filter_map(|(s, _)| s).collect();
                     }
                 }
+
+                // Extract sub-client names from strategy array (for composite clients)
+                if is_composite {
+                    if let Some(strategy_item) = options_block
+                        .items()
+                        .find(|item| item.matches_key("strategy"))
+                    {
+                        if let Some(config_value) = strategy_item.config_value_node() {
+                            if let Some(array_literal) = config_value.children().find(|child| {
+                                child.kind() == baml_compiler_syntax::SyntaxKind::ARRAY_LITERAL
+                            }) {
+                                for element in array_literal.children().filter(|child| {
+                                    child.kind()
+                                        == baml_compiler_syntax::SyntaxKind::CONFIG_VALUE
+                                }) {
+                                    // Each element should be a WORD token (client name)
+                                    if let Some(word) = element
+                                        .children_with_tokens()
+                                        .filter_map(rowan::NodeOrToken::into_token)
+                                        .find(|t| {
+                                            t.kind() == baml_compiler_syntax::SyntaxKind::WORD
+                                        })
+                                    {
+                                        sub_client_names.push(Name::new(word.text()));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -139,6 +181,8 @@ pub(crate) fn lower_client(
         provider,
         default_role,
         allowed_roles,
+        retry_policy_name,
+        sub_client_names,
     })
 }
 

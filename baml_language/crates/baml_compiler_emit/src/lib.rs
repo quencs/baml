@@ -88,6 +88,9 @@ pub fn compile_files(
         ("baml.llm.build_primitive_client", 5),
         ("baml.llm.PrimitiveClient.render_prompt", 3),
         ("baml.llm.get_client_function", 1),
+        ("baml.llm.get_client", 1),
+        ("baml.llm.resolve_client", 1),
+        ("baml.llm.round_robin_next", 1),
     ];
 
     // Note: Builtin BAML files (like llm.baml) are now loaded at project setup time
@@ -303,6 +306,35 @@ pub fn compile_files(
                 enum_variant_names.insert(enum_def.name.clone(), variant_name_list);
             }
         }
+    }
+
+    // Add builtin enums (e.g., baml.llm.ClientType) to the program.
+    // These are not declared in user BAML files but are needed at runtime
+    // when sys_ops return values containing builtin enum variants.
+    for builtin_enum in baml_builtins::builtin_enums() {
+        let variants: Vec<EnumVariant> = builtin_enum
+            .variants
+            .iter()
+            .map(|v| EnumVariant {
+                name: v.to_string(),
+                description: None,
+                alias: None,
+                skip: false,
+            })
+            .collect();
+        let mut variant_indices = HashMap::new();
+        for (idx, v) in builtin_enum.variants.iter().enumerate() {
+            variant_indices.insert(v.to_string(), idx);
+        }
+        let enum_obj = Object::Enum(Enum {
+            name: builtin_enum.path.to_string(),
+            variants,
+            description: None,
+            alias: None,
+        });
+        let enum_obj_idx = program.add_object(enum_obj);
+        enum_object_indices.insert(builtin_enum.path.to_string(), enum_obj_idx);
+        enum_variants.insert(builtin_enum.path.to_string(), variant_indices);
     }
 
     // Add builtin functions to globals FIRST (stable indices)
@@ -552,6 +584,84 @@ pub fn compile_files(
         }
     }
     program.template_strings_macros = template_macros.join("\n");
+
+    // --- Pass: Extract client and retry policy metadata ---
+    // First, collect all retry policies by name
+    let mut retry_policies: HashMap<String, bex_vm_types::RetryPolicyMeta> = HashMap::new();
+    for file in files {
+        let item_tree = baml_compiler_hir::file_item_tree(db, *file);
+        let items_struct = baml_compiler_hir::file_items(db, *file);
+        for item in items_struct.items(db) {
+            if let ItemId::RetryPolicy(rp_loc) = item {
+                let rp = &item_tree[rp_loc.id(db)];
+                retry_policies.insert(
+                    rp.name.to_string(),
+                    bex_vm_types::RetryPolicyMeta {
+                        max_retries: rp
+                            .max_retries
+                            .as_ref()
+                            .and_then(|s| s.parse().ok())
+                            .unwrap_or(0),
+                        initial_delay_ms: rp
+                            .initial_delay_ms
+                            .as_ref()
+                            .and_then(|s| s.parse().ok())
+                            .unwrap_or(0),
+                        multiplier: rp
+                            .multiplier
+                            .as_ref()
+                            .and_then(|s| s.parse().ok())
+                            .unwrap_or(1.0),
+                        max_delay_ms: rp
+                            .max_delay_ms
+                            .as_ref()
+                            .and_then(|s| s.parse().ok())
+                            .unwrap_or(60_000),
+                    },
+                );
+            }
+        }
+    }
+
+    // Then, collect all clients with their metadata
+    for file in files {
+        let item_tree = baml_compiler_hir::file_item_tree(db, *file);
+        let items_struct = baml_compiler_hir::file_items(db, *file);
+        for item in items_struct.items(db) {
+            if let ItemId::Client(client_loc) = item {
+                let client = &item_tree[client_loc.id(db)];
+                let client_name = client.name.to_string();
+                let provider = client.provider.as_str();
+
+                let client_type = match provider {
+                    "fallback" => bex_vm_types::ClientBuildType::Fallback,
+                    "round-robin" => bex_vm_types::ClientBuildType::RoundRobin,
+                    _ => bex_vm_types::ClientBuildType::Primitive,
+                };
+
+                let sub_client_names: Vec<String> = client
+                    .sub_client_names
+                    .iter()
+                    .map(|n| n.to_string())
+                    .collect();
+
+                let retry_policy = client
+                    .retry_policy_name
+                    .as_ref()
+                    .and_then(|name| retry_policies.get(name.as_str()).cloned());
+
+                program.client_metadata.insert(
+                    client_name.clone(),
+                    bex_vm_types::ClientBuildMeta {
+                        client_type,
+                        sub_client_names,
+                        retry_policy,
+                        resolve_fn_name: format!("{client_name}.resolve"),
+                    },
+                );
+            }
+        }
+    }
 
     Ok(program)
 }

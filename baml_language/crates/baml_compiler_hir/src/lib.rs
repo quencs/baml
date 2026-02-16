@@ -365,6 +365,32 @@ pub fn function_qualified_name<'db>(db: &'db dyn Db, function: FunctionLoc<'db>)
     }
 }
 
+/// Returns the qualified name of a class.
+///
+/// Mirrors `function_qualified_name` — classes in builtin BAML files
+/// get `baml.llm.*` names, user classes get local names.
+#[salsa::tracked]
+pub fn class_qualified_name<'db>(db: &'db dyn Db, class: ClassLoc<'db>) -> QualifiedName {
+    let file = class.file(db);
+    let item_tree = file_item_tree(db, file);
+    let class_def = &item_tree[class.id(db)];
+
+    match file_namespace(db, file) {
+        None => QualifiedName::local(class_def.name.clone()),
+        Some(namespace_segments) => {
+            if namespace_segments
+                .first()
+                .is_some_and(|s| s.as_str() == "baml")
+            {
+                let path = namespace_segments[1..].to_vec();
+                QualifiedName::baml_std(path, class_def.name.clone())
+            } else {
+                QualifiedName::user_module(namespace_segments, class_def.name.clone())
+            }
+        }
+    }
+}
+
 /// Internal helper that computes both signature and source map together.
 ///
 /// Both `function_signature` and `function_signature_source_map` delegate to this,
@@ -1427,6 +1453,14 @@ fn intern_all_items<'db>(db: &'db dyn Db, file: SourceFile, tree: &ItemTree) -> 
         items.push(ItemId::TemplateString(loc));
     }
 
+    // Intern retry policies
+    let mut retry_policies: Vec<_> = tree.retry_policies.keys().copied().collect();
+    retry_policies.sort_by_key(|id| id.as_u32());
+    for local_id in retry_policies {
+        let loc = RetryPolicyLoc::new(db, file, local_id);
+        items.push(ItemId::RetryPolicy(loc));
+    }
+
     items
 }
 
@@ -1535,6 +1569,11 @@ fn lower_item(tree: &mut ItemTree, node: &SyntaxNode, ctx: &mut LoweringContext)
         SyntaxKind::TEMPLATE_STRING_DEF => {
             if let Some(ts) = lower_template_string(node) {
                 tree.alloc_template_string(ts);
+            }
+        }
+        SyntaxKind::RETRY_POLICY_DEF => {
+            if let Some(rp) = lower_retry_policy(node) {
+                tree.alloc_retry_policy(rp);
             }
         }
         SyntaxKind::LET_STMT => {
@@ -2061,6 +2100,58 @@ fn lower_template_string(node: &SyntaxNode) -> Option<item_tree::TemplateString>
     Some(item_tree::TemplateString { name })
 }
 
+/// Extract retry policy from CST.
+fn lower_retry_policy(node: &SyntaxNode) -> Option<item_tree::RetryPolicy> {
+    use baml_compiler_syntax::ast::RetryPolicyDef;
+
+    let rp = RetryPolicyDef::cast(node.clone())?;
+    let name = rp.name()?.text().into();
+
+    let mut max_retries = None;
+    let mut initial_delay_ms = None;
+    let mut multiplier = None;
+    let mut max_delay_ms = None;
+
+    if let Some(config_block) = rp.config_block() {
+        // Extract max_retries from the top-level config block
+        if let Some(item) = config_block.items().find(|i| i.matches_key("max_retries")) {
+            max_retries = item.value_int().map(|v| v.to_string());
+        }
+
+        // Extract strategy sub-block fields
+        if let Some(strategy_item) = config_block.items().find(|i| i.matches_key("strategy")) {
+            if let Some(strategy_block) = strategy_item.nested_block() {
+                for item in strategy_block.items() {
+                    let Some(key) = item.key() else { continue };
+                    match key.text() {
+                        "delay_ms" => {
+                            initial_delay_ms = item.value_int().map(|v| v.to_string());
+                        }
+                        "multiplier" => {
+                            // multiplier can be a float, so use value_str
+                            multiplier = item.value_str();
+                        }
+                        "max_delay_ms" => {
+                            max_delay_ms = item.value_int().map(|v| v.to_string());
+                        }
+                        _ => {
+                            // Ignore unknown fields like "type" for now
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Some(item_tree::RetryPolicy {
+        name,
+        max_retries,
+        initial_delay_ms,
+        multiplier,
+        max_delay_ms,
+    })
+}
+
 /// Extract type alias from CST.
 pub(crate) fn lower_type_alias(node: &SyntaxNode) -> Option<TypeAlias> {
     use baml_compiler_syntax::ast::TypeAliasDef;
@@ -2319,6 +2410,29 @@ fn validate_duplicate_names(db: &dyn Db, root: baml_workspace::Project) -> Vec<N
                     &mut errors,
                     ts.name.clone(),
                     "template_string",
+                    span,
+                    path,
+                );
+            }
+            ItemId::RetryPolicy(loc) => {
+                let file = loc.file(db);
+                let item_tree = file_item_tree(db, file);
+                let local_id = loc.id(db);
+                let rp = &item_tree[local_id];
+                let span = get_item_name_span(
+                    db,
+                    file,
+                    "retry_policy",
+                    rp.name.as_str(),
+                    local_id.index(),
+                )
+                .unwrap_or_else(|| Span::new(file.file_id(db), TextRange::empty(0.into())));
+                let path = file.path(db).display().to_string();
+                check_duplicate(
+                    &mut seen,
+                    &mut errors,
+                    rp.name.clone(),
+                    "retry_policy",
                     span,
                     path,
                 );

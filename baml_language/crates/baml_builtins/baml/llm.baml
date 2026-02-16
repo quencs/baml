@@ -5,17 +5,85 @@
 // These are compiled as part of the builtin library and available
 // to all BAML programs.
 
+/// A single step in the orchestration plan.
+/// Each step represents one LLM call attempt with a specific client and delay.
+class OrchestrationStep {
+    primitive_client PrimitiveClient
+    delay_ms int
+}
+
+/// Build an orchestration plan from a Client tree.
+///
+/// Recursively expands composite clients (fallback, round-robin) into a flat
+/// list of OrchestrationSteps, wrapping with retry delays as configured.
+function build_plan(client: Client) -> OrchestrationStep[] {
+    let retry = client.retry_policy;
+
+    let inner = match (client.client_type) {
+        ClientType.Primitive => {
+            let resolve_fn = baml.llm.resolve_client(client.name);
+            let primitive = resolve_fn();
+            [OrchestrationStep { primitive_client: primitive, delay_ms: 0 }]
+        }
+        ClientType.Fallback => {
+            let steps: OrchestrationStep[] = [];
+            for (let sub in client.sub_clients) {
+                for (let step in build_plan(sub)) {
+                    steps.push(step);
+                }
+            }
+            steps
+        }
+        ClientType.RoundRobin => {
+            let idx = baml.llm.round_robin_next(client.name) % client.sub_clients.length();
+            build_plan(client.sub_clients.at(idx))
+        }
+    };
+
+    return wrap_with_retry(inner, retry);
+}
+
+/// Wrap a list of orchestration steps with retry logic.
+///
+/// Duplicates the inner steps for each retry attempt, adding exponential
+/// backoff delays between attempts.
+function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> OrchestrationStep[] {
+    match (retry) {
+        null => inner,
+        r: RetryPolicy => {
+            let result: OrchestrationStep[] = [];
+            let current_delay = r.initial_delay_ms + 0.0;
+
+            for (let attempt = 0; attempt <= r.max_retries; attempt += 1) {
+                let delay = 0;
+                if (attempt > 0) {
+                    delay = current_delay;
+                }
+
+                for (let step in inner) {
+                    result.push(OrchestrationStep {
+                        primitive_client: step.primitive_client,
+                        delay_ms: delay,
+                    });
+                }
+
+                let next = current_delay * r.multiplier;
+                if (next > r.max_delay_ms + 0.0) {
+                    current_delay = r.max_delay_ms + 0.0;
+                } else {
+                    current_delay = next;
+                }
+            }
+
+            result
+        }
+    }
+}
+
 /// Render a prompt for an LLM function.
 ///
-/// This is the main entry point for prompt rendering. It:
-/// 1. Looks up the Jinja template for the function
-/// 2. Gets the client's resolve function and calls it to get a PrimitiveClient
-/// 3. Renders the prompt with the given arguments
-/// 4. Specializes the prompt for the client's provider
-///
-/// @param function_name The name of the LLM function to render
-/// @param args The arguments to pass to the template
-/// @return The rendered and specialized prompt AST
+/// Looks up the Jinja template and the client's resolve function,
+/// renders the prompt, and specializes it for the provider.
 function render_prompt(function_name: string, args: map<string, unknown>) -> baml.llm.PromptAst {
     let jinja_string = baml.llm.get_jinja_template(function_name);
 
@@ -28,55 +96,46 @@ function render_prompt(function_name: string, args: map<string, unknown>) -> bam
 
 /// Build an HTTP request for an LLM function.
 ///
-/// This renders the prompt and builds a provider-specific HTTP request
-/// that can be inspected or sent manually.
-///
-/// @param function_name The name of the LLM function
-/// @param args The arguments to pass to the template
-/// @return The HTTP request ready to be sent
+/// Renders the prompt and builds a provider-specific HTTP request.
 function build_request(function_name: string, args: map<string, unknown>) -> baml.http.Request {
     let jinja_string = baml.llm.get_jinja_template(function_name);
 
     let resolve_client_fn = baml.llm.get_client_function(function_name);
     let primitive_client = resolve_client_fn();
 
-    // Render and specialize the prompt
     let prompt = primitive_client.render_prompt(jinja_string, args);
     let specialized_prompt = primitive_client.specialize_prompt(prompt);
 
-    // Build the HTTP request
     return primitive_client.build_request(specialized_prompt);
 }
 
-/// Call an LLM function end-to-end.
+/// Call an LLM function end-to-end with full orchestration.
 ///
-/// This is the main entry point for executing an LLM function. It:
-/// 1. Looks up the Jinja template for the function
-/// 2. Gets the client's resolve function and calls it to get a PrimitiveClient
-/// 3. Renders the prompt with the given arguments
-/// 4. Specializes the prompt for the client's provider
-/// 5. Builds an HTTP request from the prompt
-/// 6. Sends the HTTP request
-/// 7. Parses the response into a BAML value
-///
-/// @param function_name The name of the LLM function to call
-/// @param args The arguments to pass to the template
-/// @return The parsed response value (type is `unknown` so callers get their declared return type)
+/// Builds an orchestration plan from the function's client tree, then
+/// executes each step in order. For simple clients this is a single call;
+/// for fallback/round-robin clients with retry policies, this implements
+/// the full retry + fallback loop.
 function call_llm_function(function_name: string, args: map<string, unknown>) -> unknown {
     let jinja_string = baml.llm.get_jinja_template(function_name);
+    let client = baml.llm.get_client(function_name);
+    let plan = build_plan(client);
 
-    let resolve_client_fn = baml.llm.get_client_function(function_name);
-    let primitive_client = resolve_client_fn();
+    for (let step in plan) {
+        if (step.delay_ms > 0) {
+            baml.sys.sleep(step.delay_ms);
+        }
 
-    // Render and specialize the prompt
-    let prompt = primitive_client.render_prompt(jinja_string, args);
-    let specialized_prompt = primitive_client.specialize_prompt(prompt);
+        let prompt = step.primitive_client.render_prompt(jinja_string, args);
+        let specialized = step.primitive_client.specialize_prompt(prompt);
+        let http_request = step.primitive_client.build_request(specialized);
+        let http_response = baml.http.send(http_request);
 
-    // Build and send the HTTP request
-    let http_request = primitive_client.build_request(specialized_prompt);
-    let http_response = baml.http.send(http_request);
-    let result = http_response.text();
+        if (http_response.ok()) {
+            let body = http_response.text();
+            return step.primitive_client.parse(body, function_name);
+        }
+    }
 
-    // Parse the response
-    return primitive_client.parse(result, function_name);
+    assert false;
+    null
 }
