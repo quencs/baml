@@ -244,6 +244,22 @@ pub fn enum_variants(db: &dyn Db, project: Project) -> EnumVariantsMap<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let mut enums = HashMap::new();
 
+    // Add builtin enum variants (keyed by short name)
+    for builtin_enum in baml_builtins::builtin_enums() {
+        let short_name = builtin_enum
+            .path
+            .rsplit('.')
+            .next()
+            .unwrap_or(builtin_enum.path);
+        let variants: Vec<Name> = builtin_enum
+            .variants
+            .iter()
+            .map(|v| Name::new(*v))
+            .collect();
+        enums.insert(Name::new(short_name), variants);
+    }
+
+    // Add user-defined enum variants
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Enum(enum_loc) = item {
             let file = enum_loc.file(db);
@@ -469,6 +485,17 @@ pub fn enum_names(db: &dyn Db, project: Project) -> EnumNamesSet<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let mut names = HashSet::new();
 
+    // Add builtin enum names (short names, e.g. "ClientType")
+    for builtin_enum in baml_builtins::builtin_enums() {
+        let short_name = builtin_enum
+            .path
+            .rsplit('.')
+            .next()
+            .unwrap_or(builtin_enum.path);
+        names.insert(Name::new(short_name));
+    }
+
+    // Add user-defined enum names
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Enum(enum_loc) = item {
             let file = enum_loc.file(db);
@@ -860,7 +887,13 @@ impl<'db> TypeContext<'db> {
                 Ty::Class(QualifiedName::local(name.clone()))
             }
         } else if self.enum_names.contains(name) {
-            Ty::Enum(QualifiedName::local(name.clone()))
+            // Builtin enums (e.g., "ClientType") need their qualified path
+            // from the prelude so variant lookup keys match.
+            if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
+                Ty::Enum(QualifiedName::from_builtin_path(qualified_path))
+            } else {
+                Ty::Enum(QualifiedName::local(name.clone()))
+            }
         } else {
             // Type alias or unknown type - stays as TypeAlias, will be resolved during normalization
             Ty::TypeAlias(QualifiedName::local(name.clone()))

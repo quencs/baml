@@ -58,6 +58,12 @@ function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> Orc
                 let delay = 0;
                 if (attempt > 0) {
                     delay = baml.math.trunc(current_delay);
+                    let next = current_delay * r.multiplier;
+                    if (next > r.max_delay_ms + 0.0) {
+                        current_delay = r.max_delay_ms + 0.0;
+                    } else {
+                        current_delay = next;
+                    }
                 }
 
                 for (let step in inner) {
@@ -65,13 +71,6 @@ function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> Orc
                         primitive_client: step.primitive_client,
                         delay_ms: delay,
                     });
-                }
-
-                let next = current_delay * r.multiplier;
-                if (next > r.max_delay_ms + 0.0) {
-                    current_delay = r.max_delay_ms + 0.0;
-                } else {
-                    current_delay = next;
                 }
             }
 

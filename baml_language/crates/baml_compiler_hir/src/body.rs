@@ -1989,6 +1989,7 @@ impl LoweringContext {
                                     | SyntaxKind::ENV_ACCESS_EXPR
                                     | SyntaxKind::INDEX_EXPR
                                     | SyntaxKind::IF_EXPR
+                                    | SyntaxKind::MATCH_EXPR
                                     | SyntaxKind::BLOCK_EXPR
                                     | SyntaxKind::PAREN_EXPR
                                     | SyntaxKind::ARRAY_LITERAL
@@ -2455,6 +2456,7 @@ impl LoweringContext {
                                     | SyntaxKind::UNARY_EXPR
                                     | SyntaxKind::PAREN_EXPR
                                     | SyntaxKind::IF_EXPR
+                                    | SyntaxKind::MATCH_EXPR
                                     | SyntaxKind::BLOCK_EXPR
                                     | SyntaxKind::ARRAY_LITERAL
                                     | SyntaxKind::OBJECT_LITERAL
@@ -2688,6 +2690,7 @@ impl LoweringContext {
                     | SyntaxKind::ENV_ACCESS_EXPR
                     | SyntaxKind::INDEX_EXPR
                     | SyntaxKind::IF_EXPR
+                    | SyntaxKind::MATCH_EXPR
                     | SyntaxKind::BLOCK_EXPR
                     | SyntaxKind::PAREN_EXPR
                     | SyntaxKind::STRING_LITERAL
@@ -2761,6 +2764,7 @@ impl LoweringContext {
                     | SyntaxKind::ENV_ACCESS_EXPR
                     | SyntaxKind::INDEX_EXPR
                     | SyntaxKind::IF_EXPR
+                    | SyntaxKind::MATCH_EXPR
                     | SyntaxKind::BLOCK_EXPR
                     | SyntaxKind::PAREN_EXPR
             )

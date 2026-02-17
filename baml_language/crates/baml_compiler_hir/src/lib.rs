@@ -2118,7 +2118,11 @@ fn lower_retry_policy(node: &SyntaxNode) -> Option<item_tree::RetryPolicy> {
             max_retries = item.value_int().map(|v| v.to_string());
         }
 
-        // Extract strategy sub-block fields
+        // Extract delay/multiplier/max_delay fields from either:
+        // 1. A `strategy` sub-block (traditional syntax):
+        //      strategy { type exponential_backoff  delay_ms 100  multiplier 2 }
+        // 2. Top-level config keys (flat syntax):
+        //      initial_delay_ms 100  multiplier 2  max_delay_ms 1000
         if let Some(strategy_item) = config_block.items().find(|i| i.matches_key("strategy")) {
             if let Some(strategy_block) = strategy_item.nested_block() {
                 for item in strategy_block.items() {
@@ -2138,6 +2142,23 @@ fn lower_retry_policy(node: &SyntaxNode) -> Option<item_tree::RetryPolicy> {
                             // Ignore unknown fields like "type" for now
                         }
                     }
+                }
+            }
+        } else {
+            // Flat syntax: delay fields at top level
+            for item in config_block.items() {
+                let Some(key) = item.key() else { continue };
+                match key.text() {
+                    "initial_delay_ms" | "delay_ms" => {
+                        initial_delay_ms = item.value_int().map(|v| v.to_string());
+                    }
+                    "multiplier" => {
+                        multiplier = item.value_str();
+                    }
+                    "max_delay_ms" => {
+                        max_delay_ms = item.value_int().map(|v| v.to_string());
+                    }
+                    _ => {}
                 }
             }
         }
