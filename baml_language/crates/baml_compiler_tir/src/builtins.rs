@@ -120,6 +120,9 @@ fn match_pattern_inner(pattern: &TypePattern, ty: &Ty, bindings: &mut Bindings) 
 
         // Opaque runtime types match their corresponding patterns
         (TypePattern::Resource, Ty::Resource) => true,
+        (TypePattern::Type, Ty::Type) => true,
+        (TypePattern::Type, Ty::Unknown | Ty::Error) => true,
+        (TypePattern::Type, _) => false,
 
         // Unknown in Ty matches any pattern (for error recovery)
         (_, Ty::Unknown) => true,
@@ -185,6 +188,7 @@ pub fn substitute(pattern: &TypePattern, bindings: &Bindings) -> Ty {
         TypePattern::Resource => Ty::Resource,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
         TypePattern::Enum(path) => Ty::Enum(parse_builtin_path(path)),
+        TypePattern::Type => Ty::Type,
     }
 }
 
@@ -218,6 +222,7 @@ pub fn substitute_unknown(pattern: &TypePattern) -> Ty {
         TypePattern::Resource => Ty::Resource,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
         TypePattern::Enum(path) => Ty::Enum(parse_builtin_path(path)),
+        TypePattern::Type => Ty::Type,
     }
 }
 

@@ -133,7 +133,8 @@ function call_llm_function(function_name: string, args: map<string, unknown>) ->
 
         if (http_response.ok()) {
             let body = http_response.text();
-            return step.primitive_client.parse(body, function_name);
+            let return_type = baml.llm.get_return_type(function_name);
+            return step.primitive_client.parse(body, return_type);
         }
 
         if (step.delay_ms > 0) {

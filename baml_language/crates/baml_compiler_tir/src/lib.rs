@@ -91,6 +91,7 @@ fn substitute_with_fallback(pattern: &baml_builtins::TypePattern, bindings: &Bin
         TypePattern::Resource => Ty::Resource,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
         TypePattern::Enum(path) => Ty::Enum(builtins::parse_builtin_path(path)),
+        TypePattern::Type => Ty::Type,
     }
 }
 

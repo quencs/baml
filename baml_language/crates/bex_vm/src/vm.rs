@@ -196,7 +196,11 @@ pub struct BexVm {
     /// Tracks which local variables are watched (have @watch).
     pub(crate) watched_vars: HashMap<StackIndex, (String, String)>,
 
-    pub(crate) interrupt_frame: Option<usize>,
+    pub interrupt_frame: Option<usize>,
+
+    /// Frame depths for traced function calls. Always sorted ascending (LIFO).
+    /// Checked on `Return` to yield `FunctionExit` notifications.
+    traced_frames: Vec<usize>,
 }
 
 /// VM execution state.
@@ -226,6 +230,9 @@ pub enum VmExecState {
 
     /// Notify about watched variables.
     Notify(WatchNotification),
+
+    /// Notify about span lifecycle (from traced `Call` / `Return`).
+    SpanNotify(SpanNotification),
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -236,6 +243,29 @@ pub enum WatchNotification {
     Viz {
         function_name: String,
         event: bex_vm_types::bytecode::VizExecEvent,
+    },
+}
+
+/// Span notifications yielded by the VM for callstack tracking.
+///
+/// The VM provides args and result values from the eval stack so the engine
+/// can emit `FunctionStart`/`FunctionEnd` events without additional lookups.
+/// The VM itself has no span state (no `SpanId`, no timing) — all observability
+/// logic lives in the engine.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SpanNotification {
+    /// A traced function call was entered.
+    /// `args` are snapshotted from the eval stack before the frame is pushed.
+    FunctionEnter {
+        function_name: String,
+        frame_depth: usize,
+        args: Vec<Value>,
+    },
+    /// A traced function call is returning.
+    /// `result` is the return value popped from the eval stack.
+    FunctionExit {
+        function_name: String,
+        result: Value,
     },
 }
 
@@ -347,6 +377,8 @@ fn value_type_tag(value: &Value) -> i64 {
                 Object::Media(_) => type_tags::MEDIA,
                 Object::Resource(_) => type_tags::RESOURCE,
                 Object::PromptAst(_) => type_tags::PROMPT_AST,
+                Object::Collector(_) => type_tags::COLLECTOR,
+                Object::Type(_) => type_tags::TYPE,
                 Object::Class(_) => type_tags::UNKNOWN,
                 #[cfg(feature = "heap_debug")]
                 Object::Sentinel(_) => type_tags::UNKNOWN,
@@ -379,6 +411,7 @@ impl BexVm {
             watch: Watch::new(),
             watched_vars: HashMap::new(),
             interrupt_frame: None,
+            traced_frames: Vec::new(),
         }
     }
 
@@ -735,8 +768,34 @@ impl BexVm {
         }
     }
 
+    /// Allocate a collector object on the heap.
+    pub fn alloc_collector(&mut self, collector: bex_vm_types::CollectorRef) -> Value {
+        Value::Object(self.tlab.alloc(Object::Collector(collector)))
+    }
+
+    /// Get collector ref from a Value.
+    pub fn as_collector(
+        &self,
+        value: &Value,
+    ) -> Result<&bex_vm_types::CollectorRef, InternalError> {
+        let index = self.as_object_ptr(value, ObjectType::Collector)?;
+        let obj = self.get_object(index);
+        match obj {
+            Object::Collector(c) => Ok(c),
+            _ => Err(InternalError::TypeError {
+                expected: ObjectType::Collector.into(),
+                got: ObjectType::of(obj).into(),
+            }),
+        }
+    }
+
     pub fn alloc_media(&mut self, media: bex_vm_types::types::MediaValue) -> Value {
         Value::Object(self.tlab.alloc(Object::Media(media)))
+    }
+
+    /// Allocate a type descriptor object on the heap.
+    pub fn alloc_type(&mut self, ty: baml_type::Ty) -> Value {
+        Value::Object(self.tlab.alloc(Object::Type(ty)))
     }
 
     /// Builds a stack trace for the given error.
@@ -1058,6 +1117,11 @@ impl BexVm {
                     // Use pre-resolved constants (resolved at load time)
                     let value = function.bytecode.resolved_constants[index];
                     self.stack.push(value);
+                }
+
+                Instruction::InitLocals(count) => {
+                    let new_len = self.stack.len() + count;
+                    self.stack.resize(new_len, Value::Null);
                 }
 
                 Instruction::LoadVar(index) => {
@@ -2120,6 +2184,8 @@ impl BexVm {
                         return Err(VmError::RuntimeError(RuntimeError::StackOverflow));
                     }
 
+                    let is_traced = callee.trace;
+
                     match callee.kind {
                         FunctionKind::Native(func_ptr) => {
                             // Cast the type-erased pointer back to NativeFunction.
@@ -2147,6 +2213,17 @@ impl BexVm {
                         }
 
                         FunctionKind::Bytecode => {
+                            // For traced functions, snapshot args before pushing the frame.
+                            let trace_data = if is_traced {
+                                let args_start = locals_offset.into_raw() + 1;
+                                let args: Vec<Value> =
+                                    self.stack[StackIndex::from_raw(args_start)..].to_owned();
+                                let callee_name = callee.name.clone();
+                                Some((callee_name, args))
+                            } else {
+                                None
+                            };
+
                             // Push the new frame.
                             self.frames.push(Frame {
                                 function: index,
@@ -2156,6 +2233,19 @@ impl BexVm {
 
                             // Update frame_idx to point to the new frame.
                             frame_idx = self.frames.len() - 1;
+
+                            // If traced, record the frame and yield a span notification.
+                            if let Some((callee_name, args)) = trace_data {
+                                self.traced_frames.push(frame_idx);
+
+                                return Ok(VmExecState::SpanNotify(
+                                    SpanNotification::FunctionEnter {
+                                        function_name: callee_name,
+                                        frame_depth: frame_idx,
+                                        args,
+                                    },
+                                ));
+                            }
 
                             // SAFETY: See `load_function` doc comment.
                             function = unsafe { self.load_function(frame_idx)? };
@@ -2184,6 +2274,20 @@ impl BexVm {
                     // Pop the result from the eval stack.
                     let result = self.stack.ensure_pop()?;
 
+                    // Check if this frame was traced.
+                    // Capture function name before popping the frame.
+                    let span_exit = if self.traced_frames.last() == Some(&frame_idx) {
+                        let func_name = self
+                            .get_object(self.frames[frame_idx].function)
+                            .as_function()
+                            .map(|f| f.name.clone())
+                            .ok();
+                        self.traced_frames.pop();
+                        func_name
+                    } else {
+                        None
+                    };
+
                     // Restore the eval stack to the state before the function
                     // was called and leave the result on top.
                     self.stack.drain(self.frames[frame_idx].locals_offset..);
@@ -2209,6 +2313,14 @@ impl BexVm {
                             .ensure_pop()
                             .map(VmExecState::Complete)
                             .map_err(Into::into);
+                    }
+
+                    // Yield FunctionExit for traced frames (with result value).
+                    if let Some(name) = span_exit {
+                        return Ok(VmExecState::SpanNotify(SpanNotification::FunctionExit {
+                            function_name: name,
+                            result,
+                        }));
                     }
 
                     // Resume previous frame execution.

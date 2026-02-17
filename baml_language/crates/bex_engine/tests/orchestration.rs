@@ -15,7 +15,7 @@ async fn run(source: &str, entry: &str) -> Result<BexExternalValue, bex_engine::
     let snapshot = common::compile_for_engine(source);
     let engine =
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
-    engine.call_function(entry, vec![]).await
+    engine.call_function(entry, vec![], None, &[]).await
 }
 
 /// Extract `(client_name, delay_ms)` tuples from a plan result.

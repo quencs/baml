@@ -360,6 +360,7 @@ pub fn compile_files(
             param_names: Vec::new(),
             param_types: Vec::new(),
             body_meta: None,
+            trace: false,
         };
         let fn_obj_idx = program.add_object(Object::Function(Box::new(builtin_fn)));
         program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
@@ -420,6 +421,7 @@ pub fn compile_files(
                             param_names: Vec::new(),
                             param_types: Vec::new(),
                             body_meta: None,
+                            trace: false,
                         }
                     }
                     baml_compiler_hir::FunctionBody::Expr(_, _) => {
@@ -480,12 +482,13 @@ pub fn compile_files(
                 compiled_fn.param_names = meta_param_names;
                 compiled_fn.param_types = meta_param_types;
 
-                // If this is an LLM function, attach prompt/client metadata
+                // If this is an LLM function, attach prompt/client metadata and enable tracing
                 if let Some(llm_meta) = baml_compiler_hir::llm_function_meta(db, *func_loc) {
                     compiled_fn.body_meta = Some(bex_vm_types::FunctionMeta::Llm {
                         prompt_template: llm_meta.prompt.text.clone(),
                         client: llm_meta.client.to_string(),
                     });
+                    compiled_fn.trace = true;
                 }
 
                 // Validate types at emit time (safety net)

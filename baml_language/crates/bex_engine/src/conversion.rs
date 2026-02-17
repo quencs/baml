@@ -6,6 +6,7 @@
 
 use baml_type::Literal;
 use bex_external_types::{BexExternalAdt, BexExternalValue, EpochGuard, Ty, UnionMetadata};
+use bex_heap::BexValue;
 use bex_vm::BexVm;
 use bex_vm_types::{HeapPtr, Object, Value};
 
@@ -186,6 +187,8 @@ impl BexEngine {
             Object::PromptAst(ast) => Ok(BexExternalValue::Adt(BexExternalAdt::PromptAst(
                 ast.clone(),
             ))),
+            Object::Collector(c) => Ok(BexExternalValue::Adt(BexExternalAdt::Collector(c.clone()))),
+            Object::Type(ty) => Ok(BexExternalValue::Adt(BexExternalAdt::Type(ty.clone()))),
             #[cfg(feature = "heap_debug")]
             Object::Sentinel(_) => Err(EngineError::CannotSnapshot {
                 type_name: "sentinel".to_string(),
@@ -282,6 +285,8 @@ impl BexEngine {
             }
             BexExternalValue::Adt(BexExternalAdt::Media(media)) => vm.alloc_media(media),
             BexExternalValue::Adt(BexExternalAdt::PromptAst(ast)) => vm.alloc_prompt_ast(ast),
+            BexExternalValue::Adt(BexExternalAdt::Collector(c)) => vm.alloc_collector(c),
+            BexExternalValue::Adt(BexExternalAdt::Type(ty)) => vm.alloc_type(ty),
             BexExternalValue::FunctionRef { global_index } => {
                 let idx = bex_vm_types::GlobalIndex::from_raw(global_index);
                 assert!(
@@ -311,6 +316,32 @@ impl BexEngine {
                 let handle = self.heap.create_handle(*ptr);
                 BexExternalValue::Handle(handle)
             }
+        }
+    }
+
+    /// Convert a VM value to a fully owned `BexExternalValue` (deep copy).
+    ///
+    /// Unlike `vm_arg_to_bex_value` which creates `Handle` references for objects,
+    /// this method deep-copies heap objects into standalone values. Use this for
+    /// trace event payloads that escape the engine scope (e.g. event collectors).
+    pub(crate) fn vm_value_to_owned(&self, value: &Value) -> BexExternalValue {
+        match value {
+            Value::Null => BexExternalValue::Null,
+            Value::Int(i) => BexExternalValue::Int(*i),
+            Value::Float(f) => BexExternalValue::Float(*f),
+            Value::Bool(b) => BexExternalValue::Bool(*b),
+            Value::Object(ptr) => self
+                .heap
+                .with_gc_protection(|protected| {
+                    BexValue::HeapPtr(ptr).as_owned_but_very_slow(&protected)
+                })
+                .unwrap_or_else(|_| {
+                    #[allow(clippy::print_stderr)]
+                    {
+                        eprintln!("Failed to deep-copy VM value for trace payload");
+                    }
+                    BexExternalValue::Null
+                }),
         }
     }
 
@@ -398,6 +429,8 @@ fn value_matches_type(value: &BexExternalValue, ty: &Ty) -> bool {
         }
         (BexExternalValue::Adt(BexExternalAdt::Media(_)), Ty::Media(_)) => true,
         (BexExternalValue::Adt(BexExternalAdt::PromptAst(_)), Ty::PromptAst) => true,
+        (BexExternalValue::Adt(BexExternalAdt::Collector(_)), _) => false,
+        (BexExternalValue::Adt(BexExternalAdt::Type(_)), Ty::Type) => true,
         (BexExternalValue::Union { value, .. }, ty) => value_matches_type(value, ty),
         // Handle nested unions/optionals in the type
         (value, Ty::Union(members)) => members.iter().any(|m| value_matches_type(value, m)),
