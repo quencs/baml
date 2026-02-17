@@ -290,15 +290,15 @@ pub const BUILTIN_PATH_PREFIX: &str = "<builtin>/";
 /// # Examples
 ///
 /// ```ignore
-/// // Builtin file
+/// // Builtin file "<builtin>/baml/llm.baml"
 /// let ns = file_namespace(db, builtin_llm_file);
-/// assert_eq!(ns, Some(vec![Name::new("baml"), Name::new("llm")]));
+/// assert_eq!(ns, Some(Namespace::BamlStd { path: vec![Name::new("llm")] }));
 ///
 /// // User file
 /// let ns = file_namespace(db, user_file);
 /// assert_eq!(ns, None);
 /// ```
-pub fn file_namespace(db: &dyn Db, file: SourceFile) -> Option<Vec<Name>> {
+pub fn file_namespace(db: &dyn Db, file: SourceFile) -> Option<Namespace> {
     let path = file.path(db);
     let path_str = path.to_string_lossy();
 
@@ -314,9 +314,19 @@ pub fn file_namespace(db: &dyn Db, file: SourceFile) -> Option<Vec<Name>> {
     let segments: Vec<Name> = without_ext.split('/').map(Name::new).collect();
 
     if segments.is_empty() {
-        None
+        return None;
+    }
+
+    // Builtin files under "baml/" get BamlStd namespace with "baml" prefix stripped.
+    // E.g., ["baml", "llm"] -> BamlStd { path: ["llm"] }
+    if segments.first().is_some_and(|s| s.as_str() == "baml") {
+        Some(Namespace::BamlStd {
+            path: segments[1..].to_vec(),
+        })
     } else {
-        Some(segments)
+        Some(Namespace::UserModule {
+            module_path: segments,
+        })
     }
 }
 
@@ -341,27 +351,10 @@ pub fn function_qualified_name<'db>(db: &'db dyn Db, function: FunctionLoc<'db>)
     let file = function.file(db);
     let signature = function_signature(db, function);
 
-    match file_namespace(db, file) {
-        None => {
-            // Regular user file - local namespace
-            QualifiedName::local(signature.name.clone())
-        }
-        Some(namespace_segments) => {
-            // Builtin file - use BamlStd namespace
-            // namespace_segments is like ["baml", "llm"]
-            // We want BamlStd { path: ["llm"] } for "baml.llm.render_prompt"
-            if namespace_segments
-                .first()
-                .is_some_and(|s| s.as_str() == "baml")
-            {
-                // Strip the "baml" prefix - it's implicit in BamlStd
-                let path = namespace_segments[1..].to_vec();
-                QualifiedName::baml_std(path, signature.name.clone())
-            } else {
-                // Non-baml namespace (future use)
-                QualifiedName::user_module(namespace_segments, signature.name.clone())
-            }
-        }
+    let namespace = file_namespace(db, file).unwrap_or(Namespace::Local);
+    QualifiedName {
+        namespace,
+        name: signature.name.clone(),
     }
 }
 
@@ -375,19 +368,10 @@ pub fn class_qualified_name<'db>(db: &'db dyn Db, class: ClassLoc<'db>) -> Quali
     let item_tree = file_item_tree(db, file);
     let class_def = &item_tree[class.id(db)];
 
-    match file_namespace(db, file) {
-        None => QualifiedName::local(class_def.name.clone()),
-        Some(namespace_segments) => {
-            if namespace_segments
-                .first()
-                .is_some_and(|s| s.as_str() == "baml")
-            {
-                let path = namespace_segments[1..].to_vec();
-                QualifiedName::baml_std(path, class_def.name.clone())
-            } else {
-                QualifiedName::user_module(namespace_segments, class_def.name.clone())
-            }
-        }
+    let namespace = file_namespace(db, file).unwrap_or(Namespace::Local);
+    QualifiedName {
+        namespace,
+        name: class_def.name.clone(),
     }
 }
 
@@ -2270,20 +2254,12 @@ fn validate_test_functions(db: &dyn Db, root: baml_workspace::Project) -> Vec<Na
 /// targeting the same function are considered duplicates.
 fn validate_duplicate_names(db: &dyn Db, root: baml_workspace::Project) -> Vec<NameError> {
     fn item_name_key(db: &dyn Db, file: SourceFile, name: &Name) -> Name {
-        match file_namespace(db, file) {
-            None => name.clone(),
-            Some(namespace_segments) => {
-                if namespace_segments
-                    .first()
-                    .is_some_and(|s| s.as_str() == "baml")
-                {
-                    let path = namespace_segments[1..].to_vec();
-                    QualifiedName::baml_std(path, name.clone()).display_name()
-                } else {
-                    QualifiedName::user_module(namespace_segments, name.clone()).display_name()
-                }
-            }
+        let namespace = file_namespace(db, file).unwrap_or(Namespace::Local);
+        QualifiedName {
+            namespace,
+            name: name.clone(),
         }
+        .display_name()
     }
 
     let items = project_items(db, root);

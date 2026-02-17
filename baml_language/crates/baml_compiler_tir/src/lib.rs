@@ -44,7 +44,7 @@ mod resolve;
 mod types;
 
 // Re-export HIR types that are part of TIR's public API (used in Ty variants).
-pub use baml_compiler_hir::{Namespace, QualifiedName};
+pub use baml_base::{Namespace, QualifiedName};
 // Crate-internal imports (used within this file but not re-exported)
 use builtins::Bindings;
 pub use cycles::{validate_class_cycles, validate_type_alias_cycles};
