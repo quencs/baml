@@ -288,6 +288,7 @@ fn deep_copy_value_recursive(
                 Object::Resource(r) => vm.tlab.alloc(Object::Resource(r)),
                 Object::Future(f) => vm.tlab.alloc(Object::Future(f)),
                 Object::PromptAst(ast) => vm.tlab.alloc(Object::PromptAst(ast)),
+                Object::Collector(c) => vm.tlab.alloc(Object::Collector(c)),
                 #[cfg(feature = "heap_debug")]
                 Object::Sentinel(kind) => vm.tlab.alloc(Object::Sentinel(kind)),
             };
@@ -526,6 +527,7 @@ fn format_value_recursive(vm: &mut BexVm, value: &Value, depth: usize) -> Result
             Object::Resource(r) => Ok(format!("<{r}>")),
             Object::Future(_) => Ok("<future>".to_string()),
             Object::PromptAst(_) => Ok("<prompt_ast>".to_string()),
+            Object::Collector(_) => Ok("<collector>".to_string()),
             #[cfg(feature = "heap_debug")]
             Object::Sentinel(_) => Ok("<sentinel>".to_string()),
         },
@@ -574,6 +576,7 @@ pub fn attach_builtins(object: Object) -> Result<Object, VmError> {
                 param_names: function.param_names,
                 param_types: function.param_types,
                 body_meta: function.body_meta,
+                trace: function.trace,
             }))
         }
         // All other object types pass through unchanged

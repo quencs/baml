@@ -1678,6 +1678,9 @@ impl CompilerRunner {
                     "Function sent a watch notification (not supported in VM Runner)".to_string(),
                 ));
             }
+            Ok(VmExecState::SpanNotify(_)) => {
+                // Span notifications are ignored in the VM Runner — just continue.
+            }
             Err(e) => {
                 self.vm_runner_state.execution_result =
                     Some(VmExecutionResult::Error(format!("{:?}", e)));
@@ -2486,6 +2489,7 @@ fn format_vm_value(value: &bex_vm_types::Value, vm: &bex_vm::BexVm) -> String {
                 Object::Future(_) => "<future>".to_string(),
                 Object::Resource(r) => format!("<resource: {}>", r),
                 Object::PromptAst(_) => "<prompt_ast>".to_string(),
+                Object::Collector(_) => "<collector>".to_string(),
                 #[cfg(feature = "heap_debug")]
                 Object::Sentinel(_) => "<sentinel>".to_string(),
             }

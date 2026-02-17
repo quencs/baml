@@ -50,7 +50,9 @@ bex_external_types = { path = "crates/bex_external_types" }
 bex_heap = { path = "crates/bex_heap" }
 bridge_ctypes = { path = "crates/bridge_ctypes" }
 bridge_cffi = { path = "crates/bridge_cffi" }
+bridge_python = { path = "crates/bridge_python" }
 bridge_wasm = { path = "crates/bridge_wasm" }
+bex_events = { path = "crates/bex_events" }
 bex_resource_types = { path = "crates/bex_resource_types" }
 bex_factory = { path = "crates/bex_factory" }
 
@@ -147,6 +149,7 @@ tracing-subscriber = { version = "0.3.18", default-features = false, features = 
   "fmt",
 ] }
 url = "2.5.2"
+uuid = { version = "1", features = [ "v4" ] }
 walkdir = { version = "2.4" }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
@@ -154,6 +157,9 @@ wasm-bindgen-test = "0.3"
 js-sys = "0.3"
 webbrowser = "1.0.5"
 strum = { version = "0.26", features = [ "derive" ] }
+pyo3 = { version = "0.23.3", default-features = false }
+pyo3-async-runtimes = { version = "0.23" }
+pyo3-build-config = "0.23"
 wee_alloc = "0.4"
 wiremock = "0.6"
 [workspace.lints.rust]

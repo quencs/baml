@@ -149,6 +149,9 @@ impl Object {
             VmObject::PromptAst(_) => {
                 anyhow::bail!("Unsupported object type for testing: {obj:?}")
             }
+            VmObject::Collector(_) => {
+                anyhow::bail!("Unsupported object type for testing: {obj:?}")
+            }
             #[cfg(feature = "heap_debug")]
             VmObject::Sentinel(_) => anyhow::bail!("Unsupported object type for testing: {obj:?}"),
         }
@@ -290,6 +293,11 @@ impl ExecState {
             VmExecState::Complete(value) => {
                 Value::from_vm_value(&value, vm).map(ExecState::Complete)
             }
+            VmExecState::SpanNotify(_) => {
+                // Span notifications: treated as empty emit in test context.
+                // The test runner will call exec() again to continue.
+                Ok(ExecState::Emit(vec![]))
+            }
             VmExecState::Notify(notification) => match notification {
                 VmWatchNotification::Variables(nodes) => {
                     let notifications = nodes
@@ -348,6 +356,7 @@ pub enum Instruction {
     Unwatch(usize),
     Notify(usize),
     Call(usize),
+
     Return,
     Assert,
     NotifyBlock(usize),

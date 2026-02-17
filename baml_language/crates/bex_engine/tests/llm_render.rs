@@ -236,7 +236,7 @@ function test_render() -> int {
     let engine =
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
-    let result = engine.call_function("test_render", vec![]).await;
+    let result = engine.call_function("test_render", vec![], None, &[]).await;
 
     match result {
         Ok(value) => {
@@ -284,7 +284,7 @@ function get_prompt() -> PromptAst {
     let engine =
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
-    let result = engine.call_function("get_prompt", vec![]).await;
+    let result = engine.call_function("get_prompt", vec![], None, &[]).await;
 
     match result {
         Ok(value) => {
@@ -348,7 +348,9 @@ function test_build_request() -> int {
     let engine =
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
-    let result = engine.call_function("test_build_request", vec![]).await;
+    let result = engine
+        .call_function("test_build_request", vec![], None, &[])
+        .await;
     assert!(result.is_ok(), "build_request should succeed: {result:?}");
 }
 
@@ -384,7 +386,9 @@ function test_call_llm() -> unknown {
 
     // build_request now succeeds; this should panic at the next unimplemented
     // step: "LlmParseResponse SysOp not yet implemented"
-    let result = engine.call_function("test_call_llm", vec![]).await;
+    let result = engine
+        .call_function("test_call_llm", vec![], None, &[])
+        .await;
 
     match result {
         Ok(value) => {
@@ -448,7 +452,9 @@ function test_call_llm() -> string {
 
     // build_request now succeeds; this should panic at the next unimplemented
     // step: "LlmParseResponse SysOp not yet implemented"
-    let result = engine.call_function("test_call_llm", vec![]).await;
+    let result = engine
+        .call_function("test_call_llm", vec![], None, &[])
+        .await;
 
     match result {
         Ok(value) => {
@@ -513,7 +519,9 @@ function test_call_llm() -> unknown {
 
     // build_request now succeeds; this should panic at the next unimplemented
     // step: "LlmParseResponse SysOp not yet implemented"
-    let result = engine.call_function("test_call_llm", vec![]).await;
+    let result = engine
+        .call_function("test_call_llm", vec![], None, &[])
+        .await;
 
     match result {
         Ok(value) => {
@@ -591,7 +599,7 @@ function get_prompt() -> PromptAst {
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![])
+        .call_function("get_prompt", vec![], None, &[])
         .await
         .expect("failed to render prompt that calls template_string Greet(name)");
     assert_eq!(result, prompt_ast_string("Hello, Alice!"));
@@ -630,7 +638,7 @@ function get_prompt() -> PromptAst {
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![])
+        .call_function("get_prompt", vec![], None, &[])
         .await
         .expect("failed to render prompt with nested template_strings Outer() -> Inner()");
     assert_eq!(result, prompt_ast_string("before INNER after"));
@@ -675,7 +683,7 @@ function get_prompt() -> PromptAst {
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![])
+        .call_function("get_prompt", vec![], None, &[])
         .await
         .expect("failed to render prompt with 2-arg template_string Describe(label, person)");
     assert_eq!(result, prompt_ast_string("User: Bob (age 42)"));
@@ -714,7 +722,7 @@ function get_prompt() -> PromptAst {
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![])
+        .call_function("get_prompt", vec![], None, &[])
         .await
         .expect("failed to render prompt that calls parameterless template_string Header()");
     assert_eq!(result, prompt_ast_string("=== HEADER ===\nContent here"));

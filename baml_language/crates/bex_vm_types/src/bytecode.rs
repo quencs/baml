@@ -525,6 +525,7 @@ impl std::fmt::Display for Instruction {
             Instruction::DispatchFuture(i) => write!(f, "DISPATCH_FUTURE {i}"),
             Instruction::Await => f.write_str("AWAIT"),
             Instruction::Call(n) => write!(f, "CALL {n}"),
+
             Instruction::Return => f.write_str("RETURN"),
             Instruction::Assert => f.write_str("ASSERT"),
             Instruction::AllocMap(n) => write!(f, "ALLOC_MAP {n}"),
