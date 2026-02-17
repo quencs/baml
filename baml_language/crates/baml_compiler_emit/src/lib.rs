@@ -210,7 +210,10 @@ pub fn compile_files(
         for item in items_struct.items(db) {
             if let ItemId::Class(class_loc) = item {
                 let class = &item_tree[class_loc.id(db)];
-                let class_name = class.name.to_string();
+                // Use FQN for builtin-file classes (e.g., "baml.llm.OrchestrationStep"),
+                // short name for user classes (e.g., "MyClass").
+                let fqn = baml_compiler_hir::class_qualified_name(db, *class_loc);
+                let class_name = fqn.display();
 
                 let mut field_indices = HashMap::new();
                 let mut field_types = HashMap::new();
@@ -257,17 +260,8 @@ pub fn compile_files(
                 let class_obj_idx = program.add_object(class_obj);
                 class_object_indices.insert(class_name.clone(), class_obj_idx);
 
-                // If this class has a prelude entry (e.g., "OrchestrationStep" →
-                // "baml.llm.OrchestrationStep"), also insert under the FQN so that
-                // MIR field lookups (which use the FQN from QualifiedName) can find it.
-                if let Some(fqn) = baml_builtins::lookup_prelude(&class_name) {
-                    classes.insert(fqn.to_string(), field_indices.clone());
-                    class_object_indices.insert(fqn.to_string(), class_obj_idx);
-                    class_type_tags.insert(fqn.to_string(), type_tag);
-                }
-
-                classes.insert(class_name, field_indices);
-                class_field_types.insert(class.name.clone(), field_types);
+                classes.insert(class_name.clone(), field_indices);
+                class_field_types.insert(Name::new(&class_name), field_types);
             }
         }
     }
@@ -342,15 +336,16 @@ pub fn compile_files(
         });
         let enum_obj_idx = program.add_object(enum_obj);
         enum_object_indices.insert(builtin_enum.path.to_string(), enum_obj_idx);
-        // Key by simple name (e.g., "ClientType") to match pattern enum_name in MIR.
-        // Patterns store simple names, so the lookup in switch optimization must match.
-        let simple_name = builtin_enum
-            .path
-            .rsplit('.')
-            .next()
-            .unwrap_or(builtin_enum.path)
-            .to_string();
-        enum_variants.insert(simple_name, variant_indices);
+        // Use FQN as key (e.g., "baml.llm.ClientType") — matches the FQN in enum_names.
+        enum_variants.insert(builtin_enum.path.to_string(), variant_indices);
+
+        // Also add to enum_variant_names for type inference (keyed by FQN)
+        let variant_name_list: Vec<Name> = builtin_enum
+            .variants
+            .iter()
+            .map(|v| Name::new(*v))
+            .collect();
+        enum_variant_names.insert(Name::new(builtin_enum.path), variant_name_list);
     }
 
     // Add builtin functions to globals FIRST (stable indices)

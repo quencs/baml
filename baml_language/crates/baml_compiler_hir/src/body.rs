@@ -783,12 +783,14 @@ struct LoweringContext {
 /// Helper enum for building pattern elements during lowering.
 /// Used to track partial state while scanning tokens in a pattern.
 enum PatternElement {
-    /// Simple identifier (could become binding or enum start)
-    /// Stores (name, `start_position`) for span tracking
-    Ident(Name, TextSize),
-    /// Seen `EnumName.` - waiting for variant name
-    /// Stores (`enum_name`, `start_position`) for span tracking
-    EnumStart(Name, TextSize),
+    /// Accumulated dotted path segments (e.g., `["baml", "llm", "ClientType"]`).
+    /// Single segment = plain identifier. Finalized as:
+    /// - 1 segment → `Binding(name)`
+    /// - 2+ segments → `EnumVariant { enum_name: join(all_but_last, "."), variant: last }`
+    Segments(Vec<Name>, TextSize),
+    /// After seeing DOT: waiting for next word to add to the path.
+    /// Stores accumulated segments so far and start position.
+    SegmentsAwaitingWord(Vec<Name>, TextSize),
     /// Seen `name:` - waiting for type expression
     /// Stores (name, `start_position`) for span tracking
     TypedBindingStart(Name, TextSize),
@@ -1694,18 +1696,13 @@ impl LoweringContext {
                         SyntaxKind::WORD => {
                             let text = token.text().to_string();
 
-                            // First, check if we're completing an enum variant
-                            if let Some(PatternElement::EnumStart(enum_name, start)) =
+                            // Check if we're continuing a dotted path (e.g., after "Enum.")
+                            if let Some(PatternElement::SegmentsAwaitingWord(mut segs, start)) =
                                 current_element.take()
                             {
-                                // Complete the enum variant: EnumName.Variant
-                                let variant = Name::new(&text);
-                                // Compute span from enum name start to variant end
-                                let range = TextRange::new(start, token.text_range().end());
-                                elements.push(self.alloc_pattern(
-                                    Pattern::EnumVariant { enum_name, variant },
-                                    range,
-                                ));
+                                // Add this word to the accumulated path
+                                segs.push(Name::new(&text));
+                                current_element = Some(PatternElement::Segments(segs, start));
                                 continue;
                             }
 
@@ -1738,29 +1735,41 @@ impl LoweringContext {
                                     if let Some(el) = current_element.take() {
                                         elements.push(self.finalize_pattern_element(el));
                                     }
-                                    // Regular identifier - could be binding or start of enum variant
-                                    // Track the start position for span tracking
-                                    current_element = Some(PatternElement::Ident(
-                                        Name::new(&text),
+                                    // Start a new path segment
+                                    current_element = Some(PatternElement::Segments(
+                                        vec![Name::new(&text)],
                                         token.text_range().start(),
                                     ));
                                 }
                             }
                         }
                         SyntaxKind::DOT => {
-                            // Transition: Ident.Variant (enum variant pattern)
-                            if let Some(PatternElement::Ident(enum_name, start)) =
+                            // Transition: path segments awaiting next word
+                            if let Some(PatternElement::Segments(segs, start)) =
                                 current_element.take()
                             {
-                                current_element = Some(PatternElement::EnumStart(enum_name, start));
+                                current_element =
+                                    Some(PatternElement::SegmentsAwaitingWord(segs, start));
                             }
                         }
                         SyntaxKind::COLON => {
                             // Transition: ident: Type (typed binding pattern)
-                            if let Some(PatternElement::Ident(name, start)) = current_element.take()
+                            // Only valid for single-segment identifiers
+                            if let Some(PatternElement::Segments(segs, start)) =
+                                current_element.take()
                             {
-                                current_element =
-                                    Some(PatternElement::TypedBindingStart(name, start));
+                                if segs.len() == 1 {
+                                    current_element = Some(PatternElement::TypedBindingStart(
+                                        segs.into_iter().next().unwrap(),
+                                        start,
+                                    ));
+                                } else {
+                                    // Multi-segment path followed by colon — not valid,
+                                    // finalize as enum variant and ignore colon
+                                    elements.push(self.finalize_pattern_element(
+                                        PatternElement::Segments(segs, start),
+                                    ));
+                                }
                             }
                         }
                         SyntaxKind::MINUS => {
@@ -1907,10 +1916,30 @@ impl LoweringContext {
     /// Finalize a partially-built pattern element.
     fn finalize_pattern_element(&mut self, element: PatternElement) -> PatId {
         match element {
-            PatternElement::Ident(name, _start) => self.patterns.alloc(Pattern::Binding(name)),
-            PatternElement::EnumStart(enum_name, _start) => {
-                // Incomplete enum variant (missing variant name) - treat as binding
-                self.patterns.alloc(Pattern::Binding(enum_name))
+            PatternElement::Segments(segs, _start) => {
+                if segs.len() == 1 {
+                    // Single segment → binding
+                    self.patterns
+                        .alloc(Pattern::Binding(segs.into_iter().next().unwrap()))
+                } else {
+                    // Multi-segment → enum variant (all-but-last = enum name, last = variant)
+                    let enum_name = Name::new(
+                        segs[..segs.len() - 1]
+                            .iter()
+                            .map(Name::as_str)
+                            .collect::<Vec<_>>()
+                            .join("."),
+                    );
+                    let variant = segs.into_iter().last().unwrap();
+                    self.patterns
+                        .alloc(Pattern::EnumVariant { enum_name, variant })
+                }
+            }
+            PatternElement::SegmentsAwaitingWord(segs, _start) => {
+                // Incomplete dotted path (e.g., "Foo.") — treat last segment as binding
+                // This is a parse error, but we handle it gracefully
+                let last = segs.into_iter().last().unwrap_or_else(|| Name::new("_"));
+                self.patterns.alloc(Pattern::Binding(last))
             }
             PatternElement::TypedBindingStart(name, _start) => {
                 // Incomplete typed binding (missing type) - treat as simple binding
@@ -2316,12 +2345,29 @@ impl LoweringContext {
     fn lower_object_literal(&mut self, node: &baml_compiler_syntax::SyntaxNode) -> ExprId {
         use baml_compiler_syntax::SyntaxKind;
 
-        // Extract type name if present (before the brace)
+        // Extract type name if present (before the brace).
+        // Can be a simple WORD token (e.g., `MyClass { ... }`) or a PATH_EXPR
+        // node for dotted paths (e.g., `baml.llm.OrchestrationStep { ... }`).
         let type_name = node
-            .children_with_tokens()
-            .filter_map(baml_compiler_syntax::NodeOrToken::into_token)
-            .find(|token| token.kind() == SyntaxKind::WORD)
-            .map(|token| Name::new(token.text()));
+            .children()
+            .find(|child| child.kind() == SyntaxKind::PATH_EXPR)
+            .map(|path_node| {
+                // Join all WORD tokens with dots to reconstruct the FQN
+                let segments: Vec<String> = path_node
+                    .children_with_tokens()
+                    .filter_map(baml_compiler_syntax::NodeOrToken::into_token)
+                    .filter(|token| token.kind() == SyntaxKind::WORD)
+                    .map(|token| token.text().to_string())
+                    .collect();
+                Name::new(segments.join("."))
+            })
+            .or_else(|| {
+                // Fallback: bare WORD token (simple class name without dots)
+                node.children_with_tokens()
+                    .filter_map(baml_compiler_syntax::NodeOrToken::into_token)
+                    .find(|token| token.kind() == SyntaxKind::WORD)
+                    .map(|token| Name::new(token.text()))
+            });
 
         // Track position for override semantics
         let mut position = 0;

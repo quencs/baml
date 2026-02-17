@@ -98,27 +98,23 @@ impl<'a> TypeLoweringContextResolved<'a> {
     fn resolve_name(&self, name: &Name) -> Option<Ty> {
         use baml_compiler_hir::QualifiedName;
 
-        // First check user-defined types (they shadow prelude)
         if self.class_names.contains(name) {
-            // Builtin types (e.g., "baml.http.Request") need Builtin namespace
-            // so they match structurally with types returned by builtin method calls.
-            if baml_builtins::find_builtin_type(name.as_str()).is_some() {
-                return Some(Ty::Class(QualifiedName::from_builtin_path(name.as_str())));
-            }
-            // BAML-file builtin classes (e.g., "OrchestrationStep") need their
-            // qualified path from the prelude so field lookup keys match.
-            if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
-                return Some(Ty::Class(QualifiedName::from_builtin_path(qualified_path)));
-            }
-            return Some(Ty::Class(QualifiedName::local(name.clone())));
+            // Names with dots are qualified builtin paths (e.g., "baml.llm.OrchestrationStep").
+            // Names without dots are local user-defined types.
+            let qn = if name.as_str().contains('.') {
+                QualifiedName::from_builtin_path(name.as_str())
+            } else {
+                QualifiedName::local(name.clone())
+            };
+            return Some(Ty::Class(qn));
         }
         if self.enum_names.contains(name) {
-            return Some(Ty::Enum(QualifiedName::local(name.clone())));
-        }
-
-        // Check prelude for builtin types (e.g., "PrimitiveClient" → "baml.llm.PrimitiveClient")
-        if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
-            return Some(Ty::Class(QualifiedName::from_builtin_path(qualified_path)));
+            let qn = if name.as_str().contains('.') {
+                QualifiedName::from_builtin_path(name.as_str())
+            } else {
+                QualifiedName::local(name.clone())
+            };
+            return Some(Ty::Enum(qn));
         }
 
         None

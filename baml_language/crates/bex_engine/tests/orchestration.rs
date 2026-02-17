@@ -34,9 +34,9 @@ fn extract_steps(result: &BexExternalValue) -> Vec<(&str, i64)> {
             let BexExternalValue::Instance { class_name, fields } = step else {
                 panic!("expected OrchestrationStep Instance, got {step:?}");
             };
-            assert!(
-                class_name == "OrchestrationStep" || class_name == "baml.llm.OrchestrationStep",
-                "expected OrchestrationStep, got {class_name}"
+            assert_eq!(
+                class_name, "baml.llm.OrchestrationStep",
+                "expected baml.llm.OrchestrationStep, got {class_name}"
             );
 
             let delay = match fields.get("delay_ms") {
@@ -49,9 +49,9 @@ fn extract_steps(result: &BexExternalValue) -> Vec<(&str, i64)> {
                     class_name: pc_class,
                     fields: pc_fields,
                 }) => {
-                    assert!(
-                        pc_class == "PrimitiveClient" || pc_class == "baml.llm.PrimitiveClient",
-                        "expected PrimitiveClient, got {pc_class}"
+                    assert_eq!(
+                        pc_class, "baml.llm.PrimitiveClient",
+                        "expected baml.llm.PrimitiveClient, got {pc_class}"
                     );
                     match pc_fields.get("name") {
                         Some(BexExternalValue::String(s)) => s.as_str(),
@@ -84,7 +84,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -118,7 +118,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -157,7 +157,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -192,7 +192,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -232,7 +232,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -276,7 +276,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -316,7 +316,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -352,7 +352,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -396,7 +396,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -438,7 +438,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -486,7 +486,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -532,7 +532,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -571,7 +571,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }
@@ -600,7 +600,7 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> OrchestrationStep[] {
+function check_plan() -> baml.llm.OrchestrationStep[] {
     let c = baml.llm.get_client("F");
     baml.llm.build_plan(c)
 }

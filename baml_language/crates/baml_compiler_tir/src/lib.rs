@@ -244,19 +244,14 @@ pub fn enum_variants(db: &dyn Db, project: Project) -> EnumVariantsMap<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let mut enums = HashMap::new();
 
-    // Add builtin enum variants (keyed by short name)
+    // Add builtin enum variants (keyed by FQN)
     for builtin_enum in baml_builtins::builtin_enums() {
-        let short_name = builtin_enum
-            .path
-            .rsplit('.')
-            .next()
-            .unwrap_or(builtin_enum.path);
         let variants: Vec<Name> = builtin_enum
             .variants
             .iter()
             .map(|v| Name::new(*v))
             .collect();
-        enums.insert(Name::new(short_name), variants);
+        enums.insert(Name::new(builtin_enum.path), variants);
     }
 
     // Add user-defined enum variants
@@ -466,13 +461,11 @@ pub fn class_names(db: &dyn Db, project: Project) -> ClassNamesSet<'_> {
         names.insert(Name::new(builtin.path));
     }
 
-    // Add user-defined class names
+    // Add user-defined class names (using FQN for builtin-file classes)
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Class(class_loc) = item {
-            let file = class_loc.file(db);
-            let item_tree = baml_compiler_hir::file_item_tree(db, file);
-            let class_data = &item_tree[class_loc.id(db)];
-            names.insert(class_data.name.clone());
+            let fqn = baml_compiler_hir::class_qualified_name(db, *class_loc);
+            names.insert(fqn.display_name());
         }
     }
 
@@ -485,14 +478,9 @@ pub fn enum_names(db: &dyn Db, project: Project) -> EnumNamesSet<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let mut names = HashSet::new();
 
-    // Add builtin enum names (short names, e.g. "ClientType")
+    // Add builtin enum names (FQN, e.g. "baml.llm.ClientType")
     for builtin_enum in baml_builtins::builtin_enums() {
-        let short_name = builtin_enum
-            .path
-            .rsplit('.')
-            .next()
-            .unwrap_or(builtin_enum.path);
-        names.insert(Name::new(short_name));
+        names.insert(Name::new(builtin_enum.path));
     }
 
     // Add user-defined enum names
@@ -876,24 +864,25 @@ impl<'db> TypeContext<'db> {
     ///
     /// This resolves class and enum names to `Ty::Class` and `Ty::Enum` with FQNs,
     /// while type aliases and unknown types stay as `Ty::TypeAlias`.
+    ///
+    /// Names containing dots (e.g., "baml.llm.OrchestrationStep") are treated as
+    /// qualified builtin paths. Names without dots are local user-defined types.
     pub fn resolve_named_type(&self, name: &Name) -> Ty {
         use baml_compiler_hir::QualifiedName;
         if self.class_names.contains(name) {
-            // BAML-file builtin classes (e.g., "OrchestrationStep") need their
-            // qualified path from the prelude so field lookup keys match.
-            if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
-                Ty::Class(QualifiedName::from_builtin_path(qualified_path))
+            let qn = if name.as_str().contains('.') {
+                QualifiedName::from_builtin_path(name.as_str())
             } else {
-                Ty::Class(QualifiedName::local(name.clone()))
-            }
+                QualifiedName::local(name.clone())
+            };
+            Ty::Class(qn)
         } else if self.enum_names.contains(name) {
-            // Builtin enums (e.g., "ClientType") need their qualified path
-            // from the prelude so variant lookup keys match.
-            if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
-                Ty::Enum(QualifiedName::from_builtin_path(qualified_path))
+            let qn = if name.as_str().contains('.') {
+                QualifiedName::from_builtin_path(name.as_str())
             } else {
-                Ty::Enum(QualifiedName::local(name.clone()))
-            }
+                QualifiedName::local(name.clone())
+            };
+            Ty::Enum(qn)
         } else {
             // Type alias or unknown type - stays as TypeAlias, will be resolved during normalization
             Ty::TypeAlias(QualifiedName::local(name.clone()))
@@ -1922,15 +1911,26 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     return func_ty;
                 }
 
-                // Check if this is an enum variant (e.g., Status.Active)
-                if segments.len() == 2 {
-                    let enum_name = &segments[0];
-                    let variant_name = &segments[1];
+                // Check if this is an enum variant (e.g., Status.Active or baml.llm.ClientType.Primitive)
+                // The last segment is the variant name, everything before it is the enum name.
+                if segments.len() >= 2 {
+                    let variant_name = segments.last().unwrap();
+                    let enum_name = Name::new(
+                        segments[..segments.len() - 1]
+                            .iter()
+                            .map(smol_str::SmolStr::as_str)
+                            .collect::<Vec<_>>()
+                            .join("."),
+                    );
 
-                    if let Some(variants) = ctx.lookup_enum_variants(enum_name) {
+                    if let Some(variants) = ctx.lookup_enum_variants(&enum_name) {
                         if variants.contains(variant_name) {
                             use baml_compiler_hir::QualifiedName;
-                            let enum_fqn = QualifiedName::local(enum_name.clone());
+                            let enum_fqn = if enum_name.as_str().contains('.') {
+                                QualifiedName::from_builtin_path(enum_name.as_str())
+                            } else {
+                                QualifiedName::local(enum_name.clone())
+                            };
 
                             // Store resolution for enum variant
                             ctx.set_expr_resolution(

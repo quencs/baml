@@ -2467,12 +2467,16 @@ impl<'a> Parser<'a> {
                 self.bump(); // First identifier
 
                 if self.at(TokenKind::Dot) {
-                    // Enum variant pattern: Ident.Ident
-                    self.bump(); // .
-                    if self.at(TokenKind::Word) {
-                        self.bump(); // variant name
-                    } else {
-                        self.error_unexpected_token("enum variant name after '.'".to_string());
+                    // Dotted path pattern: Ident.Ident or Ident.Ident.Ident...
+                    // (e.g., Status.Active or baml.llm.ClientType.Primitive)
+                    while self.at(TokenKind::Dot) {
+                        self.bump(); // .
+                        if self.at(TokenKind::Word) {
+                            self.bump(); // next segment
+                        } else {
+                            self.error_unexpected_token("identifier after '.'".to_string());
+                            break;
+                        }
                     }
                 } else if self.at(TokenKind::Colon) {
                     // Typed binding pattern: ident: Type

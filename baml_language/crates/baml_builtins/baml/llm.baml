@@ -8,25 +8,25 @@
 /// A single step in the orchestration plan.
 /// Each step represents one LLM call attempt with a specific client and delay.
 class OrchestrationStep {
-    primitive_client PrimitiveClient
+    primitive_client baml.llm.PrimitiveClient
     delay_ms int
 }
 
 /// Build an orchestration plan from a Client tree.
 ///
 /// Recursively expands composite clients (fallback, round-robin) into a flat
-/// list of OrchestrationSteps, wrapping with retry delays as configured.
-function build_plan(c: Client) -> OrchestrationStep[] {
+/// list of baml.llm.OrchestrationSteps, wrapping with retry delays as configured.
+function build_plan(c: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
     let retry = c.retry;
 
     let inner = match (c.client_type) {
-        ClientType.Primitive => {
+        baml.llm.ClientType.Primitive => {
             let resolve_fn = baml.llm.resolve_client(c.name);
             let primitive = resolve_fn();
-            [OrchestrationStep { primitive_client: primitive, delay_ms: 0 }]
+            [baml.llm.OrchestrationStep { primitive_client: primitive, delay_ms: 0 }]
         }
-        ClientType.Fallback => {
-            let steps: OrchestrationStep[] = [];
+        baml.llm.ClientType.Fallback => {
+            let steps: baml.llm.OrchestrationStep[] = [];
             for (let sub in c.sub_clients) {
                 for (let step in baml.llm.build_plan(sub)) {
                     steps.push(step);
@@ -34,7 +34,7 @@ function build_plan(c: Client) -> OrchestrationStep[] {
             }
             steps
         }
-        ClientType.RoundRobin => {
+        baml.llm.ClientType.RoundRobin => {
             let idx = baml.llm.round_robin_next(c.name) % c.sub_clients.length();
             baml.llm.build_plan(c.sub_clients.at(idx))
         }
@@ -47,11 +47,11 @@ function build_plan(c: Client) -> OrchestrationStep[] {
 ///
 /// Duplicates the inner steps for each retry attempt, adding exponential
 /// backoff delays between attempts.
-function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> OrchestrationStep[] {
+function wrap_with_retry(inner: baml.llm.OrchestrationStep[], retry: baml.llm.RetryPolicy?) -> baml.llm.OrchestrationStep[] {
     match (retry) {
         null => inner,
-        r: RetryPolicy => {
-            let result: OrchestrationStep[] = [];
+        r: baml.llm.RetryPolicy => {
+            let result: baml.llm.OrchestrationStep[] = [];
             let current_delay = r.initial_delay_ms + 0.0;
 
             for (let attempt = 0; attempt <= r.max_retries; attempt += 1) {
@@ -67,7 +67,7 @@ function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> Orc
                 }
 
                 for (let step in inner) {
-                    result.push(OrchestrationStep {
+                    result.push(baml.llm.OrchestrationStep {
                         primitive_client: step.primitive_client,
                         delay_ms: delay,
                     });
