@@ -18,6 +18,54 @@ async fn run(source: &str, entry: &str) -> Result<BexExternalValue, bex_engine::
     engine.call_function(entry, vec![]).await
 }
 
+/// Extract `(client_name, delay_ms)` tuples from a plan result.
+///
+/// Validates that the result is an array of `OrchestrationStep` instances,
+/// each containing a `PrimitiveClient` instance with a `name` field and
+/// an integer `delay_ms` field.
+fn extract_steps(result: &BexExternalValue) -> Vec<(&str, i64)> {
+    let BexExternalValue::Array { items, .. } = result else {
+        panic!("expected Array, got {result:?}");
+    };
+
+    items
+        .iter()
+        .map(|step| {
+            let BexExternalValue::Instance { class_name, fields } = step else {
+                panic!("expected OrchestrationStep Instance, got {step:?}");
+            };
+            assert!(
+                class_name == "OrchestrationStep" || class_name == "baml.llm.OrchestrationStep",
+                "expected OrchestrationStep, got {class_name}"
+            );
+
+            let delay = match fields.get("delay_ms") {
+                Some(BexExternalValue::Int(d)) => *d,
+                other => panic!("expected Int for delay_ms, got {other:?}"),
+            };
+
+            let client_name = match fields.get("primitive_client") {
+                Some(BexExternalValue::Instance {
+                    class_name: pc_class,
+                    fields: pc_fields,
+                }) => {
+                    assert!(
+                        pc_class == "PrimitiveClient" || pc_class == "baml.llm.PrimitiveClient",
+                        "expected PrimitiveClient, got {pc_class}"
+                    );
+                    match pc_fields.get("name") {
+                        Some(BexExternalValue::String(s)) => s.as_str(),
+                        other => panic!("expected String for primitive_client.name, got {other:?}"),
+                    }
+                }
+                other => panic!("expected PrimitiveClient Instance, got {other:?}"),
+            };
+
+            (client_name, delay)
+        })
+        .collect()
+}
+
 // ============================================================================
 // build_plan: plan shape (number of steps)
 // ============================================================================
@@ -36,15 +84,14 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(result, BexExternalValue::Int(1));
+    assert_eq!(extract_steps(&result), vec![("A", 0)]);
 }
 
 /// A fallback client with two sub-clients produces two steps.
@@ -71,15 +118,14 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(result, BexExternalValue::Int(2));
+    assert_eq!(extract_steps(&result), vec![("A", 0), ("B", 0)]);
 }
 
 /// A fallback client with three sub-clients produces three steps.
@@ -111,15 +157,14 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(result, BexExternalValue::Int(3));
+    assert_eq!(extract_steps(&result), vec![("A", 0), ("B", 0), ("C", 0)]);
 }
 
 /// A round-robin client with two sub-clients produces a single step
@@ -147,15 +192,18 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(result, BexExternalValue::Int(1));
+    let steps = extract_steps(&result);
+    // Round-robin picks one sub-client; first call picks A (index 0 % 2 = 0)
+    assert_eq!(steps.len(), 1);
+    assert_eq!(steps[0].1, 0); // delay is 0
+    assert!(steps[0].0 == "A" || steps[0].0 == "B");
 }
 
 // ============================================================================
@@ -184,15 +232,17 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(result, BexExternalValue::Int(3));
+    assert_eq!(
+        extract_steps(&result),
+        vec![("A", 0), ("A", 100), ("A", 200)]
+    );
 }
 
 /// A fallback[A, B] with retry(max=1) produces 4 steps:
@@ -226,16 +276,18 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    // 2 sub-clients × (1 original + 1 retry) = 4 steps
-    assert_eq!(result, BexExternalValue::Int(4));
+    // 2 sub-clients x (1 original + 1 retry) = 4 steps
+    assert_eq!(
+        extract_steps(&result),
+        vec![("A", 0), ("B", 0), ("A", 200), ("B", 200)]
+    );
 }
 
 // ============================================================================
@@ -264,31 +316,17 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-// Return array of delay_ms values for each step in the plan
-function check_plan() -> int[] {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let delays: int[] = [];
-    for (let step in plan) {
-        delays.push(step.delay_ms);
-    }
-    delays
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
     // 4 steps: original(0) + retry1(100) + retry2(200) + retry3(400)
     assert_eq!(
-        result,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::Int,
-            items: vec![
-                BexExternalValue::Int(0),
-                BexExternalValue::Int(100),
-                BexExternalValue::Int(200),
-                BexExternalValue::Int(400),
-            ],
-        }
+        extract_steps(&result),
+        vec![("A", 0), ("A", 100), ("A", 200), ("A", 400)]
     );
 }
 
@@ -314,31 +352,17 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int[] {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let delays: int[] = [];
-    for (let step in plan) {
-        delays.push(step.delay_ms);
-    }
-    delays
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
     // 5 steps: 0, 100, 300, 500(capped), 500(capped)
     assert_eq!(
-        result,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::Int,
-            items: vec![
-                BexExternalValue::Int(0),
-                BexExternalValue::Int(100),
-                BexExternalValue::Int(300),
-                BexExternalValue::Int(500),
-                BexExternalValue::Int(500),
-            ],
-        }
+        extract_steps(&result),
+        vec![("A", 0), ("A", 100), ("A", 300), ("A", 500), ("A", 500)]
     );
 }
 
@@ -372,30 +396,17 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int[] {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let delays: int[] = [];
-    for (let step in plan) {
-        delays.push(step.delay_ms);
-    }
-    delays
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
     // attempt 0: [A(0), B(0)], attempt 1: [A(200), B(200)]
     assert_eq!(
-        result,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::Int,
-            items: vec![
-                BexExternalValue::Int(0),
-                BexExternalValue::Int(0),
-                BexExternalValue::Int(200),
-                BexExternalValue::Int(200),
-            ],
-        }
+        extract_steps(&result),
+        vec![("A", 0), ("B", 0), ("A", 200), ("B", 200)]
     );
 }
 
@@ -427,25 +438,14 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int[] {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let delays: int[] = [];
-    for (let step in plan) {
-        delays.push(step.delay_ms);
-    }
-    delays
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(
-        result,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::Int,
-            items: vec![BexExternalValue::Int(0), BexExternalValue::Int(0),],
-        }
-    );
+    assert_eq!(extract_steps(&result), vec![("A", 0), ("B", 0)]);
 }
 
 // ============================================================================
@@ -486,20 +486,23 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
+    let steps = extract_steps(&result);
     // RR picks 1 sub-client, then C = 2 steps total
-    assert_eq!(result, BexExternalValue::Int(2));
+    assert_eq!(steps.len(), 2);
+    assert!(steps[0].0 == "A" || steps[0].0 == "B");
+    assert_eq!(steps[0].1, 0);
+    assert_eq!(steps[1], ("C", 0));
 }
 
 /// Nested retry: inner client has retry, outer fallback does not.
-/// Fallback[A(retry=1), B] = A, A(retry), B = 3 steps.
+/// `Fallback[A(retry=1), B]` = A, A(retry), B = 3 steps.
 #[tokio::test]
 async fn plan_nested_inner_retry() {
     let source = r##"
@@ -529,57 +532,22 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_len() -> int {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    plan.length()
-}
-
-function check_delays() -> int[] {
-    let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let delays: int[] = [];
-    for (let step in plan) {
-        delays.push(step.delay_ms);
-    }
-    delays
+    baml.llm.build_plan(c)
 }
 "##;
 
-    let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
-
+    let result = run(source, "check_plan").await.expect("test failed");
     // A(original) + A(retry) + B = 3 steps
-    let len = engine
-        .call_function("check_len", vec![])
-        .await
-        .expect("test_len failed");
-    assert_eq!(len, BexExternalValue::Int(3));
-
-    // Delays: A(0), A(50), B(0)
-    let delays = engine
-        .call_function("check_delays", vec![])
-        .await
-        .expect("test_delays failed");
-    assert_eq!(
-        delays,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::Int,
-            items: vec![
-                BexExternalValue::Int(0),
-                BexExternalValue::Int(50),
-                BexExternalValue::Int(0),
-            ],
-        }
-    );
+    assert_eq!(extract_steps(&result), vec![("A", 0), ("A", 50), ("B", 0)]);
 }
 
 // ============================================================================
 // build_plan: client names in steps
 // ============================================================================
 
-/// Verify that the correct primitive clients appear in the plan.
+/// Verify that the correct primitive clients appear in a fallback plan.
 #[tokio::test]
 async fn plan_step_client_names() {
     let source = r##"
@@ -603,28 +571,14 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> string[] {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let names: string[] = [];
-    for (let step in plan) {
-        names.push(step.primitive_client.name);
-    }
-    names
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(
-        result,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::String,
-            items: vec![
-                BexExternalValue::String("Primary".to_string()),
-                BexExternalValue::String("Backup".to_string()),
-            ],
-        }
-    );
+    assert_eq!(extract_steps(&result), vec![("Primary", 0), ("Backup", 0)]);
 }
 
 /// Retry duplicates client names: [A, A, A] for retry=2.
@@ -646,27 +600,12 @@ function F(x: string) -> string {
     prompt #"{{ x }}"#
 }
 
-function check_plan() -> string[] {
+function check_plan() -> OrchestrationStep[] {
     let c = baml.llm.get_client("F");
-    let plan = baml.llm.build_plan(c);
-    let names: string[] = [];
-    for (let step in plan) {
-        names.push(step.primitive_client.name);
-    }
-    names
+    baml.llm.build_plan(c)
 }
 "##;
 
     let result = run(source, "check_plan").await.expect("test failed");
-    assert_eq!(
-        result,
-        BexExternalValue::Array {
-            element_type: bex_engine::Ty::String,
-            items: vec![
-                BexExternalValue::String("A".to_string()),
-                BexExternalValue::String("A".to_string()),
-                BexExternalValue::String("A".to_string()),
-            ],
-        }
-    );
+    assert_eq!(extract_steps(&result), vec![("A", 0), ("A", 0), ("A", 0)]);
 }
