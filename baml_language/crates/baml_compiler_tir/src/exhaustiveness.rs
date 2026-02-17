@@ -161,10 +161,10 @@ pub(crate) struct ExhaustivenessChecker<'a> {
     type_aliases: &'a HashMap<Name, Ty>,
 
     /// Class names for type resolution
-    class_names: &'a HashSet<Name>,
+    class_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
 
     /// Enum names for type resolution
-    enum_names: &'a HashSet<Name>,
+    enum_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
 
     /// Type alias names for validation
     type_alias_names: &'a HashSet<Name>,
@@ -188,8 +188,8 @@ impl<'a> ExhaustivenessChecker<'a> {
     pub(crate) fn new(
         enum_variants: &'a HashMap<Name, Vec<Name>>,
         type_aliases: &'a HashMap<Name, Ty>,
-        class_names: &'a HashSet<Name>,
-        enum_names: &'a HashSet<Name>,
+        class_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
+        enum_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
         type_alias_names: &'a HashSet<Name>,
     ) -> Self {
         Self {

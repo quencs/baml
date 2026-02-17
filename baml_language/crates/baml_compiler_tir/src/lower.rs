@@ -7,7 +7,7 @@
 //! - Handling primitive type names
 //! - Validating that named types exist (when `type_alias_names` is provided)
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use baml_base::Name;
 use baml_compiler_diagnostics::TypeError;
@@ -29,8 +29,8 @@ use crate::{LiteralValue, TirTypeError, Ty};
 pub(crate) fn lower_type_ref(
     type_ref: &TypeRef,
     type_alias_names: &HashSet<Name>,
-    class_names: &HashSet<Name>,
-    enum_names: &HashSet<Name>,
+    class_names: &HashMap<Name, baml_compiler_hir::QualifiedName>,
+    enum_names: &HashMap<Name, baml_compiler_hir::QualifiedName>,
     location: impl Into<ErrorLocation>,
 ) -> (Ty, Vec<TirTypeError>) {
     let mut ctx = TypeLoweringContextResolved::new(
@@ -46,8 +46,8 @@ pub(crate) fn lower_type_ref(
 /// Context for type lowering with validation and resolution.
 struct TypeLoweringContextResolved<'a> {
     type_alias_names: &'a HashSet<Name>,
-    class_names: &'a HashSet<Name>,
-    enum_names: &'a HashSet<Name>,
+    class_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
+    enum_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
     /// Base error location (e.g., `TypeAliasType` with `alias_name`)
     base_location: ErrorLocation,
     /// Current path within nested type constructors (for `TypeAliasType`)
@@ -58,8 +58,8 @@ struct TypeLoweringContextResolved<'a> {
 impl<'a> TypeLoweringContextResolved<'a> {
     fn new(
         type_alias_names: &'a HashSet<Name>,
-        class_names: &'a HashSet<Name>,
-        enum_names: &'a HashSet<Name>,
+        class_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
+        enum_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
         location: ErrorLocation,
     ) -> Self {
         Self {
@@ -96,27 +96,12 @@ impl<'a> TypeLoweringContextResolved<'a> {
     }
 
     fn resolve_name(&self, name: &Name) -> Option<Ty> {
-        use baml_compiler_hir::QualifiedName;
-
-        if self.class_names.contains(name) {
-            // Names with dots are qualified builtin paths (e.g., "baml.llm.OrchestrationStep").
-            // Names without dots are local user-defined types.
-            let qn = if name.as_str().contains('.') {
-                QualifiedName::from_builtin_path(name.as_str())
-            } else {
-                QualifiedName::local(name.clone())
-            };
-            return Some(Ty::Class(qn));
+        if let Some(qn) = self.class_names.get(name) {
+            return Some(Ty::Class(qn.clone()));
         }
-        if self.enum_names.contains(name) {
-            let qn = if name.as_str().contains('.') {
-                QualifiedName::from_builtin_path(name.as_str())
-            } else {
-                QualifiedName::local(name.clone())
-            };
-            return Some(Ty::Enum(qn));
+        if let Some(qn) = self.enum_names.get(name) {
+            return Some(Ty::Enum(qn.clone()));
         }
-
         None
     }
 }

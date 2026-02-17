@@ -207,20 +207,20 @@ pub struct TypeAliasesMap<'db> {
     pub errors: Vec<TirTypeError>,
 }
 
-/// Tracked struct holding class names.
+/// Tracked struct holding class names mapped to their qualified names.
 #[salsa::tracked]
 pub struct ClassNamesSet<'db> {
     #[tracked]
     #[returns(ref)]
-    pub names: HashSet<Name>,
+    pub names: HashMap<Name, baml_compiler_hir::QualifiedName>,
 }
 
-/// Tracked struct holding enum names.
+/// Tracked struct holding enum names mapped to their qualified names.
 #[salsa::tracked]
 pub struct EnumNamesSet<'db> {
     #[tracked]
     #[returns(ref)]
-    pub names: HashSet<Name>,
+    pub names: HashMap<Name, baml_compiler_hir::QualifiedName>,
 }
 
 /// Tracked struct holding type alias names.
@@ -453,19 +453,21 @@ pub fn type_aliases(db: &dyn Db, project: Project) -> TypeAliasesMap<'_> {
 /// Query: Get class names for a project.
 #[salsa::tracked]
 pub fn class_names(db: &dyn Db, project: Project) -> ClassNamesSet<'_> {
+    use baml_compiler_hir::QualifiedName;
     let items = baml_compiler_hir::project_items(db, project);
-    let mut names = HashSet::new();
+    let mut names = HashMap::new();
 
-    // Add builtin class names
+    // Add builtin class names (Rust-defined builtins like PrimitiveClient, PromptAst)
     for builtin in baml_builtins::builtin_types() {
-        names.insert(Name::new(builtin.path));
+        let qn = QualifiedName::from_builtin_path(builtin.path);
+        names.insert(Name::new(builtin.path), qn);
     }
 
     // Add user-defined class names (using FQN for builtin-file classes)
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Class(class_loc) = item {
-            let fqn = baml_compiler_hir::class_qualified_name(db, *class_loc);
-            names.insert(fqn.display_name());
+            let qn = baml_compiler_hir::class_qualified_name(db, *class_loc);
+            names.insert(qn.display_name(), qn);
         }
     }
 
@@ -475,12 +477,14 @@ pub fn class_names(db: &dyn Db, project: Project) -> ClassNamesSet<'_> {
 /// Query: Get enum names for a project.
 #[salsa::tracked]
 pub fn enum_names(db: &dyn Db, project: Project) -> EnumNamesSet<'_> {
+    use baml_compiler_hir::QualifiedName;
     let items = baml_compiler_hir::project_items(db, project);
-    let mut names = HashSet::new();
+    let mut names = HashMap::new();
 
     // Add builtin enum names (FQN, e.g. "baml.llm.ClientType")
     for builtin_enum in baml_builtins::builtin_enums() {
-        names.insert(Name::new(builtin_enum.path));
+        let qn = QualifiedName::from_builtin_path(builtin_enum.path);
+        names.insert(Name::new(builtin_enum.path), qn);
     }
 
     // Add user-defined enum names
@@ -489,7 +493,10 @@ pub fn enum_names(db: &dyn Db, project: Project) -> EnumNamesSet<'_> {
             let file = enum_loc.file(db);
             let item_tree = baml_compiler_hir::file_item_tree(db, file);
             let enum_data = &item_tree[enum_loc.id(db)];
-            names.insert(enum_data.name.clone());
+            names.insert(
+                enum_data.name.clone(),
+                QualifiedName::local(enum_data.name.clone()),
+            );
         }
     }
 
@@ -519,8 +526,8 @@ pub fn type_alias_names(db: &dyn Db, project: Project) -> TypeAliasNamesSet<'_> 
 /// This bundles together all the sets needed for resolved type lowering.
 /// Create this once per project and reuse it for all type lowering operations.
 pub struct TypeResolutionContext {
-    pub class_names: HashSet<Name>,
-    pub enum_names: HashSet<Name>,
+    pub class_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
+    pub enum_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
     pub type_alias_names: HashSet<Name>,
 }
 
@@ -615,10 +622,10 @@ pub struct TypeContext<'db> {
     type_aliases: HashMap<Name, Ty>,
     /// Enum variant definitions: `enum_name` -> `Vec<variant_name>`
     enum_variants: HashMap<Name, Vec<Name>>,
-    /// Class names for type resolution
-    class_names: HashSet<Name>,
-    /// Enum names for type resolution
-    enum_names: HashSet<Name>,
+    /// Class names mapped to their qualified names for type resolution
+    class_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
+    /// Enum names mapped to their qualified names for type resolution
+    enum_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
     /// Type alias names for validation
     type_alias_names: HashSet<Name>,
     /// Inferred types for expressions.
@@ -657,8 +664,8 @@ impl<'db> TypeContext<'db> {
         class_fields: HashMap<Name, HashMap<Name, Ty>>,
         type_aliases: HashMap<Name, Ty>,
         enum_variants: HashMap<Name, Vec<Name>>,
-        class_names: HashSet<Name>,
-        enum_names: HashSet<Name>,
+        class_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
+        enum_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
         type_alias_names: HashSet<Name>,
         file_id: FileId,
         hir_source_map: Option<HirSourceMap>,
@@ -862,29 +869,15 @@ impl<'db> TypeContext<'db> {
 
     /// Resolve a named type to its proper Ty representation.
     ///
-    /// This resolves class and enum names to `Ty::Class` and `Ty::Enum` with FQNs,
-    /// while type aliases and unknown types stay as `Ty::TypeAlias`.
-    ///
-    /// Names containing dots (e.g., "baml.llm.OrchestrationStep") are treated as
-    /// qualified builtin paths. Names without dots are local user-defined types.
+    /// Looks up the name in the class/enum maps to get the pre-computed `QualifiedName`.
+    /// Type aliases and unknown types stay as `Ty::TypeAlias`.
     pub fn resolve_named_type(&self, name: &Name) -> Ty {
         use baml_compiler_hir::QualifiedName;
-        if self.class_names.contains(name) {
-            let qn = if name.as_str().contains('.') {
-                QualifiedName::from_builtin_path(name.as_str())
-            } else {
-                QualifiedName::local(name.clone())
-            };
-            Ty::Class(qn)
-        } else if self.enum_names.contains(name) {
-            let qn = if name.as_str().contains('.') {
-                QualifiedName::from_builtin_path(name.as_str())
-            } else {
-                QualifiedName::local(name.clone())
-            };
-            Ty::Enum(qn)
+        if let Some(qn) = self.class_names.get(name) {
+            Ty::Class(qn.clone())
+        } else if let Some(qn) = self.enum_names.get(name) {
+            Ty::Enum(qn.clone())
         } else {
-            // Type alias or unknown type - stays as TypeAlias, will be resolved during normalization
             Ty::TypeAlias(QualifiedName::local(name.clone()))
         }
     }
@@ -964,8 +957,8 @@ pub fn infer_function_body<'db>(
     class_fields: Option<HashMap<Name, HashMap<Name, Ty>>>,
     type_aliases: Option<HashMap<Name, Ty>>,
     enum_variants: Option<HashMap<Name, Vec<Name>>>,
-    class_names_opt: Option<HashSet<Name>>,
-    enum_names_opt: Option<HashSet<Name>>,
+    class_names_opt: Option<HashMap<Name, baml_compiler_hir::QualifiedName>>,
+    enum_names_opt: Option<HashMap<Name, baml_compiler_hir::QualifiedName>>,
     type_alias_names: Option<HashSet<Name>>,
     function_loc: FunctionLoc<'db>,
 ) -> InferenceResult {
@@ -1829,14 +1822,12 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                             name: name.clone(),
                             definition_site: None,
                         }
-                    } else if ctx.class_names.contains(name) {
+                    } else if let Some(qn) = ctx.class_names.get(name) {
                         // Class name (in global scope)
-                        use baml_compiler_hir::QualifiedName;
-                        ResolvedValue::Class(QualifiedName::local(name.clone()))
-                    } else if ctx.enum_names.contains(name) {
+                        ResolvedValue::Class(qn.clone())
+                    } else if let Some(qn) = ctx.enum_names.get(name) {
                         // Enum name (in global scope)
-                        use baml_compiler_hir::QualifiedName;
-                        ResolvedValue::Enum(QualifiedName::local(name.clone()))
+                        ResolvedValue::Enum(qn.clone())
                     } else if ctx.type_aliases.contains_key(name) {
                         // Type alias (in global scope)
                         use baml_compiler_hir::QualifiedName;
@@ -1925,12 +1916,10 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 
                     if let Some(variants) = ctx.lookup_enum_variants(&enum_name) {
                         if variants.contains(variant_name) {
-                            use baml_compiler_hir::QualifiedName;
-                            let enum_fqn = if enum_name.as_str().contains('.') {
-                                QualifiedName::from_builtin_path(enum_name.as_str())
-                            } else {
-                                QualifiedName::local(enum_name.clone())
-                            };
+                            let enum_fqn =
+                                ctx.enum_names.get(&enum_name).cloned().unwrap_or_else(|| {
+                                    baml_compiler_hir::QualifiedName::local(enum_name.clone())
+                                });
 
                             // Store resolution for enum variant
                             ctx.set_expr_resolution(
@@ -2431,12 +2420,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 
             // Store resolution for IDE features if this is a class instantiation
             if let Some(name) = type_name {
-                if ctx.class_names.contains(name) {
-                    use baml_compiler_hir::QualifiedName;
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::Class(QualifiedName::local(name.clone())),
-                    );
+                if let Some(qn) = ctx.class_names.get(name) {
+                    ctx.set_expr_resolution(expr_id, ResolvedValue::Class(qn.clone()));
                 }
             }
 
@@ -2750,12 +2735,8 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
         } => {
             // Store resolution for IDE features if this is a class instantiation
             if let Some(name) = type_name {
-                if ctx.class_names.contains(name) {
-                    use baml_compiler_hir::QualifiedName;
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::Class(QualifiedName::local(name.clone())),
-                    );
+                if let Some(qn) = ctx.class_names.get(name) {
+                    ctx.set_expr_resolution(expr_id, ResolvedValue::Class(qn.clone()));
                 }
             }
 
