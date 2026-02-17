@@ -141,5 +141,5 @@ function call_llm_function(function_name: string, args: map<string, unknown>) ->
         }
     }
 
-    assert false;
+    baml.sys.panic("All orchestration steps failed");
 }

@@ -260,6 +260,10 @@ macro_rules! with_builtins {
                     /// Sleep for the given number of milliseconds.
                     #[sys_op]
                     fn sleep(delay_ms: i64);
+
+                    /// Abort execution with an error message.
+                    #[sys_op]
+                    fn panic(message: String);
                 }
 
                 // =====================================================================

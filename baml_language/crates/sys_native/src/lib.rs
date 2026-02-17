@@ -110,6 +110,10 @@ impl SysOpFs for NativeSysOps {
 // ============================================================================
 
 impl SysOpSys for NativeSysOps {
+    fn baml_sys_panic(&self, message: String) -> SysOpOutput<()> {
+        SysOpOutput::err(OpErrorKind::Other(message))
+    }
+
     fn baml_sys_sleep(&self, delay_ms: i64) -> SysOpOutput<()> {
         #[allow(clippy::cast_sign_loss)]
         let millis = delay_ms.max(0) as u64;
