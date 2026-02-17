@@ -105,13 +105,18 @@ impl<'a> TypeLoweringContextResolved<'a> {
             if baml_builtins::find_builtin_type(name.as_str()).is_some() {
                 return Some(Ty::Class(QualifiedName::from_builtin_path(name.as_str())));
             }
+            // BAML-file builtin classes (e.g., "OrchestrationStep") need their
+            // qualified path from the prelude so field lookup keys match.
+            if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
+                return Some(Ty::Class(QualifiedName::from_builtin_path(qualified_path)));
+            }
             return Some(Ty::Class(QualifiedName::local(name.clone())));
         }
         if self.enum_names.contains(name) {
             return Some(Ty::Enum(QualifiedName::local(name.clone())));
         }
 
-        // Check prelude for builtin types
+        // Check prelude for builtin types (e.g., "PrimitiveClient" → "baml.llm.PrimitiveClient")
         if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
             return Some(Ty::Class(QualifiedName::from_builtin_path(qualified_path)));
         }

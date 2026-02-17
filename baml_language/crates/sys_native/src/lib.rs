@@ -111,6 +111,7 @@ impl SysOpFs for NativeSysOps {
 
 impl SysOpSys for NativeSysOps {
     fn baml_sys_sleep(&self, delay_ms: i64) -> SysOpOutput<()> {
+        #[allow(clippy::cast_sign_loss)]
         let millis = delay_ms.max(0) as u64;
         SysOpOutput::async_op(async move {
             tokio::time::sleep(std::time::Duration::from_millis(millis)).await;

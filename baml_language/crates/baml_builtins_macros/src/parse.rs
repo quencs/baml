@@ -116,7 +116,8 @@ impl ModuleItem {
                 items.push(ModuleContent::Struct(content.parse()?));
             } else if lookahead.peek(Token![enum]) {
                 items.push(ModuleContent::Enum(EnumItem::parse_with_attrs(
-                    &content, &[],
+                    &content,
+                    &[],
                 )?));
             } else if lookahead.peek(Token![#]) {
                 let attrs = content.call(Attribute::parse_outer)?;

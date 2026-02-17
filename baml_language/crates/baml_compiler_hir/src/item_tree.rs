@@ -12,8 +12,8 @@ use rustc_hash::FxHashMap;
 use crate::{
     ids::{ItemKind, LocalItemId, hash_name},
     loc::{
-        ClassMarker, ClientMarker, EnumMarker, FunctionMarker, GeneratorMarker,
-        RetryPolicyMarker, TemplateStringMarker, TestMarker, TypeAliasMarker,
+        ClassMarker, ClientMarker, EnumMarker, FunctionMarker, GeneratorMarker, RetryPolicyMarker,
+        TemplateStringMarker, TestMarker, TypeAliasMarker,
     },
     type_ref::TypeRef,
 };

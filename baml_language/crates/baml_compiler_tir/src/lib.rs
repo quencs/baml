@@ -367,7 +367,10 @@ pub fn class_field_types(db: &dyn Db, project: Project) -> ClassFieldTypesMap<'_
         if let baml_compiler_hir::ItemId::Class(class_loc) = item {
             let item_tree = baml_compiler_hir::file_item_tree(db, class_loc.file(db));
             let class_data = &item_tree[class_loc.id(db)];
-            let class_name = class_data.name.clone();
+            // Use qualified name so the key matches Ty::Class(fqn) references
+            // (e.g., builtin file classes like "baml.llm.OrchestrationStep").
+            let fqn = baml_compiler_hir::class_qualified_name(db, *class_loc);
+            let class_name = fqn.display_name();
 
             let mut lowered_fields: HashMap<Name, Ty> = HashMap::new();
 
@@ -849,7 +852,13 @@ impl<'db> TypeContext<'db> {
     pub fn resolve_named_type(&self, name: &Name) -> Ty {
         use baml_compiler_hir::QualifiedName;
         if self.class_names.contains(name) {
-            Ty::Class(QualifiedName::local(name.clone()))
+            // BAML-file builtin classes (e.g., "OrchestrationStep") need their
+            // qualified path from the prelude so field lookup keys match.
+            if let Some(qualified_path) = baml_builtins::lookup_prelude(name.as_str()) {
+                Ty::Class(QualifiedName::from_builtin_path(qualified_path))
+            } else {
+                Ty::Class(QualifiedName::local(name.clone()))
+            }
         } else if self.enum_names.contains(name) {
             Ty::Enum(QualifiedName::local(name.clone()))
         } else {
@@ -2719,7 +2728,6 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
 
             // If we expect a specific class type, we can use its field types
             if let Ty::Class(expected_fqn) = expected {
-                use baml_compiler_hir::QualifiedName;
                 // Check field types against the expected class fields
                 for (field_name, value_expr) in fields {
                     // Clone the field type to avoid borrow issues
@@ -2737,7 +2745,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                 if type_name.as_ref() == Some(&expected_fqn.name) {
                     expected.clone()
                 } else if let Some(name) = type_name {
-                    Ty::Class(QualifiedName::local(name.clone()))
+                    ctx.resolve_named_type(name)
                 } else {
                     Ty::Unknown
                 }

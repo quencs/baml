@@ -177,8 +177,6 @@ pub(crate) struct AccessorFieldDef {
 pub(crate) struct CollectedBuiltins {
     /// Map from struct name to full path (e.g., `"File"` → `"baml.fs.File"`).
     pub builtin_types: HashMap<String, String>,
-    /// Map from enum name to full path (e.g., `"ClientType"` → `"baml.llm.ClientType"`).
-    pub builtin_enums: HashMap<String, String>,
     /// Builtin function definitions (for signature registration).
     pub defs: Vec<BuiltinDef>,
     /// Native function definitions (for trait + glue generation).
@@ -227,7 +225,6 @@ impl CollectedBuiltins {
 
         CollectedBuiltins {
             builtin_types,
-            builtin_enums,
             defs,
             native_defs,
             type_defs,
@@ -414,7 +411,12 @@ fn collect_struct_builtins(s: &StructItem, ctx: &mut CollectContext) {
 
         for member in &s.members {
             if let StructMember::Field(field) = member {
-                let ty = type_to_pattern(&field.ty, &struct_generics, ctx.builtin_types, ctx.builtin_enums);
+                let ty = type_to_pattern(
+                    &field.ty,
+                    &struct_generics,
+                    ctx.builtin_types,
+                    ctx.builtin_enums,
+                );
 
                 fields.push(BuiltinFieldDef {
                     name: field.name.to_string(),
@@ -447,7 +449,8 @@ fn collect_struct_builtins(s: &StructItem, ctx: &mut CollectContext) {
 
         for member in &s.members {
             if let StructMember::Field(f) = member {
-                if let Some(kind) = classify_field_type(&f.ty, ctx.builtin_types, ctx.builtin_enums) {
+                if let Some(kind) = classify_field_type(&f.ty, ctx.builtin_types, ctx.builtin_enums)
+                {
                     let name_str = f.name.to_string();
                     accessor_fields.push(AccessorFieldDef {
                         name: format_ident!("{}", name_str),
@@ -490,10 +493,9 @@ fn collect_struct_builtins(s: &StructItem, ctx: &mut CollectContext) {
         );
         let fn_name = format_ident!("{}_{}", struct_fn_name_prefix, to_snake_case(&method_name));
 
-        let receiver = method
-            .receiver
-            .as_ref()
-            .map(|(ty, _is_mut)| type_to_pattern(ty, &all_generics, ctx.builtin_types, ctx.builtin_enums));
+        let receiver = method.receiver.as_ref().map(|(ty, _is_mut)| {
+            type_to_pattern(ty, &all_generics, ctx.builtin_types, ctx.builtin_enums)
+        });
 
         let params: Vec<(String, TokenStream2)> = method
             .params
@@ -507,7 +509,12 @@ fn collect_struct_builtins(s: &StructItem, ctx: &mut CollectContext) {
             .collect();
 
         let (inner_return_ty, _) = unwrap_result_type(&method.return_type);
-        let returns = type_to_pattern(inner_return_ty, &all_generics, ctx.builtin_types, ctx.builtin_enums);
+        let returns = type_to_pattern(
+            inner_return_ty,
+            &all_generics,
+            ctx.builtin_types,
+            ctx.builtin_enums,
+        );
 
         if !ctx.is_hidden {
             ctx.defs.push(BuiltinDef {
@@ -570,12 +577,16 @@ fn collect_enum_builtins(e: &EnumItem, ctx: &mut CollectContext) {
     let enum_name = e.name.to_string();
     let enum_path = format!("{}.{enum_name}", ctx.path_prefix);
 
-    let variants: Vec<String> = e.variants.iter().map(|v| v.to_string()).collect();
+    let variants: Vec<String> = e
+        .variants
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
 
     if !ctx.is_hidden {
         ctx.enum_defs.push(BuiltinEnumDef {
             path: enum_path.clone(),
-            variants: variants.clone(),
+            variants,
         });
     }
 
@@ -608,10 +619,9 @@ fn collect_function_builtins(f: &FunctionItem, ctx: &mut CollectContext) {
         to_snake_case(&original_fn_name)
     );
 
-    let receiver = f
-        .receiver
-        .as_ref()
-        .map(|(ty, _is_mut)| type_to_pattern(ty, &fn_generics, ctx.builtin_types, ctx.builtin_enums));
+    let receiver = f.receiver.as_ref().map(|(ty, _is_mut)| {
+        type_to_pattern(ty, &fn_generics, ctx.builtin_types, ctx.builtin_enums)
+    });
 
     let params: Vec<(String, TokenStream2)> = f
         .params
@@ -625,7 +635,12 @@ fn collect_function_builtins(f: &FunctionItem, ctx: &mut CollectContext) {
         .collect();
 
     let (inner_return_ty, _) = unwrap_result_type(&f.return_type);
-    let returns = type_to_pattern(inner_return_ty, &fn_generics, ctx.builtin_types, ctx.builtin_enums);
+    let returns = type_to_pattern(
+        inner_return_ty,
+        &fn_generics,
+        ctx.builtin_types,
+        ctx.builtin_enums,
+    );
 
     if !ctx.is_hidden {
         ctx.defs.push(BuiltinDef {
@@ -716,9 +731,7 @@ fn classify_field_type(
                             }
                             // Array of a builtin struct
                             if let Some(full_path) = builtin_types.get(&inner_simple) {
-                                return Some(FieldTypeKind::ArrayBuiltinStruct(
-                                    full_path.clone(),
-                                ));
+                                return Some(FieldTypeKind::ArrayBuiltinStruct(full_path.clone()));
                             }
                         }
                     }
@@ -737,13 +750,9 @@ fn classify_field_type(
                     }
                     None
                 }
-                name => {
-                    if let Some(full_path) = builtin_enums.get(name) {
-                        Some(FieldTypeKind::BuiltinEnum(full_path.clone()))
-                    } else {
-                        None
-                    }
-                }
+                name => builtin_enums
+                    .get(name)
+                    .map(|full_path| FieldTypeKind::BuiltinEnum(full_path.clone())),
             }
         }
         _ => None,

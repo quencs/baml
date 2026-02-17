@@ -61,8 +61,6 @@ pub struct ClientBuildMeta {
     pub sub_client_names: Vec<String>,
     /// Retry policy metadata, if specified.
     pub retry_policy: Option<RetryPolicyMeta>,
-    /// Name of the resolve function (e.g., "MyClient.resolve").
-    pub resolve_fn_name: String,
 }
 
 /// Client type for build metadata (mirrors runtime `LlmClientType`).

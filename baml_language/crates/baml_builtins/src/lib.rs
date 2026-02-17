@@ -102,7 +102,7 @@ pub struct BuiltinTypeDefinition {
 pub struct BuiltinEnumDefinition {
     /// Full path (e.g., "baml.llm.ClientType").
     pub path: &'static str,
-    /// Variant names (e.g., ["Primitive", "Fallback", "RoundRobin"]).
+    /// Variant names (e.g., `Primitive`, `Fallback`, `RoundRobin`).
     pub variants: Vec<&'static str>,
 }
 
@@ -213,6 +213,13 @@ macro_rules! with_builtins {
                 mod unstable {
                     #[uses(vm)]
                     fn string<T>(value: T) -> Result<String>;
+                }
+
+                // =====================================================================
+                // Math functions
+                // =====================================================================
+                mod math {
+                    fn trunc(value: f64) -> i64;
                 }
 
                 // =====================================================================
@@ -346,7 +353,7 @@ macro_rules! with_builtins {
                         name: String,
                         client_type: ClientType,
                         sub_clients: Array<Client>,
-                        retry_policy: Option<RetryPolicy>,
+                        retry: Option<RetryPolicy>,
                     }
 
                     /// A primitive LLM client (single provider, fully resolved).
@@ -398,15 +405,8 @@ macro_rules! with_builtins {
                         options: Map<String, Unknown>
                     ) -> PrimitiveClient;
 
-                    /// Get the client resolve function for an LLM function.
-                    /// Returns a function that resolves to a PrimitiveClient when called.
-                    #[sys_op]
-                    #[uses(engine_ctx)]
-                    fn get_client_function(function_name: String) -> fn() -> PrimitiveClient;
-
                     /// Get a Client tree for an LLM function.
-                    /// Returns a Client with type, sub-clients, retry policy, and resolve_fn.
-                    /// Not yet used — will be activated when orchestration is implemented.
+                    /// Returns a Client with type, sub-clients, and retry policy.
                     #[sys_op]
                     #[uses(engine_ctx)]
                     fn get_client(function_name: String) -> Client;
@@ -719,21 +719,17 @@ mod tests {
         assert!(render_prompt.unwrap().is_sys_op);
 
         let get_client_fn = find_builtin_by_path("baml.llm.get_client");
-        assert!(
-            get_client_fn.is_some(),
-            "get_client should be found"
-        );
+        assert!(get_client_fn.is_some(), "get_client should be found");
         let get_client_fn = get_client_fn.unwrap();
-        assert!(
-            get_client_fn.is_sys_op,
-            "get_client should be sys_op"
-        );
+        assert!(get_client_fn.is_sys_op, "get_client should be sys_op");
         assert_eq!(
-            get_client_fn.arity(), 1,
+            get_client_fn.arity(),
+            1,
             "get_client should have arity 1 (function_name param)"
         );
         assert_eq!(
-            get_client_fn.params.len(), 1,
+            get_client_fn.params.len(),
+            1,
             "get_client should have 1 param"
         );
         assert!(

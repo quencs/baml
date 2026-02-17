@@ -267,14 +267,12 @@ impl BexEngine {
                 enum_name,
                 variant_name,
             } => {
-                let enum_ptr = self
-                    .resolved_enum_names
-                    .get(&enum_name)
-                    .unwrap_or_else(|| panic!("Enum '{enum_name}' not found in resolved_enum_names"));
+                let enum_ptr = self.resolved_enum_names.get(&enum_name).unwrap_or_else(|| {
+                    panic!("Enum '{enum_name}' not found in resolved_enum_names")
+                });
                 #[allow(unsafe_code)]
-                let enum_obj = match unsafe { enum_ptr.get() } {
-                    bex_vm_types::Object::Enum(e) => e,
-                    _ => panic!("Expected Object::Enum for '{enum_name}'"),
+                let bex_vm_types::Object::Enum(enum_obj) = (unsafe { enum_ptr.get() }) else {
+                    panic!("Expected Object::Enum for '{enum_name}'");
                 };
                 let index = enum_obj
                     .variants

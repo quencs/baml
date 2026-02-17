@@ -206,10 +206,8 @@ pub fn symbol_table<'db>(
             }
             // Clients, generators, and tests are not typically referenced by name
             // in user code, but we could add them to a third namespace if needed.
-            ItemId::Client(_)
-            | ItemId::Generator(_)
-            | ItemId::Test(_)
-            | ItemId::RetryPolicy(_) => {}
+            ItemId::Client(_) | ItemId::Generator(_) | ItemId::Test(_) | ItemId::RetryPolicy(_) => {
+            }
         }
     }
 

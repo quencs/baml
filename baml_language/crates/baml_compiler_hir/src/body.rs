@@ -2749,26 +2749,51 @@ impl LoweringContext {
         use baml_compiler_syntax::SyntaxKind;
 
         // ASSERT_STMT structure: assert keyword, expression
-        let condition = node
-            .children()
-            .find(|n| {
-                matches!(
-                    n.kind(),
-                    SyntaxKind::EXPR
-                        | SyntaxKind::BINARY_EXPR
-                        | SyntaxKind::UNARY_EXPR
-                        | SyntaxKind::CALL_EXPR
-                        | SyntaxKind::PATH_EXPR
-                        | SyntaxKind::FIELD_ACCESS_EXPR
-                        | SyntaxKind::ENV_ACCESS_EXPR
-                        | SyntaxKind::INDEX_EXPR
-                        | SyntaxKind::IF_EXPR
-                        | SyntaxKind::BLOCK_EXPR
-                        | SyntaxKind::PAREN_EXPR
-                )
-            })
-            .map(|n| self.lower_expr(&n))
-            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
+        let condition = if let Some(child_node) = node.children().find(|n| {
+            matches!(
+                n.kind(),
+                SyntaxKind::EXPR
+                    | SyntaxKind::BINARY_EXPR
+                    | SyntaxKind::UNARY_EXPR
+                    | SyntaxKind::CALL_EXPR
+                    | SyntaxKind::PATH_EXPR
+                    | SyntaxKind::FIELD_ACCESS_EXPR
+                    | SyntaxKind::ENV_ACCESS_EXPR
+                    | SyntaxKind::INDEX_EXPR
+                    | SyntaxKind::IF_EXPR
+                    | SyntaxKind::BLOCK_EXPR
+                    | SyntaxKind::PAREN_EXPR
+            )
+        }) {
+            self.lower_expr(&child_node)
+        } else {
+            // Fallback: check for direct tokens (e.g., `assert false` where `false` is a WORD token)
+            node.children_with_tokens()
+                .filter_map(baml_compiler_syntax::NodeOrToken::into_token)
+                .find_map(|token| {
+                    let span = token.text_range();
+                    match token.kind() {
+                        SyntaxKind::WORD => {
+                            let text = token.text();
+                            match text {
+                                "true" => {
+                                    Some(self.alloc_expr(Expr::Literal(Literal::Bool(true)), span))
+                                }
+                                "false" => {
+                                    Some(self.alloc_expr(Expr::Literal(Literal::Bool(false)), span))
+                                }
+                                _ => Some(self.alloc_expr(Expr::Path(vec![Name::new(text)]), span)),
+                            }
+                        }
+                        SyntaxKind::INTEGER_LITERAL => {
+                            let value = token.text().parse::<i64>().unwrap_or(0);
+                            Some(self.alloc_expr(Expr::Literal(Literal::Int(value)), span))
+                        }
+                        _ => None,
+                    }
+                })
+                .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()))
+        };
 
         self.alloc_stmt(Stmt::Assert { condition }, node.text_range())
     }

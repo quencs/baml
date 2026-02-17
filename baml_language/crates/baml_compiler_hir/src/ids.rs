@@ -22,12 +22,12 @@ pub use crate::loc::EnumLoc as EnumId;
 pub use crate::loc::FunctionLoc as FunctionId;
 /// Identifier for a generator configuration.
 pub use crate::loc::GeneratorLoc as GeneratorId;
+/// Identifier for a retry policy.
+pub use crate::loc::RetryPolicyLoc as RetryPolicyId;
 /// Identifier for a template string definition.
 pub use crate::loc::TemplateStringLoc as TemplateStringId;
 /// Identifier for a test definition.
 pub use crate::loc::TestLoc as TestId;
-/// Identifier for a retry policy.
-pub use crate::loc::RetryPolicyLoc as RetryPolicyId;
 /// Identifier for a type alias.
 pub use crate::loc::TypeAliasLoc as TypeAliasId;
 

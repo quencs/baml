@@ -141,7 +141,7 @@ impl ResourceRegistry {
     }
 
     #[cfg(feature = "bundle-http")]
-    /// Register a synthetic error HTTP response (no body, status_code=0).
+    /// Register a synthetic error HTTP response (no body, `status_code=0`).
     ///
     /// Used when a network error occurs, so BAML code can check `ok() == false`
     /// instead of crashing.

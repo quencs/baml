@@ -104,8 +104,12 @@ pub(crate) fn type_to_pattern(
                 "Option" => {
                     if let PathArguments::AngleBracketed(args) = &segment.arguments {
                         if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            let inner_pattern =
-                                type_to_pattern(inner, generic_params, builtin_types, builtin_enums);
+                            let inner_pattern = type_to_pattern(
+                                inner,
+                                generic_params,
+                                builtin_types,
+                                builtin_enums,
+                            );
                             return quote!(TypePattern::Optional(Box::new(#inner_pattern)));
                         }
                     }
@@ -114,8 +118,12 @@ pub(crate) fn type_to_pattern(
                 "Array" => {
                     if let PathArguments::AngleBracketed(args) = &segment.arguments {
                         if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            let inner_pattern =
-                                type_to_pattern(inner, generic_params, builtin_types, builtin_enums);
+                            let inner_pattern = type_to_pattern(
+                                inner,
+                                generic_params,
+                                builtin_types,
+                                builtin_enums,
+                            );
                             return quote!(TypePattern::Array(Box::new(#inner_pattern)));
                         }
                     }
@@ -133,7 +141,9 @@ pub(crate) fn type_to_pattern(
                                     None
                                 }
                             })
-                            .map(|t| type_to_pattern(t, generic_params, builtin_types, builtin_enums))
+                            .map(|t| {
+                                type_to_pattern(t, generic_params, builtin_types, builtin_enums)
+                            })
                             .unwrap_or_else(|| quote!(TypePattern::String));
                         let value = iter
                             .next()
@@ -144,7 +154,9 @@ pub(crate) fn type_to_pattern(
                                     None
                                 }
                             })
-                            .map(|t| type_to_pattern(t, generic_params, builtin_types, builtin_enums))
+                            .map(|t| {
+                                type_to_pattern(t, generic_params, builtin_types, builtin_enums)
+                            })
                             .unwrap_or_else(|| quote!(TypePattern::Null));
                         return quote!(TypePattern::Map {
                             key: Box::new(#key),
@@ -182,7 +194,9 @@ pub(crate) fn type_to_pattern(
                 .collect();
             let ret = match &fn_ty.output {
                 ReturnType::Default => quote!(TypePattern::Null),
-                ReturnType::Type(_, ty) => type_to_pattern(ty, generic_params, builtin_types, builtin_enums),
+                ReturnType::Type(_, ty) => {
+                    type_to_pattern(ty, generic_params, builtin_types, builtin_enums)
+                }
             };
             quote!(TypePattern::Function {
                 params: vec![#(#params),*],

@@ -280,23 +280,6 @@ fn accessor_needs_heap(kind: &FieldTypeKind) -> bool {
     )
 }
 
-/// Whether this field kind supports accessor (heap read) generation.
-/// Complex field types are only used for owned struct generation and
-/// sys_op return values, not for reading back from the heap.
-fn accessor_supported(kind: &FieldTypeKind) -> bool {
-    matches!(
-        kind,
-        FieldTypeKind::String
-            | FieldTypeKind::Int
-            | FieldTypeKind::Float
-            | FieldTypeKind::Bool
-            | FieldTypeKind::ResourceHandle
-            | FieldTypeKind::MapStringString
-            | FieldTypeKind::MapStringUnknown
-            | FieldTypeKind::ArrayString
-    )
-}
-
 fn gen_accessor_body(field: &AccessorFieldDef) -> TokenStream2 {
     let name_str = &field.name_str;
     match field.kind {

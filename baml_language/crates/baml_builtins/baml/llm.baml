@@ -16,31 +16,31 @@ class OrchestrationStep {
 ///
 /// Recursively expands composite clients (fallback, round-robin) into a flat
 /// list of OrchestrationSteps, wrapping with retry delays as configured.
-function build_plan(client: Client) -> OrchestrationStep[] {
-    let retry = client.retry_policy;
+function build_plan(c: Client) -> OrchestrationStep[] {
+    let retry = c.retry;
 
-    let inner = match (client.client_type) {
+    let inner = match (c.client_type) {
         ClientType.Primitive => {
-            let resolve_fn = baml.llm.resolve_client(client.name);
+            let resolve_fn = baml.llm.resolve_client(c.name);
             let primitive = resolve_fn();
             [OrchestrationStep { primitive_client: primitive, delay_ms: 0 }]
         }
         ClientType.Fallback => {
             let steps: OrchestrationStep[] = [];
-            for (let sub in client.sub_clients) {
-                for (let step in build_plan(sub)) {
+            for (let sub in c.sub_clients) {
+                for (let step in baml.llm.build_plan(sub)) {
                     steps.push(step);
                 }
             }
             steps
         }
         ClientType.RoundRobin => {
-            let idx = baml.llm.round_robin_next(client.name) % client.sub_clients.length();
-            build_plan(client.sub_clients.at(idx))
+            let idx = baml.llm.round_robin_next(c.name) % c.sub_clients.length();
+            baml.llm.build_plan(c.sub_clients.at(idx))
         }
     };
 
-    return wrap_with_retry(inner, retry);
+    return baml.llm.wrap_with_retry(inner, retry);
 }
 
 /// Wrap a list of orchestration steps with retry logic.
@@ -57,7 +57,7 @@ function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> Orc
             for (let attempt = 0; attempt <= r.max_retries; attempt += 1) {
                 let delay = 0;
                 if (attempt > 0) {
-                    delay = current_delay;
+                    delay = baml.math.trunc(current_delay);
                 }
 
                 for (let step in inner) {
@@ -87,8 +87,9 @@ function wrap_with_retry(inner: OrchestrationStep[], retry: RetryPolicy?) -> Orc
 function render_prompt(function_name: string, args: map<string, unknown>) -> baml.llm.PromptAst {
     let jinja_string = baml.llm.get_jinja_template(function_name);
 
-    let resolve_client_fn = baml.llm.get_client_function(function_name);
-    let primitive_client = resolve_client_fn();
+    let c = baml.llm.get_client(function_name);
+    let resolve_fn = baml.llm.resolve_client(c.name);
+    let primitive_client = resolve_fn();
 
     let prompt = primitive_client.render_prompt(jinja_string, args);
     return primitive_client.specialize_prompt(prompt);
@@ -100,8 +101,9 @@ function render_prompt(function_name: string, args: map<string, unknown>) -> bam
 function build_request(function_name: string, args: map<string, unknown>) -> baml.http.Request {
     let jinja_string = baml.llm.get_jinja_template(function_name);
 
-    let resolve_client_fn = baml.llm.get_client_function(function_name);
-    let primitive_client = resolve_client_fn();
+    let c = baml.llm.get_client(function_name);
+    let resolve_fn = baml.llm.resolve_client(c.name);
+    let primitive_client = resolve_fn();
 
     let prompt = primitive_client.render_prompt(jinja_string, args);
     let specialized_prompt = primitive_client.specialize_prompt(prompt);
@@ -117,14 +119,10 @@ function build_request(function_name: string, args: map<string, unknown>) -> bam
 /// the full retry + fallback loop.
 function call_llm_function(function_name: string, args: map<string, unknown>) -> unknown {
     let jinja_string = baml.llm.get_jinja_template(function_name);
-    let client = baml.llm.get_client(function_name);
-    let plan = build_plan(client);
+    let c = baml.llm.get_client(function_name);
+    let plan = baml.llm.build_plan(c);
 
     for (let step in plan) {
-        if (step.delay_ms > 0) {
-            baml.sys.sleep(step.delay_ms);
-        }
-
         let prompt = step.primitive_client.render_prompt(jinja_string, args);
         let specialized = step.primitive_client.specialize_prompt(prompt);
         let http_request = step.primitive_client.build_request(specialized);
@@ -134,8 +132,11 @@ function call_llm_function(function_name: string, args: map<string, unknown>) ->
             let body = http_response.text();
             return step.primitive_client.parse(body, function_name);
         }
+
+        if (step.delay_ms > 0) {
+            baml.sys.sleep(step.delay_ms);
+        }
     }
 
     assert false;
-    null
 }

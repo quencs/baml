@@ -243,7 +243,7 @@ pub struct SysOpContext {
     pub llm_functions: std::collections::HashMap<String, LlmFunctionInfo>,
 
     /// Maps function names to their global indices in the VM.
-    /// Used by `get_client_function` to return `FunctionRef` values.
+    /// Used by `resolve_client` to return `FunctionRef` values.
     pub function_global_indices: std::collections::HashMap<String, usize>,
 
     /// Pre-formatted Jinja `{% macro %}` definitions for all `template_strings`.
@@ -266,14 +266,12 @@ pub struct SysOpContext {
 /// Used by `get_client` to recursively build `LlmClient` objects.
 #[derive(Debug, Clone)]
 pub struct ClientBuildMeta {
-    /// The client type (Primitive, Fallback, RoundRobin).
+    /// The client type (`Primitive`, `Fallback`, `RoundRobin`).
     pub client_type: bex_heap::builtin_types::owned::LlmClientType,
     /// Sub-client names (for composite clients: fallback/round-robin).
     pub sub_client_names: Vec<String>,
     /// Retry policy, if one was specified.
     pub retry_policy: Option<bex_heap::builtin_types::owned::LlmRetryPolicy>,
-    /// Name of the resolve function (e.g., "MyClient.resolve").
-    pub resolve_fn_name: String,
 }
 
 /// Pre-extracted metadata for an LLM function.
@@ -598,30 +596,6 @@ impl<T> SysOpLlm for T {
         })
     }
 
-    fn baml_llm_get_client_function(
-        &self,
-        function_name: String,
-        ctx: &SysOpContext,
-    ) -> SysOpOutput {
-        let Some(info) = ctx.llm_functions.get(&function_name) else {
-            return SysOpOutput::err(OpErrorKind::Other(format!(
-                "LLM function not found: {function_name}"
-            )));
-        };
-
-        let resolve_fn_name = format!("{}.resolve", info.client_name);
-        let Some(global_index) = ctx.function_global_indices.get(&resolve_fn_name) else {
-            return SysOpOutput::err(OpErrorKind::Other(format!(
-                "Client resolve function not found: {resolve_fn_name}"
-            )));
-        };
-
-        SysOpOutput::ok(
-            FunctionRef::<bex_heap::builtin_types::owned::LlmPrimitiveClient>::new(*global_index)
-                .into_external(),
-        )
-    }
-
     fn baml_llm_get_client(
         &self,
         function_name: String,
@@ -639,12 +613,8 @@ impl<T> SysOpLlm for T {
         }
     }
 
-    fn baml_llm_resolve_client(
-        &self,
-        client_name: String,
-        ctx: &SysOpContext,
-    ) -> SysOpOutput {
-        let resolve_fn_name = format!("{}.resolve", client_name);
+    fn baml_llm_resolve_client(&self, client_name: String, ctx: &SysOpContext) -> SysOpOutput {
+        let resolve_fn_name = format!("{client_name}.resolve");
         let Some(global_index) = ctx.function_global_indices.get(&resolve_fn_name) else {
             return SysOpOutput::err(OpErrorKind::Other(format!(
                 "Client resolve function not found: {resolve_fn_name}"
@@ -668,6 +638,7 @@ impl<T> SysOpLlm for T {
             .cloned()
             .unwrap_or_default();
         let val = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        #[allow(clippy::cast_possible_wrap)]
         SysOpOutput::ok(val as i64)
     }
 }
@@ -697,9 +668,9 @@ fn build_client_tree(
 
     Ok(bex_heap::builtin_types::owned::LlmClient {
         name: client_name.to_string(),
-        client_type: meta.client_type.clone(),
+        client_type: meta.client_type,
         sub_clients,
-        retry_policy: meta.retry_policy.clone(),
+        retry: meta.retry_policy.clone(),
     })
 }
 

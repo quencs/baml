@@ -91,8 +91,7 @@ pub(crate) fn lower_client(
         for item in config_block.items() {
             if let Some(key) = item.key() {
                 let key_text = key.text();
-                if key_text != "provider" && key_text != "options" && key_text != "retry_policy"
-                {
+                if key_text != "provider" && key_text != "options" && key_text != "retry_policy" {
                     ctx.push_diagnostic(HirDiagnostic::UnknownClientProperty {
                         client_name: client_name.clone(),
                         field_name: key_text.to_string(),
@@ -146,8 +145,7 @@ pub(crate) fn lower_client(
                                 child.kind() == baml_compiler_syntax::SyntaxKind::ARRAY_LITERAL
                             }) {
                                 for element in array_literal.children().filter(|child| {
-                                    child.kind()
-                                        == baml_compiler_syntax::SyntaxKind::CONFIG_VALUE
+                                    child.kind() == baml_compiler_syntax::SyntaxKind::CONFIG_VALUE
                                 }) {
                                     // Each element should be a WORD token (client name)
                                     if let Some(word) = element

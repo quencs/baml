@@ -87,7 +87,6 @@ pub fn compile_files(
         ("baml.llm.get_jinja_template", 1),
         ("baml.llm.build_primitive_client", 5),
         ("baml.llm.PrimitiveClient.render_prompt", 3),
-        ("baml.llm.get_client_function", 1),
         ("baml.llm.get_client", 1),
         ("baml.llm.resolve_client", 1),
         ("baml.llm.round_robin_next", 1),
@@ -642,7 +641,7 @@ pub fn compile_files(
                 let sub_client_names: Vec<String> = client
                     .sub_client_names
                     .iter()
-                    .map(|n| n.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect();
 
                 let retry_policy = client
@@ -656,7 +655,6 @@ pub fn compile_files(
                         client_type,
                         sub_client_names,
                         retry_policy,
-                        resolve_fn_name: format!("{client_name}.resolve"),
                     },
                 );
             }

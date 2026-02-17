@@ -342,40 +342,40 @@ impl BexEngine {
         let llm_functions = Self::extract_llm_function_info(&resolved_function_names);
 
         // Convert compile-time client metadata to runtime format.
-        let client_metadata: std::collections::HashMap<String, sys_types::ClientBuildMeta> = bytecode
-            .client_metadata
-            .into_iter()
-            .map(|(name, meta)| {
-                let client_type = match meta.client_type {
-                    bex_vm_types::ClientBuildType::Primitive => {
-                        bex_heap::builtin_types::owned::LlmClientType::Primitive
-                    }
-                    bex_vm_types::ClientBuildType::Fallback => {
-                        bex_heap::builtin_types::owned::LlmClientType::Fallback
-                    }
-                    bex_vm_types::ClientBuildType::RoundRobin => {
-                        bex_heap::builtin_types::owned::LlmClientType::RoundRobin
-                    }
-                };
-                let retry_policy = meta.retry_policy.map(|rp| {
-                    bex_heap::builtin_types::owned::LlmRetryPolicy {
-                        max_retries: rp.max_retries,
-                        initial_delay_ms: rp.initial_delay_ms,
-                        multiplier: rp.multiplier,
-                        max_delay_ms: rp.max_delay_ms,
-                    }
-                });
-                (
-                    name,
-                    sys_types::ClientBuildMeta {
-                        client_type,
-                        sub_client_names: meta.sub_client_names,
-                        retry_policy,
-                        resolve_fn_name: meta.resolve_fn_name,
-                    },
-                )
-            })
-            .collect();
+        let client_metadata: std::collections::HashMap<String, sys_types::ClientBuildMeta> =
+            bytecode
+                .client_metadata
+                .into_iter()
+                .map(|(name, meta)| {
+                    let client_type = match meta.client_type {
+                        bex_vm_types::ClientBuildType::Primitive => {
+                            bex_heap::builtin_types::owned::LlmClientType::Primitive
+                        }
+                        bex_vm_types::ClientBuildType::Fallback => {
+                            bex_heap::builtin_types::owned::LlmClientType::Fallback
+                        }
+                        bex_vm_types::ClientBuildType::RoundRobin => {
+                            bex_heap::builtin_types::owned::LlmClientType::RoundRobin
+                        }
+                    };
+                    let retry_policy = meta.retry_policy.map(|rp| {
+                        bex_heap::builtin_types::owned::LlmRetryPolicy {
+                            max_retries: rp.max_retries,
+                            initial_delay_ms: rp.initial_delay_ms,
+                            multiplier: rp.multiplier,
+                            max_delay_ms: rp.max_delay_ms,
+                        }
+                    });
+                    (
+                        name,
+                        sys_types::ClientBuildMeta {
+                            client_type,
+                            sub_client_names: meta.sub_client_names,
+                            retry_policy,
+                        },
+                    )
+                })
+                .collect();
 
         // Build round-robin counters for composite clients.
         let round_robin_counters = client_metadata
