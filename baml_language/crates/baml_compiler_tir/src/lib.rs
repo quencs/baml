@@ -1907,21 +1907,12 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 // The last segment is the variant name, everything before it is the enum name.
                 if segments.len() >= 2 {
                     let variant_name = segments.last().unwrap();
-                    let enum_name = Name::new(
-                        segments[..segments.len() - 1]
-                            .iter()
-                            .map(smol_str::SmolStr::as_str)
-                            .collect::<Vec<_>>()
-                            .join("."),
-                    );
+                    let enum_fqn =
+                        QualifiedName::from_path_segments(&segments[..segments.len() - 1]);
+                    let enum_name = enum_fqn.display_name();
 
                     if let Some(variants) = ctx.lookup_enum_variants(&enum_name) {
                         if variants.contains(variant_name) {
-                            let enum_fqn =
-                                ctx.enum_names.get(&enum_name).cloned().unwrap_or_else(|| {
-                                    baml_compiler_hir::QualifiedName::local(enum_name.clone())
-                                });
-
                             // Store resolution for enum variant
                             ctx.set_expr_resolution(
                                 expr_id,
