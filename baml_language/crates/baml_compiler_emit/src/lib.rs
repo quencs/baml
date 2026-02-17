@@ -80,18 +80,6 @@ pub fn compile_files(
     db: &dyn baml_compiler_mir::Db,
     files: &[SourceFile],
 ) -> Result<Program, LoweringError> {
-    // Hidden LLM builtins (not exposed to users but used by compiler-generated code)
-    // These are in the #[hide] mod llm block and not included in builtins()
-    // Format: (path, arity)
-    const HIDDEN_LLM_BUILTINS: &[(&str, usize)] = &[
-        ("baml.llm.get_jinja_template", 1),
-        ("baml.llm.build_primitive_client", 5),
-        ("baml.llm.PrimitiveClient.render_prompt", 3),
-        ("baml.llm.get_client", 1),
-        ("baml.llm.resolve_client", 1),
-        ("baml.llm.round_robin_next", 1),
-    ];
-
     // Note: Builtin BAML files (like llm.baml) are now loaded at project setup time
     // in ProjectDatabase::set_project_root(), so they're already in the files list.
 
@@ -118,12 +106,6 @@ pub fn compile_files(
     let builtins = baml_builtins::builtins();
     for path in builtins {
         globals.insert(path.path.to_string(), global_idx);
-        global_idx += 1;
-    }
-
-    // Add hidden LLM builtins to globals
-    for (path, _) in HIDDEN_LLM_BUILTINS {
-        globals.insert((*path).to_string(), global_idx);
         global_idx += 1;
     }
 
@@ -370,36 +352,6 @@ pub fn compile_files(
             arity: builtin.arity(),
             bytecode: Bytecode::default(),
             kind,
-            locals_in_scope: Vec::new(),
-            span: baml_base::Span::fake(),
-            block_notifications: Vec::new(),
-            viz_nodes: Vec::new(),
-            return_type,
-            param_names: Vec::new(),
-            param_types: Vec::new(),
-            body_meta: None,
-        };
-        let fn_obj_idx = program.add_object(Object::Function(Box::new(builtin_fn)));
-        program.add_global(ConstValue::Object(ObjectIndex::from_raw(fn_obj_idx)));
-    }
-
-    // Add hidden LLM builtins to globals (these are external functions)
-    for (path, arity) in HIDDEN_LLM_BUILTINS {
-        let sys_op =
-            sys_op_for_builtin_path(path).expect("hidden LLM builtin must have SysOp mapping");
-        let return_type = baml_builtins::find_builtin_by_path(path)
-            .map(|sig| {
-                let tir_ty = baml_compiler_tir::builtins::substitute_unknown(&sig.returns);
-                baml_type::convert_tir_ty(&tir_ty, &type_aliases, &recursive_aliases)
-                    .and_then(baml_type::sanitize_for_runtime)
-                    .unwrap_or(baml_type::Ty::Null)
-            })
-            .unwrap_or(baml_type::Ty::Null);
-        let builtin_fn = Function {
-            name: (*path).to_string(),
-            arity: *arity,
-            bytecode: Bytecode::default(),
-            kind: FunctionKind::SysOp(sys_op),
             locals_in_scope: Vec::new(),
             span: baml_base::Span::fake(),
             block_notifications: Vec::new(),

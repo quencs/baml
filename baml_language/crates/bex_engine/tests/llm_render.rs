@@ -6,10 +6,9 @@
 //! 3. `render_prompt` correctly renders templates with arguments
 
 use baml_builtins::{PromptAst as BuiltinPromptAst, PromptAstSimple};
-use bex_engine::{EngineError, Ty};
+use bex_engine::Ty;
 use bex_external_types::BexExternalAdt;
 use bex_heap::{BexExternalValue, builtin_types::owned::LlmPrimitiveClient};
-use sys_types::{OpError, OpErrorKind, SysOp};
 
 #[tokio::test]
 async fn test_render_prompt_directly() {
@@ -386,35 +385,11 @@ function test_call_llm() -> unknown {
     // step: "LlmParseResponse SysOp not yet implemented"
     let result = engine.call_function("test_call_llm", vec![]).await;
 
-    match result {
-        Ok(value) => {
-            // Verify we got an error response without asserting exact upstream message
-            if let BexExternalValue::String(s) = &value {
-                assert!(s.contains("error"), "Expected error response, got: {s}");
-                assert!(
-                    s.contains("invalid_request_error") || s.contains("API key"),
-                    "Expected API key error, got: {s}"
-                );
-            } else {
-                panic!("Expected String result, got {value:?}");
-            }
-        }
-        Err(EngineError::ExternalOpFailed(OpError {
-            fn_name: SysOp::BamlHttpSend,
-            kind: OpErrorKind::Other(message),
-        })) if message.contains("HTTP request failed for") => {
-            // network failed
-        }
-        Err(EngineError::ExternalOpFailed(OpError {
-            fn_name: SysOp::BamlLlmPrimitiveClientParse,
-            kind: OpErrorKind::LlmClientError { message },
-        })) if message.contains("You didn't provide an API key.") => {
-            // this is ok, we had an API Error due to invalid API keys
-        }
-        Err(e) => {
-            panic!("test_call_llm failed: {e:?}");
-        }
-    }
+    // Without a valid API key, the orchestration loop will either:
+    // - Get a non-2xx response from OpenAI (ok() == false)
+    // - Get a network error (synthetic response with status_code=0)
+    // Either way, all steps fail and we hit `assert false`.
+    assert!(result.is_err(), "Expected error without valid API key");
 }
 
 #[tokio::test]
@@ -446,39 +421,13 @@ function test_call_llm() -> string {
     let engine =
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
-    // build_request now succeeds; this should panic at the next unimplemented
-    // step: "LlmParseResponse SysOp not yet implemented"
     let result = engine.call_function("test_call_llm", vec![]).await;
 
-    match result {
-        Ok(value) => {
-            // Verify we got an error response without asserting exact upstream message
-            if let BexExternalValue::String(s) = &value {
-                assert!(s.contains("error"), "Expected error response, got: {s}");
-                assert!(
-                    s.contains("invalid_request_error") || s.contains("API key"),
-                    "Expected API key error, got: {s}"
-                );
-            } else {
-                panic!("Expected String result, got {value:?}");
-            }
-        }
-        Err(EngineError::ExternalOpFailed(OpError {
-            fn_name: SysOp::BamlHttpSend,
-            kind: OpErrorKind::Other(message),
-        })) if message.contains("HTTP request failed for") => {
-            // network failed
-        }
-        Err(EngineError::ExternalOpFailed(OpError {
-            fn_name: SysOp::BamlLlmPrimitiveClientParse,
-            kind: OpErrorKind::LlmClientError { message },
-        })) if message.contains("You didn't provide an API key.") => {
-            // this is ok, we had an API Error due to invalid API keys
-        }
-        Err(e) => {
-            panic!("test_direct_llm_call failed: {e:?}");
-        }
-    }
+    // Without a valid API key, the orchestration loop will either:
+    // - Get a non-2xx response from OpenAI (ok() == false)
+    // - Get a network error (synthetic response with status_code=0)
+    // Either way, all steps fail and we hit `assert false`.
+    assert!(result.is_err(), "Expected error without valid API key");
 }
 
 #[tokio::test]
@@ -511,39 +460,13 @@ function test_call_llm() -> unknown {
     let engine =
         BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
 
-    // build_request now succeeds; this should panic at the next unimplemented
-    // step: "LlmParseResponse SysOp not yet implemented"
     let result = engine.call_function("test_call_llm", vec![]).await;
 
-    match result {
-        Ok(value) => {
-            panic!("test_call_llm should return an error: {value:?}");
-        }
-        Err(EngineError::ExternalOpFailed(OpError {
-            fn_name: SysOp::BamlHttpSend,
-            kind: OpErrorKind::Other(message),
-        })) if message.contains("HTTP request failed for") => {
-            // network failed
-        }
-        Err(EngineError::ExternalOpFailed(OpError {
-            fn_name: SysOp::BamlLlmPrimitiveClientParse,
-            kind: OpErrorKind::LlmClientError { message },
-        })) if message.contains("You didn't provide an API key.") => {
-            // this is ok, we had an API Error due to invalid API keys
-        }
-        Err(e) => {
-            assert!(
-                matches!(
-                    e,
-                    bex_engine::EngineError::ExternalOpFailed(sys_types::OpError {
-                        kind: sys_types::OpErrorKind::NotImplemented { message: _ },
-                        fn_name: SysOp::BamlLlmPrimitiveClientParse,
-                    })
-                ),
-                "Expected NotImplemented error, got {e}"
-            );
-        }
-    }
+    // Without a valid API key, the orchestration loop will either:
+    // - Get a non-2xx response from OpenAI (ok() == false)
+    // - Get a network error (synthetic response with status_code=0)
+    // Either way, all steps fail and we hit `assert false`.
+    assert!(result.is_err(), "Expected error without valid API key");
 }
 
 // ============================================================================
