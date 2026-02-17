@@ -2440,6 +2440,7 @@ fn validate_duplicate_names(db: &dyn Db, root: baml_workspace::Project) -> Vec<N
                 let item_tree = file_item_tree(db, file);
                 let local_id = loc.id(db);
                 let rp = &item_tree[local_id];
+                let name_key = item_name_key(db, file, &rp.name);
                 let span = get_item_name_span(
                     db,
                     file,
@@ -2449,14 +2450,7 @@ fn validate_duplicate_names(db: &dyn Db, root: baml_workspace::Project) -> Vec<N
                 )
                 .unwrap_or_else(|| Span::new(file.file_id(db), TextRange::empty(0.into())));
                 let path = file.path(db).display().to_string();
-                check_duplicate(
-                    &mut seen,
-                    &mut errors,
-                    rp.name.clone(),
-                    "retry_policy",
-                    span,
-                    path,
-                );
+                check_duplicate(&mut seen, &mut errors, name_key, "retry_policy", span, path);
             }
         }
     }

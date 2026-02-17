@@ -632,11 +632,11 @@ impl<T> SysOpLlm for T {
         client_name: String,
         ctx: &SysOpContext,
     ) -> SysOpOutput<i64> {
-        let counter = ctx
-            .round_robin_counters
-            .get(&client_name)
-            .cloned()
-            .unwrap_or_default();
+        let Some(counter) = ctx.round_robin_counters.get(&client_name).cloned() else {
+            return SysOpOutput::err(OpErrorKind::Other(format!(
+                "Round-robin counter not found for client: {client_name}"
+            )));
+        };
         let val = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         #[allow(clippy::cast_possible_wrap)]
         SysOpOutput::ok(val as i64)

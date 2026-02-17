@@ -47,6 +47,10 @@ function build_plan(c: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
 ///
 /// Duplicates the inner steps for each retry attempt, adding exponential
 /// backoff delays between attempts.
+///
+/// Note: the retry delay is applied uniformly to all steps within a retry
+/// attempt. This is intentional — the delay represents the backoff before
+/// re-attempting the entire inner sequence, not between individual sub-steps.
 function wrap_with_retry(inner: baml.llm.OrchestrationStep[], retry: baml.llm.RetryPolicy?) -> baml.llm.OrchestrationStep[] {
     match (retry) {
         null => inner,
