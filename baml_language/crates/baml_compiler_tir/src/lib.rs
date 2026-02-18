@@ -1856,7 +1856,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 if let Some(resolution) =
                     baml_compiler_hir::path_resolve::resolve_path(ctx.db, project, segments)
                 {
-                    use baml_compiler_hir::PathResolution;
+                    use baml_compiler_hir::path_resolve::PathResolution;
                     match resolution {
                         PathResolution::BuiltinFunction(qn) => {
                             ctx.set_expr_resolution(

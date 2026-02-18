@@ -99,7 +99,29 @@ use std::sync::OnceLock;
 use baml_base::{Name, Namespace, QualifiedName};
 use rustc_hash::FxHashMap;
 
-use crate::{Db, Definition, PathResolution, enum_variant_names, symbol_table::symbol_table};
+use crate::{Db, Definition, enum_variant_names, symbol_table::symbol_table};
+
+/// Result of resolving a multi-segment path expression at HIR level.
+///
+/// This captures name resolution results that don't require type information:
+/// - Builtin function paths (e.g., `baml.Array.length`)
+/// - BAML-defined function paths (e.g., `baml.llm.render_prompt`)
+/// - Enum variant paths (e.g., `Status.Active`, `baml.llm.ClientType.Primitive`)
+///
+/// Paths that require type information (variable + field chains like `obj.field`)
+/// are left unresolved and handled by TIR during type inference.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PathResolution {
+    /// Rust-implemented builtin function (e.g., `baml.Array.length`, `baml.sys.panic`).
+    BuiltinFunction(QualifiedName),
+    /// BAML-defined function in a namespace (e.g., `baml.llm.render_prompt`).
+    Function(QualifiedName),
+    /// Enum variant (e.g., `Status.Active`, `baml.llm.ClientType.Primitive`).
+    EnumVariant {
+        enum_fqn: QualifiedName,
+        variant: Name,
+    },
+}
 
 // ---------------------------------------------------------------------------
 // Static builtin scope tree
