@@ -278,19 +278,10 @@ impl ProjectDatabase {
     fn load_builtin_baml_files(&mut self) -> Vec<SourceFile> {
         let mut builtin_files = Vec::new();
 
-        // Load all builtin BAML sources by reading from disk
+        // Load all builtin BAML sources (disk read on native, embedded on WASM)
         for builtin_source in baml_builtins::baml_sources() {
-            let fs_path = builtin_source.fs_path();
-            let source = std::fs::read_to_string(&fs_path).unwrap_or_else(|e| {
-                panic!(
-                    "Failed to read builtin BAML source at {}: {}",
-                    fs_path.display(),
-                    e
-                )
-            });
-
             let path = PathBuf::from(builtin_source.path);
-            let file = self.add_file_internal(&path, source);
+            let file = self.add_file_internal(&path, builtin_source.source());
             let file_id = file.file_id(self);
 
             // Register in file_id_to_path for diagnostic filename display

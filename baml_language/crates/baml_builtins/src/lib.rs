@@ -791,7 +791,10 @@ mod tests {
 ///
 /// These files are compiled together with user code and provide
 /// implementations for builtin namespaces like `baml.llm`.
-/// Source is read from disk at runtime rather than embedded in the binary.
+///
+/// On native targets, source is read from disk at runtime to avoid bloating
+/// the binary. On WASM, source is embedded via `include_str!` since filesystem
+/// access is not available.
 ///
 /// # Structure
 ///
@@ -799,12 +802,17 @@ mod tests {
 /// - `baml/llm.baml` -> `baml.llm` namespace
 pub mod baml_sources {
     /// Compile-time path to the `baml_builtins` crate directory.
-    /// Used to locate .baml source files on disk.
+    /// Used to locate .baml source files on disk (native only).
     ///
     /// TODO: This needs to be parametrizable. The stdlib will eventually live on the
     /// user's machine (not baked into the binary), so the consumer (e.g. db.rs) should
     /// be able to pass in a custom stdlib path instead of relying on `CARGO_MANIFEST_DIR`.
+    #[cfg(not(target_arch = "wasm32"))]
     pub const BUILTINS_CRATE_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+    /// Embedded source for WASM targets (no filesystem access).
+    #[cfg(target_arch = "wasm32")]
+    const LLM_EMBEDDED: &str = include_str!("../baml/llm.baml");
 
     /// A builtin BAML source file with its namespace.
     #[derive(Debug, Clone)]
@@ -825,9 +833,29 @@ pub mod baml_sources {
     }];
 
     impl BuiltinSource {
-        /// Get the absolute filesystem path to this source file.
-        pub fn fs_path(&self) -> std::path::PathBuf {
-            std::path::Path::new(BUILTINS_CRATE_DIR).join(self.relative_path)
+        /// Load the BAML source code for this builtin.
+        ///
+        /// On native: reads from disk using `BUILTINS_CRATE_DIR`.
+        /// On WASM: returns the embedded source.
+        pub fn source(&self) -> String {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let fs_path = std::path::Path::new(BUILTINS_CRATE_DIR).join(self.relative_path);
+                std::fs::read_to_string(&fs_path).unwrap_or_else(|e| {
+                    panic!(
+                        "Failed to read builtin BAML source at {}: {}",
+                        fs_path.display(),
+                        e
+                    )
+                })
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                match self.relative_path {
+                    "baml/llm.baml" => LLM_EMBEDDED.to_string(),
+                    _ => panic!("Unknown builtin source: {}", self.relative_path),
+                }
+            }
         }
     }
 }
