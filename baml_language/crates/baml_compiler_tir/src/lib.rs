@@ -1850,94 +1850,68 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     Ty::Unknown
                 }
             } else {
-                // Multi-segment path: could be:
-                // 1. A native builtin function (e.g., baml.Array.length)
-                // 2. A BAML-defined function in a namespace (e.g., baml.llm.render_prompt)
-                // 3. An enum variant (e.g., Status.Active)
-                // 4. A variable followed by field accesses (e.g., obj.field)
-
-                // First, check if this is a native builtin function path
-                let full_path = segments
-                    .iter()
-                    .map(smol_str::SmolStr::as_str)
-                    .collect::<Vec<_>>()
-                    .join(".");
-                if let Some(def) = builtins::lookup_builtin_by_path(&full_path) {
-                    // Store resolution for builtin function
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::BuiltinFunction(
-                            baml_base::QualifiedName::from_builtin_path(def.path),
-                        ),
-                    );
-
-                    // It's a builtin function - return its function type
-                    let mut param_types: Vec<(Option<Name>, Ty)> = Vec::new();
-                    if let Some(ref receiver_pattern) = def.receiver {
-                        param_types.push((None, builtins::substitute_unknown(receiver_pattern)));
-                    }
-                    for (param_name, pattern) in &def.params {
-                        param_types.push((
-                            Some(Name::new(*param_name)),
-                            builtins::substitute_unknown(pattern),
-                        ));
-                    }
-                    let return_type = builtins::substitute_unknown(&def.returns);
-                    return Ty::Function {
-                        params: param_types,
-                        ret: Box::new(return_type),
-                    };
-                }
-
-                // Check if this is a BAML-defined function in a namespace (e.g., baml.llm.render_prompt)
-                // These are stored in globals with their qualified name as the key
-                let path_name = Name::new(&full_path);
-                if let Some(func_ty) = ctx.lookup(&path_name).cloned() {
-                    // Found a function in globals with this qualified name
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::Function(baml_base::QualifiedName::from_path_segments(
-                            &segments.clone(),
-                        )),
-                    );
-                    return func_ty;
-                }
-
-                // Check if this is an enum variant (e.g., Status.Active or baml.llm.ClientType.Primitive)
-                // The last segment is the variant name, everything before it is the enum name.
-                if segments.len() >= 2 {
-                    let variant_name = segments.last().unwrap();
-                    let enum_fqn =
-                        QualifiedName::from_path_segments(&segments[..segments.len() - 1]);
-                    let enum_name = enum_fqn.display_name();
-
-                    if let Some(variants) = ctx.lookup_enum_variants(&enum_name) {
-                        if variants.contains(variant_name) {
-                            // Store resolution for enum variant
+                // Multi-segment path: use HIR name resolution first, then
+                // fall back to variable + field access chain for unresolved paths.
+                let project = ctx.db.project();
+                if let Some(resolution) =
+                    baml_compiler_hir::path_resolve::resolve_path(ctx.db, project, segments)
+                {
+                    use baml_compiler_hir::PathResolution;
+                    match resolution {
+                        PathResolution::BuiltinFunction(qn) => {
+                            ctx.set_expr_resolution(
+                                expr_id,
+                                ResolvedValue::BuiltinFunction(qn.clone()),
+                            );
+                            // Look up builtin signature and compute function type
+                            let full_path = qn.display();
+                            if let Some(def) = builtins::lookup_builtin_by_path(full_path.as_str())
+                            {
+                                let mut param_types: Vec<(Option<Name>, Ty)> = Vec::new();
+                                if let Some(ref receiver_pattern) = def.receiver {
+                                    param_types.push((
+                                        None,
+                                        builtins::substitute_unknown(receiver_pattern),
+                                    ));
+                                }
+                                for (param_name, pattern) in &def.params {
+                                    param_types.push((
+                                        Some(Name::new(*param_name)),
+                                        builtins::substitute_unknown(pattern),
+                                    ));
+                                }
+                                let return_type = builtins::substitute_unknown(&def.returns);
+                                return Ty::Function {
+                                    params: param_types,
+                                    ret: Box::new(return_type),
+                                };
+                            }
+                            return Ty::Unknown;
+                        }
+                        PathResolution::Function(qn) => {
+                            ctx.set_expr_resolution(expr_id, ResolvedValue::Function(qn.clone()));
+                            let path_name = qn.display_name();
+                            if let Some(func_ty) = ctx.lookup(&path_name).cloned() {
+                                return func_ty;
+                            }
+                            return Ty::Unknown;
+                        }
+                        PathResolution::EnumVariant { enum_fqn, variant } => {
                             ctx.set_expr_resolution(
                                 expr_id,
                                 ResolvedValue::EnumVariant {
                                     enum_fqn: enum_fqn.clone(),
-                                    variant: variant_name.clone(),
+                                    variant: variant.clone(),
                                 },
                             );
-
-                            // This is a valid enum variant - record it and return the enum type
-                            ctx.enum_variant_exprs
-                                .insert(expr_id, (enum_name.clone(), variant_name.clone()));
+                            let enum_name = enum_fqn.display_name();
+                            ctx.enum_variant_exprs.insert(expr_id, (enum_name, variant));
                             return Ty::Enum(enum_fqn);
                         }
-                        // Enum exists but variant doesn't
-                        ctx.push_error(TypeError::UnknownEnumVariant {
-                            enum_name: enum_name.to_string(),
-                            variant_name: variant_name.to_string(),
-                            location,
-                        });
-                        return Ty::Unknown;
                     }
                 }
 
-                // Otherwise, treat as variable + field accesses
+                // Unresolved: treat as variable + field accesses
                 let first = &segments[0];
                 let mut ty = if let Some(t) = ctx.lookup(first) {
                     t.clone()

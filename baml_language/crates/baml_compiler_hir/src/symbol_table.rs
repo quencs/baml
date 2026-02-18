@@ -181,9 +181,7 @@ pub fn symbol_table<'db>(
                 types.insert(fqn, Definition::Class(*loc));
             }
             ItemId::Enum(loc) => {
-                let item_tree = file_item_tree(db, loc.file(db));
-                let enum_def = &item_tree[loc.id(db)];
-                let fqn = QualifiedName::local(enum_def.name.clone());
+                let fqn = crate::enum_qualified_name(db, *loc);
                 types.insert(fqn, Definition::Enum(*loc));
             }
             ItemId::TypeAlias(loc) => {
@@ -193,9 +191,7 @@ pub fn symbol_table<'db>(
                 types.insert(fqn, Definition::TypeAlias(*loc));
             }
             ItemId::Function(loc) => {
-                let item_tree = file_item_tree(db, loc.file(db));
-                let func = &item_tree[loc.id(db)];
-                let fqn = QualifiedName::local(func.name.clone());
+                let fqn = crate::function_qualified_name(db, *loc);
                 values.insert(fqn, Definition::Function(*loc));
             }
             ItemId::TemplateString(loc) => {

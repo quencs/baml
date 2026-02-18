@@ -3,15 +3,35 @@
 //! The CST already distinguishes `LLM_FUNCTION_BODY` from `EXPR_FUNCTION_BODY`,
 //! so we just need to lower each type appropriately.
 
-use std::sync::Arc;
-
-use baml_base::{FileId, Span};
+use baml_base::{FileId, QualifiedName, Span};
 use baml_compiler_diagnostics::HirDiagnostic;
 use baml_compiler_syntax::TypeExpr;
 use la_arena::{Arena, Idx};
 use rowan::{TextRange, TextSize, ast::AstNode};
 
 use crate::{Name, source_map::HirSourceMap, type_ref::TypeRef};
+
+/// Result of resolving a multi-segment path expression at HIR level.
+///
+/// This captures name resolution results that don't require type information:
+/// - Builtin function paths (e.g., `baml.Array.length`)
+/// - BAML-defined function paths (e.g., `baml.llm.render_prompt`)
+/// - Enum variant paths (e.g., `Status.Active`, `baml.llm.ClientType.Primitive`)
+///
+/// Paths that require type information (variable + field chains like `obj.field`)
+/// are left unresolved and handled by TIR during type inference.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PathResolution {
+    /// Rust-implemented builtin function (e.g., `baml.Array.length`, `baml.sys.panic`).
+    BuiltinFunction(QualifiedName),
+    /// BAML-defined function in a namespace (e.g., `baml.llm.render_prompt`).
+    Function(QualifiedName),
+    /// Enum variant (e.g., `Status.Active`, `baml.llm.ClientType.Primitive`).
+    EnumVariant {
+        enum_fqn: QualifiedName,
+        variant: Name,
+    },
+}
 
 /// Create a `PrimitiveClient` body for clients with no options block.
 ///
@@ -615,7 +635,7 @@ impl FunctionBody {
     pub fn lower(
         func_node: &baml_compiler_syntax::ast::FunctionDef,
         file_id: FileId,
-    ) -> Arc<FunctionBody> {
+    ) -> FunctionBody {
         // Collect parameter names to add to scope so gensym avoids them
         let param_names: Vec<String> = func_node
             .param_list()
@@ -628,12 +648,12 @@ impl FunctionBody {
 
         // Check which body type we have
         if let Some(llm_body) = func_node.llm_body() {
-            Arc::new(Self::lower_llm_body(&llm_body))
+            Self::lower_llm_body(&llm_body)
         } else if let Some(expr_body) = func_node.expr_body() {
             let (body, source_map) = Self::lower_expr_body(&expr_body, file_id, &param_names);
-            Arc::new(FunctionBody::Expr(body, source_map))
+            FunctionBody::Expr(body, source_map)
         } else {
-            Arc::new(FunctionBody::Missing)
+            FunctionBody::Missing
         }
     }
 

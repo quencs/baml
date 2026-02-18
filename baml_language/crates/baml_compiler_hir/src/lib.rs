@@ -33,6 +33,7 @@ mod ids;
 mod item_tree;
 mod loc;
 mod path;
+pub mod path_resolve;
 pub mod pretty;
 pub mod reserved_names;
 mod signature;
@@ -373,6 +374,38 @@ pub fn class_qualified_name<'db>(db: &'db dyn Db, class: ClassLoc<'db>) -> Quali
         namespace,
         name: class_def.name.clone(),
     }
+}
+
+/// Returns the qualified name of an enum.
+///
+/// Mirrors `class_qualified_name` — enums in builtin BAML files
+/// get `baml.llm.*` names, user enums get local names.
+#[salsa::tracked]
+pub fn enum_qualified_name<'db>(db: &'db dyn Db, enum_loc: EnumLoc<'db>) -> QualifiedName {
+    let file = enum_loc.file(db);
+    let item_tree = file_item_tree(db, file);
+    let enum_def = &item_tree[enum_loc.id(db)];
+
+    let namespace = file_namespace(db, file).unwrap_or(Namespace::Local);
+    QualifiedName {
+        namespace,
+        name: enum_def.name.clone(),
+    }
+}
+
+/// Returns the set of variant names for an enum.
+///
+/// Per-enum Salsa query — only invalidated when that enum's file changes.
+/// Used by path resolution so that modifying one enum doesn't force
+/// re-resolution of paths involving other enums.
+#[salsa::tracked(returns(ref))]
+pub fn enum_variant_names<'db>(
+    db: &'db dyn Db,
+    enum_loc: EnumLoc<'db>,
+) -> rustc_hash::FxHashSet<Name> {
+    let item_tree = file_item_tree(db, enum_loc.file(db));
+    let enum_data = &item_tree[enum_loc.id(db)];
+    enum_data.variants.iter().map(|v| v.name.clone()).collect()
 }
 
 /// Internal helper that computes both signature and source map together.
@@ -1067,6 +1100,11 @@ pub fn list_function_names(db: &dyn Db, root: baml_workspace::Project) -> Vec<(S
 /// Can't we keep a hash map from `FunctionLoc` to `FunctionBody`?
 #[salsa::tracked]
 pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<FunctionBody> {
+    Arc::new(build_function_body(db, function))
+}
+
+/// Build a function body (pure syntactic lowering, no name resolution).
+fn build_function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> FunctionBody {
     let file = function.file(db);
     let item_tree = file_item_tree(db, file);
     let func = &item_tree[function.id(db)];
@@ -1138,7 +1176,7 @@ pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<Fu
                                 &default_role,
                                 &allowed_roles,
                             );
-                        return Arc::new(FunctionBody::Expr(body, source_map));
+                        return FunctionBody::Expr(body, source_map);
                     }
                 }
             }
@@ -1151,7 +1189,7 @@ pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<Fu
                 &default_role,
                 &allowed_roles,
             );
-            return Arc::new(FunctionBody::Expr(body, source_map));
+            return FunctionBody::Expr(body, source_map);
         }
     }
 
@@ -1165,7 +1203,7 @@ pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<Fu
         let param_names: Vec<Name> = sig.params.iter().map(|p| p.name.clone()).collect();
         let (expr_body, source_map) =
             body::lower_llm_to_call_llm_function(func_name.as_str(), &param_names);
-        return Arc::new(FunctionBody::Expr(expr_body, source_map));
+        return FunctionBody::Expr(expr_body, source_map);
     }
 
     // Regular function - find it in the source file
@@ -1202,9 +1240,7 @@ pub fn function_body<'db>(db: &'db dyn Db, function: FunctionLoc<'db>) -> Arc<Fu
 
     // Lower the function with file_id for span tracking.
     let file_id = file.file_id(db);
-    function_def.map_or(Arc::new(FunctionBody::Missing), |f| {
-        FunctionBody::lower(&f, file_id)
-    })
+    function_def.map_or(FunctionBody::Missing, |f| FunctionBody::lower(&f, file_id))
 }
 
 /// Returns `true` if this function is an LLM function (has `CompilerGenerated::LlmFunction` marker).
