@@ -197,8 +197,6 @@ pub struct GetTraceChildrenRequest {
 pub struct GetTraceChildrenResponse {
     // The function_call_id of the parent function call
     pub function_call_id: String,
-    // The function_call details of the parent function call
-    pub function_call: ui_types::UiFunctionCall,
     // The children of the parent function call
     pub children: Vec<TraceCall>,
     // Breadcrumb trail
