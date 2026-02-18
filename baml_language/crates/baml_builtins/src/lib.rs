@@ -787,55 +787,52 @@ mod tests {
 // Embedded BAML Builtin Files
 // ============================================================================
 
-/// Embedded BAML source files for built-in functions.
+/// Builtin BAML source files for built-in functions.
 ///
 /// These files are compiled together with user code and provide
 /// implementations for builtin namespaces like `baml.llm`.
+/// Source is read from disk at runtime rather than embedded in the binary.
 ///
 /// # Structure
 ///
 /// Files are organized by namespace:
 /// - `baml/llm.baml` -> `baml.llm` namespace
-///
-/// # Usage
-///
-/// ```ignore
-/// for (namespace, source) in baml_builtins::baml_sources() {
-///     // Add source to compilation context
-///     compiler.add_builtin(namespace, source);
-/// }
-/// ```
 pub mod baml_sources {
-    /// The BAML source for the `baml.llm` namespace.
+    /// Compile-time path to the `baml_builtins` crate directory.
+    /// Used to locate .baml source files on disk.
     ///
-    /// Contains the `render_prompt` orchestrator function.
-    pub const LLM: &str = include_str!("../baml/llm.baml");
+    /// TODO: This needs to be parametrizable. The stdlib will eventually live on the
+    /// user's machine (not baked into the binary), so the consumer (e.g. db.rs) should
+    /// be able to pass in a custom stdlib path instead of relying on `CARGO_MANIFEST_DIR`.
+    pub const BUILTINS_CRATE_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
     /// A builtin BAML source file with its namespace.
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone)]
     pub struct BuiltinSource {
         /// The namespace this file provides (e.g., "baml.llm").
         pub namespace: &'static str,
         /// The virtual file path for diagnostics (e.g., `<builtin>/baml/llm.baml`).
         pub path: &'static str,
-        /// The BAML source code.
-        pub source: &'static str,
+        /// The relative path from `BUILTINS_CRATE_DIR` to the .baml file.
+        pub relative_path: &'static str,
     }
 
     /// All builtin BAML sources.
-    ///
-    /// These should be added to the compilation context before user code.
     pub const ALL: &[BuiltinSource] = &[BuiltinSource {
         namespace: "baml.llm",
         path: "<builtin>/baml/llm.baml",
-        source: LLM,
+        relative_path: "baml/llm.baml",
     }];
+
+    impl BuiltinSource {
+        /// Get the absolute filesystem path to this source file.
+        pub fn fs_path(&self) -> std::path::PathBuf {
+            std::path::Path::new(BUILTINS_CRATE_DIR).join(self.relative_path)
+        }
+    }
 }
 
 /// Get all builtin BAML sources.
-///
-/// Returns an iterator over all embedded BAML files that should be
-/// compiled as part of the builtin library.
 pub fn baml_sources() -> impl Iterator<Item = &'static baml_sources::BuiltinSource> {
     baml_sources::ALL.iter()
 }
