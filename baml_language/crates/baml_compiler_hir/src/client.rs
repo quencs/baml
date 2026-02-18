@@ -159,6 +159,13 @@ pub(crate) fn lower_client(
                                         })
                                     {
                                         sub_client_names.push(Name::new(word.text()));
+                                    } else {
+                                        ctx.push_diagnostic(
+                                            HirDiagnostic::InvalidStrategyElement {
+                                                client_name: client_name.clone(),
+                                                span: ctx.span(element.text_range()),
+                                            },
+                                        );
                                     }
                                 }
                             }

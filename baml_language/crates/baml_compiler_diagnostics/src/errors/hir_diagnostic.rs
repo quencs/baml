@@ -182,6 +182,9 @@ pub enum HirDiagnostic {
         span: Span,
     },
 
+    /// Strategy array element is not a valid client name.
+    InvalidStrategyElement { client_name: String, span: Span },
+
     // ============ Syntax Diagnostics ============
     /// Statement missing required semicolon.
     /// In Rust-style blocks, all statements except the final expression need semicolons.

@@ -175,8 +175,13 @@ fn insert_leaf(node: &mut FxHashMap<String, BuiltinNode>, parts: &[&str], leaf: 
         let child = node
             .entry(parts[0].to_string())
             .or_insert_with(|| BuiltinNode::Namespace(FxHashMap::default()));
-        if let BuiltinNode::Namespace(children) = child {
-            insert_leaf(children, &parts[1..], leaf);
+        match child {
+            BuiltinNode::Namespace(children) => insert_leaf(children, &parts[1..], leaf),
+            _ => debug_assert!(
+                false,
+                "Path conflict: {} is not a namespace but has child path",
+                parts[0]
+            ),
         }
     }
 }
