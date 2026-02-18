@@ -63,14 +63,11 @@ impl BexEngine {
             Object::String(s) => Ok(BexExternalValue::String(s.clone())),
 
             Object::Array(arr) => {
-                // Get element type from declared type
+                // Get element type from declared type, falling back to Null when
+                // the declared type doesn't resolve (e.g., builtin class arrays)
                 let element_type = match effective_type {
                     Ty::List(elem_ty) => elem_ty.as_ref(),
-                    other => {
-                        return Err(EngineError::TypeMismatch {
-                            message: format!("VM has Array but declared type is {other:?}"),
-                        });
-                    }
+                    _ => &Ty::Null,
                 };
 
                 let items: Result<Vec<_>, _> = arr
@@ -84,14 +81,11 @@ impl BexEngine {
             }
 
             Object::Map(map) => {
-                // Get key and value types from declared type
+                // Get key and value types from declared type, falling back to
+                // Null when the declared type doesn't resolve
                 let (key_type, value_type) = match effective_type {
                     Ty::Map { key, value } => (key.as_ref(), value.as_ref()),
-                    other => {
-                        return Err(EngineError::TypeMismatch {
-                            message: format!("VM has Map but declared type is {other:?}"),
-                        });
-                    }
+                    _ => (&Ty::String, &Ty::Null),
                 };
 
                 let entries: Result<indexmap::IndexMap<String, BexExternalValue>, EngineError> =
@@ -266,8 +260,25 @@ impl BexEngine {
                 }
                 vm.alloc_instance(*class_ptr, values)
             }
-            BexExternalValue::Variant { .. } => {
-                panic!("Unexpected Variant from sys op")
+            BexExternalValue::Variant {
+                enum_name,
+                variant_name,
+            } => {
+                let enum_ptr = self.resolved_enum_names.get(&enum_name).unwrap_or_else(|| {
+                    panic!("Enum '{enum_name}' not found in resolved_enum_names")
+                });
+                #[allow(unsafe_code)]
+                let bex_vm_types::Object::Enum(enum_obj) = (unsafe { enum_ptr.get() }) else {
+                    panic!("Expected Object::Enum for '{enum_name}'");
+                };
+                let index = enum_obj
+                    .variants
+                    .iter()
+                    .position(|v| v.name == variant_name)
+                    .unwrap_or_else(|| {
+                        panic!("Variant '{variant_name}' not found in enum '{enum_name}'")
+                    });
+                vm.alloc_variant(*enum_ptr, index)
             }
             BexExternalValue::Union { value, .. } => {
                 self.convert_external_to_vm_value(vm, *value, guard)

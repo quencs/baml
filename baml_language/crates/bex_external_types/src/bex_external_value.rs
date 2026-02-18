@@ -283,6 +283,18 @@ impl AsBexExternalValue for () {
     }
 }
 
+impl AsBexExternalValue for i64 {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::Int(self)
+    }
+}
+
+impl AsBexExternalValue for f64 {
+    fn into_bex_external_value(self) -> BexExternalValue {
+        BexExternalValue::Float(self)
+    }
+}
+
 impl AsBexExternalValue for String {
     fn into_bex_external_value(self) -> BexExternalValue {
         BexExternalValue::String(self)

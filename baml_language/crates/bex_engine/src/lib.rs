@@ -264,6 +264,8 @@ pub struct BexEngine {
     resolved_function_names: HashMap<String, (HeapPtr, bex_vm_types::FunctionKind)>,
     /// Resolved class names for instance allocation
     resolved_class_names: HashMap<String, HeapPtr>,
+    /// Resolved enum names for variant allocation
+    resolved_enum_names: HashMap<String, HeapPtr>,
     /// System operations provider.
     sys_ops: sys_types::SysOps,
     /// Context passed to `sys_ops` that need engine-level information.
@@ -283,6 +285,24 @@ pub struct BexEngine {
     /// Flag indicating GC is currently in progress.
     /// Used to prevent handle resolution races.
     gc_in_progress: AtomicBool,
+}
+
+#[cfg(target_arch = "wasm32")]
+fn default_round_robin_start() -> usize {
+    // Keep wasm deterministic for tooling (matches legacy behavior).
+    0
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn default_round_robin_start() -> usize {
+    use std::time::UNIX_EPOCH;
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
+    #[allow(clippy::cast_possible_truncation)]
+    {
+        nanos as usize
+    }
 }
 
 impl BexEngine {
@@ -306,14 +326,26 @@ impl BexEngine {
         // Extract compile-time objects for the heap
         let compile_time_objects: Vec<Object> = bytecode.objects.into_iter().collect();
 
-        // Pre-compute class indices before moving objects to heap.
-        // This is used for allocating instances from sys-op results.
+        // Pre-compute class and enum indices before moving objects to heap.
+        // This is used for allocating instances/variants from sys-op results.
         let class_indices: Vec<(String, usize)> = compile_time_objects
             .iter()
             .enumerate()
             .filter_map(|(idx, obj)| {
                 if let Object::Class(class) = obj {
                     Some((class.name.clone(), idx))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let enum_indices: Vec<(String, usize)> = compile_time_objects
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, obj)| {
+                if let Object::Enum(enm) = obj {
+                    Some((enm.name.clone(), idx))
                 } else {
                     None
                 }
@@ -340,6 +372,12 @@ impl BexEngine {
             .map(|(name, idx)| (name, heap.compile_time_ptr(idx)))
             .collect();
 
+        // Build enum name lookup table from pre-computed indices.
+        let resolved_enum_names: HashMap<String, HeapPtr> = enum_indices
+            .into_iter()
+            .map(|(name, idx)| (name, heap.compile_time_ptr(idx)))
+            .collect();
+
         // Convert compile-time globals (ConstValue) to runtime globals (Value).
         // Object references are converted from ObjectIndex to HeapPtr.
         let globals_vec: Vec<Value> = bytecode
@@ -353,10 +391,71 @@ impl BexEngine {
         // This avoids passing raw HeapPtrs to sys_ops.
         let llm_functions = Self::extract_llm_function_info(&resolved_function_names);
 
+        // Convert compile-time client metadata to runtime format.
+        let client_metadata: std::collections::HashMap<String, sys_types::ClientBuildMeta> =
+            bytecode
+                .client_metadata
+                .into_iter()
+                .map(|(name, meta)| {
+                    let client_type = match meta.client_type {
+                        bex_vm_types::ClientBuildType::Primitive => {
+                            bex_heap::builtin_types::owned::LlmClientType::Primitive
+                        }
+                        bex_vm_types::ClientBuildType::Fallback => {
+                            bex_heap::builtin_types::owned::LlmClientType::Fallback
+                        }
+                        bex_vm_types::ClientBuildType::RoundRobin => {
+                            bex_heap::builtin_types::owned::LlmClientType::RoundRobin
+                        }
+                    };
+                    let retry_policy = meta.retry_policy.map(|rp| {
+                        bex_heap::builtin_types::owned::LlmRetryPolicy {
+                            max_retries: rp.max_retries,
+                            initial_delay_ms: rp.initial_delay_ms,
+                            multiplier: rp.multiplier,
+                            max_delay_ms: rp.max_delay_ms,
+                        }
+                    });
+                    (
+                        name,
+                        sys_types::ClientBuildMeta {
+                            client_type,
+                            sub_client_names: meta.sub_client_names,
+                            retry_policy,
+                            round_robin_start: meta
+                                .round_robin_start
+                                .and_then(|start| usize::try_from(start).ok()),
+                        },
+                    )
+                })
+                .collect();
+
+        // Build round-robin counters for composite clients.
+        let round_robin_counters = client_metadata
+            .iter()
+            .filter(|(_, meta)| {
+                matches!(
+                    meta.client_type,
+                    bex_heap::builtin_types::owned::LlmClientType::RoundRobin
+                )
+            })
+            .map(|(name, meta)| {
+                let start = meta
+                    .round_robin_start
+                    .unwrap_or_else(default_round_robin_start);
+                (
+                    name.clone(),
+                    std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(start)),
+                )
+            })
+            .collect();
+
         let sys_op_ctx = sys_types::SysOpContext {
             llm_functions,
             function_global_indices: bytecode.function_global_indices,
             template_strings_macros: bytecode.template_strings_macros,
+            client_metadata,
+            round_robin_counters,
         };
 
         Ok(Self {
@@ -364,6 +463,7 @@ impl BexEngine {
             globals,
             resolved_function_names,
             resolved_class_names,
+            resolved_enum_names,
             sys_ops,
             sys_op_ctx,
             // Initialize epoch tracking

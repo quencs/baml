@@ -804,6 +804,14 @@ impl CompilerRunner {
                             writeln!(output).ok();
                             output_annotated.push((String::new(), LineStatus::Unknown));
                         }
+                        ItemId::RetryPolicy(rp_loc) => {
+                            let rp = &item_tree[rp_loc.id(&self.db)];
+                            let line = format!("retry_policy {}", rp.name);
+                            writeln!(output, "{line}").ok();
+                            output_annotated.push((line, status));
+                            writeln!(output).ok();
+                            output_annotated.push((String::new(), LineStatus::Unknown));
+                        }
                     }
                 }
             }

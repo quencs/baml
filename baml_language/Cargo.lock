@@ -421,6 +421,7 @@ name = "baml_compiler_hir"
 version = "0.0.0"
 dependencies = [
  "baml_base",
+ "baml_builtins",
  "baml_compiler_diagnostics",
  "baml_compiler_parser",
  "baml_compiler_syntax",

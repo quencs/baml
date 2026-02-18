@@ -44,6 +44,43 @@ pub struct Program {
     /// Pre-formatted Jinja `{% macro %}` definitions for all `template_strings`.
     /// Prepended to function prompt templates by `get_jinja_template`.
     pub template_strings_macros: String,
+
+    /// Client build metadata for constructing full client trees at runtime.
+    /// Keyed by client name.
+    pub client_metadata: HashMap<String, ClientBuildMeta>,
+}
+
+/// Metadata for building a client tree at runtime.
+///
+/// Stored on `Program` during compilation, transferred to `SysOpContext` during engine construction.
+#[derive(Debug, Clone, Default)]
+pub struct ClientBuildMeta {
+    /// Provider type mapped to client type enum.
+    pub client_type: ClientBuildType,
+    /// Sub-client names (for composite clients).
+    pub sub_client_names: Vec<String>,
+    /// Retry policy metadata, if specified.
+    pub retry_policy: Option<RetryPolicyMeta>,
+    /// Optional round-robin start index (`options { start ... }`).
+    pub round_robin_start: Option<i32>,
+}
+
+/// Client type for build metadata (mirrors runtime `LlmClientType`).
+#[derive(Debug, Clone, Default)]
+pub enum ClientBuildType {
+    #[default]
+    Primitive,
+    Fallback,
+    RoundRobin,
+}
+
+/// Retry policy metadata stored at compile time.
+#[derive(Debug, Clone)]
+pub struct RetryPolicyMeta {
+    pub max_retries: i64,
+    pub initial_delay_ms: i64,
+    pub multiplier: f64,
+    pub max_delay_ms: i64,
 }
 
 impl Program {

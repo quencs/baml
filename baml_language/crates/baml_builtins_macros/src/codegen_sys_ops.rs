@@ -286,6 +286,9 @@ fn sys_op_extract_one(
 ) -> TokenStream2 {
     match type_name {
         "String" => quote!(#arg_ident.as_string(&__p).cloned()?),
+        "i64" => quote!(#arg_ident.as_int()?),
+        "f64" => quote!(#arg_ident.as_float()?),
+        "bool" => quote!(#arg_ident.as_bool()?),
         _ if builtin_types.contains_key(type_name) && type_name != "PromptAst" => {
             let full_path = builtin_types
                 .get(type_name)

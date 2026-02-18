@@ -79,6 +79,7 @@ pub(crate) fn type_to_pattern(
     ty: &Type,
     generic_params: &[String],
     builtin_types: &HashMap<String, String>,
+    builtin_enums: &HashMap<String, String>,
 ) -> TokenStream2 {
     match ty {
         Type::Path(type_path) => {
@@ -104,8 +105,12 @@ pub(crate) fn type_to_pattern(
                 "Option" => {
                     if let PathArguments::AngleBracketed(args) = &segment.arguments {
                         if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            let inner_pattern =
-                                type_to_pattern(inner, generic_params, builtin_types);
+                            let inner_pattern = type_to_pattern(
+                                inner,
+                                generic_params,
+                                builtin_types,
+                                builtin_enums,
+                            );
                             return quote!(TypePattern::Optional(Box::new(#inner_pattern)));
                         }
                     }
@@ -114,8 +119,12 @@ pub(crate) fn type_to_pattern(
                 "Array" => {
                     if let PathArguments::AngleBracketed(args) = &segment.arguments {
                         if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            let inner_pattern =
-                                type_to_pattern(inner, generic_params, builtin_types);
+                            let inner_pattern = type_to_pattern(
+                                inner,
+                                generic_params,
+                                builtin_types,
+                                builtin_enums,
+                            );
                             return quote!(TypePattern::Array(Box::new(#inner_pattern)));
                         }
                     }
@@ -133,7 +142,9 @@ pub(crate) fn type_to_pattern(
                                     None
                                 }
                             })
-                            .map(|t| type_to_pattern(t, generic_params, builtin_types))
+                            .map(|t| {
+                                type_to_pattern(t, generic_params, builtin_types, builtin_enums)
+                            })
                             .unwrap_or_else(|| quote!(TypePattern::String));
                         let value = iter
                             .next()
@@ -144,7 +155,9 @@ pub(crate) fn type_to_pattern(
                                     None
                                 }
                             })
-                            .map(|t| type_to_pattern(t, generic_params, builtin_types))
+                            .map(|t| {
+                                type_to_pattern(t, generic_params, builtin_types, builtin_enums)
+                            })
                             .unwrap_or_else(|| quote!(TypePattern::Null));
                         return quote!(TypePattern::Map {
                             key: Box::new(#key),
@@ -157,7 +170,11 @@ pub(crate) fn type_to_pattern(
                     })
                 }
                 _ => {
-                    // Check if it's a builtin type
+                    // Check if it's a builtin enum
+                    if let Some(full_path) = builtin_enums.get(&ident_str) {
+                        return quote!(TypePattern::Enum(#full_path));
+                    }
+                    // Check if it's a builtin type (struct)
                     if let Some(full_path) = builtin_types.get(&ident_str) {
                         return quote!(TypePattern::Builtin(#full_path));
                     }
@@ -174,11 +191,13 @@ pub(crate) fn type_to_pattern(
             let params: Vec<TokenStream2> = fn_ty
                 .inputs
                 .iter()
-                .map(|arg| type_to_pattern(&arg.ty, generic_params, builtin_types))
+                .map(|arg| type_to_pattern(&arg.ty, generic_params, builtin_types, builtin_enums))
                 .collect();
             let ret = match &fn_ty.output {
                 ReturnType::Default => quote!(TypePattern::Null),
-                ReturnType::Type(_, ty) => type_to_pattern(ty, generic_params, builtin_types),
+                ReturnType::Type(_, ty) => {
+                    type_to_pattern(ty, generic_params, builtin_types, builtin_enums)
+                }
             };
             quote!(TypePattern::Function {
                 params: vec![#(#params),*],

@@ -15,7 +15,8 @@
 use std::collections::{HashMap, HashSet};
 
 use baml_compiler_mir::{
-    BlockId, Constant, Local, MirFunction, Operand, Place, Rvalue, StatementKind, Terminator,
+    AggregateKind, BlockId, Constant, Local, MirFunction, Operand, Place, Rvalue, StatementKind,
+    Terminator,
 };
 
 // ============================================================================
@@ -1342,10 +1343,10 @@ fn is_call_result_immediate(local: Local, du: &LocalDefUse, mir: &MirFunction) -
         return false;
     }
 
-    // Critical check: if the continuation block ends with DispatchFuture, we cannot use
-    // CallResultImmediate. The reason is stack ordering:
-    // - DispatchFuture expects stack layout: [callee, arg0, arg1, ...]
-    // - If we leave the Await result on the stack and then emit the callee, we get
+    // Critical check 1: if the continuation block ends with a Call or DispatchFuture,
+    // we cannot use CallResultImmediate. The reason is stack ordering:
+    // - Call/DispatchFuture expects stack layout: [callee, arg0, arg1, ...]
+    // - If we leave the call result on the stack and then emit the callee, we get
     //   [result, callee] instead of [callee, result]
     //
     // This happens even if the local is used indirectly (e.g., through a copy that
@@ -1354,9 +1355,30 @@ fn is_call_result_immediate(local: Local, du: &LocalDefUse, mir: &MirFunction) -
     let use_block = mir.block(use_loc.block);
     if matches!(
         &use_block.terminator,
-        Some(Terminator::DispatchFuture { .. })
+        Some(Terminator::DispatchFuture { .. } | Terminator::Call { .. })
     ) {
         return false;
+    }
+
+    // Critical check 2: if ANY statement in the continuation block is a class constructor
+    // (Aggregate::Class), we cannot use CallResultImmediate. The emit code for class
+    // constructors pushes AllocInstance onto the stack BEFORE consuming field operands.
+    // If the call result feeds into a class field (directly or through a Virtual/copy
+    // chain), the AllocInstance will bury the call result on the stack and the field
+    // emit will find the wrong value.
+    for stmt in &use_block.statements {
+        if matches!(
+            &stmt.kind,
+            StatementKind::Assign {
+                value: Rvalue::Aggregate {
+                    kind: AggregateKind::Class(_),
+                    ..
+                },
+                ..
+            }
+        ) {
+            return false;
+        }
     }
 
     true

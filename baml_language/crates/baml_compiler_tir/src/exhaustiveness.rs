@@ -161,10 +161,10 @@ pub(crate) struct ExhaustivenessChecker<'a> {
     type_aliases: &'a HashMap<Name, Ty>,
 
     /// Class names for type resolution
-    class_names: &'a HashSet<Name>,
+    class_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
 
     /// Enum names for type resolution
-    enum_names: &'a HashSet<Name>,
+    enum_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
 
     /// Type alias names for validation
     type_alias_names: &'a HashSet<Name>,
@@ -188,8 +188,8 @@ impl<'a> ExhaustivenessChecker<'a> {
     pub(crate) fn new(
         enum_variants: &'a HashMap<Name, Vec<Name>>,
         type_aliases: &'a HashMap<Name, Ty>,
-        class_names: &'a HashSet<Name>,
-        enum_names: &'a HashSet<Name>,
+        class_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
+        enum_names: &'a HashMap<Name, baml_compiler_hir::QualifiedName>,
         type_alias_names: &'a HashSet<Name>,
     ) -> Self {
         Self {
@@ -375,21 +375,22 @@ impl<'a> ExhaustivenessChecker<'a> {
             // User-defined class and enum types (resolved by FQN).
             Ty::Class(fqn) => {
                 // Class types are treated like named types for exhaustiveness
-                vec![ValueSet::OfType(fqn.name.clone())]
+                vec![ValueSet::OfType(fqn.display_name())]
             }
             Ty::Enum(fqn) => {
                 // Enum types: look up variants for exhaustiveness checking
-                let name = &fqn.name;
-                if let Some(variants) = self.enum_variants.get(name) {
+                // Use display_name (FQN for builtins, short name for locals)
+                let display = fqn.display_name();
+                if let Some(variants) = self.enum_variants.get(&display) {
                     variants
                         .iter()
                         .map(|variant_name| ValueSet::EnumVariant {
-                            enum_name: name.clone(),
+                            enum_name: display.clone(),
                             variant_name: variant_name.clone(),
                         })
                         .collect()
                 } else {
-                    vec![ValueSet::OfType(name.clone())]
+                    vec![ValueSet::OfType(display)]
                 }
             }
 
@@ -487,8 +488,8 @@ impl<'a> ExhaustivenessChecker<'a> {
                 // The coverage check will handle expansion
                 ValueSet::OfType(fqn.name.clone())
             }
-            Ty::Class(fqn) => ValueSet::OfType(fqn.name.clone()),
-            Ty::Enum(fqn) => ValueSet::OfType(fqn.name.clone()),
+            Ty::Class(fqn) => ValueSet::OfType(fqn.display_name()),
+            Ty::Enum(fqn) => ValueSet::OfType(fqn.display_name()),
             Ty::Literal(value) => match value {
                 LiteralValue::Int(v) => ValueSet::Literal(Literal::Int(*v)),
                 LiteralValue::Float(v) => ValueSet::Literal(Literal::Float(v.clone())),
