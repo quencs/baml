@@ -88,6 +88,10 @@ pub enum DiagnosticId {
     AllowedRolesEmpty,
     /// `allowed_roles` values must be strings.
     AllowedRoleNotString,
+    /// Composite client has empty strategy.
+    EmptyStrategy,
+    /// Unknown retry policy reference.
+    UnknownRetryPolicy,
 
     // Pattern matching errors (E0062-E0066)
     NonExhaustiveMatch,
@@ -202,6 +206,8 @@ impl DiagnosticId {
             | DiagnosticId::RemapRoleNotAllowed
             | DiagnosticId::AllowedRolesEmpty
             | DiagnosticId::AllowedRoleNotString => "E0044",
+            DiagnosticId::EmptyStrategy => "E0090",
+            DiagnosticId::UnknownRetryPolicy => "E0091",
 
             // Pattern matching errors
             DiagnosticId::NonExhaustiveMatch => "E0062",

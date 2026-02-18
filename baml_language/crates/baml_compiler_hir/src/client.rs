@@ -75,7 +75,9 @@ pub(crate) fn lower_client(
     let mut default_role: Option<String> = None;
     let mut allowed_roles: Vec<String> = Vec::new();
     let mut retry_policy_name: Option<Name> = None;
+    let mut retry_policy_span: Option<rowan::TextRange> = None;
     let mut sub_client_names: Vec<Name> = Vec::new();
+    let mut round_robin_start: Option<i32> = None;
 
     if let Some(config_block) = client_def.config_block() {
         // Extract retry_policy reference if present
@@ -85,6 +87,7 @@ pub(crate) fn lower_client(
         {
             if let Some(word) = rp_item.value_word() {
                 retry_policy_name = Some(Name::new(word.text()));
+                retry_policy_span = Some(word.text_range());
             }
         }
         // Check for unknown properties in client config block
@@ -161,9 +164,30 @@ pub(crate) fn lower_client(
                             }
                         }
                     }
+
+                    if provider.as_str() == "round-robin" {
+                        if let Some(start_item) =
+                            options_block.items().find(|item| item.matches_key("start"))
+                        {
+                            if let Some(start) = start_item.value_int() {
+                                if let Ok(start_i32) = i32::try_from(start) {
+                                    round_robin_start = Some(start_i32);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+
+    // Validate composite clients have at least one sub-client
+    if is_composite && sub_client_names.is_empty() {
+        ctx.push_diagnostic(HirDiagnostic::EmptyStrategy {
+            client_name: client_name.clone(),
+            provider: provider.to_string(),
+            span: ctx.span(node.text_range()),
+        });
     }
 
     // Use default allowed_roles if none specified
@@ -180,7 +204,9 @@ pub(crate) fn lower_client(
         default_role,
         allowed_roles,
         retry_policy_name,
+        retry_policy_span,
         sub_client_names,
+        round_robin_start,
     })
 }
 

@@ -61,6 +61,8 @@ pub struct ClientBuildMeta {
     pub sub_client_names: Vec<String>,
     /// Retry policy metadata, if specified.
     pub retry_policy: Option<RetryPolicyMeta>,
+    /// Optional round-robin start index (`options { start ... }`).
+    pub round_robin_start: Option<i32>,
 }
 
 /// Client type for build metadata (mirrors runtime `LlmClientType`).

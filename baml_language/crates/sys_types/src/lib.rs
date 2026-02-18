@@ -272,6 +272,8 @@ pub struct ClientBuildMeta {
     pub sub_client_names: Vec<String>,
     /// Retry policy, if one was specified.
     pub retry_policy: Option<bex_heap::builtin_types::owned::LlmRetryPolicy>,
+    /// Optional round-robin start index used to initialize the RR counter.
+    pub round_robin_start: Option<usize>,
 }
 
 /// Pre-extracted metadata for an LLM function.

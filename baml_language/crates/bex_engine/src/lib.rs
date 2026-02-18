@@ -287,6 +287,24 @@ pub struct BexEngine {
     gc_in_progress: AtomicBool,
 }
 
+#[cfg(target_arch = "wasm32")]
+fn default_round_robin_start() -> usize {
+    // Keep wasm deterministic for tooling (matches legacy behavior).
+    0
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn default_round_robin_start() -> usize {
+    use std::time::UNIX_EPOCH;
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
+    #[allow(clippy::cast_possible_truncation)]
+    {
+        nanos as usize
+    }
+}
+
 impl BexEngine {
     /// Create a new engine with the given program.
     ///
@@ -404,6 +422,9 @@ impl BexEngine {
                             client_type,
                             sub_client_names: meta.sub_client_names,
                             retry_policy,
+                            round_robin_start: meta
+                                .round_robin_start
+                                .and_then(|start| usize::try_from(start).ok()),
                         },
                     )
                 })
@@ -418,10 +439,13 @@ impl BexEngine {
                     bex_heap::builtin_types::owned::LlmClientType::RoundRobin
                 )
             })
-            .map(|(name, _)| {
+            .map(|(name, meta)| {
+                let start = meta
+                    .round_robin_start
+                    .unwrap_or_else(default_round_robin_start);
                 (
                     name.clone(),
-                    std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                    std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(start)),
                 )
             })
             .collect();

@@ -840,6 +840,28 @@ impl ToDiagnostic for HirDiagnostic {
             )
             .with_primary_span(*span),
 
+            HirDiagnostic::EmptyStrategy {
+                client_name: _,
+                provider,
+                span,
+            } => Diagnostic::error(
+                DiagnosticId::EmptyStrategy,
+                format!(
+                    "{provider} client must have at least one sub-client in `strategy`"
+                ),
+            )
+            .with_primary_span(*span),
+
+            HirDiagnostic::UnknownRetryPolicy {
+                client_name: _,
+                policy_name,
+                span,
+            } => Diagnostic::error(
+                DiagnosticId::UnknownRetryPolicy,
+                format!("Unknown retry policy `{policy_name}`"),
+            )
+            .with_primary_span(*span),
+
             HirDiagnostic::MissingSemicolon { span } => Diagnostic::error(
                 DiagnosticId::MissingSemicolon,
                 "Statement must end with a semicolon.",

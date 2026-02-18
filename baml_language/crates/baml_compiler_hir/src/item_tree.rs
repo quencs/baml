@@ -7,6 +7,7 @@
 use std::ops::Index;
 
 use baml_base::Name;
+use rowan::TextRange;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -296,9 +297,14 @@ pub struct Client {
     pub allowed_roles: Vec<String>,
     /// Name of the retry policy (references a top-level `retry_policy` definition).
     pub retry_policy_name: Option<Name>,
+    /// Span of the retry policy reference (for diagnostics).
+    pub retry_policy_span: Option<TextRange>,
     /// Sub-client names for composite clients (fallback/round-robin).
     /// Empty for primitive clients.
     pub sub_client_names: Vec<Name>,
+    /// Optional round-robin start index (`options { start ... }`).
+    /// Only used by `round-robin` providers.
+    pub round_robin_start: Option<i32>,
 }
 
 /// Retry policy configuration.

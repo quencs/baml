@@ -622,6 +622,7 @@ pub fn compile_files(
                         client_type,
                         sub_client_names,
                         retry_policy,
+                        round_robin_start: client.round_robin_start,
                     },
                 );
             }

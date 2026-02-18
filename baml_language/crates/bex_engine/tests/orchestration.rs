@@ -206,6 +206,41 @@ function check_plan() -> baml.llm.OrchestrationStep[] {
     assert!(steps[0].0 == "A" || steps[0].0 == "B");
 }
 
+/// Round-robin honors `options { start N }` for the initial selection.
+#[tokio::test]
+async fn plan_round_robin_respects_start_index() {
+    let source = r##"
+client<llm> A {
+    provider openai
+    options { model "gpt-4" }
+}
+
+client<llm> B {
+    provider openai
+    options { model "gpt-3.5-turbo" }
+}
+
+client<llm> RR {
+    provider round-robin
+    options { strategy [A, B] start 1 }
+}
+
+function F(x: string) -> string {
+    client RR
+    prompt #"{{ x }}"#
+}
+
+function check_plan() -> baml.llm.OrchestrationStep[] {
+    let c = baml.llm.get_client("F");
+    baml.llm.build_plan(c)
+}
+"##;
+
+    let result = run(source, "check_plan").await.expect("test failed");
+    let steps = extract_steps(&result);
+    assert_eq!(steps, vec![("B", 0)]);
+}
+
 // ============================================================================
 // build_plan: retry expands steps
 // ============================================================================

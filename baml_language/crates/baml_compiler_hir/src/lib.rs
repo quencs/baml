@@ -2244,7 +2244,8 @@ pub struct HirValidationResult {
 /// - Reserved name validation (field names that are keywords in target languages)
 /// - Field name matches type name validation (Python-specific)
 pub fn validate_hir(db: &dyn Db, root: baml_workspace::Project) -> HirValidationResult {
-    let hir_diagnostics = validate_reserved_names(db, root);
+    let mut hir_diagnostics = validate_reserved_names(db, root);
+    hir_diagnostics.extend(validate_retry_policy_refs(db, root));
     let mut name_errors = validate_duplicate_names(db, root);
     name_errors.extend(validate_test_functions(db, root));
 
@@ -2252,6 +2253,49 @@ pub fn validate_hir(db: &dyn Db, root: baml_workspace::Project) -> HirValidation
         hir_diagnostics,
         name_errors,
     }
+}
+
+/// Validate that retry policy references in clients point to existing policies.
+fn validate_retry_policy_refs(db: &dyn Db, root: baml_workspace::Project) -> Vec<HirDiagnostic> {
+    // Collect all retry policy names across all files.
+    let mut known_policies: rustc_hash::FxHashSet<Name> = rustc_hash::FxHashSet::default();
+    for file in root.files(db) {
+        let item_tree = file_item_tree(db, *file);
+        let items_struct = file_items(db, *file);
+        for item in items_struct.items(db) {
+            if let ItemId::RetryPolicy(rp_loc) = item {
+                let rp = &item_tree[rp_loc.id(db)];
+                known_policies.insert(rp.name.clone());
+            }
+        }
+    }
+
+    // Check each client's retry_policy_name against the known set.
+    let mut errors = Vec::new();
+    for file in root.files(db) {
+        let item_tree = file_item_tree(db, *file);
+        let items_struct = file_items(db, *file);
+        let file_id = file.file_id(db);
+        for item in items_struct.items(db) {
+            if let ItemId::Client(client_loc) = item {
+                let client = &item_tree[client_loc.id(db)];
+                if let Some(ref policy_name) = client.retry_policy_name {
+                    if !known_policies.contains(policy_name) {
+                        let span = client
+                            .retry_policy_span
+                            .map(|range| Span::new(file_id, range))
+                            .unwrap_or_else(|| Span::new(file_id, TextRange::empty(0.into())));
+                        errors.push(HirDiagnostic::UnknownRetryPolicy {
+                            client_name: client.name.to_string(),
+                            policy_name: policy_name.to_string(),
+                            span,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    errors
 }
 
 fn validate_test_functions(db: &dyn Db, root: baml_workspace::Project) -> Vec<NameError> {

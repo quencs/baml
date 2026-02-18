@@ -57,10 +57,11 @@ pub(crate) async fn send_async(
         Err(e) => {
             // Network error: return a synthetic response with status_code=0
             // so BAML orchestration code can check ok() and fall back.
-            // Preserve the error info in a header for debugging.
-            let handle = REGISTRY.register_error_http_response(req.url.clone());
+            // The error message is available via text() for debugging.
+            let error_msg = format_error_chain(&e);
+            let handle = REGISTRY.register_error_http_response(req.url.clone(), error_msg.clone());
             let mut headers = indexmap::IndexMap::new();
-            headers.insert("x-baml-error".to_string(), format_error_chain(&e));
+            headers.insert("x-baml-error".to_string(), error_msg);
             return Ok(builtin_types::owned::HttpResponse {
                 status_code: 0,
                 headers,

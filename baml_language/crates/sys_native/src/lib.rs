@@ -224,25 +224,31 @@ impl SysOpHttp for NativeSysOps {
         response: builtin_types::owned::HttpResponse,
     ) -> SysOpOutput<String> {
         SysOpOutput::async_op(async move {
-            let response_mutex = registry::REGISTRY
+            let body_mutex = registry::REGISTRY
                 .get_http_response_body(response._handle.key())
                 .ok_or_else(|| OpErrorKind::Other("Response handle is invalid".into()))?;
 
-            let resp = {
-                let mut guard = response_mutex.lock().await;
-                guard.take().ok_or_else(|| {
-                    OpErrorKind::Other("Response body has already been consumed".into())
-                })?
-            };
-
-            let text = resp.text().await.map_err(|e| {
-                OpErrorKind::Other(format!(
-                    "Failed to read response body: {}",
-                    ops::http::format_error_chain(&e)
-                ))
-            })?;
-
-            Ok(text)
+            let mut guard = body_mutex.lock().await;
+            match &mut *guard {
+                registry::ResponseBody::Real(opt) => {
+                    let resp = opt.take().ok_or_else(|| {
+                        OpErrorKind::Other("Response body has already been consumed".into())
+                    })?;
+                    let text = resp.text().await.map_err(|e| {
+                        OpErrorKind::Other(format!(
+                            "Failed to read response body: {}",
+                            ops::http::format_error_chain(&e)
+                        ))
+                    })?;
+                    Ok(text)
+                }
+                registry::ResponseBody::Error(opt) => {
+                    let msg = opt.take().ok_or_else(|| {
+                        OpErrorKind::Other("Error response body has already been consumed".into())
+                    })?;
+                    Ok(msg)
+                }
+            }
         })
     }
 
