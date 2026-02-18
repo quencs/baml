@@ -609,3 +609,121 @@ function check_plan() -> baml.llm.OrchestrationStep[] {
     let result = run(source, "check_plan").await.expect("test failed");
     assert_eq!(extract_steps(&result), vec![("A", 0), ("A", 0), ("A", 0)]);
 }
+
+// ============================================================================
+// build_plan: round-robin + retry rotation
+// ============================================================================
+
+/// Round-robin with retry rotates across children on each retry attempt.
+///
+/// RR { A, B } with retry=1 should produce [A(0), B(delay)] — NOT [A(0), A(delay)].
+/// This matches legacy behavior where retry re-expands the strategy.
+#[tokio::test]
+async fn plan_round_robin_retry_rotates() {
+    let source = r##"
+retry_policy R {
+    max_retries 1
+    initial_delay_ms 100
+}
+
+client<llm> A {
+    provider openai
+    options { model "gpt-4" }
+}
+
+client<llm> B {
+    provider openai
+    options { model "gpt-3.5-turbo" }
+}
+
+client<llm> RR {
+    provider round-robin
+    retry_policy R
+    options { strategy [A, B] }
+}
+
+function F(x: string) -> string {
+    client RR
+    prompt #"{{ x }}"#
+}
+
+function check_plan() -> baml.llm.OrchestrationStep[] {
+    let c = baml.llm.get_client("F");
+    baml.llm.build_plan(c)
+}
+"##;
+
+    let result = run(source, "check_plan").await.expect("test failed");
+    let steps = extract_steps(&result);
+    // 2 attempts: attempt 0 picks one child, attempt 1 picks the other
+    assert_eq!(steps.len(), 2);
+    assert_ne!(
+        steps[0].0, steps[1].0,
+        "retry should pick a different RR child"
+    );
+    assert_eq!(steps[0].1, 0); // first attempt: no delay
+    assert_eq!(steps[1].1, 100); // second attempt: 100ms delay
+}
+
+/// Fallback with RR child + retry: RR rotates across the fallback's retry attempts.
+///
+/// Fallback(retry=1) { RR { A, B }, C } should produce:
+///   attempt 0: [RR→A, C], attempt 1: [RR→B, C]
+#[tokio::test]
+async fn plan_fallback_with_rr_child_retry_rotates() {
+    let source = r##"
+retry_policy R {
+    max_retries 1
+    initial_delay_ms 200
+}
+
+client<llm> A {
+    provider openai
+    options { model "gpt-4" }
+}
+
+client<llm> B {
+    provider openai
+    options { model "gpt-3.5-turbo" }
+}
+
+client<llm> RR {
+    provider round-robin
+    options { strategy [A, B] }
+}
+
+client<llm> C {
+    provider openai
+    options { model "gpt-4o" }
+}
+
+client<llm> FB {
+    provider fallback
+    retry_policy R
+    options { strategy [RR, C] }
+}
+
+function F(x: string) -> string {
+    client FB
+    prompt #"{{ x }}"#
+}
+
+function check_plan() -> baml.llm.OrchestrationStep[] {
+    let c = baml.llm.get_client("F");
+    baml.llm.build_plan(c)
+}
+"##;
+
+    let result = run(source, "check_plan").await.expect("test failed");
+    let steps = extract_steps(&result);
+    // 4 steps: 2 attempts x (1 RR pick + C)
+    assert_eq!(steps.len(), 4);
+    // Attempt 0: RR picks one child, then C
+    assert_eq!(steps[0].1, 0);
+    assert_eq!(steps[1], ("C", 0));
+    // Attempt 1: RR picks different child, then C
+    assert_eq!(steps[2].1, 200);
+    assert_eq!(steps[3], ("C", 200));
+    // RR should have rotated
+    assert_ne!(steps[0].0, steps[2].0, "retry should rotate the RR child");
+}

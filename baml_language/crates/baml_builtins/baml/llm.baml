@@ -12,22 +12,25 @@ class OrchestrationStep {
     delay_ms int
 }
 
-/// Build an orchestration plan from a Client tree.
+/// Expand a client tree into steps for a single attempt (no retry wrapping).
 ///
-/// Recursively expands composite clients (fallback, round-robin) into a flat
-/// list of baml.llm.OrchestrationSteps, wrapping with retry delays as configured.
-function build_plan(c: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
-    let retry = c.retry;
-
-    let inner = match (c.client_type) {
+/// - Primitive: resolves to one step.
+/// - Fallback: concatenates children's full plans (including their own retries).
+/// - RoundRobin: picks one child via atomic counter, returns that child's full plan.
+///
+/// Children are expanded with `build_plan` so they get their own retry wrapping.
+/// This function is called once per retry attempt by `build_plan`, which means
+/// RoundRobin picks a fresh child on each retry.
+function build_attempt(llm_client: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
+    match (llm_client.client_type) {
         baml.llm.ClientType.Primitive => {
-            let resolve_fn = baml.llm.resolve_client(c.name);
+            let resolve_fn = baml.llm.resolve_client(llm_client.name);
             let primitive = resolve_fn();
             [baml.llm.OrchestrationStep { primitive_client: primitive, delay_ms: 0 }]
         }
         baml.llm.ClientType.Fallback => {
             let steps: baml.llm.OrchestrationStep[] = [];
-            for (let sub in c.sub_clients) {
+            for (let sub in llm_client.sub_clients) {
                 for (let step in baml.llm.build_plan(sub)) {
                     steps.push(step);
                 }
@@ -35,25 +38,22 @@ function build_plan(c: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
             steps
         }
         baml.llm.ClientType.RoundRobin => {
-            let idx = baml.llm.round_robin_next(c.name) % c.sub_clients.length();
-            baml.llm.build_plan(c.sub_clients.at(idx))
+            let idx = baml.llm.round_robin_next(llm_client.name) % llm_client.sub_clients.length();
+            baml.llm.build_plan(llm_client.sub_clients.at(idx))
         }
-    };
-
-    return baml.llm.wrap_with_retry(inner, retry);
+    }
 }
 
-/// Wrap a list of orchestration steps with retry logic.
+/// Build an orchestration plan from a Client tree.
 ///
-/// Duplicates the inner steps for each retry attempt, adding exponential
-/// backoff delays between attempts.
+/// Calls `build_attempt` per retry attempt so that stateful strategies
+/// (round-robin) can rotate across retries — matching legacy behavior.
+/// Each attempt re-expands the client tree, picking a fresh RR child.
 ///
-/// Note: the retry delay is applied uniformly to all steps within a retry
-/// attempt. This is intentional — the delay represents the backoff before
-/// re-attempting the entire inner sequence, not between individual sub-steps.
-function wrap_with_retry(inner: baml.llm.OrchestrationStep[], retry: baml.llm.RetryPolicy?) -> baml.llm.OrchestrationStep[] {
-    match (retry) {
-        null => inner,
+/// For clients without a retry policy, this is a single call to `build_attempt`.
+function build_plan(llm_client: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
+    match (llm_client.retry) {
+        null => baml.llm.build_attempt(llm_client),
         r: baml.llm.RetryPolicy => {
             let result: baml.llm.OrchestrationStep[] = [];
             let current_delay = r.initial_delay_ms + 0.0;
@@ -70,6 +70,7 @@ function wrap_with_retry(inner: baml.llm.OrchestrationStep[], retry: baml.llm.Re
                     }
                 }
 
+                let inner = baml.llm.build_attempt(llm_client);
                 for (let step in inner) {
                     result.push(baml.llm.OrchestrationStep {
                         primitive_client: step.primitive_client,
@@ -90,8 +91,8 @@ function wrap_with_retry(inner: baml.llm.OrchestrationStep[], retry: baml.llm.Re
 function render_prompt(function_name: string, args: map<string, unknown>) -> baml.llm.PromptAst {
     let jinja_string = baml.llm.get_jinja_template(function_name);
 
-    let c = baml.llm.get_client(function_name);
-    let resolve_fn = baml.llm.resolve_client(c.name);
+    let llm_client = baml.llm.get_client(function_name);
+    let resolve_fn = baml.llm.resolve_client(llm_client.name);
     let primitive_client = resolve_fn();
 
     let prompt = primitive_client.render_prompt(jinja_string, args);
@@ -104,8 +105,8 @@ function render_prompt(function_name: string, args: map<string, unknown>) -> bam
 function build_request(function_name: string, args: map<string, unknown>) -> baml.http.Request {
     let jinja_string = baml.llm.get_jinja_template(function_name);
 
-    let c = baml.llm.get_client(function_name);
-    let resolve_fn = baml.llm.resolve_client(c.name);
+    let llm_client = baml.llm.get_client(function_name);
+    let resolve_fn = baml.llm.resolve_client(llm_client.name);
     let primitive_client = resolve_fn();
 
     let prompt = primitive_client.render_prompt(jinja_string, args);
@@ -116,31 +117,54 @@ function build_request(function_name: string, args: map<string, unknown>) -> bam
 
 /// Call an LLM function end-to-end with full orchestration.
 ///
-/// Builds an orchestration plan from the function's client tree, then
-/// executes each step in order. For simple clients this is a single call;
-/// for fallback/round-robin clients with retry policies, this implements
-/// the full retry + fallback loop.
+/// Handles top-level retry directly so that round-robin counters advance
+/// at execution time (only when an attempt is actually reached), matching
+/// legacy behavior. Children's retry is still handled by `build_plan`.
 function call_llm_function(function_name: string, args: map<string, unknown>) -> unknown {
     let jinja_string = baml.llm.get_jinja_template(function_name);
-    let c = baml.llm.get_client(function_name);
-    let plan = baml.llm.build_plan(c);
+    let llm_client = baml.llm.get_client(function_name);
 
-    for (let step in plan) {
-        let prompt = step.primitive_client.render_prompt(jinja_string, args);
-        let specialized = step.primitive_client.specialize_prompt(prompt);
-        let http_request = step.primitive_client.build_request(specialized);
-        let http_response = baml.http.send(http_request);
+    let max_attempts = match (llm_client.retry) {
+        null => 1,
+        r: baml.llm.RetryPolicy => r.max_retries + 1
+    };
+    let current_delay = match (llm_client.retry) {
+        null => 0.0,
+        r: baml.llm.RetryPolicy => r.initial_delay_ms + 0.0
+    };
 
-        if (http_response.ok()) {
-            let body = http_response.text();
-            let return_type = baml.llm.get_return_type(function_name);
-            return step.primitive_client.parse(body, return_type);
+    for (let attempt = 0; attempt < max_attempts; attempt += 1) {
+        if (attempt > 0) {
+            baml.sys.sleep(baml.math.trunc(current_delay));
+            match (llm_client.retry) {
+                null => {},
+                r: baml.llm.RetryPolicy => {
+                    let next = current_delay * r.multiplier;
+                    if (next > r.max_delay_ms + 0.0) {
+                        current_delay = r.max_delay_ms + 0.0;
+                    } else {
+                        current_delay = next;
+                    }
+                }
+            };
         }
 
-        if (step.delay_ms > 0) {
-            baml.sys.sleep(step.delay_ms);
+        let steps = baml.llm.build_attempt(llm_client);
+        for (let step in steps) {
+            let prompt = step.primitive_client.render_prompt(jinja_string, args);
+            let specialized = step.primitive_client.specialize_prompt(prompt);
+            let http_request = step.primitive_client.build_request(specialized);
+            let http_response = baml.http.send(http_request);
+
+            if (http_response.ok()) {
+                let body = http_response.text();
+                let return_type = baml.llm.get_return_type(function_name);
+                return step.primitive_client.parse(body, return_type);
+            }
         }
     }
 
+    // TODO: This will have to be replaced by a "throw" when exceptions land.
+    // TODO: Also figure out panics in Baml.
     baml.sys.panic("All orchestration steps failed");
 }
