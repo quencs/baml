@@ -429,6 +429,12 @@ macro_rules! with_builtins {
                     #[uses(engine_ctx)]
                     fn round_robin_next(client_name: String) -> i64;
 
+                    /// Peek the current round-robin index for a client.
+                    /// Returns the current counter value without incrementing it.
+                    #[sys_op]
+                    #[uses(engine_ctx)]
+                    fn round_robin_peek(client_name: String) -> i64;
+
                     /// Get the return type for an LLM function.
                     /// Returns a Type value that can be passed to `parse()`.
                     #[sys_op]

@@ -560,29 +560,34 @@ pub fn compile_files(
         for item in items_struct.items(db) {
             if let ItemId::RetryPolicy(rp_loc) = item {
                 let rp = &item_tree[rp_loc.id(db)];
+                let policy_name = rp.name.to_string();
                 retry_policies.insert(
-                    rp.name.to_string(),
+                    policy_name.clone(),
                     bex_vm_types::RetryPolicyMeta {
-                        max_retries: rp
-                            .max_retries
-                            .as_ref()
-                            .and_then(|s| s.parse().ok())
-                            .unwrap_or(0),
-                        initial_delay_ms: rp
-                            .initial_delay_ms
-                            .as_ref()
-                            .and_then(|s| s.parse().ok())
-                            .unwrap_or(0),
-                        multiplier: rp
-                            .multiplier
-                            .as_ref()
-                            .and_then(|s| s.parse().ok())
-                            .unwrap_or(1.0),
-                        max_delay_ms: rp
-                            .max_delay_ms
-                            .as_ref()
-                            .and_then(|s| s.parse().ok())
-                            .unwrap_or(60_000),
+                        max_retries: parse_retry_policy_field(
+                            &policy_name,
+                            "max_retries",
+                            rp.max_retries.as_deref(),
+                            0_i64,
+                        )?,
+                        initial_delay_ms: parse_retry_policy_field(
+                            &policy_name,
+                            "initial_delay_ms",
+                            rp.initial_delay_ms.as_deref(),
+                            0_i64,
+                        )?,
+                        multiplier: parse_retry_policy_field(
+                            &policy_name,
+                            "multiplier",
+                            rp.multiplier.as_deref(),
+                            1.0_f64,
+                        )?,
+                        max_delay_ms: parse_retry_policy_field(
+                            &policy_name,
+                            "max_delay_ms",
+                            rp.max_delay_ms.as_deref(),
+                            60_000_i64,
+                        )?,
                     },
                 );
             }
@@ -630,6 +635,29 @@ pub fn compile_files(
     }
 
     Ok(program)
+}
+
+fn parse_retry_policy_field<T>(
+    policy_name: &str,
+    field_name: &str,
+    raw_value: Option<&str>,
+    default: T,
+) -> Result<T, LoweringError>
+where
+    T: std::str::FromStr + Copy,
+    <T as std::str::FromStr>::Err: std::fmt::Display,
+{
+    match raw_value {
+        None => Ok(default),
+        Some(value) => value
+            .parse::<T>()
+            .map_err(|e| LoweringError::InvalidRetryPolicyValue {
+                policy_name: policy_name.to_string(),
+                field_name: field_name.to_string(),
+                value: value.to_string(),
+                reason: e.to_string(),
+            }),
+    }
 }
 
 /// Extract param names, param types, and return type from a function signature.

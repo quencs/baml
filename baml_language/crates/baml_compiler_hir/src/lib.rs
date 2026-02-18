@@ -472,7 +472,13 @@ fn function_signature_with_source_map<'db>(
                 let qualified_method_name =
                     QualifiedName::local_method_from_str(class_name_text, method_name.text());
                 if qualified_method_name.as_str() == func_name.as_str() {
-                    Some(lower_method_signature(&method, &func_name, class_name_text))
+                    let namespace = file_namespace(db, file).unwrap_or(baml_base::Namespace::Local);
+                    let self_type_name = baml_base::QualifiedName {
+                        namespace,
+                        name: Name::new(class_name_text),
+                    }
+                    .display_name();
+                    Some(lower_method_signature(&method, &func_name, &self_type_name))
                 } else {
                     None
                 }
@@ -488,7 +494,7 @@ fn function_signature_with_source_map<'db>(
 fn lower_method_signature(
     method_node: &baml_compiler_syntax::ast::FunctionDef,
     method_name: &Name,
-    class_name: &str,
+    self_type_name: &Name,
 ) -> (Arc<FunctionSignature>, SignatureSourceMap) {
     let mut source_map = SignatureSourceMap::new();
 
@@ -501,7 +507,7 @@ fn lower_method_signature(
                 let type_node = param_node.ty();
                 let type_ref = if param_name == "self" {
                     // 'self' gets the class type
-                    TypeRef::named(class_name.into())
+                    TypeRef::named(self_type_name.clone())
                 } else {
                     type_node
                         .as_ref()

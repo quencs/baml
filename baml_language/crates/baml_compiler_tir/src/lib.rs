@@ -1966,8 +1966,13 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         // Check if this is a method (function type) or a data field
                         if matches!(field_ty, Ty::Function { .. }) {
                             // Method reference - use qualified name
-                            let method_qn =
-                                baml_base::QualifiedName::local_method(&class_fqn.name, field);
+                            let method_qn = baml_base::QualifiedName {
+                                namespace: class_fqn.namespace.clone(),
+                                name: baml_base::QualifiedName::local_method_from_str(
+                                    class_fqn.name.as_str(),
+                                    field.as_str(),
+                                ),
+                            };
                             ctx.set_expr_resolution(
                                 expr_id,
                                 ResolvedValue::Function(method_qn.clone()),
@@ -3299,9 +3304,14 @@ fn infer_field_access(
                 .cloned()
         }
         Ty::Class(fqn) => {
-            // First try to find a method using qualified name (ClassName.methodName)
-            let method_qn = QualifiedName::local_method(&fqn.name, field);
-            if let Some(method_ty) = ctx.lookup(&method_qn.name).cloned() {
+            // First try to find a method using a class-qualified name in the same
+            // namespace as the class (e.g., `baml.llm.Foo.bar`).
+            let method_qn = QualifiedName {
+                namespace: fqn.namespace.clone(),
+                name: QualifiedName::local_method_from_str(fqn.name.as_str(), field.as_str()),
+            };
+            let method_lookup_name = method_qn.display_name();
+            if let Some(method_ty) = ctx.lookup(&method_lookup_name).cloned() {
                 // Store resolution for method reference so MIR can look it up
                 if let Some(expr_id) = expr_id {
                     ctx.set_expr_resolution(expr_id, ResolvedValue::Function(method_qn));

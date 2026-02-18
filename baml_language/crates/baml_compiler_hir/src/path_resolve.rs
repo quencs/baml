@@ -194,7 +194,7 @@ pub fn resolve_path(
     project: baml_workspace::Project,
     segments: &[Name],
 ) -> Option<PathResolution> {
-    let first = &segments[0];
+    let first = segments.first()?;
 
     // If the first segment enters a builtin namespace, walk the static tree.
     if let Some(node) = builtin_tree().get(first.as_str()) {

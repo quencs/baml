@@ -2811,6 +2811,8 @@ impl LoweringContext {
                     | SyntaxKind::MATCH_EXPR
                     | SyntaxKind::BLOCK_EXPR
                     | SyntaxKind::PAREN_EXPR
+                    | SyntaxKind::STRING_LITERAL
+                    | SyntaxKind::RAW_STRING_LITERAL
             )
         }) {
             self.lower_expr(&child_node)
@@ -2837,6 +2839,10 @@ impl LoweringContext {
                             let value = token.text().parse::<i64>().unwrap_or(0);
                             Some(self.alloc_expr(Expr::Literal(Literal::Int(value)), span))
                         }
+                        SyntaxKind::FLOAT_LITERAL => Some(self.alloc_expr(
+                            Expr::Literal(Literal::Float(token.text().to_string())),
+                            span,
+                        )),
                         _ => None,
                     }
                 })

@@ -333,11 +333,13 @@ fn gen_accessor_body(field: &AccessorFieldDef) -> TokenStream2 {
                 })
             })
         },
-        // Complex types: accessor reading not supported
+        // Complex types: accessor reading from heap not yet implemented
         FieldTypeKind::BuiltinEnum(_)
         | FieldTypeKind::ArrayBuiltinStruct(_)
         | FieldTypeKind::OptionalBuiltinStruct(_) => quote! {
-            unreachable!("complex field accessor not supported")
+            Err(AccessError::CannotConvertToOwned {
+                reason: format!("complex field accessor for '{}' not supported", #name_str),
+            })
         },
     }
 }
@@ -365,11 +367,13 @@ fn gen_into_owned_field(field: &AccessorFieldDef) -> TokenStream2 {
         FieldTypeKind::ArrayString => {
             quote!(#name: self.#name(heap)?.into_iter().cloned().collect())
         }
-        // Complex types: into_owned not supported from heap reads
+        // Complex types: into_owned from heap reads not yet implemented
         FieldTypeKind::BuiltinEnum(_)
         | FieldTypeKind::ArrayBuiltinStruct(_)
         | FieldTypeKind::OptionalBuiltinStruct(_) => {
-            quote!(#name: unreachable!("complex field into_owned not supported"))
+            quote!(#name: return Err(AccessError::CannotConvertToOwned {
+                reason: format!("complex field into_owned for '{}' not supported", stringify!(#name)),
+            }))
         }
     }
 }

@@ -645,6 +645,21 @@ impl<T> SysOpLlm for T {
         #[allow(clippy::cast_possible_wrap)]
         SysOpOutput::ok(val as i64)
     }
+
+    fn baml_llm_round_robin_peek(
+        &self,
+        client_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<i64> {
+        let Some(counter) = ctx.round_robin_counters.get(&client_name).cloned() else {
+            return SysOpOutput::err(OpErrorKind::Other(format!(
+                "Round-robin counter not found for client: {client_name}"
+            )));
+        };
+        let val = counter.load(std::sync::atomic::Ordering::SeqCst);
+        #[allow(clippy::cast_possible_wrap)]
+        SysOpOutput::ok(val as i64)
+    }
 }
 
 // ============================================================================

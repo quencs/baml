@@ -241,6 +241,48 @@ function check_plan() -> baml.llm.OrchestrationStep[] {
     assert_eq!(steps, vec![("B", 0)]);
 }
 
+/// Calling `build_plan` must not advance runtime RR counters.
+///
+/// Planner expansion should be side-effect free; only execution should mutate
+/// the global round-robin counter.
+#[tokio::test]
+async fn plan_round_robin_has_no_runtime_side_effects() {
+    let source = r##"
+client<llm> A {
+    provider openai
+    options { model "gpt-4" }
+}
+
+client<llm> B {
+    provider openai
+    options { model "gpt-3.5-turbo" }
+}
+
+client<llm> RR {
+    provider round-robin
+    options { strategy [A, B] start 0 }
+}
+
+function F(x: string) -> string {
+    client RR
+    prompt #"{{ x }}"#
+}
+
+function check_plan_side_effects() -> int {
+    let c = baml.llm.get_client("F");
+    baml.llm.build_plan(c);
+    baml.llm.build_plan(c);
+    baml.llm.round_robin_next("RR")
+}
+"##;
+
+    let result = run(source, "check_plan_side_effects")
+        .await
+        .expect("test failed");
+
+    assert_eq!(result, BexExternalValue::Int(0));
+}
+
 // ============================================================================
 // build_plan: retry expands steps
 // ============================================================================

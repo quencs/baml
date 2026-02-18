@@ -25,6 +25,31 @@ class ExecutionContext {
     function_name string
 }
 
+/// Mutable planner-local state for side-effect-free `build_plan` expansion.
+///
+/// For each RR client name, we append one marker per selection inside a single
+/// plan expansion. The number of prior markers for a client is its local offset.
+class PlannerState {
+    rr_client_names string[]
+
+    function rr_local_offset(self, client_name: string) -> int {
+        let offset = 0;
+        for (let seen_name in self.rr_client_names) {
+            if (seen_name == client_name) {
+                offset += 1;
+            }
+        }
+        offset
+    }
+
+    function rr_pick_index(self, client_name: string, sub_client_count: int) -> int {
+        let local_offset = self.rr_local_offset(client_name);
+        self.rr_client_names.push(client_name);
+        let base = baml.llm.round_robin_peek(client_name);
+        (base + local_offset) % sub_client_count
+    }
+}
+
 /// Expand a client tree into steps for a single attempt (no retry wrapping).
 ///
 /// - Primitive: resolves to one step.
@@ -35,6 +60,15 @@ class ExecutionContext {
 /// This function is called once per retry attempt by `build_plan`, which means
 /// RoundRobin picks a fresh child on each retry.
 function build_attempt(llm_client: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
+    let planner_state = baml.llm.PlannerState { rr_client_names: [] };
+    baml.llm.build_attempt_with_state(llm_client, planner_state)
+}
+
+/// Expand a client tree into steps for a single attempt using planner-local state.
+function build_attempt_with_state(
+    llm_client: baml.llm.Client,
+    planner_state: baml.llm.PlannerState,
+) -> baml.llm.OrchestrationStep[] {
     match (llm_client.client_type) {
         baml.llm.ClientType.Primitive => {
             let resolve_fn = baml.llm.resolve_client(llm_client.name);
@@ -45,7 +79,7 @@ function build_attempt(llm_client: baml.llm.Client) -> baml.llm.OrchestrationSte
         baml.llm.ClientType.Fallback => {
             let steps: baml.llm.OrchestrationStep[] = [];
             for (let sub in llm_client.sub_clients) {
-                for (let step in baml.llm.build_plan(sub)) {
+                for (let step in baml.llm.build_plan_with_state(sub, planner_state)) {
                     steps.push(step);
                 }
             }
@@ -53,8 +87,18 @@ function build_attempt(llm_client: baml.llm.Client) -> baml.llm.OrchestrationSte
         }
 
         baml.llm.ClientType.RoundRobin => {
-            let idx = baml.llm.round_robin_next(llm_client.name) % llm_client.sub_clients.length();
-            baml.llm.build_plan(llm_client.sub_clients.at(idx))
+            if (llm_client.sub_clients.length() == 0) {
+                []
+            } else {
+                let idx = planner_state.rr_pick_index(
+                    llm_client.name,
+                    llm_client.sub_clients.length(),
+                );
+                baml.llm.build_plan_with_state(
+                    llm_client.sub_clients.at(idx),
+                    planner_state,
+                )
+            }
         }
     }
 }
@@ -67,8 +111,17 @@ function build_attempt(llm_client: baml.llm.Client) -> baml.llm.OrchestrationSte
 ///
 /// For clients without a retry policy, this is a single call to `build_attempt`.
 function build_plan(llm_client: baml.llm.Client) -> baml.llm.OrchestrationStep[] {
+    let planner_state = baml.llm.PlannerState { rr_client_names: [] };
+    baml.llm.build_plan_with_state(llm_client, planner_state)
+}
+
+/// Build a plan with planner-local state threaded through nested retries/composition.
+function build_plan_with_state(
+    llm_client: baml.llm.Client,
+    planner_state: baml.llm.PlannerState,
+) -> baml.llm.OrchestrationStep[] {
     match (llm_client.retry) {
-        null => baml.llm.build_attempt(llm_client),
+        null => baml.llm.build_attempt_with_state(llm_client, planner_state),
         r: baml.llm.RetryPolicy => {
             let result: baml.llm.OrchestrationStep[] = [];
             let current_delay = r.initial_delay_ms + 0.0;
@@ -85,7 +138,7 @@ function build_plan(llm_client: baml.llm.Client) -> baml.llm.OrchestrationStep[]
                     }
                 }
 
-                let inner = baml.llm.build_attempt(llm_client);
+                let inner = baml.llm.build_attempt_with_state(llm_client, planner_state);
                 for (let step in inner) {
                     result.push(baml.llm.OrchestrationStep {
                         primitive_client: step.primitive_client,
