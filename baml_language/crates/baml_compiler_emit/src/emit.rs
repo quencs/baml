@@ -41,6 +41,15 @@ const JUMP_TABLE_MIN_DENSITY: f64 = 0.5; // Minimum density for jump table
 const JUMP_TABLE_MAX_SIZE: usize = 256; // Maximum jump table size
 const BINARY_SEARCH_MIN_ARMS: usize = 4; // Minimum arms for binary search
 
+/// Unwrap a `Result` whose error type is `Infallible`.
+#[inline]
+fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
+    match result {
+        Ok(value) => value,
+        Err(never) => match never {},
+    }
+}
+
 /// Analyze a switch's arms to determine the best emission strategy.
 ///
 /// The thresholds are tunable constants that balance code size, memory usage,
@@ -196,6 +205,12 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             watched_locals_initialized: HashSet::new(),
             block_notifications: Vec::new(),
         }
+    }
+
+    fn local_slot_or_panic(&self, local: Local, context: &str) -> usize {
+        *self.local_slots.get(&local).unwrap_or_else(|| {
+            panic!("local {local} has no allocated slot while emitting {context}")
+        })
     }
 
     /// Compile a MIR function to bytecode.
@@ -480,10 +495,12 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
                 // For field/index stores, push the base object first, then emit the value
                 // This sets up the stack correctly for StoreField/StoreArrayElement
-                match pull_semantics::walk_projection_store(self, destination, value) {
-                    Ok(true) => return,
-                    Ok(false) => {}
-                    Err(never) => match never {},
+                if unwrap_infallible(pull_semantics::walk_projection_store(
+                    self,
+                    destination,
+                    value,
+                )) {
+                    return;
                 }
 
                 match destination {
@@ -496,33 +513,24 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                         if local_decl.is_watched && !self.watched_locals_initialized.contains(local)
                         {
                             self.watched_locals_initialized.insert(*local);
-                            if self.local_slots.contains_key(local) {
-                                if let Err(never) =
-                                    self.push_watch_channel(*local, local_decl.name.as_deref())
-                                {
-                                    match never {}
-                                }
-                                let null_const_idx = self.add_constant(ConstValue::Null);
-                                self.emit(Instruction::LoadConst(null_const_idx));
-                                if let Err(never) = self.watch_local(*local) {
-                                    match never {}
-                                }
-                            }
+                            unwrap_infallible(
+                                self.push_watch_channel(*local, local_decl.name.as_deref()),
+                            );
+                            let null_const_idx = self.add_constant(ConstValue::Null);
+                            self.emit(Instruction::LoadConst(null_const_idx));
+                            unwrap_infallible(self.watch_local(*local));
                         }
                     }
                     Place::Field { .. } | Place::Index { .. } => unreachable!(),
                 }
             }
             StatementKind::Drop(place) => {
-                if let Err(never) = pull_semantics::walk_drop_statement(self, place) {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_drop_statement(self, place));
             }
             StatementKind::Unwatch(local) => {
                 // Emit unwatch for a watched local going out of scope
-                if let Some(&slot) = self.local_slots.get(local) {
-                    self.emit(Instruction::Unwatch(slot));
-                }
+                let slot = self.local_slot_or_panic(*local, "Unwatch");
+                self.emit(Instruction::Unwatch(slot));
             }
             StatementKind::NotifyBlock { name, level } => {
                 // Add block notification to the function's metadata
@@ -538,17 +546,17 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             }
             StatementKind::WatchOptions { local, filter } => {
                 let channel_name = mir.local(*local).name.as_deref();
-                if let Err(never) =
-                    pull_semantics::walk_watch_options_statement(self, *local, channel_name, filter)
-                {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_watch_options_statement(
+                    self,
+                    *local,
+                    channel_name,
+                    filter,
+                ));
             }
             StatementKind::WatchNotify(local) => {
                 // Emit manual notify for a watched variable
-                if let Some(&slot) = self.local_slots.get(local) {
-                    self.emit(Instruction::Notify(slot));
-                }
+                let slot = self.local_slot_or_panic(*local, "WatchNotify");
+                self.emit(Instruction::Notify(slot));
             }
             StatementKind::VizEnter(node_idx) => {
                 self.emit(Instruction::VizEnter(*node_idx));
@@ -558,9 +566,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
             }
             StatementKind::Nop => {}
             StatementKind::Assert(operand) => {
-                if let Err(never) = pull_semantics::walk_assert_statement(self, operand) {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_assert_statement(self, operand));
             }
         }
     }
@@ -574,16 +580,12 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
     /// For Virtual locals, this recursively emits the definition's rvalue inline.
     /// For Real locals, this emits a `LoadVar` instruction.
     fn emit_operand_pull(&mut self, operand: &Operand) {
-        if let Err(never) = pull_semantics::walk_operand_pull(self, operand) {
-            match never {}
-        }
+        unwrap_infallible(pull_semantics::walk_operand_pull(self, operand));
     }
 
     /// Emit an rvalue using the pull model.
     fn emit_rvalue_pull(&mut self, rvalue: &Rvalue) {
-        if let Err(never) = pull_semantics::walk_rvalue_pull(self, rvalue) {
-            match never {}
-        }
+        unwrap_infallible(pull_semantics::walk_rvalue_pull(self, rvalue));
     }
 
     /// Emit a constant value.
@@ -747,9 +749,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
             Terminator::Return => {
                 // Use pull model for return value - if _0 is Virtual, inline it
-                if let Err(never) = pull_semantics::walk_return_value(self) {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_return_value(self));
                 self.emit(Instruction::Return);
             }
 
@@ -760,9 +760,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 target,
                 unwind: _,
             } => {
-                if let Err(never) = pull_semantics::walk_invoke_operands(self, callee, args) {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_invoke_operands(self, callee, args));
                 self.emit(Instruction::Call(args.len()));
                 self.emit_store_place(destination);
                 self.emit_jump_unless_fallthrough(*target);
@@ -782,9 +780,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 future,
                 resume,
             } => {
-                if let Err(never) = pull_semantics::walk_invoke_operands(self, callee, args) {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_invoke_operands(self, callee, args));
                 self.emit(Instruction::DispatchFuture(args.len()));
                 self.emit_store_place(future);
                 self.emit_jump_unless_fallthrough(*resume);
@@ -796,9 +792,7 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
                 target,
                 unwind: _,
             } => {
-                if let Err(never) = pull_semantics::walk_await_future(self, future) {
-                    match never {}
-                }
+                unwrap_infallible(pull_semantics::walk_await_future(self, future));
                 self.emit(Instruction::Await);
                 self.emit_store_place(destination);
                 self.emit_jump_unless_fallthrough(*target);
@@ -1331,10 +1325,7 @@ impl StackEffectSink for StackifyCodegen<'_, '_> {
         channel_name: Option<&str>,
     ) -> Result<(), Self::Error> {
         // Watched locals must be `Real` and therefore must have slots.
-        assert!(
-            self.local_slots.contains_key(&local),
-            "watched local {local} has no allocated slot"
-        );
+        let _slot = self.local_slot_or_panic(local, "WatchOptions/watch initialization");
         let channel = channel_name
             .unwrap_or_else(|| panic!("watched local {local} must have a user-visible name"))
             .to_string();
@@ -1347,10 +1338,7 @@ impl StackEffectSink for StackifyCodegen<'_, '_> {
     }
 
     fn watch_local(&mut self, local: Local) -> Result<(), Self::Error> {
-        let slot = *self
-            .local_slots
-            .get(&local)
-            .unwrap_or_else(|| panic!("watched local {local} has no allocated slot"));
+        let slot = self.local_slot_or_panic(local, "Watch");
         self.emit(Instruction::Watch(slot));
         Ok(())
     }
@@ -1371,6 +1359,8 @@ impl StackEffectSink for StackifyCodegen<'_, '_> {
 pub(crate) fn compile_mir_function(mir: &MirFunction, ctx: MirCodegenContext<'_, '_>) -> Function {
     // Run analysis
     let analysis = AnalysisResult::analyze(mir);
+    #[cfg(debug_assertions)]
+    crate::verifier::verify_mir_emit_invariants(mir, &analysis);
 
     // Compile with stackification
     let codegen = StackifyCodegen::new(ctx, analysis);
