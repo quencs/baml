@@ -28,27 +28,14 @@ pub struct UsageEstimateAggregate {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct NodeDetails {
-    // Aggregate info for performance - calculated server-side
+    // Aggregate info - computed by build_trace_children_hierarchy in getTraceChildren
     #[ts(type = "number")]
     pub children_functions: u32,
     #[ts(type = "number")]
-    pub total_descendants: u32, // Total count including nested children
-    #[ts(type = "number")]
-    pub max_depth: u32, // Maximum nesting depth
+    pub total_descendants: u32,
     #[ts(optional)]
     pub usage_estimate_aggregate: Option<UsageEstimateAggregate>,
-
-    // Lazy loading metadata
     pub has_children: bool,
-    pub children_loaded: bool, // Whether children are included in this response
-    #[ts(type = "number", optional)]
-    pub children_limit: Option<u32>, // How many children were requested/returned
-    #[ts(type = "number", optional)]
-    pub children_offset: Option<u32>, // Pagination offset for children
-
-    // Match highlighting - IDs of descendants that matched filters
-    #[ts(optional)]
-    pub matched_descendant_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
@@ -90,19 +77,6 @@ pub struct ListTracesRequest {
     #[ts(optional)]
     pub ending_before: Option<String>,
 
-    // Lazy loading controls
-    /// Whether to include direct children in the response. Defaults to false.
-    #[ts(optional)]
-    pub include_children: Option<bool>,
-    /// Maximum depth of children to load. Defaults to 1 if include_children is true.
-    #[ts(optional)]
-    pub max_depth: Option<u32>,
-    /// Limit for children per trace. Defaults to 50.
-    #[ts(optional)]
-    pub children_limit: Option<u32>,
-    /// Offset for children pagination within each trace.
-    #[ts(optional)]
-    pub children_offset: Option<u32>,
     /// Whether to calculate usage estimates. Defaults to true.
     #[ts(optional)]
     pub include_usage_estimates: Option<bool>,
@@ -134,9 +108,6 @@ pub struct ListTracesRequest {
     /// Filter to only show LLM function calls (function_type = 'baml_llm')
     #[ts(optional)]
     pub llm_only: Option<FilterExpression<bool>>,
-    /// Whether to include matched_descendant_ids in the response for match highlighting. Defaults to false.
-    #[ts(optional)]
-    pub include_match_highlights: Option<bool>,
 }
 
 impl Default for ListTracesRequest {
@@ -150,10 +121,6 @@ impl Default for ListTracesRequest {
             limit: Some(100),
             starting_after: None,
             ending_before: None,
-            include_children: Some(false),
-            max_depth: Some(1),
-            children_limit: Some(50),
-            children_offset: Some(0),
             include_usage_estimates: Some(true),
             function_call_id: None,
             function_id: None,
@@ -167,7 +134,6 @@ impl Default for ListTracesRequest {
             relative_time: None,
             search: None,
             llm_only: None,
-            include_match_highlights: Some(false),
         }
     }
 }
@@ -190,6 +156,23 @@ pub struct GetTraceChildrenRequest {
     /// Whether to calculate usage estimates. Defaults to true.
     #[ts(optional)]
     pub include_usage_estimates: Option<bool>,
+
+    // Filter fields for children match highlighting
+    /// Search term to highlight matching children
+    #[ts(optional)]
+    pub search: Option<String>,
+    /// Status filter for matching children
+    #[ts(optional)]
+    pub status: Option<FilterExpression<FunctionCallStatus>>,
+    /// Tag filters for matching children
+    #[ts(optional)]
+    pub tag_filters: Option<Vec<TagFilter>>,
+    /// Error filters for matching children
+    #[ts(optional)]
+    pub error_filters: Option<Vec<TagFilter>>,
+    /// LLM-only filter for matching children
+    #[ts(optional)]
+    pub llm_only: Option<FilterExpression<bool>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
@@ -203,6 +186,9 @@ pub struct GetTraceChildrenResponse {
     #[ts(type = "number")]
     pub total_children: u32, // For pagination
     pub has_more: bool, // Whether there are more children to load
+    /// IDs of children that matched the given filters (for highlight)
+    #[ts(optional)]
+    pub matched_children_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
@@ -249,18 +235,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_list_traces_lazy_loading() {
+    fn test_list_traces_request_deserialization() {
         let json_str = r#"{
             "projectId": "proj_01jvb3fnp1f09ta2a6g016t4kz",
-            "includeChildren": true,
-            "maxDepth": 2,
-            "childrenLimit": 25
+            "includeUsageEstimates": true
         }"#;
 
         let request: ListTracesRequest = serde_json::from_str(json_str).unwrap();
-        assert_eq!(request.include_children, Some(true));
-        assert_eq!(request.max_depth, Some(2));
-        assert_eq!(request.children_limit, Some(25));
+        assert_eq!(request.include_usage_estimates, Some(true));
     }
 
     #[test]
