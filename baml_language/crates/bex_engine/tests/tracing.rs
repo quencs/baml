@@ -10,7 +10,7 @@
 mod common;
 
 use bex_engine::{
-    BexEngine, BexExternalValue, CancellationToken, HostSpanContext, RuntimeEvent, SpanId,
+    BexEngine, BexExternalValue, FunctionCallContextBuilder, HostSpanContext, RuntimeEvent, SpanId,
 };
 use bex_events::{EventKind, FunctionEvent};
 use common::compile_for_engine;
@@ -76,15 +76,11 @@ async fn trace_single_function() {
         BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
+    let call_ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_host_ctx(host_ctx)
+        .build();
     let value = engine
-        .call_function(
-            "main",
-            vec![],
-            sys_types::CallId::default(),
-            Some(host_ctx),
-            &[],
-            CancellationToken::new(),
-        )
+        .call_function("main", vec![], call_ctx)
         .await
         .unwrap();
     let events = collect_events(&guard);
@@ -123,15 +119,11 @@ async fn trace_nested_expression_calls_no_child_spans() {
         BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
+    let call_ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_host_ctx(host_ctx)
+        .build();
     let value = engine
-        .call_function(
-            "main",
-            vec![],
-            sys_types::CallId::default(),
-            Some(host_ctx),
-            &[],
-            CancellationToken::new(),
-        )
+        .call_function("main", vec![], call_ctx)
         .await
         .unwrap();
     let events = collect_events(&guard);
@@ -170,15 +162,11 @@ async fn trace_deeply_nested_expression_calls_no_child_spans() {
         BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
+    let call_ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_host_ctx(host_ctx)
+        .build();
     let value = engine
-        .call_function(
-            "main",
-            vec![],
-            sys_types::CallId::default(),
-            Some(host_ctx),
-            &[],
-            CancellationToken::new(),
-        )
+        .call_function("main", vec![], call_ctx)
         .await
         .unwrap();
     let events = collect_events(&guard);
@@ -211,15 +199,11 @@ async fn trace_sibling_expression_calls_no_child_spans() {
         BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
+    let call_ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_host_ctx(host_ctx)
+        .build();
     let value = engine
-        .call_function(
-            "main",
-            vec![],
-            sys_types::CallId::default(),
-            Some(host_ctx),
-            &[],
-            CancellationToken::new(),
-        )
+        .call_function("main", vec![], call_ctx)
         .await
         .unwrap();
     let events = collect_events(&guard);
@@ -244,14 +228,14 @@ async fn trace_captures_root_args() {
         BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
+    let call_ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_host_ctx(host_ctx)
+        .build();
     let value = engine
         .call_function(
             "add",
             vec![BexExternalValue::Int(3), BexExternalValue::Int(4)],
-            sys_types::CallId::default(),
-            Some(host_ctx),
-            &[],
-            CancellationToken::new(),
+            call_ctx,
         )
         .await
         .unwrap();
@@ -286,15 +270,11 @@ async fn trace_captures_root_result() {
         BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
+    let call_ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_host_ctx(host_ctx)
+        .build();
     let value = engine
-        .call_function(
-            "double",
-            vec![BexExternalValue::Int(5)],
-            sys_types::CallId::default(),
-            Some(host_ctx),
-            &[],
-            CancellationToken::new(),
-        )
+        .call_function("double", vec![BexExternalValue::Int(5)], call_ctx)
         .await
         .unwrap();
     let events = collect_events(&guard);

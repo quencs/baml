@@ -19,8 +19,13 @@ static RUNTIME_INSTANCE: RwLock<Option<Arc<dyn Bex>>> = RwLock::new(None);
 static TOKIO_RUNTIME: OnceCell<Arc<Runtime>> = OnceCell::new();
 
 /// Initialize the global Tokio runtime.
-pub fn get_tokio_runtime() -> &'static Arc<Runtime> {
-    TOKIO_RUNTIME.get_or_init(|| Arc::new(Runtime::new().expect("Failed to create Tokio runtime")))
+pub fn get_tokio_runtime() -> Result<Arc<Runtime>, BridgeError> {
+    let result = TOKIO_RUNTIME.get_or_try_init(|| {
+        Runtime::new()
+            .map_err(|e| BridgeError::Internal(format!("Failed to create Tokio runtime: {e}")))
+            .map(Arc::new)
+    });
+    result.cloned()
 }
 
 /// Get a clone of the global runtime, or error if not initialized.
@@ -42,7 +47,7 @@ pub fn get_runtime() -> Result<Arc<dyn Bex>, BridgeError> {
 pub fn initialize_runtime(
     root_path: &str,
     src_files: HashMap<String, String>,
-) -> Result<(), BridgeError> {
+) -> Result<Arc<dyn Bex>, BridgeError> {
     let physical_fs = vfs::PhysicalFS::new("/");
     let vfs_root = vfs::VfsPath::new(physical_fs);
     let vfs_path = vfs_root
@@ -54,12 +59,12 @@ pub fn initialize_runtime(
         .map(|(k, v)| (bex_project::FsPath::from_str(k), v))
         .collect();
 
-    let rt = bex_project::new(&vfs_path, bex_project::SysOps::native(), &files)?;
+    let rt = bex_project::new(vfs_path, bex_project::SysOps::native(), files)?;
 
     let mut guard = RUNTIME_INSTANCE
         .write()
         .map_err(|_| BridgeError::LockPoisoned)?;
-    *guard = Some(rt);
+    *guard = Some(rt.clone());
 
-    Ok(())
+    Ok(rt)
 }

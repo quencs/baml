@@ -7,7 +7,9 @@ authors.workspace = true
 license.workspace = true
 
 [lib]
-name = "baml_cffi"
+# Library name is bridge_cffi; baml-sys/integ-tests still look for baml_cffi. For release,
+# the artifact can be renamed (e.g. via mv) as needed when we switch to this bridge.
+name = "bridge_cffi"
 crate-type = [ "cdylib", "lib" ]
 
 [features]
@@ -18,7 +20,6 @@ bundle-http = [ "sys_native/bundle-http" ]
 
 [dependencies]
 bex_events = { workspace = true }
-bex_external_types = { workspace = true }
 bex_project = { workspace = true }
 bridge_ctypes = { workspace = true }
 sys_native = { workspace = true }

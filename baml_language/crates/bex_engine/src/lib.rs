@@ -54,6 +54,7 @@
 #![allow(unsafe_code)]
 
 mod conversion;
+mod function_call_context;
 
 use std::{
     collections::HashMap,
@@ -74,10 +75,11 @@ use bex_heap::BexHeap;
 pub use bex_heap::GcStats;
 use bex_vm::{BexVm, SpanNotification, VmExecState};
 use bex_vm_types::{FunctionMeta, GlobalPool, HeapPtr, Object, SysOp, Value};
+// Re-export CancellationToken for callers.
+pub use function_call_context::{FunctionCallContext, FunctionCallContextBuilder};
 use sys_types::{CallId, OpError, SysOpResult};
 use thiserror::Error;
 use tokio::sync::{Notify, mpsc};
-// Re-export CancellationToken for callers.
 pub use tokio_util::sync::CancellationToken;
 
 // ============================================================================
@@ -132,6 +134,38 @@ impl EpochState {
     }
 }
 
+/// RAII guard: inserts (`call_id`, cancel) on construction and removes `call_id` on drop,
+/// so `active_calls` is cleaned up on all exit paths (success, early return, or panic).
+struct ActiveCallGuard<'a> {
+    active_calls: &'a Mutex<HashMap<CallId, CancellationToken>>,
+    call_id: CallId,
+}
+
+impl<'a> ActiveCallGuard<'a> {
+    fn new(
+        active_calls: &'a Mutex<HashMap<CallId, CancellationToken>>,
+        call_id: CallId,
+        cancel: &CancellationToken,
+    ) -> Result<Self, EngineError> {
+        let mut map = active_calls.lock().unwrap();
+        if map.contains_key(&call_id) {
+            return Err(EngineError::DuplicateCallId { call_id });
+        }
+        map.insert(call_id, cancel.clone());
+        Ok(Self {
+            active_calls,
+            call_id,
+        })
+    }
+}
+
+impl Drop for ActiveCallGuard<'_> {
+    fn drop(&mut self) {
+        let mut active_calls = self.active_calls.lock().unwrap();
+        active_calls.remove(&self.call_id);
+    }
+}
+
 // ============================================================================
 // Span Tracking (per-invocation, NOT on Arc<BexEngine>)
 // ============================================================================
@@ -162,6 +196,9 @@ struct SpanState {
 /// Errors that can occur during engine execution.
 #[derive(Debug, Error)]
 pub enum EngineError {
+    #[error("Function call with ID {call_id} not found")]
+    FunctionCallNotFound { call_id: CallId },
+
     #[error("Function not found: {name}")]
     FunctionNotFound { name: String },
 
@@ -192,6 +229,9 @@ pub enum EngineError {
     #[cfg(feature = "heap_debug")]
     #[error("Snapshot not possible for type: {type_name}")]
     CannotSnapshot { type_name: String },
+
+    #[error("A function call with ID {call_id} is already in progress")]
+    DuplicateCallId { call_id: CallId },
 }
 
 // ============================================================================
@@ -290,6 +330,9 @@ pub struct BexEngine {
     /// Flag indicating GC is currently in progress.
     /// Used to prevent handle resolution races.
     gc_in_progress: AtomicBool,
+
+    /// Map of active function calls by ID.
+    active_calls: Mutex<HashMap<CallId, CancellationToken>>,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -478,6 +521,7 @@ impl BexEngine {
             epoch_drained: Notify::new(),
             gc_complete: Notify::new(),
             gc_in_progress: AtomicBool::new(false),
+            active_calls: Mutex::new(HashMap::new()),
         })
     }
 
@@ -670,10 +714,12 @@ impl BexEngine {
         &self,
         function_name: &str,
         args: Vec<BexExternalValue>,
-        call_id: CallId,
-        host_ctx: Option<HostSpanContext>,
-        collectors: &[Arc<bex_events::Collector>],
-        cancel: CancellationToken,
+        FunctionCallContext {
+            call_id,
+            host_ctx,
+            collectors,
+            cancel,
+        }: FunctionCallContext,
     ) -> Result<BexExternalValue, EngineError> {
         // Fail fast if already cancelled — guarantees pre-cancelled tokens
         // always produce Err(Cancelled) regardless of function contents.
@@ -685,6 +731,8 @@ impl BexEngine {
         while self.gc_in_progress.load(Ordering::Acquire) {
             self.gc_complete.notified().await;
         }
+
+        let _call_guard = ActiveCallGuard::new(&self.active_calls, call_id, &cancel)?;
 
         let function_index = self.lookup_function(function_name)?;
         let return_type = self.function_return_type(function_name).unwrap_or(Ty::Null);
@@ -732,7 +780,7 @@ impl BexEngine {
         // or parent_span_id against tracked IDs. So the function's own events
         // (span_id == engine_span_id) and child events like LLM calls
         // (parent_span_id == engine_span_id) both land in the same bucket.
-        for collector in collectors {
+        for collector in &collectors {
             collector.track(&engine_span_id);
         }
 
@@ -800,6 +848,8 @@ impl BexEngine {
             self.epoch_drained.notify_one();
         }
 
+        // active_calls cleanup is done by ActiveCallGuard on drop
+
         // If the call failed and the token is cancelled, upgrade to
         // EngineError::Cancelled. This ensures cooperative BAML-level checks
         // (which produce SysOpError via baml.sys.panic) are reported as
@@ -808,6 +858,21 @@ impl BexEngine {
         match result {
             Err(_) if cancel.is_cancelled() => Err(EngineError::Cancelled),
             other => other,
+        }
+    }
+
+    /// Cancel a function call by its ID.
+    ///
+    /// If the call is still running, it will be interrupted at the next
+    /// cancellation check point. If the call has already completed or the ID
+    /// is unknown, this will return an error.
+    pub fn cancel_function_call(&self, call_id: CallId) -> Result<(), EngineError> {
+        let mut active_calls = self.active_calls.lock().unwrap();
+        if let Some(cancel) = active_calls.remove(&call_id) {
+            cancel.cancel();
+            Ok(())
+        } else {
+            Err(EngineError::FunctionCallNotFound { call_id })
         }
     }
 
