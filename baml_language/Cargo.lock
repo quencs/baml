@@ -746,6 +746,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "wasm-bindgen-futures",
+ "web-time",
  "wiremock",
 ]
 
@@ -758,6 +759,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "uuid",
+ "web-time",
 ]
 
 [[package]]
@@ -818,6 +820,7 @@ dependencies = [
  "tracing",
  "vfs",
  "wasm-bindgen-futures",
+ "web-time",
 ]
 
 [[package]]
@@ -984,6 +987,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "wasm-logger",
+ "web-time",
 ]
 
 [[package]]
