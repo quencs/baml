@@ -7,10 +7,10 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
-use bex_factory::CancellationToken;
 use bridge_ctypes::{DecodeFromBuffer, kwargs_to_bex_values};
 use futures::future::FutureExt;
 use prost::Message;
+use sys_types::CancellationToken;
 
 use crate::{
     Buffer,
@@ -111,7 +111,12 @@ fn call_function_inner(
         // Wrap the async block with catch_unwind to handle panics
         let result = AssertUnwindSafe(async {
             runtime
-                .call_function(&func_name, kwargs.into(), cancel)
+                .call_function(
+                    &func_name,
+                    kwargs.into(),
+                    sys_types::CallId::default(),
+                    cancel,
+                )
                 .await
         })
         .catch_unwind()

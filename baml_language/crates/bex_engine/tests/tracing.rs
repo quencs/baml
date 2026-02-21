@@ -72,13 +72,15 @@ async fn trace_single_function() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine = BexEngine::new(snapshot, sys_types::SysOps::native()).unwrap();
+    let engine =
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
     let value = engine
         .call_function(
             "main",
             vec![],
+            sys_types::CallId::default(),
             Some(host_ctx),
             &[],
             CancellationToken::new(),
@@ -117,13 +119,15 @@ async fn trace_nested_expression_calls_no_child_spans() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine = BexEngine::new(snapshot, sys_types::SysOps::native()).unwrap();
+    let engine =
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
     let value = engine
         .call_function(
             "main",
             vec![],
+            sys_types::CallId::default(),
             Some(host_ctx),
             &[],
             CancellationToken::new(),
@@ -162,13 +166,15 @@ async fn trace_deeply_nested_expression_calls_no_child_spans() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine = BexEngine::new(snapshot, sys_types::SysOps::native()).unwrap();
+    let engine =
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
     let value = engine
         .call_function(
             "main",
             vec![],
+            sys_types::CallId::default(),
             Some(host_ctx),
             &[],
             CancellationToken::new(),
@@ -201,13 +207,15 @@ async fn trace_sibling_expression_calls_no_child_spans() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine = BexEngine::new(snapshot, sys_types::SysOps::native()).unwrap();
+    let engine =
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
     let value = engine
         .call_function(
             "main",
             vec![],
+            sys_types::CallId::default(),
             Some(host_ctx),
             &[],
             CancellationToken::new(),
@@ -232,13 +240,15 @@ async fn trace_captures_root_args() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine = BexEngine::new(snapshot, sys_types::SysOps::native()).unwrap();
+    let engine =
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
     let value = engine
         .call_function(
             "add",
             vec![BexExternalValue::Int(3), BexExternalValue::Int(4)],
+            sys_types::CallId::default(),
             Some(host_ctx),
             &[],
             CancellationToken::new(),
@@ -272,13 +282,15 @@ async fn trace_captures_root_result() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine = BexEngine::new(snapshot, sys_types::SysOps::native()).unwrap();
+    let engine =
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native())).unwrap();
 
     let (host_ctx, guard) = setup_tracking();
     let value = engine
         .call_function(
             "double",
             vec![BexExternalValue::Int(5)],
+            sys_types::CallId::default(),
             Some(host_ctx),
             &[],
             CancellationToken::new(),

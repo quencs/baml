@@ -74,7 +74,7 @@ use bex_heap::BexHeap;
 pub use bex_heap::GcStats;
 use bex_vm::{BexVm, SpanNotification, VmExecState};
 use bex_vm_types::{FunctionMeta, GlobalPool, HeapPtr, Object, SysOp, Value};
-use sys_types::{OpError, SysOpResult};
+use sys_types::{CallId, OpError, SysOpResult};
 use thiserror::Error;
 use tokio::sync::{Notify, mpsc};
 // Re-export CancellationToken for callers.
@@ -272,7 +272,7 @@ pub struct BexEngine {
     /// Resolved enum names for variant allocation
     resolved_enum_names: HashMap<String, HeapPtr>,
     /// System operations provider.
-    sys_ops: sys_types::SysOps,
+    sys_ops: std::sync::Arc<sys_types::SysOps>,
     /// Context passed to `sys_ops` that need engine-level information.
     sys_op_ctx: sys_types::SysOpContext,
 
@@ -323,7 +323,7 @@ impl BexEngine {
     /// * `sys_ops` - System operations provider (use `sys_types_native::SysOps::native()` for default)
     pub fn new(
         bytecode_program: bex_vm_types::Program,
-        sys_ops: sys_types::SysOps,
+        sys_ops: std::sync::Arc<sys_types::SysOps>,
     ) -> Result<Self, EngineError> {
         // Convert the pure bytecode to a VM-ready program with native functions attached
         let bytecode = bex_vm::convert_program(bytecode_program)?;
@@ -670,6 +670,7 @@ impl BexEngine {
         &self,
         function_name: &str,
         args: Vec<BexExternalValue>,
+        call_id: CallId,
         host_ctx: Option<HostSpanContext>,
         collectors: &[Arc<bex_events::Collector>],
         cancel: CancellationToken,
@@ -780,7 +781,14 @@ impl BexEngine {
 
         // Run the event loop with span tracking
         let result = self
-            .run_event_loop_with_epoch(return_type, &mut vm, my_epoch, &mut span_state, &cancel)
+            .run_event_loop_with_epoch(
+                return_type,
+                &mut vm,
+                my_epoch,
+                call_id,
+                &mut span_state,
+                &cancel,
+            )
             .await;
 
         // Unregister from epoch
@@ -911,6 +919,7 @@ impl BexEngine {
         return_type: Ty,
         vm: &mut BexVm,
         my_epoch: u64,
+        call_id: CallId,
         span_state: &mut Option<SpanState>,
         cancel: &CancellationToken,
     ) -> Result<BexExternalValue, EngineError> {
@@ -984,7 +993,7 @@ impl BexEngine {
                         .map(|v| self.vm_arg_to_bex_value(v))
                         .collect();
 
-                    match self.execute_sys_op(pending.operation, &args, cancel) {
+                    match self.execute_sys_op(pending.operation, &args, call_id, cancel) {
                         SysOpResult::Ready(result) => {
                             // Sync operation - set future to Ready without touching stack.
                             // The VM will continue to the Await instruction which will
@@ -1220,12 +1229,13 @@ impl BexEngine {
         &self,
         op: SysOp,
         args: &[BexExternalValue],
+        call_id: CallId,
         cancel: &CancellationToken,
     ) -> SysOpResult {
         let args = args.iter().map(std::convert::Into::into).collect();
         let fn_ptr = self.sys_ops.get(op);
         let ctx = self.sys_op_ctx.with_cancel(cancel.clone());
-        fn_ptr(&self.heap, args, &ctx)
+        fn_ptr(&self.heap, args, &ctx, call_id)
     }
 }
 

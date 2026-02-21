@@ -62,6 +62,15 @@ pub use bex_vm_types::{
     type_tags,
 };
 
+// ============================================================================
+// Database Trait
+// ============================================================================
+
+/// Salsa database for the emit phase: compiles MIR to bytecode.
+/// Extends `baml_compiler_mir::Db` so a single `Db` can run the full pipeline through codegen.
+#[salsa::db]
+pub trait Db: baml_compiler_mir::Db {}
+
 /// Generate bytecode for all functions in a project.
 ///
 /// This is the main entry point for project-wide code generation.
@@ -69,7 +78,7 @@ pub use bex_vm_types::{
 /// lowers to MIR, and compiles to bytecode.
 ///
 /// Returns `Err` if any function contains unrecoverable errors (Missing nodes).
-pub fn generate_project_bytecode(db: &dyn baml_compiler_mir::Db) -> Result<Program, LoweringError> {
+pub fn generate_project_bytecode(db: &dyn Db) -> Result<Program, LoweringError> {
     let project = db.project();
     compile_files(db, project.files(db))
 }

@@ -1,8 +1,8 @@
 //! BamlRuntime PyO3 class - wraps `Arc<BexEngine>`.
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
-use bex_factory::BexEngine;
+use bex_engine::BexEngine;
 use bridge_ctypes::{external_to_cffi_value, kwargs_to_bex_values};
 use prost::Message;
 use pyo3::{
@@ -11,6 +11,7 @@ use pyo3::{
     pyclass,
 };
 use sys_native::SysOpsExt;
+use sys_types::SysOps;
 
 use crate::{
     abort_controller::AbortController,
@@ -76,7 +77,7 @@ impl BamlRuntime {
         root_path: String,
         files: std::collections::HashMap<String, String>,
     ) -> PyResult<Self> {
-        let engine = bex_factory::new_engine(&root_path, &files, bex_factory::SysOps::native())
+        let engine = new_engine(&root_path, &files, SysOps::native())
             .map_err(|e| pyo3::PyErr::new::<BamlInvalidArgumentError, _>(e.to_string()))?;
 
         Ok(BamlRuntime { engine })
@@ -117,6 +118,7 @@ impl BamlRuntime {
                 .call_function(
                     &function_name,
                     ordered_args,
+                    sys_types::CallId::default(),
                     host_ctx,
                     &collector_arcs,
                     cancel,
@@ -172,6 +174,7 @@ impl BamlRuntime {
                 rt.block_on(engine.call_function(
                     &function_name,
                     ordered_args,
+                    sys_types::CallId::default(),
                     host_ctx,
                     &collector_arcs,
                     cancel,
@@ -185,4 +188,24 @@ impl BamlRuntime {
 
         Ok(cffi_value.encode_to_vec())
     }
+}
+
+/// Compile BAML source files and create a `BexEngine`.
+fn new_engine(
+    root_path: &str,
+    files: &std::collections::HashMap<String, String>,
+    sys_ops: SysOps,
+) -> Result<Arc<BexEngine>, String> {
+    let mut db = baml_project::ProjectDatabase::new();
+    db.set_project_root(Path::new(root_path));
+
+    for (filename, content) in files {
+        db.add_or_update_file(&std::path::PathBuf::from(filename), content);
+    }
+
+    let bytecode = baml_compiler_emit::generate_project_bytecode(&db).map_err(|e| e.to_string())?;
+
+    let engine = BexEngine::new(bytecode, Arc::new(sys_ops)).map_err(|e| e.to_string())?;
+
+    Ok(Arc::new(engine))
 }

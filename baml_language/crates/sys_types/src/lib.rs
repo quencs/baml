@@ -12,6 +12,17 @@ pub use bex_heap::BexHeap;
 // Re-export SysOp for convenience
 pub use bex_vm_types::SysOp;
 pub use tokio_util::sync::CancellationToken;
+
+// ============================================================================
+// CallId — opaque per-call identifier
+// ============================================================================
+
+/// Opaque per-call identifier. Passed to every `sys_op` for call correlation.
+///
+/// The playground uses this to associate fetch logs with the function call
+/// that triggered them. Callers that don't need tracking pass `CallId::default()`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct CallId(pub u64);
 // ============================================================================
 // Operation Errors
 // ============================================================================
@@ -92,6 +103,12 @@ pub enum OpErrorKind {
 
     #[error("Operation cancelled")]
     Cancelled,
+
+    #[error("Operation cancelled after {duration:?}: {message}")]
+    Timeout {
+        message: String,
+        duration: std::time::Duration,
+    },
 
     #[error("Not implemented: {message}")]
     NotImplemented { message: String },
@@ -222,7 +239,7 @@ impl<T: AsBexExternalValue + Send + 'static> SysOpOutput<T> {
 /// The context reference provides engine-level information (e.g., function metadata)
 /// that some `sys_ops` need. Ops that don't need it simply ignore the parameter.
 pub type SysOpFn = Arc<
-    dyn for<'a> Fn(&Arc<BexHeap>, Vec<bex_heap::BexValue<'a>>, &SysOpContext) -> SysOpResult
+    dyn for<'a> Fn(&Arc<BexHeap>, Vec<bex_heap::BexValue<'a>>, &SysOpContext, CallId) -> SysOpResult
         + Send
         + Sync,
 >;
@@ -403,7 +420,7 @@ macro_rules! define_sys_ops_struct {
             /// Useful for providers that don't support certain operations.
             pub fn unsupported(operation: SysOp) -> SysOpFn {
                 match operation {
-                    $( SysOp::$Variant => Arc::new(|_, _, _| SysOpResult::Ready(Err(OpError::unsupported(SysOp::$Variant)))), )*
+                    $( SysOp::$Variant => Arc::new(|_, _, _, _| SysOpResult::Ready(Err(OpError::unsupported(SysOp::$Variant)))), )*
                 }
             }
 
@@ -498,6 +515,7 @@ impl Default for SysOpsBuilder {
 impl<T> SysOpLlm for T {
     fn baml_llm_primitive_client_render_prompt(
         &self,
+        _call_id: CallId,
         primitive_client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
         template: String,
         args: BexExternalValue,
@@ -510,6 +528,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_primitive_client_specialize_prompt(
         &self,
+        _call_id: CallId,
         primitive_client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
         prompt: bex_vm_types::PromptAst,
     ) -> SysOpOutput<bex_vm_types::PromptAst> {
@@ -521,6 +540,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_primitive_client_build_request(
         &self,
+        _call_id: CallId,
         primitive_client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
         prompt: bex_vm_types::PromptAst,
     ) -> SysOpOutput<bex_heap::builtin_types::owned::HttpRequest> {
@@ -532,6 +552,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_primitive_client_parse(
         &self,
+        _call_id: CallId,
         primitive_client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
         response: String,
         type_def: baml_type::Ty,
@@ -544,6 +565,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_get_return_type(
         &self,
+        _call_id: CallId,
         function_name: String,
         ctx: &SysOpContext,
     ) -> SysOpOutput<baml_type::Ty> {
@@ -557,6 +579,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_get_jinja_template(
         &self,
+        _call_id: CallId,
         function_name: String,
         ctx: &SysOpContext,
     ) -> SysOpOutput<String> {
@@ -576,6 +599,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_build_primitive_client(
         &self,
+        _call_id: CallId,
         name: String,
         provider: String,
         default_role: String,
@@ -630,6 +654,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_get_client(
         &self,
+        _call_id: CallId,
         function_name: String,
         ctx: &SysOpContext,
     ) -> SysOpOutput<bex_heap::builtin_types::owned::LlmClient> {
@@ -645,7 +670,12 @@ impl<T> SysOpLlm for T {
         }
     }
 
-    fn baml_llm_resolve_client(&self, client_name: String, ctx: &SysOpContext) -> SysOpOutput {
+    fn baml_llm_resolve_client(
+        &self,
+        _call_id: CallId,
+        client_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput {
         let resolve_fn_name = format!("{client_name}.resolve");
         let Some(global_index) = ctx.function_global_indices.get(&resolve_fn_name) else {
             return SysOpOutput::err(OpErrorKind::Other(format!(
@@ -661,6 +691,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_round_robin_next(
         &self,
+        _call_id: CallId,
         client_name: String,
         ctx: &SysOpContext,
     ) -> SysOpOutput<i64> {
@@ -676,6 +707,7 @@ impl<T> SysOpLlm for T {
 
     fn baml_llm_round_robin_peek(
         &self,
+        _call_id: CallId,
         client_name: String,
         ctx: &SysOpContext,
     ) -> SysOpOutput<i64> {
@@ -788,7 +820,7 @@ mod tests {
         let heap = test_heap();
         let ctx = test_ctx();
         let op = SysOps::unsupported(SysOp::BamlSysShell);
-        let result = op(&heap, vec![], &ctx);
+        let result = op(&heap, vec![], &ctx, CallId::default());
         match result {
             SysOpResult::Ready(Err(e)) => {
                 assert!(matches!(e.kind, OpErrorKind::Unsupported));
@@ -805,7 +837,7 @@ mod tests {
         let ops = SysOps::all_unsupported();
 
         // Test fs_open returns Unsupported
-        let result = (ops.baml_fs_open)(&heap, vec![], &ctx);
+        let result = (ops.baml_fs_open)(&heap, vec![], &ctx, CallId::default());
         assert!(matches!(
             result,
             SysOpResult::Ready(Err(OpError {
@@ -815,7 +847,7 @@ mod tests {
         ));
 
         // Test shell returns Unsupported
-        let result = (ops.baml_sys_shell)(&heap, vec![], &ctx);
+        let result = (ops.baml_sys_shell)(&heap, vec![], &ctx, CallId::default());
         assert!(matches!(
             result,
             SysOpResult::Ready(Err(OpError {
@@ -833,7 +865,7 @@ mod tests {
 
         // Test that get() returns the correct function pointer
         let fn_ptr = ops.get(SysOp::BamlFsOpen);
-        let result = fn_ptr(&heap, vec![], &ctx);
+        let result = fn_ptr(&heap, vec![], &ctx, CallId::default());
         assert!(matches!(result, SysOpResult::Ready(Err(_))));
     }
 

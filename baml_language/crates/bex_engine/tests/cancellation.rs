@@ -27,14 +27,21 @@ async fn cancel_before_call_returns_cancelled() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+        .expect("Failed to create engine");
 
     let cancel = CancellationToken::new();
     cancel.cancel(); // Cancel before the call
 
     let result = engine
-        .call_function("main", vec![], None, &[], cancel)
+        .call_function(
+            "main",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            cancel,
+        )
         .await;
 
     assert!(
@@ -58,7 +65,8 @@ async fn cancel_during_sleep_returns_promptly() {
 
     let snapshot = compile_for_engine(source);
     let engine = Arc::new(
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine"),
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+            .expect("Failed to create engine"),
     );
 
     let cancel = CancellationToken::new();
@@ -70,7 +78,14 @@ async fn cancel_during_sleep_returns_promptly() {
         let engine = Arc::clone(&engine);
         async move {
             engine
-                .call_function("main", vec![], None, &[], cancel_clone)
+                .call_function(
+                    "main",
+                    vec![],
+                    sys_types::CallId::default(),
+                    None,
+                    &[],
+                    cancel_clone,
+                )
                 .await
         }
     });
@@ -123,7 +138,8 @@ async fn cancel_during_http_returns_promptly() {
 
     let snapshot = compile_for_engine(&source);
     let engine = Arc::new(
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine"),
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+            .expect("Failed to create engine"),
     );
 
     let cancel = CancellationToken::new();
@@ -135,7 +151,14 @@ async fn cancel_during_http_returns_promptly() {
         let engine = Arc::clone(&engine);
         async move {
             engine
-                .call_function("main", vec![], None, &[], cancel_clone)
+                .call_function(
+                    "main",
+                    vec![],
+                    sys_types::CallId::default(),
+                    None,
+                    &[],
+                    cancel_clone,
+                )
                 .await
         }
     });
@@ -176,7 +199,8 @@ async fn selective_cancellation_only_affects_target() {
 
     let snapshot = compile_for_engine(source);
     let engine = Arc::new(
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine"),
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+            .expect("Failed to create engine"),
     );
 
     let cancel_slow = CancellationToken::new();
@@ -187,7 +211,14 @@ async fn selective_cancellation_only_affects_target() {
         let cancel = cancel_slow.clone();
         async move {
             engine
-                .call_function("slow", vec![], None, &[], cancel)
+                .call_function(
+                    "slow",
+                    vec![],
+                    sys_types::CallId::default(),
+                    None,
+                    &[],
+                    cancel,
+                )
                 .await
         }
     });
@@ -197,7 +228,14 @@ async fn selective_cancellation_only_affects_target() {
         let cancel = cancel_fast.clone();
         async move {
             engine
-                .call_function("fast", vec![], None, &[], cancel)
+                .call_function(
+                    "fast",
+                    vec![],
+                    sys_types::CallId::default(),
+                    None,
+                    &[],
+                    cancel,
+                )
                 .await
         }
     });
@@ -236,11 +274,18 @@ async fn cancellation_requested_returns_false_when_not_cancelled() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("main", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "main",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await
         .expect("call should succeed");
 
@@ -259,14 +304,21 @@ async fn cancellation_requested_with_precancelled_token_returns_cancelled() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+        .expect("Failed to create engine");
 
     let cancel = CancellationToken::new();
     cancel.cancel(); // Pre-cancel
 
     let result = engine
-        .call_function("main", vec![], None, &[], cancel)
+        .call_function(
+            "main",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            cancel,
+        )
         .await;
 
     assert!(
@@ -293,7 +345,8 @@ async fn cancel_interrupts_sequential_sleeps() {
 
     let snapshot = compile_for_engine(source);
     let engine = Arc::new(
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine"),
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+            .expect("Failed to create engine"),
     );
 
     let cancel = CancellationToken::new();
@@ -305,7 +358,14 @@ async fn cancel_interrupts_sequential_sleeps() {
         let engine = Arc::clone(&engine);
         async move {
             engine
-                .call_function("main", vec![], None, &[], cancel_clone)
+                .call_function(
+                    "main",
+                    vec![],
+                    sys_types::CallId::default(),
+                    None,
+                    &[],
+                    cancel_clone,
+                )
                 .await
         }
     });
@@ -341,11 +401,18 @@ async fn non_cancelled_token_completes_normally() {
     "#;
 
     let snapshot = compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("main", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "main",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await
         .expect("call should succeed");
 
@@ -367,7 +434,8 @@ async fn cancel_is_idempotent() {
 
     let snapshot = compile_for_engine(source);
     let engine = Arc::new(
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine"),
+        BexEngine::new(snapshot, std::sync::Arc::new(sys_types::SysOps::native()))
+            .expect("Failed to create engine"),
     );
 
     let cancel = CancellationToken::new();
@@ -377,7 +445,14 @@ async fn cancel_is_idempotent() {
         let engine = Arc::clone(&engine);
         async move {
             engine
-                .call_function("main", vec![], None, &[], cancel_clone)
+                .call_function(
+                    "main",
+                    vec![],
+                    sys_types::CallId::default(),
+                    None,
+                    &[],
+                    cancel_clone,
+                )
                 .await
         }
     });

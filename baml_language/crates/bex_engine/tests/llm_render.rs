@@ -232,11 +232,18 @@ function test_render() -> int {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("test_render", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "test_render",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await;
 
     match result {
@@ -282,11 +289,18 @@ function get_prompt() -> baml.llm.PromptAst {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "get_prompt",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await;
 
     match result {
@@ -348,13 +362,14 @@ function test_build_request() -> int {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
         .call_function(
             "test_build_request",
             vec![],
+            sys_types::CallId::default(),
             None,
             &[],
             CancellationToken::new(),
@@ -390,13 +405,20 @@ function test_call_llm() -> unknown {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     // build_request now succeeds; this should panic at the next unimplemented
     // step: "LlmParseResponse SysOp not yet implemented"
     let result = engine
-        .call_function("test_call_llm", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "test_call_llm",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await;
 
     // Without a valid API key, the orchestration loop will either:
@@ -432,11 +454,20 @@ function test_call_llm() -> string {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
+    // build_request now succeeds; this should panic at the next unimplemented
+    // step: "LlmParseResponse SysOp not yet implemented"
     let result = engine
-        .call_function("test_call_llm", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "test_call_llm",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await;
 
     // Without a valid API key, the orchestration loop will either:
@@ -473,11 +504,20 @@ function test_call_llm() -> unknown {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
+    // build_request now succeeds; this should panic at the next unimplemented
+    // step: "LlmParseResponse SysOp not yet implemented"
     let result = engine
-        .call_function("test_call_llm", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "test_call_llm",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await;
 
     // Without a valid API key, the orchestration loop will either:
@@ -528,11 +568,18 @@ function get_prompt() -> baml.llm.PromptAst {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "get_prompt",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await
         .expect("failed to render prompt that calls template_string Greet(name)");
     assert_eq!(result, prompt_ast_string("Hello, Alice!"));
@@ -567,11 +614,18 @@ function get_prompt() -> baml.llm.PromptAst {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "get_prompt",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await
         .expect("failed to render prompt with nested template_strings Outer() -> Inner()");
     assert_eq!(result, prompt_ast_string("before INNER after"));
@@ -612,11 +666,18 @@ function get_prompt() -> baml.llm.PromptAst {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "get_prompt",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await
         .expect("failed to render prompt with 2-arg template_string Describe(label, person)");
     assert_eq!(result, prompt_ast_string("User: Bob (age 42)"));
@@ -651,11 +712,18 @@ function get_prompt() -> baml.llm.PromptAst {
 "##;
 
     let snapshot = common::compile_for_engine(source);
-    let engine =
-        BexEngine::new(snapshot, sys_types::SysOps::native()).expect("Failed to create engine");
+    let engine = BexEngine::new(snapshot, sys_types::SysOps::native().into())
+        .expect("Failed to create engine");
 
     let result = engine
-        .call_function("get_prompt", vec![], None, &[], CancellationToken::new())
+        .call_function(
+            "get_prompt",
+            vec![],
+            sys_types::CallId::default(),
+            None,
+            &[],
+            CancellationToken::new(),
+        )
         .await
         .expect("failed to render prompt that calls parameterless template_string Header()");
     assert_eq!(result, prompt_ast_string("=== HEADER ===\nContent here"));
