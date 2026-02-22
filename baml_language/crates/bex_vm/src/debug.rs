@@ -69,6 +69,51 @@ fn display_global_ref(
     format!("(global {})", index.raw())
 }
 
+fn format_instruction_legacy(instruction: &Instruction) -> String {
+    match instruction {
+        Instruction::LoadConst(i) => format!("LOAD_CONST {i}"),
+        Instruction::LoadVar(i) => format!("LOAD_VAR {i}"),
+        Instruction::StoreVar(i) => format!("STORE_VAR {i}"),
+        Instruction::LoadGlobal(i) => format!("LOAD_GLOBAL {i}"),
+        Instruction::StoreGlobal(i) => format!("STORE_GLOBAL {i}"),
+        Instruction::LoadField(i) => format!("LOAD_FIELD {i}"),
+        Instruction::StoreField(i) => format!("STORE_FIELD {i}"),
+        Instruction::Pop(n) => format!("POP {n}"),
+        Instruction::Copy(i) => format!("COPY {i}"),
+        Instruction::Jump(o) => format!("JUMP {o:+}"),
+        Instruction::PopJumpIfFalse(o) => format!("POP_JUMP_IF_FALSE {o:+}"),
+        Instruction::BinOp(op) => format!("BIN_OP {op}"),
+        Instruction::CmpOp(op) => format!("CMP_OP {op}"),
+        Instruction::UnaryOp(op) => format!("UNARY_OP {op}"),
+        Instruction::AllocArray(n) => format!("ALLOC_ARRAY {n}"),
+        Instruction::AllocMap(n) => format!("ALLOC_MAP {n}"),
+        Instruction::LoadArrayElement => "LOAD_ARRAY_ELEMENT".to_string(),
+        Instruction::LoadMapElement => "LOAD_MAP_ELEMENT".to_string(),
+        Instruction::StoreArrayElement => "STORE_ARRAY_ELEMENT".to_string(),
+        Instruction::StoreMapElement => "STORE_MAP_ELEMENT".to_string(),
+        Instruction::AllocInstance(i) => format!("ALLOC_INSTANCE {i}"),
+        Instruction::AllocVariant(i) => format!("ALLOC_VARIANT {i}"),
+        Instruction::DispatchFuture(callee) => format!("DISPATCH_FUTURE {callee}"),
+        Instruction::Await => "AWAIT".to_string(),
+        Instruction::Call(callee) => format!("CALL {callee}"),
+        Instruction::CallIndirect => "CALL_INDIRECT".to_string(),
+        Instruction::Return => "RETURN".to_string(),
+        Instruction::Assert => "ASSERT".to_string(),
+        Instruction::Watch(i) => format!("WATCH {i}"),
+        Instruction::Unwatch(i) => format!("UNWATCH {i}"),
+        Instruction::NotifyBlock(block_index) => format!("NOTIFY_BLOCK {block_index}"),
+        Instruction::Notify(i) => format!("NOTIFY {i}"),
+        Instruction::VizEnter(i) => format!("VIZ_ENTER {i}"),
+        Instruction::VizExit(i) => format!("VIZ_EXIT {i}"),
+        Instruction::JumpTable { table_idx, default } => {
+            format!("JUMP_TABLE {table_idx}, {default:+}")
+        }
+        Instruction::Discriminant => "DISCRIMINANT".to_string(),
+        Instruction::TypeTag => "TYPE_TAG".to_string(),
+        Instruction::Unreachable => "UNREACHABLE".to_string(),
+    }
+}
+
 /// Return the source line column text for a bytecode PC.
 ///
 /// Returns an empty string when line info is unavailable or unchanged.
@@ -187,7 +232,7 @@ pub(crate) fn display_instruction(
         | Instruction::Return => String::new(),
     };
 
-    (instruction.to_string(), metadata)
+    (format_instruction_legacy(instruction), metadata)
 }
 
 /// Context aware value display.
@@ -818,7 +863,7 @@ fn display_bytecode_expanded(function: &Function) -> String {
         let address = ip.to_string();
 
         // Raw instruction with numeric operands (lowercase).
-        let raw = instruction.to_string().to_lowercase();
+        let raw = format_instruction_legacy(instruction).to_lowercase();
 
         // Metadata column (resolved names, jump targets, etc).
         let metadata = display_expanded_metadata(ip, instruction, function);
