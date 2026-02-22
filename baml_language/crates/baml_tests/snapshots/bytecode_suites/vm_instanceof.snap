@@ -1,0 +1,223 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+instance_of_returns_true:
+    baml: |
+
+        class StopTool {
+            action "stop"
+        }
+
+        function main() -> bool {
+            let t = StopTool { action: "stop" };
+
+            t instanceof StopTool
+        }
+
+    bytecode: |
+        function main() -> bool {
+            alloc_instance StopTool
+            copy 0
+            load_const "stop"
+            store_field .action
+            load_const <class StopTool>
+            cmp_op instanceof
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+instance_of_returns_false:
+    baml: |
+
+        class StopTool {
+            action "stop"
+        }
+
+        class StartTool {
+            action "start"
+        }
+
+        function main() -> bool {
+            let t = StopTool { action: "stop" };
+
+            t instanceof StartTool
+        }
+
+    bytecode: |
+        function main() -> bool {
+            alloc_instance StopTool
+            copy 0
+            load_const "stop"
+            store_field .action
+            load_const <class StartTool>
+            cmp_op instanceof
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+instanceof_narrowing_true_branch:
+    baml: |
+
+        class Foo {
+            field string
+        }
+
+        class Bar {
+            other int
+        }
+
+        function main() -> string {
+            let x = Foo { field: "test value" };
+
+            if (x instanceof Foo) {
+                return x.field;
+            } else {
+                return "not foo";
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            alloc_instance Foo
+            copy 0
+            load_const "test value"
+            store_field .field
+            store_var x
+            load_var x
+            load_const <class Foo>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const "not foo"
+            return
+
+          L1:
+            load_var x
+            load_field .0
+            return
+        }
+
+    result: BexExternalValue::String("test value")
+
+instanceof_narrowing_false_branch:
+    baml: |
+
+        class Foo {
+            field string
+        }
+
+        class Bar {
+            other int
+        }
+
+        function main() -> string {
+            let x = Bar { other: 42 };
+
+            if (x instanceof Foo) {
+                return "is foo";
+            } else {
+                return "not foo";
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            alloc_instance Bar
+            copy 0
+            load_const 42
+            store_field .other
+            load_const <class Foo>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const "not foo"
+            return
+
+          L1:
+            load_const "is foo"
+            return
+        }
+
+    result: BexExternalValue::String("not foo")
+
+instanceof_chained_checks:
+    baml: |
+
+        class A {
+            a_field string
+        }
+
+        class B {
+            b_field string
+        }
+
+        class C {
+            c_field string
+        }
+
+        function main() -> string {
+            let x = B { b_field: "b value" };
+
+            if (x instanceof A) {
+                return "is A";
+            } else if (x instanceof B) {
+                return x.b_field;
+            } else if (x instanceof C) {
+                return "is C";
+            } else {
+                return "unknown";
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            alloc_instance B
+            copy 0
+            load_const "b value"
+            store_field .b_field
+            store_var x
+            load_var x
+            load_const <class A>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            jump L5
+
+          L0:
+            load_var x
+            load_const <class B>
+            cmp_op instanceof
+            pop_jump_if_false L1
+            jump L4
+
+          L1:
+            load_var x
+            load_const <class C>
+            cmp_op instanceof
+            pop_jump_if_false L2
+            jump L3
+
+          L2:
+            load_const "unknown"
+            return
+
+          L3:
+            load_const "is C"
+            return
+
+          L4:
+            load_var x
+            load_field .0
+            return
+
+          L5:
+            load_const "is A"
+            return
+        }
+
+    result: BexExternalValue::String("b value")

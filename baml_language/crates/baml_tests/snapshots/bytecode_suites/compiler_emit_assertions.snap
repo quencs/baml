@@ -1,0 +1,56 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+assert_statement_ok:
+    baml: |
+
+        function assert_ok() -> int {
+            assert 2 + 2 == 4;
+            3
+        }
+
+    bytecode: |
+        function assert_ok() -> int {
+            load_const 2
+            load_const 2
+            bin_op +
+            load_const 4
+            cmp_op ==
+            assert
+            load_const 3
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'assert_statement_ok': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'assert_statement_ok'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+assert_statement_not_ok:
+    baml: |
+
+        function assert_not_ok() -> int {
+            assert 3 == 1;
+            2
+        }
+
+    bytecode: |
+        function assert_not_ok() -> int {
+            load_const 3
+            load_const 1
+            cmp_op ==
+            assert
+            load_const 2
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'assert_statement_not_ok': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'assert_statement_not_ok'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)

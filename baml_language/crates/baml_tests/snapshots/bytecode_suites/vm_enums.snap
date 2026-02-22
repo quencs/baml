@@ -1,0 +1,79 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+return_enum_variant:
+    baml: |
+
+        enum shape {
+            square
+            rectangle
+            circle
+        }
+
+        function main() -> shape {
+            shape.rectangle
+        }
+
+    bytecode: |
+        function main() -> shape {
+            load_const 1 /* shape.rectangle */
+            alloc_variant shape
+            return
+        }
+
+    result: 'BexExternalValue::Variant { enum_name: "shape", variant_name: "rectangle" }'
+
+assign_enum_variant:
+    baml: |
+
+        enum shape {
+            square
+            rectangle
+            circle
+        }
+
+        function main() -> shape {
+            let s = shape.rectangle;
+            s
+        }
+
+    bytecode: |
+        function main() -> shape {
+            load_const 1 /* shape.rectangle */
+            alloc_variant shape
+            return
+        }
+
+    result: 'BexExternalValue::Variant { enum_name: "shape", variant_name: "rectangle" }'
+
+take_and_return_enum_variant:
+    baml: |
+
+        enum shape {
+            square
+            rectangle
+            circle
+        }
+
+        function return_shape(shape: shape) -> shape {
+            shape
+        }
+
+        function main() -> shape {
+            return_shape(shape.rectangle)
+        }
+
+    bytecode: |
+        function main() -> shape {
+            load_const 1 /* shape.rectangle */
+            alloc_variant shape
+            call return_shape
+            return
+        }
+
+        function return_shape(shape: shape) -> shape {
+            load_var shape
+            return
+        }
+
+    result: 'BexExternalValue::Variant { enum_name: "shape", variant_name: "rectangle" }'

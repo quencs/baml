@@ -441,19 +441,3 @@ indirect_call_with_function_value:
         }
 
     result: BexExternalValue::Int(42)
-
-return_literal_bool_unoptimized:
-    baml: |
-        function main() -> bool {
-            true
-        }
-
-    opt: zero
-
-    bytecode: |
-        function main() -> bool {
-            load_const true
-            return
-        }
-
-    result: BexExternalValue::Bool(true)

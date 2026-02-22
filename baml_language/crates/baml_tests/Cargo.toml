@@ -37,13 +37,12 @@ syn = { workspace = true }
 walkdir = { workspace = true }
 
 [dev-dependencies]
-divan = { workspace = true }
 bex_engine = { workspace = true }
-serde = { workspace = true }
 sys_types = { workspace = true }
-sys_native = { workspace = true }
+divan = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
 tokio = { workspace = true, features = [ "rt", "sync", "time" ] }
-serde_yaml = "0.9"
 
 [[bench]]
 name = "compiler_benchmark"

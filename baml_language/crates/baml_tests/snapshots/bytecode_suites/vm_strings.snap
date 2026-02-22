@@ -1,0 +1,338 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+concat_strings:
+    baml: |
+
+        function main() -> string {
+            let a = "Hello";
+            let b = " World";
+
+            a + b
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "Hello"
+            load_const " World"
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::String("Hello World")
+
+string_equality_true:
+    baml: |
+
+        function main() -> bool {
+            "Hello" == "Hello"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "Hello"
+            load_const "Hello"
+            cmp_op ==
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_equality_false:
+    baml: |
+
+        function main() -> bool {
+            "Hello" == "World"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "Hello"
+            load_const "World"
+            cmp_op ==
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+string_not_equal_true:
+    baml: |
+
+        function main() -> bool {
+            "Hello" != "World"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "Hello"
+            load_const "World"
+            cmp_op !=
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_less_than:
+    baml: |
+
+        function main() -> bool {
+            "a" < "b"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "a"
+            load_const "b"
+            cmp_op <
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_less_than_or_equal:
+    baml: |
+
+        function main() -> bool {
+            "a" <= "b"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "a"
+            load_const "b"
+            cmp_op <=
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_greater_than:
+    baml: |
+
+        function main() -> bool {
+            "b" > "a"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "b"
+            load_const "a"
+            cmp_op >
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_greater_than_or_equal:
+    baml: |
+
+        function main() -> bool {
+            "b" >= "a"
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "b"
+            load_const "a"
+            cmp_op >=
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_length:
+    baml: |
+
+        function main() -> int {
+            let s = "hello";
+            s.length()
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const "hello"
+            call baml.String.length
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+string_to_lower_case:
+    baml: |
+
+        function main() -> string {
+            let s = "HELLO World";
+            s.toLowerCase()
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "HELLO World"
+            call baml.String.toLowerCase
+            return
+        }
+
+    result: BexExternalValue::String("hello world")
+
+string_to_upper_case:
+    baml: |
+
+        function main() -> string {
+            let s = "hello WORLD";
+            s.toUpperCase()
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "hello WORLD"
+            call baml.String.toUpperCase
+            return
+        }
+
+    result: BexExternalValue::String("HELLO WORLD")
+
+string_trim:
+    baml: |
+
+        function main() -> string {
+            let s = "  hello world  ";
+            s.trim()
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "  hello world  "
+            call baml.String.trim
+            return
+        }
+
+    result: BexExternalValue::String("hello world")
+
+string_includes:
+    baml: |
+
+        function main() -> bool {
+            let s = "hello world";
+            s.includes("world")
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "hello world"
+            load_const "world"
+            call baml.String.includes
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_starts_with:
+    baml: |
+
+        function main() -> bool {
+            let s = "hello world";
+            s.startsWith("hello")
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "hello world"
+            load_const "hello"
+            call baml.String.startsWith
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_ends_with:
+    baml: |
+
+        function main() -> bool {
+            let s = "hello world";
+            s.endsWith("world")
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const "hello world"
+            load_const "world"
+            call baml.String.endsWith
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+string_split:
+    baml: |
+
+        function main() -> string[] {
+            let s = "hello,world,test";
+            s.split(",")
+        }
+
+    bytecode: |
+        function main() -> string[] {
+            load_const "hello,world,test"
+            load_const ","
+            call baml.String.split
+            return
+        }
+
+    result: 'BexExternalValue::Array { element_type: String, items: [String("hello"), String("world"), String("test")] }'
+
+string_substring:
+    baml: |
+
+        function main() -> string {
+            let s = "hello world";
+            s.substring(0, 5)
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "hello world"
+            load_const 0
+            load_const 5
+            call baml.String.substring
+            return
+        }
+
+    result: BexExternalValue::String("hello")
+
+string_substring_bounds:
+    baml: |
+
+        function main() -> string {
+            let s = "hello";
+            s.substring(2, 10)  // Should clamp to string length
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "hello"
+            load_const 2
+            load_const 10
+            call baml.String.substring
+            return
+        }
+
+    result: BexExternalValue::String("llo")
+
+string_replace:
+    baml: |
+
+        function main() -> string {
+            let s = "hello world world";
+            s.replace("world", "BAML")
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "hello world world"
+            load_const "world"
+            load_const "BAML"
+            call baml.String.replace
+            return
+        }
+
+    result: BexExternalValue::String("hello BAML world")

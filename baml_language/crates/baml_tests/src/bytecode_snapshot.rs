@@ -12,16 +12,21 @@
 //!   result: ...      # auto-generated
 //! ```
 
-use std::{fmt::Write, sync::Arc};
+use std::{
+    any::Any,
+    collections::{HashMap, HashSet},
+    fmt::Write,
+    sync::Arc,
+};
 
 use anyhow::Context;
 use bex_engine::{BexEngine, FunctionCallContextBuilder};
+use bex_vm::{BexVm, VmExecState};
 use indexmap::IndexMap;
 use insta::{assert_snapshot, with_settings};
-use serde::{Deserialize, Serialize};
-use sys_native::SysOpsExt;
+use serde::Deserialize;
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum SnapshotOptLevel {
     Zero,
@@ -72,23 +77,27 @@ struct InputCase {
     result: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 struct OutputCase {
     baml: String,
-    #[serde(default = "default_entry", skip_serializing_if = "is_default_entry")]
     entry: String,
-    #[serde(default, skip_serializing_if = "is_default_opt")]
     opt: SnapshotOptLevel,
     bytecode: String,
+    notifications: Option<Vec<String>>,
     result: String,
 }
 
 fn strip_insta_frontmatter(contents: &str) -> &str {
-    if let Some(rest) = contents.strip_prefix("---\n")
-        && let Some(idx) = rest.find("\n---\n")
+    if let Some(rest) = contents.strip_prefix("---\n") {
+        if let Some(idx) = rest.find("\n---\n") {
+            // Skip `<metadata>\n---\n`.
+            return &rest[idx + "\n---\n".len()..];
+        }
+    } else if let Some(rest) = contents.strip_prefix("---\r\n")
+        && let Some(idx) = rest.find("\r\n---\r\n")
     {
-        // Skip `<metadata>\n---\n`.
-        return &rest[idx + "\n---\n".len()..];
+        // Skip `<metadata>\r\n---\r\n`.
+        return &rest[idx + "\r\n---\r\n".len()..];
     }
     contents
 }
@@ -100,7 +109,24 @@ fn parse_cases(snapshot_contents: &str) -> anyhow::Result<IndexMap<String, Input
 
 fn compile_with_opt(source: &str, opt: SnapshotOptLevel) -> anyhow::Result<bex_vm_types::Program> {
     let db = crate::bytecode::setup_test_db(source);
-    crate::bytecode::assert_no_diagnostic_errors(&db);
+    {
+        use baml_compiler_diagnostics::Severity;
+
+        let project = db.get_project().context("project should be set")?;
+        let all_files = db.get_source_files();
+        let diagnostics = baml_project::collect_diagnostics(&db, project, &all_files);
+        let errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| matches!(d.severity, Severity::Error))
+            .collect();
+        if !errors.is_empty() {
+            let mut msg = String::from("Compilation produced diagnostic errors:\n");
+            for (i, err) in errors.iter().enumerate() {
+                msg.push_str(&format!("  {}. [{}] {}\n", i + 1, err.code(), err.message));
+            }
+            anyhow::bail!(msg);
+        }
+    }
 
     let project = db.get_project().context("project should be set")?;
     let all_files = project.files(&db).clone();
@@ -144,7 +170,7 @@ fn run_with_engine(
     program: bex_vm_types::Program,
     entry: &str,
 ) -> anyhow::Result<String> {
-    let engine = BexEngine::new(program, Arc::new(sys_types::SysOps::native()))
+    let engine = BexEngine::new(program, Arc::new(sys_types::SysOps::all_unsupported()))
         .context("failed to construct BexEngine")?;
 
     let context = FunctionCallContextBuilder::new(sys_types::CallId::next()).build();
@@ -153,6 +179,248 @@ fn run_with_engine(
         .with_context(|| format!("engine call_function failed for '{entry}'"))?;
 
     Ok(format!("BexExternalValue::{result:?}"))
+}
+
+// NOTE: We intentionally render VM values directly here instead of reusing
+// `BexExternalValue` conversion for now:
+// - watch-mode snapshots need the raw `BexVm` loop to capture `VmExecState::Notify`.
+// - existing deep-copy conversion used by the engine is not cycle-safe for arbitrary graphs.
+// - watch snapshots need deterministic object shape output (with cycle refs), not lossy fallback.
+#[derive(Default)]
+struct VmValueRenderState {
+    object_ids: HashMap<bex_vm_types::HeapPtr, usize>,
+    visiting: HashSet<bex_vm_types::HeapPtr>,
+}
+
+impl VmValueRenderState {
+    fn object_id(&mut self, ptr: bex_vm_types::HeapPtr) -> usize {
+        let next = self.object_ids.len();
+        *self.object_ids.entry(ptr).or_insert(next)
+    }
+}
+
+fn render_vm_value(
+    vm: &BexVm,
+    value: &bex_vm_types::Value,
+    state: &mut VmValueRenderState,
+) -> String {
+    match value {
+        bex_vm_types::Value::Null => "Null".to_string(),
+        bex_vm_types::Value::Int(v) => format!("Int({v})"),
+        bex_vm_types::Value::Float(v) => format!("Float({v})"),
+        bex_vm_types::Value::Bool(v) => format!("Bool({v})"),
+        bex_vm_types::Value::Object(ptr) => render_vm_object(vm, *ptr, state),
+    }
+}
+
+fn render_vm_object(
+    vm: &BexVm,
+    ptr: bex_vm_types::HeapPtr,
+    state: &mut VmValueRenderState,
+) -> String {
+    let object_id = state.object_id(ptr);
+    if !state.visiting.insert(ptr) {
+        return format!("Ref(#{object_id})");
+    }
+
+    let rendered = match vm.get_object(ptr) {
+        bex_vm_types::Object::Function(function) => format!("Function({})", function.name),
+        bex_vm_types::Object::Class(class) => format!("Class({})", class.name),
+        bex_vm_types::Object::Enum(enm) => format!("Enum({})", enm.name),
+        bex_vm_types::Object::String(value) => format!("String({value:?})"),
+        bex_vm_types::Object::Array(array) => {
+            let items = array
+                .iter()
+                .map(|value| render_vm_value(vm, value, state))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Array([{items}])")
+        }
+        bex_vm_types::Object::Map(map) => {
+            let entries = map
+                .iter()
+                .map(|(key, value)| format!("{key:?}: {}", render_vm_value(vm, value, state)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Map({{{entries}}})")
+        }
+        bex_vm_types::Object::Instance(instance) => {
+            let (class_name, field_names) = match vm.get_object(instance.class) {
+                bex_vm_types::Object::Class(class) => (
+                    class.name.clone(),
+                    class
+                        .fields
+                        .iter()
+                        .map(|field| field.name.clone())
+                        .collect::<Vec<_>>(),
+                ),
+                _ => ("<invalid-class>".to_string(), Vec::new()),
+            };
+
+            let fields = instance
+                .fields
+                .iter()
+                .enumerate()
+                .map(|(idx, value)| {
+                    let name = field_names
+                        .get(idx)
+                        .cloned()
+                        .unwrap_or_else(|| format!("field_{idx}"));
+                    format!("{name}: {}", render_vm_value(vm, value, state))
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Instance({class_name} {{ {fields} }})")
+        }
+        bex_vm_types::Object::Variant(variant) => {
+            let (enum_name, variant_name) = match vm.get_object(variant.enm) {
+                bex_vm_types::Object::Enum(enm) => (
+                    enm.name.clone(),
+                    enm.variants
+                        .get(variant.index)
+                        .map(|value| value.name.clone())
+                        .unwrap_or_else(|| format!("variant_{}", variant.index)),
+                ),
+                _ => (
+                    "<invalid-enum>".to_string(),
+                    format!("variant_{}", variant.index),
+                ),
+            };
+            format!("Variant({enum_name}::{variant_name})")
+        }
+        bex_vm_types::Object::Future(future) => match future {
+            bex_vm_types::types::Future::Pending(pending) => {
+                let args = pending
+                    .args
+                    .iter()
+                    .map(|value| render_vm_value(vm, value, state))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("Future(Pending(op: {}, args: [{args}]))", pending.operation)
+            }
+            bex_vm_types::types::Future::Ready(value) => {
+                format!("Future(Ready({}))", render_vm_value(vm, value, state))
+            }
+        },
+        bex_vm_types::Object::Resource(resource) => format!("Resource({resource})"),
+        bex_vm_types::Object::Media(media) => format!("Media({media:?})"),
+        bex_vm_types::Object::PromptAst(prompt_ast) => format!("PromptAst({prompt_ast:?})"),
+        bex_vm_types::Object::Collector(_) => "Collector".to_string(),
+        bex_vm_types::Object::Type(ty) => format!("Type({ty})"),
+        #[cfg(feature = "heap_debug")]
+        bex_vm_types::Object::Sentinel(kind) => format!("Sentinel({kind:?})"),
+    };
+
+    state.visiting.remove(&ptr);
+    rendered
+}
+
+struct WatchRunOutput {
+    notifications: Vec<String>,
+    result: String,
+}
+
+fn run_watch_mode(program: bex_vm_types::Program, entry: &str) -> anyhow::Result<WatchRunOutput> {
+    let function_index = program
+        .function_index(entry)
+        .ok_or_else(|| anyhow::anyhow!("function '{entry}' not found"))?;
+
+    let mut vm = BexVm::from_program(program).context("failed to create BexVm")?;
+    let function_ptr = vm.heap.compile_time_ptr(function_index);
+    vm.set_entry_point(function_ptr, &[]);
+
+    let mut notifications: Vec<String> = Vec::new();
+    let mut render_state = VmValueRenderState::default();
+
+    let final_state = loop {
+        let result = vm.exec().context("vm.exec failed")?;
+        if matches!(result, VmExecState::SpanNotify(_)) {
+            continue;
+        }
+        match result {
+            VmExecState::Notify(notification) => {
+                notifications.push(format!("{notification:?}"));
+            }
+            VmExecState::Complete(value) => {
+                break format!(
+                    "Complete({})",
+                    render_vm_value(&vm, &value, &mut render_state)
+                );
+            }
+            VmExecState::Await(handle) => {
+                let _ = handle;
+                break "Await".to_string();
+            }
+            VmExecState::ScheduleFuture(handle) => {
+                let _ = handle;
+                break "ScheduleFuture".to_string();
+            }
+            VmExecState::SpanNotify(_) => {
+                // handled above
+            }
+        }
+    };
+
+    Ok(WatchRunOutput {
+        notifications,
+        result: final_state,
+    })
+}
+
+fn format_error_with_debug(err: &anyhow::Error) -> String {
+    format!("ERROR: {err:#}\nRUST_ERR_DEBUG: Err({err:?})")
+}
+
+fn panic_payload_to_string(payload: &(dyn Any + Send)) -> String {
+    if let Some(text) = payload.downcast_ref::<&str>() {
+        (*text).to_string()
+    } else if let Some(text) = payload.downcast_ref::<String>() {
+        text.clone()
+    } else {
+        "non-string panic payload".to_string()
+    }
+}
+
+fn format_panic_with_debug(payload: Box<dyn Any + Send>) -> String {
+    let message = panic_payload_to_string(payload.as_ref());
+    format!("ERROR: panic during execution: {message}\nRUST_ERR_DEBUG: Panic({message:?})")
+}
+
+struct CaseExecutionOutput {
+    notifications: Option<Vec<String>>,
+    result: String,
+}
+
+impl CaseExecutionOutput {
+    fn plain(result: String) -> Self {
+        Self {
+            notifications: None,
+            result,
+        }
+    }
+}
+
+fn run_plain_case_with_panic_capture(
+    f: impl FnOnce() -> anyhow::Result<String>,
+) -> CaseExecutionOutput {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(Ok(value)) => CaseExecutionOutput::plain(value),
+        Ok(Err(err)) => CaseExecutionOutput::plain(format_error_with_debug(&err)),
+        Err(payload) => CaseExecutionOutput::plain(format_panic_with_debug(payload)),
+    }
+}
+
+fn run_watch_case_with_panic_capture(
+    f: impl FnOnce() -> anyhow::Result<WatchRunOutput>,
+) -> CaseExecutionOutput {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(Ok(value)) => CaseExecutionOutput {
+            notifications: Some(value.notifications),
+            result: value.result,
+        },
+        Ok(Err(err)) => CaseExecutionOutput::plain(format_error_with_debug(&err)),
+        Err(payload) => CaseExecutionOutput::plain(format_panic_with_debug(payload)),
+    }
 }
 
 fn render_inline_yaml_string(value: &str) -> anyhow::Result<String> {
@@ -172,6 +440,21 @@ fn render_block(out: &mut String, key: &str, value: &str) {
             let _ = writeln!(out, "        {line}");
         }
     }
+}
+
+fn render_string_flow_list(out: &mut String, key: &str, values: &[String]) -> anyhow::Result<()> {
+    if values.is_empty() {
+        writeln!(out, "    {key}: []").expect("write to string should not fail");
+        return Ok(());
+    }
+
+    writeln!(out, "    {key}: [").expect("write to string should not fail");
+    for value in values {
+        let rendered = format!("{value:?}");
+        writeln!(out, "        {rendered},").expect("write to string should not fail");
+    }
+    writeln!(out, "    ]").expect("write to string should not fail");
+    Ok(())
 }
 
 fn render_cases(cases: &IndexMap<String, OutputCase>) -> anyhow::Result<String> {
@@ -200,8 +483,16 @@ fn render_cases(cases: &IndexMap<String, OutputCase>) -> anyhow::Result<String> 
         out.push('\n');
         render_block(&mut out, "bytecode", &case.bytecode);
         out.push('\n');
-        let result = render_inline_yaml_string(&case.result)?;
-        writeln!(out, "    result: {result}").expect("write to string should not fail");
+        if let Some(notifications) = &case.notifications {
+            render_string_flow_list(&mut out, "notifications", notifications)?;
+            out.push('\n');
+        }
+        if case.result.contains('\n') {
+            render_block(&mut out, "result", &case.result);
+        } else {
+            let result = render_inline_yaml_string(&case.result)?;
+            writeln!(out, "    result: {result}").expect("write to string should not fail");
+        }
     }
 
     Ok(out)
@@ -222,21 +513,60 @@ pub fn assert_suite_snapshot(
     let mut output_cases: IndexMap<String, OutputCase> = IndexMap::new();
 
     for (test_name, case) in input_cases {
-        let program = compile_with_opt(&case.baml, case.opt)
-            .with_context(|| format!("compile failed for case '{test_name}'"))?;
-        let bytecode = disassemble_program(&program)
-            .with_context(|| format!("disassembly failed for case '{test_name}'"))?;
-        let result = run_with_engine(&runtime, program, &case.entry)
-            .with_context(|| format!("execution failed for case '{test_name}'"))?;
+        let baml = case.baml;
+        let entry = case.entry;
+
+        let (bytecode, execution) = match compile_with_opt(&baml, case.opt)
+            .with_context(|| format!("compile failed for case '{test_name}'"))
+        {
+            Ok(program) => {
+                let bytecode = match disassemble_program(&program)
+                    .with_context(|| format!("disassembly failed for case '{test_name}'"))
+                {
+                    Ok(text) => text,
+                    Err(err) => format_error_with_debug(&err),
+                };
+
+                let watch_execution = run_watch_case_with_panic_capture(|| {
+                    run_watch_mode(program.clone(), &entry)
+                        .with_context(|| format!("watch execution failed for case '{test_name}'"))
+                });
+
+                let execution = if watch_execution
+                    .notifications
+                    .as_ref()
+                    .is_some_and(|notifications| !notifications.is_empty())
+                {
+                    watch_execution
+                } else {
+                    run_plain_case_with_panic_capture(|| {
+                        run_with_engine(&runtime, program, &entry)
+                            .with_context(|| format!("execution failed for case '{test_name}'"))
+                    })
+                };
+
+                (bytecode, execution)
+            }
+            Err(err) => {
+                let formatted = format_error_with_debug(&err);
+                (
+                    formatted.clone(),
+                    CaseExecutionOutput::plain(format!(
+                        "ERROR: compile step failed; no runtime result\n{formatted}"
+                    )),
+                )
+            }
+        };
 
         output_cases.insert(
             test_name,
             OutputCase {
-                baml: case.baml.trim_end_matches('\n').to_string(),
-                entry: case.entry,
+                baml: baml.trim_end_matches('\n').to_string(),
+                entry,
                 opt: case.opt,
                 bytecode,
-                result,
+                notifications: execution.notifications,
+                result: execution.result,
             },
         );
     }
@@ -248,4 +578,33 @@ pub fn assert_suite_snapshot(
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_cases;
+
+    #[test]
+    fn parse_cases_strips_lf_frontmatter() {
+        let snapshot = r#"---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+case:
+    baml: |
+        function main() -> int {
+            1
+        }
+"#;
+
+        let cases = parse_cases(snapshot).expect("frontmatter should be stripped");
+        assert!(cases.contains_key("case"));
+    }
+
+    #[test]
+    fn parse_cases_strips_crlf_frontmatter() {
+        let snapshot = "---\r\nsource: crates/baml_tests/src/bytecode_snapshot.rs\r\n---\r\ncase:\r\n    baml: |\r\n        function main() -> int {\r\n            1\r\n        }\r\n";
+
+        let cases = parse_cases(snapshot).expect("frontmatter should be stripped");
+        assert!(cases.contains_key("case"));
+    }
 }

@@ -1,0 +1,957 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+notify_primitive_on_change:
+    baml: |
+
+        function primitive() -> int {
+            watch let value = 0;
+
+            value = 1;
+
+            value
+        }
+
+    entry: primitive
+
+    bytecode: |
+        function primitive() -> int {
+            load_const 0
+            store_var value
+            load_const "value"
+            load_const null
+            watch value
+            load_const 1
+            store_var value
+            load_var value
+            unwatch value
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: Complete(Int(1))
+
+notify_primitive_on_nested_scope:
+    baml: |
+
+        function primitive() -> int {
+            watch let value = 0;
+
+            if (true) {
+                value = 1;
+            }
+
+            value
+        }
+
+    entry: primitive
+
+    bytecode: |
+        function primitive() -> int {
+            load_const 0
+            store_var value
+            load_const "value"
+            load_const null
+            watch value
+            load_const true
+            pop_jump_if_false L0
+            load_const 1
+            store_var value
+
+          L0:
+            load_var value
+            unwatch value
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: Complete(Int(1))
+
+stop_notifying_on_scope_exit:
+    baml: |
+
+        class Point {
+            x int
+            y int
+        }
+
+        function scope_exit() -> Point {
+            let outter_point =  {
+                watch let point = Point { x: 0, y: 0 };
+                point.x = 1; // Expect only one notification here.
+                point
+            };
+
+            outter_point.x = 2; // No notify
+
+            outter_point
+        }
+
+    entry: scope_exit
+
+    bytecode: |
+        function scope_exit() -> Point {
+            alloc_instance Point
+            copy 0
+            load_const 0
+            store_field .x
+            copy 0
+            load_const 0
+            store_field .y
+            store_var point
+            load_const "point"
+            load_const null
+            watch point
+            load_var point
+            load_const 1
+            store_field .x
+            load_var point
+            store_var outter_point
+            unwatch point
+            load_var outter_point
+            load_const 2
+            store_field .x
+            load_var outter_point
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(1))])",
+    ]
+
+    result: 'Complete(Instance(Point { x: Int(2), y: Int(0) }))'
+
+notify_on_function_call_modifications:
+    baml: |
+
+        class Point {
+            x int
+            y int
+
+            function set(self, x: int, y: int) -> Point {
+                // Expect two notifications here.
+                self.x = x;
+                self.y = y;
+                self
+            }
+        }
+
+        function call_function() -> Point {
+            watch let point = Point { x: 0, y: 0 };
+            point.set(1, 2);
+            point
+        }
+
+    entry: call_function
+
+    bytecode: |
+        function Point.set(self: Point, x: int, y: int) -> Point {
+            load_var self
+            load_var x
+            store_field .x
+            load_var self
+            load_var y
+            store_field .y
+            load_var self
+            return
+        }
+
+        function call_function() -> Point {
+            alloc_instance Point
+            copy 0
+            load_const 0
+            store_field .x
+            copy 0
+            load_const 0
+            store_field .y
+            store_var point
+            load_const "point"
+            load_const null
+            watch point
+            load_var point
+            load_const 1
+            load_const 2
+            call Point.set
+            pop 1
+            load_var point
+            unwatch point
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: 'Complete(Instance(Point { x: Int(1), y: Int(2) }))'
+
+notify_on_change_with_alias:
+    baml: |
+
+        class Point {
+            x int
+            y int
+        }
+
+        function alias() -> Point {
+            watch let point = Point { x: 0, y: 0 };
+            let alias = point;
+
+            alias.x = 1; // Notify
+
+            point
+        }
+
+    entry: alias
+
+    bytecode: |
+        function alias() -> Point {
+            alloc_instance Point
+            copy 0
+            load_const 0
+            store_field .x
+            copy 0
+            load_const 0
+            store_field .y
+            store_var point
+            load_const "point"
+            load_const null
+            watch point
+            load_var point
+            load_const 1
+            store_field .x
+            load_var point
+            unwatch point
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: 'Complete(Instance(Point { x: Int(1), y: Int(0) }))'
+
+notify_on_change_with_alias_in_nested_scope:
+    baml: |
+
+        class Point {
+            x int
+            y int
+        }
+
+        function nested_alias() -> Point {
+            watch let point = Point { x: 0, y: 0 };
+            if (true) {
+                let alias = point;
+                alias.x = 1; // Notify
+            }
+
+            point
+        }
+
+    entry: nested_alias
+
+    bytecode: |
+        function nested_alias() -> Point {
+            alloc_instance Point
+            copy 0
+            load_const 0
+            store_field .x
+            copy 0
+            load_const 0
+            store_field .y
+            store_var point
+            load_const "point"
+            load_const null
+            watch point
+            load_const true
+            pop_jump_if_false L0
+            load_var point
+            load_const 1
+            store_field .x
+
+          L0:
+            load_var point
+            unwatch point
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: 'Complete(Instance(Point { x: Int(1), y: Int(0) }))'
+
+notify_when_nested_object_is_modified_after_addtion:
+    baml: |
+
+        class Value {
+            value int
+        }
+
+        class Point {
+            x Value
+            y Value
+        }
+
+        class Vec2D {
+            p Point
+            q Point
+        }
+
+        function nested_object_added() -> Vec2D {
+            watch let vec = Vec2D {
+                p: Point { x: Value { value: 0 }, y: Value { value: 0 } },
+                q: Point { x: Value { value: 0 }, y: Value { value: 0 } },
+            };
+
+            let p = Point { x: Value { value: 1 }, y: Value { value: 1 } };
+
+            vec.p = p; // Notify here.
+            p.x.value = 2; // Notify here too.
+
+            vec
+        }
+
+    entry: nested_object_added
+
+    bytecode: |
+        function nested_object_added() -> Vec2D {
+            alloc_instance Vec2D
+            copy 0
+            alloc_instance Point
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .x
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .y
+            store_field .p
+            copy 0
+            alloc_instance Point
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .x
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .y
+            store_field .q
+            store_var vec
+            load_const "vec"
+            load_const null
+            watch vec
+            alloc_instance Point
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 1
+            store_field .value
+            store_field .x
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 1
+            store_field .value
+            store_field .y
+            store_var p
+            load_var vec
+            load_var p
+            store_field .p
+            load_var p
+            load_field .x
+            load_const 2
+            store_field .value
+            load_var vec
+            unwatch vec
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: 'Complete(Instance(Vec2D { p: Instance(Point { x: Instance(Value { value: Int(2) }), y: Instance(Value { value: Int(1) }) }), q: Instance(Point { x: Instance(Value { value: Int(0) }), y: Instance(Value { value: Int(0) }) }) }))'
+
+dont_notify_when_nested_object_is_modified_after_removal:
+    baml: |
+
+        class Value {
+            value int
+        }
+
+        class Point {
+            x Value
+            y Value
+        }
+
+        class Vec2D {
+            p Point
+            q Point
+        }
+
+        function nested_object_removed() -> Vec2D {
+            watch let vec = Vec2D {
+                p: Point { x: Value { value: 0 }, y: Value { value: 0 } },
+                q: Point { x: Value { value: 0 }, y: Value { value: 0 } },
+            };
+
+            let p = vec.p;
+
+            vec.p = Point { x: Value { value: 1 }, y: Value { value: 1 } }; // Notify once here
+
+            p.x.value = 2; // No notify here
+
+            vec
+        }
+
+    entry: nested_object_removed
+
+    bytecode: |
+        function nested_object_removed() -> Vec2D {
+            alloc_instance Vec2D
+            copy 0
+            alloc_instance Point
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .x
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .y
+            store_field .p
+            copy 0
+            alloc_instance Point
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .x
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 0
+            store_field .value
+            store_field .y
+            store_field .q
+            store_var vec
+            load_const "vec"
+            load_const null
+            watch vec
+            load_var vec
+            load_field .p
+            store_var p
+            load_var vec
+            alloc_instance Point
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 1
+            store_field .value
+            store_field .x
+            copy 0
+            alloc_instance Value
+            copy 0
+            load_const 1
+            store_field .value
+            store_field .y
+            store_field .p
+            load_var p
+            load_field .x
+            load_const 2
+            store_field .value
+            load_var vec
+            unwatch vec
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: 'Complete(Instance(Vec2D { p: Instance(Point { x: Instance(Value { value: Int(1) }), y: Instance(Value { value: Int(1) }) }), q: Instance(Point { x: Instance(Value { value: Int(0) }), y: Instance(Value { value: Int(0) }) }) }))'
+
+cyclic_graph:
+    baml: |
+
+        class Vertex {
+            edges Vertex[]
+            value int
+        }
+
+        function cycle() -> int {
+            let v1 = Vertex { value: 1, edges: [] };
+            watch let v2 = Vertex { value: 2, edges: [] };
+            let v3 = Vertex { value: 3, edges: [] };
+            watch let v4 = Vertex { value: 4, edges: [] };
+
+            // NO EMIT (neither v2 nor v4 have changed)
+            v1.edges = [v2];
+
+            // EMIT v2
+            v2.edges = [v3];
+
+            // EMIT v2
+            v3.edges = [v4];
+
+            // EMIT [v2, v4]
+            v4.edges = [v1];
+
+            // EMIT [v2, v4]
+            v2.value = 20;
+
+            // EMIT [v2, v4]
+            v1.value = 10;
+
+            // EMIT [v2, v4]
+            v3.value = 30;
+
+            0
+        }
+
+    entry: cycle
+
+    bytecode: |
+        function cycle() -> int {
+            alloc_instance Vertex
+            copy 0
+            load_const 1
+            store_field .edges
+            copy 0
+            alloc_array 0
+            store_field .value
+            store_var v1
+            alloc_instance Vertex
+            copy 0
+            load_const 2
+            store_field .edges
+            copy 0
+            alloc_array 0
+            store_field .value
+            store_var v2
+            load_const "v2"
+            load_const null
+            watch v2
+            alloc_instance Vertex
+            copy 0
+            load_const 3
+            store_field .edges
+            copy 0
+            alloc_array 0
+            store_field .value
+            store_var v3
+            alloc_instance Vertex
+            copy 0
+            load_const 4
+            store_field .edges
+            copy 0
+            alloc_array 0
+            store_field .value
+            store_var v4
+            load_const "v4"
+            load_const null
+            watch v4
+            load_var v1
+            load_var v2
+            alloc_array 1
+            store_field .edges
+            load_var v2
+            load_var v3
+            alloc_array 1
+            store_field .edges
+            load_var v3
+            load_var v4
+            alloc_array 1
+            store_field .edges
+            load_var v4
+            load_var v1
+            alloc_array 1
+            store_field .edges
+            load_var v2
+            load_const 20
+            store_field .value
+            load_var v1
+            load_const 10
+            store_field .value
+            load_var v3
+            load_const 30
+            store_field .value
+            unwatch v4
+            unwatch v2
+            load_const 0
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(1))])",
+        "Variables([LocalVar(StackKind(1))])",
+        "Variables([LocalVar(StackKind(1)), LocalVar(StackKind(3))])",
+        "Variables([LocalVar(StackKind(1)), LocalVar(StackKind(3))])",
+        "Variables([LocalVar(StackKind(1)), LocalVar(StackKind(3))])",
+        "Variables([LocalVar(StackKind(1)), LocalVar(StackKind(3))])",
+    ]
+
+    result: Complete(Int(0))
+
+run_user_filter:
+    baml: |
+
+        function greater_than_five(value: int) -> bool {
+            value > 5
+        }
+
+        function primitive() -> int {
+            watch let value = 0;
+            value.$watch.options(baml.WatchOptions { when: greater_than_five });
+
+            value = 1; // No notify
+            value = 6; // Notify
+
+            value
+        }
+
+    entry: primitive
+
+    bytecode: |
+        function greater_than_five(value: int) -> bool {
+            load_var value
+            load_const 5
+            cmp_op >
+            return
+        }
+
+        function primitive() -> int {
+            load_const 0
+            store_var value
+            load_const "value"
+            load_const null
+            watch value
+            load_const "value"
+            load_global <fn greater_than_five>
+            watch value
+            load_const 1
+            store_var value
+            load_const 6
+            store_var value
+            load_var value
+            unwatch value
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: Complete(Int(6))
+
+run_default_filter:
+    baml: |
+
+        function primitive() -> int {
+            watch let value = 0;
+
+            value = 0; // No notify
+            value = 6; // Notify
+
+            value
+        }
+
+    entry: primitive
+
+    bytecode: |
+        function primitive() -> int {
+            load_const 0
+            store_var value
+            load_const "value"
+            load_const null
+            watch value
+            load_const 0
+            store_var value
+            load_const 6
+            store_var value
+            load_var value
+            unwatch value
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: Complete(Int(6))
+
+manual_notify:
+    baml: |
+
+        function primitive() -> int {
+            watch let value = 0;
+            value.$watch.options(baml.WatchOptions { when: "manual" });
+
+            value = 1; // No notify
+            value = 2; // No notify
+            value = 3; // No notify
+
+            value.$watch.notify(); // Notify
+
+            value
+        }
+
+    entry: primitive
+
+    bytecode: |
+        function primitive() -> int {
+            load_const 0
+            store_var value
+            load_const "value"
+            load_const null
+            watch value
+            load_const "value"
+            load_const "manual"
+            watch value
+            load_const 1
+            store_var value
+            load_const 2
+            store_var value
+            load_const 3
+            store_var value
+            notify value
+            load_var value
+            unwatch value
+            return
+        }
+
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
+
+    result: Complete(Int(3))
+
+basic_block_notification:
+    baml: |
+
+        function test_blocks() -> int {
+            //# entering_computation
+            let x = 1;
+            let y = 2;
+            x + y
+        }
+
+    entry: test_blocks
+
+    bytecode: |
+        function test_blocks() -> int {
+            notify_block entering_computation
+            load_const 1
+            load_const 2
+            bin_op +
+            return
+        }
+
+    notifications: [
+        "Block(BlockNotification { function_name: \"test_blocks\", block_name: \"entering_computation\", level: 1, block_type: Statement, is_enter: true })",
+    ]
+
+    result: Complete(Int(3))
+
+multiple_block_notifications:
+    baml: |
+
+        function test_multiple_blocks() -> int {
+            //# first_block
+            let x = 1;
+
+            //# second_block
+            let y = 2;
+
+            x + y
+        }
+
+    entry: test_multiple_blocks
+
+    bytecode: |
+        function test_multiple_blocks() -> int {
+            notify_block first_block
+            notify_block second_block
+            load_const 1
+            load_const 2
+            bin_op +
+            return
+        }
+
+    notifications: [
+        "Block(BlockNotification { function_name: \"test_multiple_blocks\", block_name: \"first_block\", level: 1, block_type: Statement, is_enter: true })",
+        "Block(BlockNotification { function_name: \"test_multiple_blocks\", block_name: \"second_block\", level: 1, block_type: Statement, is_enter: true })",
+    ]
+
+    result: Complete(Int(3))
+
+viz_header_before_if_emits_enter_and_exit:
+    baml: |
+
+        function header_before_if() -> int {
+            //# MyHeader
+            if (true) {
+                1
+            } else {
+                2
+            }
+        }
+
+    entry: header_before_if
+
+    bytecode: |
+        function header_before_if() -> int {
+            notify_block MyHeader
+            viz_enter MyHeader
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            viz_exit MyHeader
+            return
+        }
+
+    notifications: [
+        "Block(BlockNotification { function_name: \"header_before_if\", block_name: \"MyHeader\", level: 1, block_type: Statement, is_enter: true })",
+        "Viz { function_name: \"header_before_if\", event: VizExecEvent { delta: Enter, node_id: 0, node_type: BranchGroup, label: \"MyHeader\", header_level: None } }",
+        "Viz { function_name: \"header_before_if\", event: VizExecEvent { delta: Exit, node_id: 0, node_type: BranchGroup, label: \"MyHeader\", header_level: None } }",
+    ]
+
+    result: Complete(Int(1))
+
+viz_header_before_while_emits_enter_and_exit:
+    baml: |
+
+        function header_before_while() -> int {
+            let x = 0;
+            //# LoopHeader
+            while (x < 1) {
+                x = x + 1;
+            }
+            x
+        }
+
+    entry: header_before_while
+
+    bytecode: |
+        function header_before_while() -> int {
+            load_const 0
+            store_var x
+            notify_block LoopHeader
+            viz_enter LoopHeader
+
+          L0:
+            load_var x
+            load_const 1
+            cmp_op <
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            viz_exit LoopHeader
+            load_var x
+            return
+
+          L2:
+            load_var x
+            load_const 1
+            bin_op +
+            store_var x
+            jump L0
+        }
+
+    notifications: [
+        "Block(BlockNotification { function_name: \"header_before_while\", block_name: \"LoopHeader\", level: 1, block_type: Statement, is_enter: true })",
+        "Viz { function_name: \"header_before_while\", event: VizExecEvent { delta: Enter, node_id: 0, node_type: Loop, label: \"LoopHeader\", header_level: None } }",
+        "Viz { function_name: \"header_before_while\", event: VizExecEvent { delta: Exit, node_id: 0, node_type: Loop, label: \"LoopHeader\", header_level: None } }",
+    ]
+
+    result: Complete(Int(1))
+
+viz_standalone_header_no_viz_events:
+    baml: |
+
+        function standalone_header() -> int {
+            //# JustAHeader
+            let x = 5;
+            x
+        }
+
+    entry: standalone_header
+
+    bytecode: |
+        function standalone_header() -> int {
+            notify_block JustAHeader
+            load_const 5
+            return
+        }
+
+    notifications: [
+        "Block(BlockNotification { function_name: \"standalone_header\", block_name: \"JustAHeader\", level: 1, block_type: Statement, is_enter: true })",
+    ]
+
+    result: Complete(Int(5))
+
+viz_if_without_header_no_viz_events:
+    baml: |
+
+        function if_no_header() -> int {
+            if (true) {
+                1
+            } else {
+                2
+            }
+        }
+
+    entry: if_no_header
+
+    bytecode: |
+        function if_no_header() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(1)

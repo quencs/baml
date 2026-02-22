@@ -1,0 +1,227 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+watch_primitive:
+    baml: |
+
+        function primitive() -> int {
+            watch let value = 0;
+
+            value = 1;
+
+            value
+        }
+
+    bytecode: |
+        function primitive() -> int {
+            load_const 0
+            store_var value
+            load_const "value"
+            load_const null
+            watch value
+            load_const 1
+            store_var value
+            load_var value
+            unwatch value
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'watch_primitive': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'watch_primitive'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+viz_header_before_if_emits_viz_enter_exit:
+    baml: |
+
+        function header_before_if() -> int {
+            //# MyHeader
+            if (true) {
+                1
+            } else {
+                2
+            }
+        }
+
+    bytecode: |
+        function header_before_if() -> int {
+            notify_block MyHeader
+            viz_enter MyHeader
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            viz_exit MyHeader
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'viz_header_before_if_emits_viz_enter_exit': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'viz_header_before_if_emits_viz_enter_exit'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+viz_header_before_while_emits_viz_enter_exit:
+    baml: |
+
+        function header_before_while() -> int {
+            let x = 0;
+            //# LoopHeader
+            while (x < 5) {
+                x = x + 1;
+            }
+            x
+        }
+
+    bytecode: |
+        function header_before_while() -> int {
+            load_const 0
+            store_var x
+            notify_block LoopHeader
+            viz_enter LoopHeader
+
+          L0:
+            load_var x
+            load_const 5
+            cmp_op <
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            viz_exit LoopHeader
+            load_var x
+            return
+
+          L2:
+            load_var x
+            load_const 1
+            bin_op +
+            store_var x
+            jump L0
+        }
+
+    result: |
+        ERROR: execution failed for case 'viz_header_before_while_emits_viz_enter_exit': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'viz_header_before_while_emits_viz_enter_exit'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+viz_standalone_header_no_viz_enter_exit:
+    baml: |
+
+        function standalone_header() -> int {
+            //# JustAHeader
+            let x = 5;
+            x
+        }
+
+    bytecode: |
+        function standalone_header() -> int {
+            notify_block JustAHeader
+            load_const 5
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'viz_standalone_header_no_viz_enter_exit': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'viz_standalone_header_no_viz_enter_exit'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+viz_multiple_headers_only_one_before_if:
+    baml: |
+
+        function multiple_headers() -> int {
+            //# FirstHeader
+            let x = 1;
+            //# SecondHeader
+            if (x > 0) {
+                2
+            } else {
+                3
+            }
+        }
+
+    bytecode: |
+        function multiple_headers() -> int {
+            notify_block FirstHeader
+            notify_block SecondHeader
+            viz_enter SecondHeader
+            load_const 1
+            load_const 0
+            cmp_op >
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 3
+            jump L2
+
+          L1:
+            load_const 2
+
+          L2:
+            viz_exit SecondHeader
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'viz_multiple_headers_only_one_before_if': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'viz_multiple_headers_only_one_before_if'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+viz_if_without_header_no_viz:
+    baml: |
+
+        function if_no_header() -> int {
+            if (true) {
+                1
+            } else {
+                2
+            }
+        }
+
+    bytecode: |
+        function if_no_header() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'viz_if_without_header_no_viz': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'viz_if_without_header_no_viz'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)

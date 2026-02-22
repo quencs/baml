@@ -1,0 +1,31 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+invalid_retry_policy_multiplier_returns_error:
+    baml: |
+        retry_policy bad {
+            max_retries 2
+            strategy {
+                type exponential_backoff
+                delay_ms 100
+                multiplier nope
+                max_delay_ms 500
+            }
+        }
+
+    bytecode: |
+        ERROR: compile failed for case 'invalid_retry_policy_multiplier_returns_error': compile_files failed: invalid retry policy value: `bad.multiplier` = `nope` (invalid float literal)
+        RUST_ERR_DEBUG: Err(compile failed for case 'invalid_retry_policy_multiplier_returns_error'
+
+        Caused by:
+            0: compile_files failed
+            1: invalid retry policy value: `bad.multiplier` = `nope` (invalid float literal))
+
+    result: |
+        ERROR: compile step failed; no runtime result
+        ERROR: compile failed for case 'invalid_retry_policy_multiplier_returns_error': compile_files failed: invalid retry policy value: `bad.multiplier` = `nope` (invalid float literal)
+        RUST_ERR_DEBUG: Err(compile failed for case 'invalid_retry_policy_multiplier_returns_error'
+
+        Caused by:
+            0: compile_files failed
+            1: invalid retry policy value: `bad.multiplier` = `nope` (invalid float literal))

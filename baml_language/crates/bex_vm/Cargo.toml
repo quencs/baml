@@ -30,12 +30,8 @@ paste = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-baml_compiler_emit = { workspace = true }
 baml_tests = { workspace = true }
-anyhow = { workspace = true }
 divan = { workspace = true }
-indexmap = { workspace = true }
-tokio = { workspace = true, features = [ "rt", "macros" ] }
 
 [[bench]]
 name = "fib"

@@ -28,9 +28,3 @@ baml_workspace = { workspace = true }
 bex_vm_types = { workspace = true }
 salsa = { workspace = true }
 
-[dev-dependencies]
-baml_tests = { workspace = true }
-anyhow = { workspace = true }
-insta = { workspace = true }
-la-arena = { workspace = true }
-

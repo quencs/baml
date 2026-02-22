@@ -1,0 +1,648 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+basic_add:
+    baml: |
+
+        function main() -> int {
+            1 + 2
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 2
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+basic_sub:
+    baml: |
+
+        function main() -> int {
+            1 - 2
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 2
+            bin_op -
+            return
+        }
+
+    result: BexExternalValue::Int(-1)
+
+basic_mul:
+    baml: |
+
+        function main() -> int {
+            1 * 2
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 2
+            bin_op *
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+basic_div:
+    baml: |
+
+        function main() -> int {
+            10 / 2
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 2
+            bin_op /
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+basic_mod:
+    baml: |
+
+        function main() -> int {
+            10 % 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 3
+            bin_op %
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+basic_bit_and:
+    baml: |
+
+        function main() -> int {
+            10 & 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 3
+            bin_op &
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+basic_bit_or:
+    baml: |
+
+        function main() -> int {
+            10 | 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 3
+            bin_op |
+            return
+        }
+
+    result: BexExternalValue::Int(11)
+
+basic_bit_xor:
+    baml: |
+
+        function main() -> int {
+            10 ^ 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 3
+            bin_op ^
+            return
+        }
+
+    result: BexExternalValue::Int(9)
+
+basic_bit_shift_left:
+    baml: |
+
+        function main() -> int {
+            10 << 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 3
+            bin_op <<
+            return
+        }
+
+    result: BexExternalValue::Int(80)
+
+basic_bit_shift_right:
+    baml: |
+
+        function main() -> int {
+            10 >> 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            load_const 3
+            bin_op >>
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+unary_neg:
+    baml: |
+
+        function main() -> int {
+            -1
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            unary_op -
+            return
+        }
+
+    result: BexExternalValue::Int(-1)
+
+unary_not:
+    baml: |
+
+        function main() -> bool {
+            !true
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            unary_op !
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+negative_int_in_let:
+    baml: |
+
+        function main() -> int {
+            let x = -5;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 5
+            unary_op -
+            return
+        }
+
+    result: BexExternalValue::Int(-5)
+
+negative_int_arithmetic:
+    baml: |
+
+        function main() -> int {
+            -5 + 3
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 5
+            unary_op -
+            load_const 3
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(-2)
+
+negative_int_comparison:
+    baml: |
+
+        function main() -> bool {
+            -5 < 0
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 5
+            unary_op -
+            load_const 0
+            cmp_op <
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+negative_float_in_let:
+    baml: |
+
+        function main() -> float {
+            let x = -2.5;
+            x
+        }
+
+    bytecode: |
+        function main() -> float {
+            load_const 2.5
+            unary_op -
+            return
+        }
+
+    result: BexExternalValue::Float(-2.5)
+
+double_negation:
+    baml: |
+
+        function main() -> int {
+            --5
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 5
+            unary_op -
+            unary_op -
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+double_negation_variable:
+    baml: |
+
+        function main() -> int {
+            let x = -10;
+            --x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            unary_op -
+            unary_op -
+            unary_op -
+            return
+        }
+
+    result: BexExternalValue::Int(-10)
+
+basic_eq:
+    baml: |
+
+        function main() -> bool {
+            1 == 2
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 1
+            load_const 2
+            cmp_op ==
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+basic_not_eq:
+    baml: |
+
+        function main() -> bool {
+            1 != 2
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 1
+            load_const 2
+            cmp_op !=
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+basic_gt:
+    baml: |
+
+        function main() -> bool {
+            1 > 2
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 1
+            load_const 2
+            cmp_op >
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+basic_gt_eq:
+    baml: |
+
+        function main() -> bool {
+            1 >= 2
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 1
+            load_const 2
+            cmp_op >=
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+basic_lt:
+    baml: |
+
+        function main() -> bool {
+            1 < 2
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 1
+            load_const 2
+            cmp_op <
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+basic_lt_eq:
+    baml: |
+
+        function main() -> bool {
+            1 <= 2
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const 1
+            load_const 2
+            cmp_op <=
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+basic_and:
+    baml: |
+
+        function main() -> bool {
+            true && false
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const false
+            jump L2
+
+          L1:
+            load_const false
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Bool(false)
+
+basic_or:
+    baml: |
+
+        function main() -> bool {
+            true || false
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const false
+            jump L2
+
+          L1:
+            load_const true
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+basic_assign_add:
+    baml: |
+
+        function main() -> int {
+            let x = 1;
+            x += 2;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            store_var x
+            load_var x
+            load_const 2
+            bin_op +
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+basic_assign_sub:
+    baml: |
+
+        function main() -> int {
+            let x = 1;
+            x -= 2;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            store_var x
+            load_var x
+            load_const 2
+            bin_op -
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(-1)
+
+basic_assign_mul:
+    baml: |
+
+        function main() -> int {
+            let x = 1;
+            x *= 2;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            store_var x
+            load_var x
+            load_const 2
+            bin_op *
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+basic_assign_div:
+    baml: |
+
+        function main() -> int {
+            let x = 10;
+            x /= 2;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            store_var x
+            load_var x
+            load_const 2
+            bin_op /
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+basic_assign_mod:
+    baml: |
+
+        function main() -> int {
+            let x = 10;
+            x %= 3;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            store_var x
+            load_var x
+            load_const 3
+            bin_op %
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+basic_assign_bit_and:
+    baml: |
+
+        function main() -> int {
+            let x = 10;
+            x &= 3;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            store_var x
+            load_var x
+            load_const 3
+            bin_op &
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+basic_assign_bit_or:
+    baml: |
+
+        function main() -> int {
+            let x = 10;
+            x |= 3;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            store_var x
+            load_var x
+            load_const 3
+            bin_op |
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(11)
+
+basic_assign_bit_xor:
+    baml: |
+
+        function main() -> int {
+            let x = 10;
+            x ^= 3;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 10
+            store_var x
+            load_var x
+            load_const 3
+            bin_op ^
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(9)

@@ -1,0 +1,189 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+create_and_access:
+    baml: |
+
+        function create_map() -> map<string, string> {
+            { "hello": "world" }
+        }
+        function use_map() -> string {
+            let map = create_map();
+            map["hello"]
+        }
+
+    entry: use_map
+
+    bytecode: |
+        function create_map() -> map<string, string> {
+            load_const "world"
+            load_const "hello"
+            alloc_map 1
+            return
+        }
+
+        function use_map() -> string {
+            call create_map
+            load_const "hello"
+            load_map_element
+            return
+        }
+
+    result: BexExternalValue::String("world")
+
+access_no_key:
+    baml: |
+
+        function create_map() -> map<string, string> {
+            { "hello": "world" }
+        }
+
+        function use_map_no_key() -> string {
+            let map = create_map();
+            map["world"]
+        }
+
+    entry: use_map_no_key
+
+    bytecode: |
+        function create_map() -> map<string, string> {
+            load_const "world"
+            load_const "hello"
+            alloc_map 1
+            return
+        }
+
+        function use_map_no_key() -> string {
+            call create_map
+            load_const "world"
+            load_map_element
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'access_no_key': engine call_function failed for 'use_map_no_key': VM error: key not found in map: key not found in map: key not found in map
+        RUST_ERR_DEBUG: Err(execution failed for case 'access_no_key'
+
+        Caused by:
+            0: engine call_function failed for 'use_map_no_key'
+            1: VM error: key not found in map
+            2: key not found in map
+            3: key not found in map)
+
+contains:
+    baml: |
+
+        function create_map_json() -> map<string, string> {
+            {"hello": "world"}
+        }
+        function use_map_contains() -> string {
+            let map = create_map_json();
+            if (map.has("hello")) {
+                map["hello"]
+            } else {
+                "hi"
+            }
+        }
+
+    entry: use_map_contains
+
+    bytecode: |
+        function create_map_json() -> map<string, string> {
+            load_const "world"
+            load_const "hello"
+            alloc_map 1
+            return
+        }
+
+        function use_map_contains() -> string {
+            call create_map_json
+            store_var map
+            load_var map
+            load_const "hello"
+            call baml.Map.has
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const "hi"
+            jump L2
+
+          L1:
+            load_var map
+            load_const "hello"
+            load_map_element
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::String("world")
+
+modify:
+    baml: |
+
+        function edit_map_key() -> int {
+            let map = { "hi": 123 };
+
+            map["hi"] = 42 - 4;
+            map["hi"] += 4;
+
+            map["hi"]
+
+        }
+
+    entry: edit_map_key
+
+    bytecode: |
+        function edit_map_key() -> int {
+            load_const 123
+            load_const "hi"
+            alloc_map 1
+            store_var map
+            load_var map
+            load_const "hi"
+            load_const 42
+            load_const 4
+            bin_op -
+            store_map_element
+            load_var map
+            load_const "hi"
+            load_var map
+            load_const "hi"
+            load_map_element
+            load_const 4
+            bin_op +
+            store_map_element
+            load_var map
+            load_const "hi"
+            load_map_element
+            return
+        }
+
+    result: BexExternalValue::Int(42)
+
+len:
+    baml: |
+
+        function len() -> int {
+            let map = {
+                "hi": 123,
+                "it_works": 456
+            };
+            map.length()
+        }
+
+    entry: len
+
+    bytecode: |
+        function len() -> int {
+            load_const 123
+            load_const 456
+            load_const "hi"
+            load_const "it_works"
+            alloc_map 2
+            call baml.Map.length
+            return
+        }
+
+    result: BexExternalValue::Int(2)

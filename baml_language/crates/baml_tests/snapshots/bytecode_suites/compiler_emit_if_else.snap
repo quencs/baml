@@ -1,0 +1,1280 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+if_else_literal_true:
+    baml: |
+
+        function main() -> int {
+            if (true) { 1 } else { 2 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+if_else_literal_false:
+    baml: |
+
+        function main() -> int {
+            if (false) { 1 } else { 2 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const false
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+if_else_comparison_condition:
+    baml: |
+
+        function main() -> int {
+            if (1 < 2) { 10 } else { 20 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 2
+            cmp_op <
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 20
+            jump L2
+
+          L1:
+            load_const 10
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(10)
+
+if_else_equality_condition:
+    baml: |
+
+        function main() -> int {
+            if (5 == 5) { 100 } else { 200 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 5
+            load_const 5
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 200
+            jump L2
+
+          L1:
+            load_const 100
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(100)
+
+if_else_assign_to_variable:
+    baml: |
+
+        function main() -> int {
+            let x = if (true) { 42 } else { 0 };
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 0
+            jump L2
+
+          L1:
+            load_const 42
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(42)
+
+if_else_with_local_in_branches:
+    baml: |
+
+        function main() -> int {
+            if (true) {
+                let a = 1;
+                a
+            } else {
+                let b = 2;
+                b
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+if_else_nested:
+    baml: |
+
+        function main() -> int {
+            if (true) {
+                if (false) { 1 } else { 2 }
+            } else {
+                3
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 3
+            jump L4
+
+          L1:
+            load_const false
+            pop_jump_if_false L2
+            jump L3
+
+          L2:
+            load_const 2
+            jump L4
+
+          L3:
+            load_const 1
+
+          L4:
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+else_if_chain:
+    baml: |
+
+        function main() -> int {
+            if (false) {
+                1
+            } else if (false) {
+                2
+            } else {
+                3
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const false
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_const false
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 3
+            jump L4
+
+          L2:
+            load_const 2
+            jump L4
+
+          L3:
+            load_const 1
+
+          L4:
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+else_if_with_comparisons:
+    baml: |
+
+        function main() -> int {
+            let x = 5;
+            if (x < 0) {
+                0
+            } else if (x < 10) {
+                1
+            } else {
+                2
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 5
+            load_const 0
+            cmp_op <
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_const 5
+            load_const 10
+            cmp_op <
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 2
+            jump L4
+
+          L2:
+            load_const 1
+            jump L4
+
+          L3:
+            load_const 0
+
+          L4:
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+if_else_with_function_call_in_branch:
+    baml: |
+
+        function get_value() -> int {
+            42
+        }
+
+        function main() -> int {
+            if (true) { get_value() } else { 0 }
+        }
+
+    bytecode: |
+        function get_value() -> int {
+            load_const 42
+            return
+        }
+
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 0
+            jump L2
+
+          L1:
+            call get_value
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(42)
+
+if_else_with_arithmetic_in_condition:
+    baml: |
+
+        function main() -> int {
+            if (1 + 1 == 2) { 100 } else { 0 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 1
+            bin_op +
+            load_const 2
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 0
+            jump L2
+
+          L1:
+            load_const 100
+
+          L2:
+            return
+        }
+
+    result: BexExternalValue::Int(100)
+
+if_else_with_logical_and_in_condition:
+    baml: |
+
+        function main() -> int {
+            if (true && true) { 1 } else { 0 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const false
+            jump L2
+
+          L1:
+            load_const true
+
+          L2:
+            pop_jump_if_false L3
+            jump L4
+
+          L3:
+            load_const 0
+            jump L5
+
+          L4:
+            load_const 1
+
+          L5:
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+if_else_with_logical_or_in_condition:
+    baml: |
+
+        function main() -> int {
+            if (false || true) { 1 } else { 0 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const false
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const true
+            jump L2
+
+          L1:
+            load_const true
+
+          L2:
+            pop_jump_if_false L3
+            jump L4
+
+          L3:
+            load_const 0
+            jump L5
+
+          L4:
+            load_const 1
+
+          L5:
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+if_else_in_arithmetic:
+    baml: |
+
+        function main() -> int {
+            1 + if (true) { 2 } else { 3 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 3
+            store_var _2
+            jump L2
+
+          L1:
+            load_const 2
+            store_var _2
+
+          L2:
+            load_const 1
+            load_var _2
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+if_else_as_function_arg:
+    baml: |
+
+        function identity(x: int) -> int { x }
+
+        function main() -> int {
+            identity(if (false) { 10 } else { 20 })
+        }
+
+    bytecode: |
+        function identity(x: int) -> int {
+            load_var x
+            return
+        }
+
+        function main() -> int {
+            load_const false
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 20
+            jump L2
+
+          L1:
+            load_const 10
+
+          L2:
+            call identity
+            return
+        }
+
+    result: BexExternalValue::Int(20)
+
+if_else_assigned_then_passed_to_call:
+    baml: |
+
+        function identity(x: int) -> int { x }
+
+        function main() -> int {
+            let tmp = if (false) { 10 } else { 20 };
+            identity(tmp)
+        }
+
+    bytecode: |
+        function identity(x: int) -> int {
+            load_var x
+            return
+        }
+
+        function main() -> int {
+            load_const false
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 20
+            jump L2
+
+          L1:
+            load_const 10
+
+          L2:
+            call identity
+            return
+        }
+
+    result: BexExternalValue::Int(20)
+
+parenthesized_if_else_in_arithmetic:
+    baml: |
+
+        function main() -> int {
+            (if (true) { 1 } else { 2 }) + (if (false) { 3 } else { 4 })
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            store_var _1
+            jump L2
+
+          L1:
+            load_const 1
+            store_var _1
+
+          L2:
+            load_const false
+            pop_jump_if_false L3
+            jump L4
+
+          L3:
+            load_const 4
+            store_var _3
+            jump L5
+
+          L4:
+            load_const 3
+            store_var _3
+
+          L5:
+            load_var _1
+            load_var _3
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+chained_if_else_in_arithmetic:
+    baml: |
+
+        function main() -> int {
+            if (true) { 1 } else { 2 } + if (false) { 3 } else { 4 }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            store_var _1
+            jump L2
+
+          L1:
+            load_const 1
+            store_var _1
+
+          L2:
+            load_const false
+            pop_jump_if_false L3
+            jump L4
+
+          L3:
+            load_const 4
+            store_var _3
+            jump L5
+
+          L4:
+            load_const 3
+            store_var _3
+
+          L5:
+            load_var _1
+            load_var _3
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+if_without_else_statement:
+    baml: |
+
+        function main() -> int {
+            let x = 0;
+            if (true) {
+                x = 5;
+            }
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 0
+            store_var x
+            load_const true
+            pop_jump_if_false L0
+            load_const 5
+            store_var x
+
+          L0:
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+if_without_else_with_local_var:
+    baml: |
+
+        function main() -> int {
+            let result = 0;
+            if (true) {
+                let temp = 10;
+            }
+            result
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const true
+            pop_jump_if_false L0
+            load_const 10
+            store_var temp
+
+          L0:
+            load_const 0
+            return
+        }
+
+    result: BexExternalValue::Int(0)
+
+consecutive_if_without_else:
+    baml: |
+
+        function main() -> int {
+            let x = 0;
+            if (true) { x = 1; }
+            if (false) { x = 2; }
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 0
+            store_var x
+            load_const true
+            pop_jump_if_false L0
+            load_const 1
+            store_var x
+
+          L0:
+            load_const false
+            pop_jump_if_false L1
+            load_const 2
+            store_var x
+
+          L1:
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+block_expr:
+    baml: |
+
+        function main() -> int {
+            let a = {
+                let b = 1;
+                b
+            };
+
+            a
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+if_else_assignment_with_locals:
+    baml: |
+
+        function main(b: bool) -> int {
+            let i = if (b) {
+                let a = 1;
+                a
+            } else {
+                let a = 2;
+                a
+            };
+
+            i
+        }
+
+    bytecode: |
+        function main(b: bool) -> int {
+            load_var b
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+
+if_else_normal_statement:
+    baml: |
+
+        function identity(i: int) -> int {
+            i
+        }
+
+        function main(b: bool) -> int {
+            let a = 1;
+
+            if (b) {
+                let x = 1;
+                let y = 2;
+                identity(x);
+            } else {
+                let x = 3;
+                let y = 4;
+                identity(y);
+            }
+
+            a
+        }
+
+    bytecode: |
+        function identity(i: int) -> int {
+            load_var i
+            return
+        }
+
+        function main(b: bool) -> int {
+            load_var b
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 3
+            store_var x
+            load_const 4
+            call identity
+            pop 1
+            jump L2
+
+          L1:
+            load_const 2
+            store_var y
+            load_const 1
+            call identity
+            pop 1
+
+          L2:
+            load_const 1
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'if_else_normal_statement': engine call_function failed for 'main': VM error: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any
+        RUST_ERR_DEBUG: Err(execution failed for case 'if_else_normal_statement'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: VM error: type error: expected bool, got any
+            2: type error: expected bool, got any
+            3: type error: expected bool, got any
+            4: type error: expected bool, got any)
+
+else_if_return_expr_with_locals:
+    baml: |
+
+        function main(a: bool, b: bool) -> int {
+            if (a) {
+                let x = 1;
+                x
+            } else if (b) {
+                let y = 2;
+                y
+            } else {
+                let z = 3;
+                z
+            }
+        }
+
+    bytecode: |
+        function main(a: bool, b: bool) -> int {
+            load_var a
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var b
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 3
+            jump L4
+
+          L2:
+            load_const 2
+            jump L4
+
+          L3:
+            load_const 1
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+
+else_if_assignment:
+    baml: |
+
+        function main(a: bool, b: bool) -> int {
+            let result = if (a) {
+                1
+            } else if (b) {
+                2
+            } else {
+                3
+            };
+
+            result
+        }
+
+    bytecode: |
+        function main(a: bool, b: bool) -> int {
+            load_var a
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var b
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 3
+            store_var result
+            jump L4
+
+          L2:
+            load_const 2
+            store_var result
+            jump L4
+
+          L3:
+            load_const 1
+            store_var result
+
+          L4:
+            load_var result
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'else_if_assignment': engine call_function failed for 'main': VM error: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any
+        RUST_ERR_DEBUG: Err(execution failed for case 'else_if_assignment'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: VM error: type error: expected bool, got any
+            2: type error: expected bool, got any
+            3: type error: expected bool, got any
+            4: type error: expected bool, got any)
+
+else_if_assignment_with_locals:
+    baml: |
+
+        function main(a: bool, b: bool) -> int {
+            let result = if (a) {
+                let x = 1;
+                x
+            } else if (b) {
+                let y = 2;
+                y
+            } else {
+                let z = 3;
+                z
+            };
+
+            result
+        }
+
+    bytecode: |
+        function main(a: bool, b: bool) -> int {
+            load_var a
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var b
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 3
+            store_var result
+            jump L4
+
+          L2:
+            load_const 2
+            store_var result
+            jump L4
+
+          L3:
+            load_const 1
+            store_var result
+
+          L4:
+            load_var result
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'else_if_assignment_with_locals': engine call_function failed for 'main': VM error: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any
+        RUST_ERR_DEBUG: Err(execution failed for case 'else_if_assignment_with_locals'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: VM error: type error: expected bool, got any
+            2: type error: expected bool, got any
+            3: type error: expected bool, got any
+            4: type error: expected bool, got any)
+
+nested_block_expr_with_ending_normal_if:
+    baml: |
+
+        function main() -> int {
+            let a = 1;
+
+            {
+                let b = 2;
+                let c = 3;
+                a = b + c;
+
+                if (a == 5) {
+                    a = 10;
+                }
+            }
+
+            a
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            store_var a
+            load_const 2
+            load_const 3
+            bin_op +
+            store_var a
+            load_var a
+            load_const 5
+            cmp_op ==
+            pop_jump_if_false L0
+            load_const 10
+            store_var a
+
+          L0:
+            load_var a
+            return
+        }
+
+    result: BexExternalValue::Int(10)
+
+return_with_stack:
+    baml: |
+
+        function with_stack(x: int) -> int {
+          let a = 1;
+
+          // NOTE: currently there's no empty returns.
+
+          if (a == 0) { return 0; }
+
+          {
+             let b = 1;
+             if (a != b) {
+                return 0;
+             }
+          }
+
+          {
+             let c = 2;
+             let b = 3;
+             while (b != c) {
+                if (true) {
+                   return 0;
+                }
+             }
+          }
+
+           7
+        }
+
+    bytecode: |
+        function with_stack(x: int) -> int {
+            load_const 1
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L5
+
+          L0:
+            load_const 1
+            load_const 1
+            cmp_op !=
+            pop_jump_if_false L1
+            jump L4
+
+          L1:
+            load_const 3
+            load_const 2
+            cmp_op !=
+            pop_jump_if_false L2
+            jump L3
+
+          L2:
+            load_const 7
+            return
+
+          L3:
+            load_const true
+            pop_jump_if_false L1
+            load_const 0
+            return
+
+          L4:
+            load_const 0
+            return
+
+          L5:
+            load_const 0
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'return_with_stack': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'return_with_stack'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+if_else_return_expr:
+    baml: |
+
+        function main(b: bool) -> int {
+            if (b) { 1 } else { 2 }
+        }
+
+    bytecode: |
+        function main(b: bool) -> int {
+            load_var b
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+
+if_else_return_expr_with_locals:
+    baml: |
+
+        function main(b: bool) -> int {
+            if (b) {
+                let a = 1;
+                a
+            } else {
+                let a = 2;
+                a
+            }
+        }
+
+    bytecode: |
+        function main(b: bool) -> int {
+            load_var b
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+
+if_else_assignment:
+    baml: |
+
+        function main(b: bool) -> int {
+            let i = if (b) { 1 } else { 2 };
+            i
+        }
+
+    bytecode: |
+        function main(b: bool) -> int {
+            load_var b
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const 2
+            jump L2
+
+          L1:
+            load_const 1
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+
+else_if_return_expr:
+    baml: |
+
+        function main(a: bool, b: bool) -> int {
+            if (a) {
+                1
+            } else if (b) {
+                2
+            } else {
+                3
+            }
+        }
+
+    bytecode: |
+        function main(a: bool, b: bool) -> int {
+            load_var a
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var b
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 3
+            jump L4
+
+          L2:
+            load_const 2
+            jump L4
+
+          L3:
+            load_const 1
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+
+early_return:
+    baml: |
+
+        function early_return(x: int) -> int {
+          if (x == 42) { return 1; }
+
+          x + 5
+        }
+
+    bytecode: |
+        function early_return(x: int) -> int {
+            load_var x
+            load_const 42
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_var x
+            load_const 5
+            bin_op +
+            return
+
+          L1:
+            load_const 1
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'early_return': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'early_return'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)

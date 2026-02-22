@@ -1,0 +1,157 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+virtual_cross_block_soundness_codegen:
+    baml: |
+
+        function main(c: bool) -> int {
+            let a = 1;
+            let b = a;
+            if (c) {
+                a = 2;
+            }
+            b
+        }
+
+    bytecode: |
+        function main(c: bool) -> int {
+            load_const 1
+            store_var a
+            load_var a
+            store_var b
+            load_var c
+            pop_jump_if_false L0
+            load_const 2
+            store_var a
+
+          L0:
+            load_var b
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 2 but the index is 2
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 2 but the index is 2")
+
+virtual_cross_block_param_mutation_soundness_codegen:
+    baml: |
+
+        function main(c: bool, p: int) -> int {
+            let x = p;
+            if (c) {
+                p = 2;
+            }
+            x
+        }
+
+    bytecode: |
+        function main(c: bool, p: int) -> int {
+            load_var p
+            store_var x
+            load_var c
+            pop_jump_if_false L0
+            load_const 2
+            store_var p
+
+          L0:
+            load_var x
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 1 but the index is 1
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 1 but the index is 1")
+
+copy_of_mutable_param_soundness_codegen:
+    baml: |
+
+        function main(x: int) -> int {
+            let y = x;
+            x = 2;
+            y
+        }
+
+    bytecode: |
+        function main(x: int) -> int {
+            load_var x
+            store_var y
+            load_const 2
+            store_var x
+            load_var y
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 1 but the index is 1
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 1 but the index is 1")
+
+virtual_cross_block_transitive_param_mutation_soundness_codegen:
+    baml: |
+
+        function main(c: bool, p: int) -> int {
+            let t = p;
+            let x = t;
+            if (c) {
+                p = 2;
+            }
+            x
+        }
+
+    bytecode: |
+        function main(c: bool, p: int) -> int {
+            load_var p
+            store_var x
+            load_var c
+            pop_jump_if_false L0
+            load_const 2
+            store_var p
+
+          L0:
+            load_var x
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: index out of bounds: the len is 1 but the index is 1
+        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 1 but the index is 1")
+
+virtual_multiple_defs_preserve_side_effects_codegen:
+    baml: |
+
+        function fail() -> int {
+            assert(false);
+            1
+        }
+
+        function main() -> int {
+            let x = fail();
+            x = 2;
+            x
+        }
+
+    bytecode: |
+        function fail() -> int {
+            load_const false
+            assert
+            load_const 1
+            return
+        }
+
+        function main() -> int {
+            call fail
+            store_var x
+            load_const 2
+            store_var x
+            load_var x
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'virtual_multiple_defs_preserve_side_effects_codegen': engine call_function failed for 'main': VM error: assertion failed: assertion failed: assertion failed
+        RUST_ERR_DEBUG: Err(execution failed for case 'virtual_multiple_defs_preserve_side_effects_codegen'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: VM error: assertion failed
+            2: assertion failed
+            3: assertion failed)

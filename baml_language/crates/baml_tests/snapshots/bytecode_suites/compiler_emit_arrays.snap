@@ -1,0 +1,39 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+array_constructor:
+    baml: |
+
+        function main() -> int[] {
+            let a = [1, 2, 3];
+            a
+        }
+
+    bytecode: |
+        function main() -> int[] {
+            load_const 1
+            load_const 2
+            load_const 3
+            alloc_array 3
+            return
+        }
+
+    result: 'BexExternalValue::Array { element_type: Int, items: [Int(1), Int(2), Int(3)] }'
+
+return_array_literal:
+    baml: |
+
+        function main() -> int[] {
+            [1, 2, 3]
+        }
+
+    bytecode: |
+        function main() -> int[] {
+            load_const 1
+            load_const 2
+            load_const 3
+            alloc_array 3
+            return
+        }
+
+    result: 'BexExternalValue::Array { element_type: Int, items: [Int(1), Int(2), Int(3)] }'
