@@ -455,3 +455,370 @@ while_loop_with_conditional_break:
         Caused by:
             0: engine call_function failed for 'main'
             1: Function not found: main)
+
+while_loop:
+    baml: |
+        function gcd(a: int, b: int) -> int {
+
+            while (a != b) {
+
+               if (a > b) {
+                   a = a - b;
+               } else {
+                   b = b - a;
+               }
+
+            }
+
+            a
+        }
+
+        function main() -> int {
+            gcd(21, 15)
+        }
+
+    bytecode: |
+        function gcd(a: int, b: int) -> int {
+          L0:
+            load_var a
+            load_var b
+            cmp_op !=
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var a
+            return
+
+          L2:
+            load_var a
+            load_var b
+            cmp_op >
+            pop_jump_if_false L3
+            jump L4
+
+          L3:
+            load_var b
+            load_var a
+            bin_op -
+            store_var b
+            jump L0
+
+          L4:
+            load_var a
+            load_var b
+            bin_op -
+            store_var a
+            jump L0
+        }
+
+        function main() -> int {
+            load_const 21
+            load_const 15
+            call gcd
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+while_with_scope:
+    baml: |
+        function fib(n: int) -> int {
+
+            let a = 0;
+            let b = 1;
+
+            while (n > 0) {
+                n -= 1;
+                let t = a + b;
+                b = a;
+                a = t;
+            }
+
+            a
+        }
+
+        function main() -> int {
+            fib(5)
+        }
+
+    bytecode: |
+        function fib(n: int) -> int {
+            load_const 0
+            store_var a
+            load_const 1
+            store_var b
+
+          L0:
+            load_var n
+            load_const 0
+            cmp_op >
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var a
+            return
+
+          L2:
+            load_var n
+            load_const 1
+            bin_op -
+            store_var n
+            load_var a
+            load_var b
+            bin_op +
+            store_var t
+            load_var a
+            store_var b
+            load_var t
+            store_var a
+            jump L0
+        }
+
+        function main() -> int {
+            load_const 5
+            call fib
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+break_factorial_vm:
+    baml: |
+
+        function factorial(limit: int) -> int {
+            let result = 1;
+
+            while (true) {
+                if (limit == 0) {
+                    break;
+                }
+                result = result * limit;
+                limit = limit - 1;
+            }
+
+            result
+        }
+
+        function main() -> int {
+            factorial(5)
+        }
+
+    bytecode: |
+        function factorial(limit: int) -> int {
+            load_const 1
+            store_var result
+
+          L0:
+            load_const true
+            pop_jump_if_false L2
+            load_var limit
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var result
+            load_var limit
+            bin_op *
+            store_var result
+            load_var limit
+            load_const 1
+            bin_op -
+            store_var limit
+            jump L0
+
+          L2:
+            load_var result
+            return
+        }
+
+        function main() -> int {
+            load_const 5
+            call factorial
+            return
+        }
+
+    result: BexExternalValue::Int(120)
+
+break_nested_loops:
+    baml: |
+
+        function nested() -> int {
+            let a = 5;
+            while (true) {
+                while (true) {
+                    a = a + 1;
+                    break;
+                }
+                a = a + 1;
+                break;
+            }
+            a
+        }
+
+        function main() -> int {
+            nested()
+        }
+
+    bytecode: |
+        function main() -> int {
+            call nested
+            return
+        }
+
+        function nested() -> int {
+            load_const 5
+            store_var a
+            load_const true
+            pop_jump_if_false L1
+            load_const true
+            pop_jump_if_false L0
+            load_var a
+            load_const 1
+            bin_op +
+            store_var a
+
+          L0:
+            load_var a
+            load_const 1
+            bin_op +
+            store_var a
+
+          L1:
+            load_var a
+            return
+        }
+
+    result: BexExternalValue::Int(7)
+
+continue_factorial_vm:
+    baml: |
+
+        function factorial(limit: int) -> int {
+            let result = 1;
+
+            // used to make the loop break without relying on `break` implementation.
+            let should_continue = true;
+            while (should_continue) {
+                result = result * limit;
+                limit = limit - 1;
+
+                if (limit != 0) {
+                    continue;
+                } else {
+                    should_continue = false;
+                }
+            }
+
+            result
+        }
+
+        function main() -> int {
+            factorial(5)
+        }
+
+    bytecode: |
+        function factorial(limit: int) -> int {
+            load_const 1
+            store_var result
+            load_const true
+            store_var should_continue
+
+          L0:
+            load_var should_continue
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var result
+            return
+
+          L2:
+            load_var result
+            load_var limit
+            bin_op *
+            store_var result
+            load_var limit
+            load_const 1
+            bin_op -
+            store_var limit
+            load_var limit
+            load_const 0
+            cmp_op !=
+            pop_jump_if_false L3
+            jump L0
+
+          L3:
+            load_const false
+            store_var should_continue
+            jump L0
+        }
+
+        function main() -> int {
+            load_const 5
+            call factorial
+            return
+        }
+
+    result: BexExternalValue::Int(120)
+
+continue_nested_vm:
+    baml: |
+
+        function continue_nested() -> int {
+            let execute = true;
+            while (execute) {
+                while (false) {
+                    continue;
+                }
+                if (false) {
+                    continue;
+                }
+                execute = false;
+            }
+            5
+        }
+
+        function main() -> int {
+            continue_nested()
+        }
+
+    bytecode: |
+        function continue_nested() -> int {
+            load_const true
+            store_var execute
+
+          L0:
+            load_var execute
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 5
+            return
+
+          L2:
+            load_const false
+            pop_jump_if_false L3
+            jump L2
+
+          L3:
+            load_const false
+            pop_jump_if_false L4
+            jump L0
+
+          L4:
+            load_const false
+            store_var execute
+            jump L0
+        }
+
+        function main() -> int {
+            call continue_nested
+            return
+        }
+
+    result: BexExternalValue::Int(5)

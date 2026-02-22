@@ -1,6 +1,2531 @@
 ---
 source: crates/baml_tests/src/bytecode_snapshot.rs
 ---
+match_catch_all_underscore:
+    baml: |
+
+        function main() -> int {
+            match (42) {
+                _ => 100
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 100
+            return
+        }
+
+    result: BexExternalValue::Int(100)
+
+match_catch_all_named_binding:
+    baml: |
+
+        function main() -> int {
+            match (42) {
+                x => x + 1
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 42
+            load_const 1
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(43)
+
+match_literal_int_with_fallback:
+    baml: |
+
+        function main() -> int {
+            match (1) {
+                1 => 100,
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            pop 1
+            load_const 100
+            return
+        }
+
+    result: BexExternalValue::Int(100)
+
+match_literal_bool_exhaustive:
+    baml: |
+
+        function main() -> string {
+            match (true) {
+                true => "yes",
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "yes"
+            return
+        }
+
+    result: BexExternalValue::String("yes")
+
+match_typed_pattern_single_class:
+    baml: |
+
+        class Success {
+            data string
+        }
+
+        function main() -> string {
+            let result = Success { data: "hello" };
+            match (result) {
+                s: Success => s.data,
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            alloc_instance Success
+            copy 0
+            load_const "hello"
+            store_field .data
+            store_var result
+            load_var result
+            load_field .data
+            return
+        }
+
+    result: BexExternalValue::String("hello")
+
+match_typed_pattern_two_classes:
+    baml: |
+
+        class Success {
+            data string
+        }
+
+        class Failure {
+            reason string
+        }
+
+        function main() -> string {
+            let result = Success { data: "ok" };
+            match (result) {
+                s: Success => s.data,
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            alloc_instance Success
+            copy 0
+            load_const "ok"
+            store_field .data
+            store_var result
+            load_var result
+            load_field .data
+            return
+        }
+
+    result: BexExternalValue::String("ok")
+
+match_union_literal_two_values:
+    baml: |
+
+        function main() -> string {
+            match (200) {
+                200 | 201 => "success",
+            }
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const 200
+            copy 0
+            load_const 200
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+
+          L0:
+            pop 1
+            load_const "success"
+            return
+        }
+
+    result: |
+        ERROR: panic during execution: attempt to subtract with overflow
+        RUST_ERR_DEBUG: Panic("attempt to subtract with overflow")
+
+match_in_arithmetic:
+    baml: |
+
+        function main() -> int {
+            1 + match (2) {
+                2 => 20,
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 2
+            pop 1
+            load_const 1
+            load_const 20
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(21)
+
+match_nested:
+    baml: |
+
+        function main() -> int {
+            match (1) {
+                1 => match (2) {
+                    2 => 12,
+                },
+            }
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            pop 1
+            load_const 2
+            pop 1
+            load_const 12
+            return
+        }
+
+    result: BexExternalValue::Int(12)
+
+match_jump_table_dense_four_arms:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 100,
+                1 => 101,
+                2 => 102,
+                3 => 103,
+                _ => 999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            jump_table [L4, L3, L2, L1], default L0
+
+          L0:
+            load_const 999
+            jump L5
+
+          L1:
+            load_const 103
+            jump L5
+
+          L2:
+            load_const 102
+            jump L5
+
+          L3:
+            load_const 101
+            jump L5
+
+          L4:
+            load_const 100
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_jump_table_dense_four_arms': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_jump_table_dense_four_arms'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_binary_search_sparse_four_arms:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 100,
+                30 => 130,
+                60 => 160,
+                99 => 199,
+                _ => 999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            copy 0
+            load_const 60
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L5
+
+          L0:
+            copy 0
+            load_const 60
+            cmp_op <
+            pop_jump_if_false L2
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L7
+
+          L1:
+            copy 0
+            load_const 30
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L6
+
+          L2:
+            copy 0
+            load_const 99
+            cmp_op ==
+            pop_jump_if_false L3
+            pop 1
+            jump L4
+
+          L3:
+            pop 1
+            load_const 999
+            jump L8
+
+          L4:
+            load_const 199
+            jump L8
+
+          L5:
+            load_const 160
+            jump L8
+
+          L6:
+            load_const 130
+            jump L8
+
+          L7:
+            load_const 100
+
+          L8:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_binary_search_sparse_four_arms': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_sparse_four_arms'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_if_else_chain_three_arms:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 100,
+                1 => 101,
+                _ => 999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L3
+
+          L0:
+            copy 0
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L2
+
+          L1:
+            pop 1
+            load_const 999
+            jump L4
+
+          L2:
+            load_const 101
+            jump L4
+
+          L3:
+            load_const 100
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_if_else_chain_three_arms': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_if_else_chain_three_arms'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_string_literal:
+    baml: |
+
+        function classify(s string) -> int {
+            match (s) {
+                "hello" => 100,
+                "world" => 200,
+                _ => 0
+            }
+        }
+
+    bytecode: |
+        function classify(s: string) -> int {
+            load_var s
+            load_const "hello"
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var s
+            load_const "world"
+            cmp_op ==
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 0
+            jump L4
+
+          L2:
+            load_const 200
+            jump L4
+
+          L3:
+            load_const 100
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_string_literal': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_string_literal'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_guarded_int_literal:
+    baml: |
+
+        function classify(x int, flag bool) -> string {
+            match (x) {
+                1 if flag => "one with flag",
+                1 => "one",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int, flag: bool) -> string {
+            load_var x
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L0
+            load_var flag
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var x
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const "other"
+            jump L4
+
+          L2:
+            load_const "one"
+            jump L4
+
+          L3:
+            load_const "one with flag"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_guarded_int_literal': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_guarded_int_literal'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_mixed_literal_typed_guard:
+    baml: |
+
+        function classify(x int, flag bool) -> string {
+            match (x) {
+                0 => "zero",
+                1 if flag => "one with flag",
+                n: int => "other int"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int, flag: bool) -> string {
+            load_var x
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var x
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L1
+            load_var flag
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const "other int"
+            jump L4
+
+          L2:
+            load_const "one with flag"
+            jump L4
+
+          L3:
+            load_const "zero"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_mixed_literal_typed_guard': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_mixed_literal_typed_guard'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_guard_on_typed_pattern:
+    baml: |
+
+        class Success { data string }
+        class Failure { reason string }
+
+        function classify(result Success | Failure) -> string {
+            match (result) {
+                s: Success if s.data != "" => "success with data",
+                s: Success => "empty success",
+                f: Failure => "failure"
+            }
+        }
+
+    bytecode: |
+        function classify(result: Success | Failure) -> string {
+            load_var result
+            load_const <class Success>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            load_var result
+            load_field .data
+            load_const ""
+            cmp_op !=
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var result
+            load_const <class Success>
+            cmp_op instanceof
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const "failure"
+            jump L4
+
+          L2:
+            load_const "empty success"
+            jump L4
+
+          L3:
+            load_const "success with data"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_guard_on_typed_pattern': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_guard_on_typed_pattern'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_multiple_typed_patterns_with_guards:
+    baml: |
+
+        class Success { code int }
+        class Failure { code int }
+
+        function classify(result Success | Failure, strict bool) -> string {
+            match (result) {
+                s: Success if s.code > 200 => "redirect",
+                s: Success if strict => "strict success",
+                s: Success => "success",
+                f: Failure => "failure"
+            }
+        }
+
+    bytecode: |
+        function classify(result: Success | Failure, strict: bool) -> string {
+            load_var result
+            load_const <class Success>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            load_var result
+            load_field .code
+            load_const 200
+            cmp_op >
+            pop_jump_if_false L0
+            jump L5
+
+          L0:
+            load_var result
+            load_const <class Success>
+            cmp_op instanceof
+            pop_jump_if_false L1
+            load_var strict
+            pop_jump_if_false L1
+            jump L4
+
+          L1:
+            load_var result
+            load_const <class Success>
+            cmp_op instanceof
+            pop_jump_if_false L2
+            jump L3
+
+          L2:
+            load_const "failure"
+            jump L6
+
+          L3:
+            load_const "success"
+            jump L6
+
+          L4:
+            load_const "strict success"
+            jump L6
+
+          L5:
+            load_const "redirect"
+
+          L6:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_multiple_typed_patterns_with_guards': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_multiple_typed_patterns_with_guards'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_string_literal_with_typed_pattern:
+    baml: |
+
+        function classify(s string) -> int {
+            match (s) {
+                "ok" => 200,
+                "error" => 500,
+                _: string => 0
+            }
+        }
+
+    bytecode: |
+        function classify(s: string) -> int {
+            load_var s
+            load_const "ok"
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var s
+            load_const "error"
+            cmp_op ==
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const 0
+            jump L4
+
+          L2:
+            load_const 500
+            jump L4
+
+          L3:
+            load_const 200
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_string_literal_with_typed_pattern': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_string_literal_with_typed_pattern'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_all_arms_guarded:
+    baml: |
+
+        function classify(x int, a bool, b bool, c bool) -> string {
+            match (x) {
+                0 if a => "zero a",
+                0 if b => "zero b",
+                1 if c => "one c",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int, a: bool, b: bool, c: bool) -> string {
+            load_var x
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            load_var a
+            pop_jump_if_false L0
+            jump L5
+
+          L0:
+            load_var x
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            load_var b
+            pop_jump_if_false L1
+            jump L4
+
+          L1:
+            load_var x
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L2
+            load_var c
+            pop_jump_if_false L2
+            jump L3
+
+          L2:
+            load_const "other"
+            jump L6
+
+          L3:
+            load_const "one c"
+            jump L6
+
+          L4:
+            load_const "zero b"
+            jump L6
+
+          L5:
+            load_const "zero a"
+
+          L6:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_all_arms_guarded': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_all_arms_guarded'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_density_50_percent_uses_jump_table:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 100,
+                2 => 102,
+                4 => 104,
+                6 => 106,
+                _ => 999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            jump_table [L4, _, L3, _, L2, _, L1], default L0
+
+          L0:
+            load_const 999
+            jump L5
+
+          L1:
+            load_const 106
+            jump L5
+
+          L2:
+            load_const 104
+            jump L5
+
+          L3:
+            load_const 102
+            jump L5
+
+          L4:
+            load_const 100
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_density_50_percent_uses_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_density_50_percent_uses_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_density_40_percent_uses_binary_search:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 100,
+                3 => 103,
+                6 => 106,
+                9 => 109,
+                _ => 999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            copy 0
+            load_const 6
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L5
+
+          L0:
+            copy 0
+            load_const 6
+            cmp_op <
+            pop_jump_if_false L2
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L7
+
+          L1:
+            copy 0
+            load_const 3
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L6
+
+          L2:
+            copy 0
+            load_const 9
+            cmp_op ==
+            pop_jump_if_false L3
+            pop 1
+            jump L4
+
+          L3:
+            pop 1
+            load_const 999
+            jump L8
+
+          L4:
+            load_const 109
+            jump L8
+
+          L5:
+            load_const 106
+            jump L8
+
+          L6:
+            load_const 103
+            jump L8
+
+          L7:
+            load_const 100
+
+          L8:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_density_40_percent_uses_binary_search': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_density_40_percent_uses_binary_search'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_binary_search_negative_sparse:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                -100 => "a",
+                -50 => "b",
+                -10 => "c",
+                -1 => "d",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            copy 0
+            load_const -10
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L5
+
+          L0:
+            copy 0
+            load_const -10
+            cmp_op <
+            pop_jump_if_false L2
+            copy 0
+            load_const -100
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L7
+
+          L1:
+            copy 0
+            load_const -50
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L6
+
+          L2:
+            copy 0
+            load_const -1
+            cmp_op ==
+            pop_jump_if_false L3
+            pop 1
+            jump L4
+
+          L3:
+            pop 1
+            load_const "other"
+            jump L8
+
+          L4:
+            load_const "d"
+            jump L8
+
+          L5:
+            load_const "c"
+            jump L8
+
+          L6:
+            load_const "b"
+            jump L8
+
+          L7:
+            load_const "a"
+
+          L8:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_binary_search_negative_sparse': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_negative_sparse'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_binary_search_spanning_zero_sparse:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                -100 => "neg hundred",
+                -1 => "neg one",
+                1 => "one",
+                100 => "hundred",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            copy 0
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L5
+
+          L0:
+            copy 0
+            load_const 1
+            cmp_op <
+            pop_jump_if_false L2
+            copy 0
+            load_const -100
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L7
+
+          L1:
+            copy 0
+            load_const -1
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L6
+
+          L2:
+            copy 0
+            load_const 100
+            cmp_op ==
+            pop_jump_if_false L3
+            pop 1
+            jump L4
+
+          L3:
+            pop 1
+            load_const "other"
+            jump L8
+
+          L4:
+            load_const "hundred"
+            jump L8
+
+          L5:
+            load_const "one"
+            jump L8
+
+          L6:
+            load_const "neg one"
+            jump L8
+
+          L7:
+            load_const "neg hundred"
+
+          L8:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_binary_search_spanning_zero_sparse': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_spanning_zero_sparse'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_binary_search_eight_arms:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 0,
+                10 => 1,
+                20 => 2,
+                30 => 3,
+                40 => 4,
+                50 => 5,
+                60 => 6,
+                70 => 7,
+                _ => 99
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            copy 0
+            load_const 40
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L11
+
+          L0:
+            copy 0
+            load_const 40
+            cmp_op <
+            pop_jump_if_false L4
+            copy 0
+            load_const 20
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L13
+
+          L1:
+            copy 0
+            load_const 20
+            cmp_op <
+            pop_jump_if_false L3
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L15
+
+          L2:
+            copy 0
+            load_const 10
+            cmp_op ==
+            pop_jump_if_false L3
+            pop 1
+            jump L14
+
+          L3:
+            copy 0
+            load_const 30
+            cmp_op ==
+            pop_jump_if_false L4
+            pop 1
+            jump L12
+
+          L4:
+            copy 0
+            load_const 60
+            cmp_op ==
+            pop_jump_if_false L5
+            pop 1
+            jump L9
+
+          L5:
+            copy 0
+            load_const 60
+            cmp_op <
+            pop_jump_if_false L6
+            copy 0
+            load_const 50
+            cmp_op ==
+            pop_jump_if_false L6
+            pop 1
+            jump L10
+
+          L6:
+            copy 0
+            load_const 70
+            cmp_op ==
+            pop_jump_if_false L7
+            pop 1
+            jump L8
+
+          L7:
+            pop 1
+            load_const 99
+            jump L16
+
+          L8:
+            load_const 7
+            jump L16
+
+          L9:
+            load_const 6
+            jump L16
+
+          L10:
+            load_const 5
+            jump L16
+
+          L11:
+            load_const 4
+            jump L16
+
+          L12:
+            load_const 3
+            jump L16
+
+          L13:
+            load_const 2
+            jump L16
+
+          L14:
+            load_const 1
+            jump L16
+
+          L15:
+            load_const 0
+
+          L16:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_binary_search_eight_arms': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_eight_arms'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_large_offset_values_dense:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                100 => 1000,
+                101 => 1001,
+                102 => 1002,
+                103 => 1003,
+                _ => 9999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            jump_table [L4, L3, L2, L1], default L0
+
+          L0:
+            load_const 9999
+            jump L5
+
+          L1:
+            load_const 1003
+            jump L5
+
+          L2:
+            load_const 1002
+            jump L5
+
+          L3:
+            load_const 1001
+            jump L5
+
+          L4:
+            load_const 1000
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_large_offset_values_dense': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_large_offset_values_dense'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_catch_all_binding_with_int_patterns:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 0,
+                1 => 1,
+                2 => 2,
+                3 => 3,
+                other => other * 10
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            jump_table [L4, L3, L2, L1], default L0
+
+          L0:
+            load_var x
+            load_const 10
+            bin_op *
+            jump L5
+
+          L1:
+            load_const 3
+            jump L5
+
+          L2:
+            load_const 2
+            jump L5
+
+          L3:
+            load_const 1
+            jump L5
+
+          L4:
+            load_const 0
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_catch_all_binding_with_int_patterns': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_catch_all_binding_with_int_patterns'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_negative_int_pattern:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                -1 => "negative one",
+                0 => "zero",
+                1 => "one",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            copy 0
+            load_const -1
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L5
+
+          L0:
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L4
+
+          L1:
+            copy 0
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L3
+
+          L2:
+            pop 1
+            load_const "other"
+            jump L6
+
+          L3:
+            load_const "one"
+            jump L6
+
+          L4:
+            load_const "zero"
+            jump L6
+
+          L5:
+            load_const "negative one"
+
+          L6:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_negative_int_pattern': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_negative_int_pattern'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_multiple_negative_patterns:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                -2 => "negative two",
+                -1 => "negative one",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            copy 0
+            load_const -2
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L3
+
+          L0:
+            copy 0
+            load_const -1
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L2
+
+          L1:
+            pop 1
+            load_const "other"
+            jump L4
+
+          L2:
+            load_const "negative one"
+            jump L4
+
+          L3:
+            load_const "negative two"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_multiple_negative_patterns': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_multiple_negative_patterns'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_negative_jump_table:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                -3 => "neg three",
+                -2 => "neg two",
+                -1 => "neg one",
+                0 => "zero",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            jump_table [L4, L3, L2, L1], default L0
+
+          L0:
+            load_const "other"
+            jump L5
+
+          L1:
+            load_const "zero"
+            jump L5
+
+          L2:
+            load_const "neg one"
+            jump L5
+
+          L3:
+            load_const "neg two"
+            jump L5
+
+          L4:
+            load_const "neg three"
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_negative_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_negative_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_spanning_zero_jump_table:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                -2 => "neg two",
+                -1 => "neg one",
+                0 => "zero",
+                1 => "one",
+                2 => "two",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            jump_table [L5, L4, L3, L2, L1], default L0
+
+          L0:
+            load_const "other"
+            jump L6
+
+          L1:
+            load_const "two"
+            jump L6
+
+          L2:
+            load_const "one"
+            jump L6
+
+          L3:
+            load_const "zero"
+            jump L6
+
+          L4:
+            load_const "neg one"
+            jump L6
+
+          L5:
+            load_const "neg two"
+
+          L6:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_spanning_zero_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_spanning_zero_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_enum_variant_switch:
+    baml: |
+
+        enum status {
+            active
+            inactive
+            pending
+        }
+
+        function classify(s status) -> string {
+            match (s) {
+                status.active => "active",
+                status.inactive => "inactive",
+                status.pending => "pending"
+            }
+        }
+
+    bytecode: |
+        function classify(s: status) -> string {
+            load_var s
+            discriminant
+            copy 0
+            load_const status.active
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L3
+
+          L0:
+            copy 0
+            load_const status.inactive
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L2
+
+          L1:
+            pop 1
+            load_const "pending"
+            jump L4
+
+          L2:
+            load_const "inactive"
+            jump L4
+
+          L3:
+            load_const "active"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_enum_variant_switch': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_enum_variant_switch'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_enum_variant_with_wildcard_not_exhaustive:
+    baml: |
+
+        enum status {
+            active
+            inactive
+            pending
+        }
+
+        function classify(s status) -> string {
+            match (s) {
+                status.active => "active",
+                status.inactive => "inactive",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(s: status) -> string {
+            load_var s
+            discriminant
+            copy 0
+            load_const status.active
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L3
+
+          L0:
+            copy 0
+            load_const status.inactive
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L2
+
+          L1:
+            pop 1
+            load_const "other"
+            jump L4
+
+          L2:
+            load_const "inactive"
+            jump L4
+
+          L3:
+            load_const "active"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_enum_variant_with_wildcard_not_exhaustive': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_enum_variant_with_wildcard_not_exhaustive'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_enum_four_variants_jump_table:
+    baml: |
+
+        enum direction {
+            north
+            east
+            south
+            west
+        }
+
+        function compass(d direction) -> string {
+            match (d) {
+                direction.north => "N",
+                direction.east => "E",
+                direction.south => "S",
+                direction.west => "W"
+            }
+        }
+
+    bytecode: |
+        function compass(d: direction) -> string {
+            load_var d
+            discriminant
+            jump_table [L3, L2, L1, L0], default L5
+
+          L0: direction.west
+            load_const "W"
+            jump L4
+
+          L1: direction.south
+            load_const "S"
+            jump L4
+
+          L2: direction.east
+            load_const "E"
+            jump L4
+
+          L3: direction.north
+            load_const "N"
+
+          L4:
+            return
+
+          L5:
+            unreachable
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_enum_four_variants_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_enum_four_variants_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_class_types_exhaustive:
+    baml: |
+
+        class Cat { name string }
+        class Dog { name string }
+        class Bird { name string }
+
+        function classify(animal Cat | Dog | Bird) -> string {
+            match (animal) {
+                c: Cat => "cat: " + c.name,
+                d: Dog => "dog: " + d.name,
+                b: Bird => "bird: " + b.name
+            }
+        }
+
+    bytecode: |
+        function classify(animal: Cat | Dog | Bird) -> string {
+            load_var animal
+            load_const <class Cat>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var animal
+            load_const <class Dog>
+            cmp_op instanceof
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const "bird: "
+            load_var animal
+            load_field .name
+            bin_op +
+            jump L4
+
+          L2:
+            load_const "dog: "
+            load_var animal
+            load_field .name
+            bin_op +
+            jump L4
+
+          L3:
+            load_const "cat: "
+            load_var animal
+            load_field .name
+            bin_op +
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_class_types_exhaustive': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_class_types_exhaustive'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_class_types_non_exhaustive:
+    baml: |
+
+        class Cat { name string }
+        class Dog { name string }
+        class Bird { name string }
+
+        function classify(animal Cat | Dog | Bird) -> string {
+            match (animal) {
+                c: Cat => "cat: " + c.name,
+                d: Dog => "dog: " + d.name,
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(animal: Cat | Dog | Bird) -> string {
+            load_var animal
+            load_const <class Cat>
+            cmp_op instanceof
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var animal
+            load_const <class Dog>
+            cmp_op instanceof
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const "other"
+            jump L4
+
+          L2:
+            load_const "dog: "
+            load_var animal
+            load_field .name
+            bin_op +
+            jump L4
+
+          L3:
+            load_const "cat: "
+            load_var animal
+            load_field .name
+            bin_op +
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_class_types_non_exhaustive': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_class_types_non_exhaustive'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_union_type_four_patterns_type_tag:
+    baml: |
+
+        function identify(x int | string | bool | float) -> string {
+            match (x) {
+                n: int => "integer",
+                s: string => "text",
+                b: bool => "boolean",
+                f: float => "decimal"
+            }
+        }
+
+    bytecode: |
+        function identify(x: int | string | bool | float) -> string {
+            load_var x
+            type_tag
+            jump_table [L3, L2, L1, _, L0], default L5
+
+          L0: float
+            load_const "decimal"
+            jump L4
+
+          L1: bool
+            load_const "boolean"
+            jump L4
+
+          L2: string
+            load_const "text"
+            jump L4
+
+          L3: int
+            load_const "integer"
+
+          L4:
+            return
+
+          L5:
+            unreachable
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_union_type_four_patterns_type_tag': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_union_type_four_patterns_type_tag'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_union_aggregated_jump_table:
+    baml: |
+
+        function classify(x int) -> string {
+            match (x) {
+                0 | 1 => "a",
+                2 | 3 => "b",
+                4 | 5 => "c",
+                6 | 7 => "d",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> string {
+            load_var x
+            jump_table [L4, L4, L3, L3, L2, L2, L1, L1], default L0
+
+          L0:
+            load_const "other"
+            jump L5
+
+          L1:
+            load_const "d"
+            jump L5
+
+          L2:
+            load_const "c"
+            jump L5
+
+          L3:
+            load_const "b"
+            jump L5
+
+          L4:
+            load_const "a"
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_union_aggregated_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_union_aggregated_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_bool_variable_exhaustive:
+    baml: |
+
+        function check(flag bool) -> string {
+            match (flag) {
+                true => "yes",
+                false => "no"
+            }
+        }
+
+    bytecode: |
+        function check(flag: bool) -> string {
+            load_var flag
+            load_const true
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const "no"
+            jump L2
+
+          L1:
+            load_const "yes"
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_bool_variable_exhaustive': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_bool_variable_exhaustive'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_optional_with_null:
+    baml: |
+
+        function process(x int?) -> string {
+            match (x) {
+                null => "none",
+                n: int => "some"
+            }
+        }
+
+    bytecode: |
+        function process(x: int?) -> string {
+            load_var x
+            load_const null
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const "some"
+            jump L2
+
+          L1:
+            load_const "none"
+
+          L2:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_optional_with_null': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_optional_with_null'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_optional_with_null_and_literal:
+    baml: |
+
+        function process(x int?) -> string {
+            match (x) {
+                null => "none",
+                0 => "zero",
+                n: int => "other"
+            }
+        }
+
+    bytecode: |
+        function process(x: int?) -> string {
+            load_var x
+            load_const null
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L3
+
+          L0:
+            load_var x
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_const "other"
+            jump L4
+
+          L2:
+            load_const "zero"
+            jump L4
+
+          L3:
+            load_const "none"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_optional_with_null_and_literal': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_optional_with_null_and_literal'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_large_jump_table:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 100,
+                1 => 101,
+                2 => 102,
+                3 => 103,
+                4 => 104,
+                5 => 105,
+                6 => 106,
+                7 => 107,
+                8 => 108,
+                9 => 109,
+                _ => 999
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            jump_table [L10, L9, L8, L7, L6, L5, L4, L3, L2, L1], default L0
+
+          L0:
+            load_const 999
+            jump L11
+
+          L1:
+            load_const 109
+            jump L11
+
+          L2:
+            load_const 108
+            jump L11
+
+          L3:
+            load_const 107
+            jump L11
+
+          L4:
+            load_const 106
+            jump L11
+
+          L5:
+            load_const 105
+            jump L11
+
+          L6:
+            load_const 104
+            jump L11
+
+          L7:
+            load_const 103
+            jump L11
+
+          L8:
+            load_const 102
+            jump L11
+
+          L9:
+            load_const 101
+            jump L11
+
+          L10:
+            load_const 100
+
+          L11:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_large_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_large_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_string_many_arms:
+    baml: |
+
+        function classify(s string) -> int {
+            match (s) {
+                "alpha" => 1,
+                "beta" => 2,
+                "gamma" => 3,
+                "delta" => 4,
+                _ => 0
+            }
+        }
+
+    bytecode: |
+        function classify(s: string) -> int {
+            load_var s
+            load_const "alpha"
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L7
+
+          L0:
+            load_var s
+            load_const "beta"
+            cmp_op ==
+            pop_jump_if_false L1
+            jump L6
+
+          L1:
+            load_var s
+            load_const "gamma"
+            cmp_op ==
+            pop_jump_if_false L2
+            jump L5
+
+          L2:
+            load_var s
+            load_const "delta"
+            cmp_op ==
+            pop_jump_if_false L3
+            jump L4
+
+          L3:
+            load_const 0
+            jump L8
+
+          L4:
+            load_const 4
+            jump L8
+
+          L5:
+            load_const 3
+            jump L8
+
+          L6:
+            load_const 2
+            jump L8
+
+          L7:
+            load_const 1
+
+          L8:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_string_many_arms': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_string_many_arms'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_arithmetic_scrutinee:
+    baml: |
+
+        function classify(a int, b int) -> string {
+            match (a + b) {
+                0 => "zero",
+                1 => "one",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify(a: int, b: int) -> string {
+            load_var a
+            load_var b
+            bin_op +
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L3
+
+          L0:
+            copy 0
+            load_const 1
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L2
+
+          L1:
+            pop 1
+            load_const "other"
+            jump L4
+
+          L2:
+            load_const "one"
+            jump L4
+
+          L3:
+            load_const "zero"
+
+          L4:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_arithmetic_scrutinee': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_arithmetic_scrutinee'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_function_call_scrutinee:
+    baml: |
+
+        function helper() -> int {
+            42
+        }
+
+        function classify() -> string {
+            match (helper()) {
+                42 => "answer",
+                _ => "other"
+            }
+        }
+
+    bytecode: |
+        function classify() -> string {
+            call helper
+            copy 0
+            load_const 42
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L1
+
+          L0:
+            pop 1
+            load_const "other"
+            jump L2
+
+          L1:
+            load_const "answer"
+
+          L2:
+            return
+        }
+
+        function helper() -> int {
+            load_const 42
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_function_call_scrutinee': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_function_call_scrutinee'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_range_at_limit_uses_jump_table:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                252 => 1,
+                253 => 2,
+                254 => 3,
+                255 => 4,
+                _ => 0
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            jump_table [L4, L3, L2, L1], default L0
+
+          L0:
+            load_const 0
+            jump L5
+
+          L1:
+            load_const 4
+            jump L5
+
+          L2:
+            load_const 3
+            jump L5
+
+          L3:
+            load_const 2
+            jump L5
+
+          L4:
+            load_const 1
+
+          L5:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_range_at_limit_uses_jump_table': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_range_at_limit_uses_jump_table'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_range_exceeds_limit_uses_binary_search:
+    baml: |
+
+        function classify(x int) -> int {
+            match (x) {
+                0 => 1,
+                100 => 2,
+                200 => 3,
+                300 => 4,
+                _ => 0
+            }
+        }
+
+    bytecode: |
+        function classify(x: int) -> int {
+            load_var x
+            copy 0
+            load_const 200
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L5
+
+          L0:
+            copy 0
+            load_const 200
+            cmp_op <
+            pop_jump_if_false L2
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L1
+            pop 1
+            jump L7
+
+          L1:
+            copy 0
+            load_const 100
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L6
+
+          L2:
+            copy 0
+            load_const 300
+            cmp_op ==
+            pop_jump_if_false L3
+            pop 1
+            jump L4
+
+          L3:
+            pop 1
+            load_const 0
+            jump L8
+
+          L4:
+            load_const 4
+            jump L8
+
+          L5:
+            load_const 3
+            jump L8
+
+          L6:
+            load_const 2
+            jump L8
+
+          L7:
+            load_const 1
+
+          L8:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_range_exceeds_limit_uses_binary_search': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_range_exceeds_limit_uses_binary_search'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+match_three_levels_nested:
+    baml: |
+
+        function classify(x int, y int, z int) -> int {
+            match (x) {
+                0 => match (y) {
+                    0 => match (z) {
+                        0 => 0,
+                        _ => 1
+                    },
+                    _ => 2
+                },
+                _ => 3
+            }
+        }
+
+    bytecode: |
+        function classify(x: int, y: int, z: int) -> int {
+            load_var x
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            pop 1
+            jump L1
+
+          L0:
+            pop 1
+            load_const 3
+            jump L6
+
+          L1:
+            load_var y
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L2
+            pop 1
+            jump L3
+
+          L2:
+            pop 1
+            load_const 2
+            jump L6
+
+          L3:
+            load_var z
+            copy 0
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L4
+            pop 1
+            jump L5
+
+          L4:
+            pop 1
+            load_const 1
+            jump L6
+
+          L5:
+            load_const 0
+
+          L6:
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'match_three_levels_nested': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'match_three_levels_nested'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
 match_simple_catch_all:
     baml: |
 
@@ -794,7 +3319,7 @@ match_as_expression:
 
     result: BexExternalValue::Int(21)
 
-match_nested:
+match_nested_vm:
     baml: |
 
         function main() -> int {
@@ -2418,7 +4943,7 @@ match_guarded_int_literal_guard_false:
 
     result: BexExternalValue::String("one without flag")
 
-match_all_arms_guarded:
+match_all_arms_guarded_vm:
     baml: |
 
         function classify(x int, flag bool) -> string {
@@ -3208,7 +5733,7 @@ match_union_with_duplicates:
 
     result: BexExternalValue::String("one or two")
 
-match_catch_all_binding_with_int_patterns:
+match_catch_all_binding_with_int_patterns_vm:
     baml: |
 
         function main() -> int {
@@ -3558,7 +6083,7 @@ match_negative_float_pattern:
 
     result: BexExternalValue::String("negative one point five")
 
-match_multiple_negative_patterns:
+match_multiple_negative_patterns_vm:
     baml: |
 
         function main() -> string {
@@ -3670,7 +6195,7 @@ match_negative_in_union_pattern:
 
     result: BexExternalValue::String("small")
 
-match_negative_jump_table:
+match_negative_jump_table_vm:
     baml: |
 
         function classify(x int) -> string {
@@ -3775,7 +6300,7 @@ match_negative_jump_table_fallback:
 
     result: BexExternalValue::String("other")
 
-match_spanning_zero_jump_table:
+match_spanning_zero_jump_table_vm:
     baml: |
 
         function classify(x int) -> string {
@@ -3890,7 +6415,7 @@ match_spanning_zero_negative_hit:
 
     result: BexExternalValue::String("neg one")
 
-match_binary_search_negative_sparse:
+match_binary_search_negative_sparse_vm:
     baml: |
 
         function classify(x int) -> string {
@@ -3977,7 +6502,7 @@ match_binary_search_negative_sparse:
 
     result: BexExternalValue::String("b")
 
-match_binary_search_spanning_zero_sparse:
+match_binary_search_spanning_zero_sparse_vm:
     baml: |
 
         function classify(x int) -> string {
@@ -4063,7 +6588,7 @@ match_binary_search_spanning_zero_sparse:
 
     result: BexExternalValue::String("one")
 
-match_mixed_literal_typed_guard:
+match_mixed_literal_typed_guard_vm:
     baml: |
 
         function classify(x int, flag bool) -> string {
@@ -4353,7 +6878,7 @@ match_string_literal_with_typed_fallback:
 
     result: BexExternalValue::Int(0)
 
-match_three_levels_nested:
+match_three_levels_nested_vm:
     baml: |
 
         function classify(x int, y int, z int) -> string {
@@ -5165,7 +7690,7 @@ match_class_types_non_exhaustive_matched:
 
     result: 'BexExternalValue::String("dog: Rex")'
 
-match_arithmetic_scrutinee:
+match_arithmetic_scrutinee_vm:
     baml: |
 
         function classify(a int, b int) -> string {
@@ -5225,7 +7750,7 @@ match_arithmetic_scrutinee:
 
     result: BexExternalValue::String("one")
 
-match_function_call_scrutinee:
+match_function_call_scrutinee_vm:
     baml: |
 
         function helper() -> int {

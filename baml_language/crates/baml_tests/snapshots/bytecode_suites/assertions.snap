@@ -54,3 +54,60 @@ assert_statement_not_ok:
         Caused by:
             0: engine call_function failed for 'main'
             1: Function not found: main)
+
+assert_ok:
+    baml: |
+
+        function assert_ok() -> int {
+
+            assert 2 + 2 == 4;
+
+            3
+        }
+
+    entry: assert_ok
+
+    bytecode: |
+        function assert_ok() -> int {
+            load_const 2
+            load_const 2
+            bin_op +
+            load_const 4
+            cmp_op ==
+            assert
+            load_const 3
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+assert_not_ok:
+    baml: |
+
+        function assert_not_ok() -> int {
+            assert 3 == 1;
+
+            2
+        }
+
+    entry: assert_not_ok
+
+    bytecode: |
+        function assert_not_ok() -> int {
+            load_const 3
+            load_const 1
+            cmp_op ==
+            assert
+            load_const 2
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'assert_not_ok': engine call_function failed for 'assert_not_ok': VM error: assertion failed: assertion failed: assertion failed
+        RUST_ERR_DEBUG: Err(execution failed for case 'assert_not_ok'
+
+        Caused by:
+            0: engine call_function failed for 'assert_not_ok'
+            1: VM error: assertion failed
+            2: assertion failed
+            3: assertion failed)

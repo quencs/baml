@@ -1,7 +1,118 @@
 ---
 source: crates/baml_tests/src/bytecode_snapshot.rs
 ---
+basic_and:
+    baml: |
+
+        function ret_bool() -> bool {
+            true
+        }
+
+        function main() -> bool {
+            true && ret_bool()
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_const false
+            jump L2
+
+          L1:
+            call ret_bool
+
+          L2:
+            return
+        }
+
+        function ret_bool() -> bool {
+            load_const true
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+basic_or:
+    baml: |
+
+        function ret_bool() -> bool {
+            true
+        }
+
+        function main() -> bool {
+            true || ret_bool()
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            call ret_bool
+            jump L2
+
+          L1:
+            load_const true
+
+          L2:
+            return
+        }
+
+        function ret_bool() -> bool {
+            load_const true
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
 basic_add:
+    baml: |
+
+        function main() -> int {
+            let a = 1 + 2;
+            a
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 2
+            bin_op +
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+basic_assign_add:
+    baml: |
+
+        function main() -> int {
+            let x = 1;
+            x += 2;
+            x
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            store_var x
+            load_var x
+            load_const 2
+            bin_op +
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(3)
+
+basic_add_vm:
     baml: |
 
         function main() -> int {
@@ -411,7 +522,7 @@ basic_lt_eq:
 
     result: BexExternalValue::Bool(true)
 
-basic_and:
+basic_and_vm:
     baml: |
 
         function main() -> bool {
@@ -437,7 +548,7 @@ basic_and:
 
     result: BexExternalValue::Bool(false)
 
-basic_or:
+basic_or_vm:
     baml: |
 
         function main() -> bool {
@@ -462,29 +573,6 @@ basic_or:
         }
 
     result: BexExternalValue::Bool(true)
-
-basic_assign_add:
-    baml: |
-
-        function main() -> int {
-            let x = 1;
-            x += 2;
-            x
-        }
-
-    bytecode: |
-        function main() -> int {
-            load_const 1
-            store_var x
-            load_var x
-            load_const 2
-            bin_op +
-            store_var x
-            load_var x
-            return
-        }
-
-    result: BexExternalValue::Int(3)
 
 basic_assign_sub:
     baml: |

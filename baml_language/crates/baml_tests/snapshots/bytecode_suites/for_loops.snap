@@ -14,6 +14,279 @@ for_loop_sum:
             result
         }
 
+    bytecode: |
+        function sum(xs: int[]) -> int {
+            load_const 0
+            store_var result
+            load_var xs
+            call baml.Array.length
+            store_var _len
+            load_const 0
+            store_var _i
+
+          L0:
+            load_var _i
+            load_var _len
+            cmp_op <
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var result
+            return
+
+          L2:
+            load_var xs
+            load_var _i
+            load_array_element
+            store_var x
+            load_var _i
+            load_const 1
+            bin_op +
+            store_var _i
+            load_var result
+            load_var x
+            bin_op +
+            store_var result
+            jump L0
+        }
+
+    result: |
+        ERROR: execution failed for case 'for_loop_sum': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'for_loop_sum'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+for_with_break:
+    baml: |
+
+        function for_with_break(xs: int[]) -> int {
+            let result = 0;
+
+            for (let x in xs) {
+                if (x > 10) {
+                    break;
+                }
+                result += x;
+            }
+
+            result
+        }
+
+    bytecode: |
+        function for_with_break(xs: int[]) -> int {
+            load_const 0
+            store_var result
+            load_var xs
+            call baml.Array.length
+            store_var _len
+            load_const 0
+            store_var _i
+
+          L0:
+            load_var _i
+            load_var _len
+            cmp_op <
+            pop_jump_if_false L2
+            load_var xs
+            load_var _i
+            load_array_element
+            store_var x
+            load_var _i
+            load_const 1
+            bin_op +
+            store_var _i
+            load_var x
+            load_const 10
+            cmp_op >
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var result
+            load_var x
+            bin_op +
+            store_var result
+            jump L0
+
+          L2:
+            load_var result
+            return
+        }
+
+    result: |
+        ERROR: execution failed for case 'for_with_break': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'for_with_break'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+for_with_continue:
+    baml: |
+
+        function for_with_continue(xs: int[]) -> int {
+            let result = 0;
+
+            for (let x in xs) {
+                if (x > 10) {
+                    continue;
+                }
+                result += x;
+            }
+
+            result
+        }
+
+    bytecode: |
+        function for_with_continue(xs: int[]) -> int {
+            load_const 0
+            store_var result
+            load_var xs
+            call baml.Array.length
+            store_var _len
+            load_const 0
+            store_var _i
+
+          L0:
+            load_var _i
+            load_var _len
+            cmp_op <
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var result
+            return
+
+          L2:
+            load_var xs
+            load_var _i
+            load_array_element
+            store_var x
+            load_var _i
+            load_const 1
+            bin_op +
+            store_var _i
+            load_var x
+            load_const 10
+            cmp_op >
+            pop_jump_if_false L3
+            jump L0
+
+          L3:
+            load_var result
+            load_var x
+            bin_op +
+            store_var result
+            jump L0
+        }
+
+    result: |
+        ERROR: execution failed for case 'for_with_continue': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'for_with_continue'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+for_nested:
+    baml: |
+
+        function nested_for(as: int[], bs: int[]) -> int {
+
+            let result = 0;
+
+            for (let a in as) {
+                for (let b in bs) {
+                    result += a * b;
+                }
+            }
+
+            result
+        }
+
+    bytecode: |
+        function nested_for(as: int[], bs: int[]) -> int {
+            load_const 0
+            store_var result
+            load_var as
+            call baml.Array.length
+            store_var _len
+            load_const 0
+            store_var _i
+
+          L0:
+            load_var _i
+            load_var _len
+            cmp_op <
+            pop_jump_if_false L1
+            jump L2
+
+          L1:
+            load_var result
+            return
+
+          L2:
+            load_var as
+            load_var _i
+            load_array_element
+            store_var a
+            load_var _i
+            load_const 1
+            bin_op +
+            store_var _i
+            load_var bs
+            call baml.Array.length
+            store_var _len1
+            load_const 0
+            store_var _i1
+
+          L3:
+            load_var _i1
+            load_var _len1
+            cmp_op <
+            pop_jump_if_false L0
+            load_var bs
+            load_var _i1
+            load_array_element
+            store_var b
+            load_var _i1
+            load_const 1
+            bin_op +
+            store_var _i1
+            load_var result
+            load_var a
+            load_var b
+            bin_op *
+            bin_op +
+            store_var result
+            jump L3
+        }
+
+    result: |
+        ERROR: execution failed for case 'for_nested': engine call_function failed for 'main': Function not found: main
+        RUST_ERR_DEBUG: Err(execution failed for case 'for_nested'
+
+        Caused by:
+            0: engine call_function failed for 'main'
+            1: Function not found: main)
+
+for_loop_sum_vm:
+    baml: |
+
+        function sum(xs: int[]) -> int {
+            let result = 0;
+
+            for (let x in xs) {
+                result += x;
+            }
+
+            result
+        }
+
         function main() -> int {
             sum([1, 2, 3, 4])
         }
