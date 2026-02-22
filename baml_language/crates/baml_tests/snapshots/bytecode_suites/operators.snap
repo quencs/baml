@@ -112,23 +112,6 @@ basic_assign_add:
 
     result: BexExternalValue::Int(3)
 
-basic_add_vm:
-    baml: |
-
-        function main() -> int {
-            1 + 2
-        }
-
-    bytecode: |
-        function main() -> int {
-            load_const 1
-            load_const 2
-            bin_op +
-            return
-        }
-
-    result: BexExternalValue::Int(3)
-
 basic_sub:
     baml: |
 

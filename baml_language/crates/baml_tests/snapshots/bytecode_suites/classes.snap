@@ -851,47 +851,6 @@ class_constructor_with_spread_operator_before_named_fields:
 
     result: 'BexExternalValue::Instance { class_name: "Point", fields: {"x": Int(1), "y": Int(2), "z": Int(0), "w": Int(0)} }'
 
-nested_object_construction_vm:
-    baml: |
-
-        class Inner {
-            x int
-            y int
-        }
-        class Outer {
-            Inner Inner
-            value int
-        }
-        function main() -> int {
-            let o = Outer {
-                Inner: Inner { x: 10, y: 20 },
-                value: 30
-            };
-            // Test that construction worked by accessing a simple field
-            o.value
-        }
-
-    bytecode: |
-        function main() -> int {
-            alloc_instance Outer
-            copy 0
-            alloc_instance Inner
-            copy 0
-            load_const 10
-            store_field .x
-            copy 0
-            load_const 20
-            store_field .y
-            store_field .Inner
-            copy 0
-            load_const 30
-            store_field .value
-            load_field .value
-            return
-        }
-
-    result: BexExternalValue::Int(30)
-
 nested_object_construction_with_field_access:
     baml: |
 
@@ -945,37 +904,6 @@ nested_field_read_with_nested_construction:
         }
         function main() -> int {
             let o = Outer { Inner: Inner { value: 42 } };
-            o.Inner.value
-        }
-
-    bytecode: |
-        function main() -> int {
-            alloc_instance Outer
-            copy 0
-            alloc_instance Inner
-            copy 0
-            load_const 42
-            store_field .value
-            store_field .Inner
-            load_field .Inner
-            load_field .value
-            return
-        }
-
-    result: BexExternalValue::Int(42)
-
-nested_field_read_vm:
-    baml: |
-
-        class Inner {
-            value int
-        }
-        class Outer {
-            Inner Inner
-        }
-        function main() -> int {
-            let i = Inner { value: 42 };
-            let o = Outer { Inner: i };
             o.Inner.value
         }
 
