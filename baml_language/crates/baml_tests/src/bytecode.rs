@@ -5,9 +5,6 @@ use std::path::Path;
 pub use baml_project::ProjectDatabase;
 use bex_vm_types::Program as VmProgram;
 
-/// Backwards-compatible alias for code that still references `TestDatabase`.
-pub type TestDatabase = ProjectDatabase;
-
 /// Set up a test database from BAML source code.
 ///
 /// Creates a `ProjectDatabase`, sets a project root, and adds the source as
