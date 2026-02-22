@@ -516,6 +516,56 @@ impl std::fmt::Display for UnaryOp {
     }
 }
 
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::LoadConst(i) => write!(f, "LOAD_CONST {i}"),
+            Instruction::LoadVar(i) => write!(f, "LOAD_VAR {i}"),
+            Instruction::StoreVar(i) => write!(f, "STORE_VAR {i}"),
+            Instruction::LoadGlobal(i) => write!(f, "LOAD_GLOBAL {i}"),
+            Instruction::StoreGlobal(i) => write!(f, "STORE_GLOBAL {i}"),
+            Instruction::LoadField(i) => write!(f, "LOAD_FIELD {i}"),
+            Instruction::StoreField(i) => write!(f, "STORE_FIELD {i}"),
+            Instruction::Pop(n) => write!(f, "POP {n}"),
+            Instruction::Copy(i) => write!(f, "COPY {i}"),
+            Instruction::Jump(o) => write!(f, "JUMP {o:+}"),
+            Instruction::PopJumpIfFalse(o) => write!(f, "POP_JUMP_IF_FALSE {o:+}"),
+            Instruction::BinOp(op) => write!(f, "BIN_OP {op}"),
+            Instruction::CmpOp(op) => write!(f, "CMP_OP {op}"),
+            Instruction::UnaryOp(op) => write!(f, "UNARY_OP {op}"),
+            Instruction::AllocArray(n) => write!(f, "ALLOC_ARRAY {n}"),
+            Instruction::LoadArrayElement => f.write_str("LOAD_ARRAY_ELEMENT"),
+            Instruction::LoadMapElement => f.write_str("LOAD_MAP_ELEMENT"),
+            Instruction::StoreArrayElement => f.write_str("STORE_ARRAY_ELEMENT"),
+            Instruction::StoreMapElement => f.write_str("STORE_MAP_ELEMENT"),
+            Instruction::AllocInstance(i) => write!(f, "ALLOC_INSTANCE {i}"),
+            Instruction::AllocVariant(i) => write!(f, "ALLOC_VARIANT {i}"),
+            Instruction::DispatchFuture(callee) => write!(f, "DISPATCH_FUTURE {callee}"),
+            Instruction::Await => f.write_str("AWAIT"),
+            Instruction::Call(callee) => write!(f, "CALL {callee}"),
+            Instruction::CallIndirect => f.write_str("CALL_INDIRECT"),
+
+            Instruction::Return => f.write_str("RETURN"),
+            Instruction::Assert => f.write_str("ASSERT"),
+            Instruction::AllocMap(n) => write!(f, "ALLOC_MAP {n}"),
+            Instruction::Watch(i) => write!(f, "WATCH {i}"),
+            Instruction::Unwatch(i) => write!(f, "UNWATCH {i}"),
+            Instruction::NotifyBlock(block_index) => {
+                write!(f, "NOTIFY_BLOCK {block_index}")
+            }
+            Instruction::Notify(i) => write!(f, "NOTIFY {i}"),
+            Instruction::VizEnter(i) => write!(f, "VIZ_ENTER {i}"),
+            Instruction::VizExit(i) => write!(f, "VIZ_EXIT {i}"),
+            Instruction::JumpTable { table_idx, default } => {
+                write!(f, "JUMP_TABLE {table_idx}, {default:+}")
+            }
+            Instruction::Discriminant => f.write_str("DISCRIMINANT"),
+            Instruction::TypeTag => f.write_str("TYPE_TAG"),
+            Instruction::Unreachable => f.write_str("UNREACHABLE"),
+        }
+    }
+}
+
 /// Resolved operand name for debug/display purposes.
 ///
 /// Populated by the compiler at emit time so that debug display doesn't
@@ -661,5 +711,15 @@ impl Bytecode {
             .iter()
             .map(|cv| cv.to_value(&resolve))
             .collect();
+    }
+}
+
+impl std::fmt::Display for Bytecode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for instruction in &self.instructions {
+            writeln!(f, "{instruction}")?;
+        }
+
+        Ok(())
     }
 }
