@@ -59,7 +59,11 @@ pub fn initialize_runtime(
         .map(|(k, v)| (bex_project::FsPath::from_str(k), v))
         .collect();
 
-    let rt = bex_project::new(vfs_path, bex_project::SysOps::native(), files)?;
+    let event_sink = std::env::var("BAML_TRACE_FILE")
+        .ok()
+        .map(|trace_file| bex_events_native::start(trace_file.into()));
+
+    let rt = bex_project::new(vfs_path, bex_project::SysOps::native(), files, event_sink)?;
 
     let mut guard = RUNTIME_INSTANCE
         .write()
@@ -67,4 +71,18 @@ pub fn initialize_runtime(
     *guard = Some(rt.clone());
 
     Ok(rt)
+}
+
+/// Flush the current runtime's event sink. Called by `bridge_python::flush_events()`.
+pub fn flush_event_sink() {
+    if let Ok(rt) = get_runtime()
+        && let Some(sink) = rt.event_sink()
+    {
+        sink.flush();
+    }
+}
+
+/// Get the current runtime's event sink (for passing to HostSpanManager).
+pub fn get_event_sink() -> Option<Arc<dyn bex_events::EventSink>> {
+    get_runtime().ok().and_then(|rt| rt.event_sink())
 }
