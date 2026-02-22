@@ -22,9 +22,10 @@ fn make_include_str(path: &str) -> TokenStream {
 }
 
 fn main() {
-    // Watch the projects and benches directories for changes
+    // Watch the projects, benches, and suite snapshots directories for changes
     println!("cargo:rerun-if-changed=projects");
     println!("cargo:rerun-if-changed=benches");
+    println!("cargo:rerun-if-changed=snapshots/bytecode_suites");
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -38,6 +39,7 @@ fn main() {
 
 fn generate_tests(_out_dir: &str, manifest_dir: &str) {
     let projects_dir = Path::new(&manifest_dir).join("projects");
+    let suite_dir = Path::new(&manifest_dir).join("snapshots/bytecode_suites");
 
     // Discover all projects
     let projects = discover_projects(&projects_dir);
@@ -56,10 +58,12 @@ fn generate_tests(_out_dir: &str, manifest_dir: &str) {
         .collect();
 
     let baml_std_module = generate_baml_std_test(manifest_dir);
+    let bytecode_suite_module = generate_bytecode_suite_tests(&suite_dir, manifest_dir);
 
     let test_modules: TokenStream = quote! {
         #project_modules
         #baml_std_module
+        #bytecode_suite_module
     };
 
     let header = "\
@@ -186,6 +190,70 @@ fn discover_baml_files(dir: &Path) -> Vec<BamlFile> {
 
     files.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
     files
+}
+
+fn discover_suite_snapshots(dir: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    if !dir.exists() {
+        return files;
+    }
+
+    for entry in fs::read_dir(dir).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) == Some("snap") && path.is_file() {
+            files.push(path);
+        }
+    }
+
+    files.sort();
+    files
+}
+
+fn generate_bytecode_suite_tests(suite_dir: &Path, manifest_dir: &str) -> TokenStream {
+    let suites = discover_suite_snapshots(suite_dir);
+    if suites.is_empty() {
+        return quote! {};
+    }
+
+    let snapshot_path = format!(
+        "{}/snapshots/bytecode_suites",
+        manifest_dir.replace('\\', "/")
+    );
+
+    let tests: TokenStream = suites
+        .iter()
+        .map(|suite_path| {
+            let suite_name = suite_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap()
+                .to_string();
+            let test_name =
+                format_ident!("test_00_bytecode_suite_{}", suite_name.replace('-', "_"));
+            let suite_include = make_include_str(&suite_path.display().to_string());
+
+            quote! {
+                #[test]
+                fn #test_name() {
+                    let contents = #suite_include;
+                    crate::bytecode_snapshot::assert_suite_snapshot(
+                        #suite_name,
+                        #snapshot_path,
+                        contents,
+                    )
+                    .unwrap();
+                }
+            }
+        })
+        .collect();
+
+    quote! {
+        #[cfg(test)]
+        mod bytecode_suites {
+            #tests
+        }
+    }
 }
 
 fn generate_project_tests(

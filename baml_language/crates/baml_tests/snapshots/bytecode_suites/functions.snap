@@ -1,0 +1,459 @@
+---
+source: crates/baml_tests/src/bytecode_snapshot.rs
+---
+return_literal_int:
+    baml: |
+        function main() -> int {
+            42
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 42
+            return
+        }
+
+    result: BexExternalValue::Int(42)
+
+return_literal_bool:
+    baml: |
+        function main() -> bool {
+            true
+        }
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
+
+return_literal_string:
+    baml: |
+        function main() -> string {
+            "hello"
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "hello"
+            return
+        }
+
+    result: BexExternalValue::String("hello")
+
+return_function_call:
+    baml: |
+        function one() -> int {
+            1
+        }
+
+        function main() -> int {
+            one()
+        }
+
+    bytecode: |
+        function main() -> int {
+            call one
+            return
+        }
+
+        function one() -> int {
+            load_const 1
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+call_function_assign_to_variable:
+    baml: |
+        function two() -> int {
+            2
+        }
+
+        function main() -> int {
+            let a = two();
+            a
+        }
+
+    bytecode: |
+        function main() -> int {
+            call two
+            return
+        }
+
+        function two() -> int {
+            load_const 2
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+mutable_variables:
+    baml: |
+        function declare_mutable_in_function(x: int) -> int {
+            let y = 3;
+            y = 5;
+            y
+        }
+
+        function mutable_in_arg(x: int) -> int {
+            x = 3;
+            x
+        }
+
+        function main() -> int {
+            declare_mutable_in_function(mutable_in_arg(0))
+        }
+
+    bytecode: |
+        function declare_mutable_in_function(x: int) -> int {
+            load_const 3
+            store_var y
+            load_const 5
+            store_var y
+            load_var y
+            return
+        }
+
+        function main() -> int {
+            load_const 0
+            call mutable_in_arg
+            call declare_mutable_in_function
+            return
+        }
+
+        function mutable_in_arg(x: int) -> int {
+            load_const 3
+            store_var x
+            load_var x
+            return
+        }
+
+    result: BexExternalValue::Int(5)
+
+function_call_without_parameters:
+    baml: |
+        function two() -> int {
+            let v = 2;
+            v
+        }
+
+        function main() -> int {
+            let v = two();
+            v
+        }
+
+    bytecode: |
+        function main() -> int {
+            call two
+            return
+        }
+
+        function two() -> int {
+            load_const 2
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+function_call_with_parameters:
+    baml: |
+        function one_of(a: int, b: int) -> int {
+            a
+        }
+
+        function main() -> int {
+            let v = one_of(1, 2);
+            v
+        }
+
+    bytecode: |
+        function main() -> int {
+            load_const 1
+            load_const 2
+            call one_of
+            return
+        }
+
+        function one_of(a: int, b: int) -> int {
+            load_var a
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+function_returning_string:
+    baml: |
+        function main() -> string {
+            "hello"
+        }
+
+    bytecode: |
+        function main() -> string {
+            load_const "hello"
+            return
+        }
+
+    result: BexExternalValue::String("hello")
+
+multiple_strings:
+    baml: |
+        function get_greeting() -> string {
+            "Hello"
+        }
+
+        function main() -> string {
+            let greeting = get_greeting();
+            let name = "World";
+            greeting
+        }
+
+    bytecode: |
+        function get_greeting() -> string {
+            load_const "Hello"
+            return
+        }
+
+        function main() -> string {
+            call get_greeting
+            load_const "World"
+            store_var name
+            return
+        }
+
+    result: BexExternalValue::String("Hello")
+
+early_return:
+    baml: |
+        function early_return(x: int) -> int {
+            if (x == 42) {
+                return 1;
+            }
+            x + 5
+        }
+
+        function main() -> int {
+            early_return(42)
+        }
+
+    bytecode: |
+        function early_return(x: int) -> int {
+            load_var x
+            load_const 42
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_var x
+            load_const 5
+            bin_op +
+            return
+
+          L1:
+            load_const 1
+            return
+        }
+
+        function main() -> int {
+            load_const 42
+            call early_return
+            return
+        }
+
+    result: BexExternalValue::Int(1)
+
+return_with_stack:
+    baml: |
+        function with_stack() -> int {
+            let a = 1;
+
+            if (a == 0) {
+                return 0;
+            }
+
+            {
+                let b = 1;
+                if (a != b) {
+                    return 0;
+                }
+            };
+
+            {
+                let c = 2;
+                let b = 3;
+                while (b != c) {
+                    if (true) {
+                        return 0;
+                    }
+                }
+            };
+
+            7
+        }
+
+    entry: with_stack
+
+    bytecode: |
+        function with_stack() -> int {
+            load_const 1
+            load_const 0
+            cmp_op ==
+            pop_jump_if_false L0
+            jump L5
+
+          L0:
+            load_const 1
+            load_const 1
+            cmp_op !=
+            pop_jump_if_false L1
+            jump L4
+
+          L1:
+            load_const 3
+            load_const 2
+            cmp_op !=
+            pop_jump_if_false L2
+            jump L3
+
+          L2:
+            load_const 7
+            return
+
+          L3:
+            load_const true
+            pop_jump_if_false L1
+            load_const 0
+            return
+
+          L4:
+            load_const 0
+            return
+
+          L5:
+            load_const 0
+            return
+        }
+
+    result: BexExternalValue::Int(0)
+
+recursive:
+    baml: |
+        function fib(n: int) -> int {
+            if (n <= 1) {
+                n
+            } else {
+                fib(n - 1) + fib(n - 2)
+            }
+        }
+
+        function main() -> int {
+            fib(3)
+        }
+
+    bytecode: |
+        function fib(n: int) -> int {
+            load_var n
+            load_const 1
+            cmp_op <=
+            pop_jump_if_false L0
+            jump L1
+
+          L0:
+            load_var n
+            load_const 1
+            bin_op -
+            call fib
+            store_var _5
+            load_var n
+            load_const 2
+            bin_op -
+            call fib
+            store_var _10
+            load_var _5
+            load_var _10
+            bin_op +
+            jump L2
+
+          L1:
+            load_var n
+
+          L2:
+            return
+        }
+
+        function main() -> int {
+            load_const 3
+            call fib
+            return
+        }
+
+    result: BexExternalValue::Int(2)
+
+indirect_call_with_function_value:
+    baml: |
+        function add(a: int, b: int) -> int {
+            a + b
+        }
+
+        function call_twice(f: (int, int) -> int, x: int, y: int) -> int {
+            f(x, y) + f(x, y)
+        }
+
+        function main() -> int {
+            let f = add;
+            call_twice(f, 20, 1)
+        }
+
+    bytecode: |
+        function add(a: int, b: int) -> int {
+            load_var a
+            load_var b
+            bin_op +
+            return
+        }
+
+        function call_twice(f: (int, int) -> int, x: int, y: int) -> int {
+            load_var x
+            load_var y
+            load_var f
+            call_indirect
+            store_var _4
+            load_var x
+            load_var y
+            load_var f
+            call_indirect
+            store_var _8
+            load_var _4
+            load_var _8
+            bin_op +
+            return
+        }
+
+        function main() -> int {
+            load_global <fn add>
+            load_const 20
+            load_const 1
+            call call_twice
+            return
+        }
+
+    result: BexExternalValue::Int(42)
+
+return_literal_bool_unoptimized:
+    baml: |
+        function main() -> bool {
+            true
+        }
+
+    opt: zero
+
+    bytecode: |
+        function main() -> bool {
+            load_const true
+            return
+        }
+
+    result: BexExternalValue::Bool(true)
