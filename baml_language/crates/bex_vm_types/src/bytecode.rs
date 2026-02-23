@@ -262,14 +262,22 @@ pub enum Instruction {
     /// Manually triggers notifications for a watched variable.
     Notify(usize),
 
-    /// Call a function.
+    /// Call a statically-known global function.
     ///
-    /// Format: `CALL n` where `n` is the number of arguments passed to the
-    /// function.
+    /// Format: `CALL g` where `g` is the global index of the callee function.
     ///
-    /// Arguments are pushed onto the eval stack and the name of the function
-    /// is right below them.
-    Call(usize),
+    /// Arguments are pushed onto the eval stack. The callee is read from
+    /// `Vm::globals[g]`, and arity is read from function metadata.
+    Call(GlobalIndex),
+
+    /// Call a function value from the eval stack.
+    ///
+    /// Format: `CALL_INDIRECT`.
+    ///
+    /// Stack layout: `[arg1, ..., argN, callee]`.
+    ///
+    /// Arity is read from the runtime callee function object.
+    CallIndirect,
 
     /// Return from a function.
     ///
@@ -524,7 +532,9 @@ impl std::fmt::Display for Instruction {
             Instruction::AllocVariant(i) => write!(f, "ALLOC_VARIANT {i}"),
             Instruction::DispatchFuture(i) => write!(f, "DISPATCH_FUTURE {i}"),
             Instruction::Await => f.write_str("AWAIT"),
-            Instruction::Call(n) => write!(f, "CALL {n}"),
+            Instruction::Call(callee) => write!(f, "CALL {callee}"),
+            Instruction::CallIndirect => f.write_str("CALL_INDIRECT"),
+
             Instruction::Return => f.write_str("RETURN"),
             Instruction::Assert => f.write_str("ASSERT"),
             Instruction::AllocMap(n) => write!(f, "ALLOC_MAP {n}"),

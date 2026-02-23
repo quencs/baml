@@ -57,6 +57,7 @@ pub fn setup_test_db(source: &str) -> ProjectDatabase {
 ///
 /// Panics with a descriptive message if any error-level diagnostics are found.
 /// Warnings and info-level diagnostics are ignored.
+#[track_caller]
 pub fn assert_no_diagnostic_errors(db: &ProjectDatabase) {
     use baml_compiler_diagnostics::Severity;
 
@@ -180,6 +181,11 @@ pub fn collect_vm_exec_states(
 
     loop {
         let result = vm.exec()?;
+        // Skip SpanNotify states — these are span lifecycle events from
+        // traced function calls that aren't relevant for watch/emit tests.
+        if matches!(result, VmExecState::SpanNotify(_)) {
+            continue;
+        }
         let is_complete = matches!(result, VmExecState::Complete(_));
         let test_state = ExecState::from_vm_exec_state(result, &vm)?;
         states.push(test_state);
@@ -238,7 +244,16 @@ fn setup_and_exec_program(
     let mut vm = BexVm::from_program(program)?;
     let function_ptr = vm.heap.compile_time_ptr(function_index);
     vm.set_entry_point(function_ptr, &[]);
-    let result = vm.exec();
+
+    // Loop past SpanNotify states. Traced function calls yield SpanNotify
+    // before reaching the actual result.
+    let result = loop {
+        let result = vm.exec();
+        match &result {
+            Ok(VmExecState::SpanNotify(_)) => continue,
+            _ => break result,
+        }
+    };
     Ok((vm, result))
 }
 
@@ -249,6 +264,8 @@ fn setup_and_exec_program(
 /// Helper struct for testing VM execution with direct bytecode.
 pub struct BytecodeProgram {
     pub arity: usize,
+    /// Number of additional frame-local slots to preallocate.
+    pub real_local_count: usize,
     pub instructions: Vec<bex_vm_types::Instruction>,
     pub constants: Vec<ConstValue>,
     pub expected: VmExecState,
@@ -267,6 +284,7 @@ pub fn assert_vm_executes_bytecode_with_inspection(
     let function = bex_vm_types::Function {
         name: "test_fn".to_string(),
         arity: input.arity,
+        real_local_count: input.real_local_count,
         bytecode: bex_vm_types::Bytecode {
             source_lines: vec![1; input.instructions.len()],
             scopes: vec![0; input.instructions.len()],
@@ -277,7 +295,7 @@ pub fn assert_vm_executes_bytecode_with_inspection(
         },
         kind: bex_vm_types::FunctionKind::Bytecode,
         locals_in_scope: {
-            let mut names = Vec::with_capacity(input.arity + 1);
+            let mut names = Vec::with_capacity(input.arity + input.real_local_count + 1);
             names.push("<fn test_fn>".to_string());
             names.resize_with(names.capacity(), String::new);
             vec![names]
@@ -289,6 +307,7 @@ pub fn assert_vm_executes_bytecode_with_inspection(
         param_names: Vec::new(),
         param_types: Vec::new(),
         body_meta: None,
+        trace: false,
     };
 
     let mut program = VmProgram::new();

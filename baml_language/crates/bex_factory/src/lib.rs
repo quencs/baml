@@ -18,7 +18,7 @@ use async_trait::async_trait;
 use baml_compiler_diagnostics::{RenderConfig, ToDiagnostic, render_diagnostic};
 use baml_compiler_emit::LoweringError;
 use baml_project::ProjectDatabase;
-use bex_engine::BexEngine;
+pub use bex_engine::{BexEngine, CancellationToken, EngineError};
 pub use bex_external_types::{BexExternalAdt, BexExternalValue, MediaKind, Ty};
 use bex_heap::BexValue;
 pub use bex_heap::builtin_types;
@@ -55,10 +55,15 @@ impl From<HashMap<String, BexExternalValue>> for BexArgs {
 #[async_trait]
 pub trait Bex: Send + Sync {
     /// Execute a function by name. Returns a fully owned value (no Handle variants).
+    ///
+    /// The `cancel` token allows the caller to cancel the function mid-execution.
+    /// When cancelled, the engine returns `EngineError::Cancelled` and aborts
+    /// all in-flight async operations (HTTP requests, sleeps, etc.).
     async fn call_function(
         &self,
         function_name: &str,
         args: BexArgs,
+        cancel: CancellationToken,
     ) -> Result<BexExternalValue, RuntimeError>;
 }
 
@@ -68,6 +73,7 @@ impl Bex for BexEngine {
         &self,
         function_name: &str,
         BexArgs(mut args): BexArgs,
+        cancel: CancellationToken,
     ) -> Result<BexExternalValue, RuntimeError> {
         // guarantee function ordering.
         let params = self
@@ -91,7 +97,8 @@ impl Bex for BexEngine {
             });
         }
 
-        let result = BexEngine::call_function(self, function_name, ordered_args).await?;
+        let result =
+            BexEngine::call_function(self, function_name, ordered_args, None, &[], cancel).await?;
 
         // For now call_function guarantees that the result is owned, but we should change this in the future
         // once we allow devs to control if functions return owned values or not.
@@ -109,8 +116,9 @@ impl Bex for Arc<BexEngine> {
         &self,
         function_name: &str,
         args: BexArgs,
+        cancel: CancellationToken,
     ) -> Result<BexExternalValue, RuntimeError> {
-        Bex::call_function(self.as_ref(), function_name, args).await
+        Bex::call_function(self.as_ref(), function_name, args, cancel).await
     }
 }
 
@@ -118,17 +126,20 @@ impl Bex for Arc<BexEngine> {
 // Public constructors
 // ---------------------------------------------------------------------------
 
-/// Compile source files and create a Bex runtime. Returns [`Arc<dyn Bex>`] for use from any consumer.
+/// Compile source files and create a concrete `BexEngine`.
+///
+/// Use this when you need direct access to engine methods like `function_params`
+/// or `call_function` with tracing parameters.
 ///
 /// # Arguments
 /// * `root_path` - Root path for BAML files
 /// * `src_files` - Map of filename to content
 /// * `sys_ops` - System operations provider
-pub fn new(
+pub fn new_engine(
     root_path: &str,
     src_files: &HashMap<String, String>,
     sys_ops: SysOps,
-) -> Result<Arc<dyn Bex>, RuntimeError> {
+) -> Result<Arc<BexEngine>, RuntimeError> {
     let mut db = ProjectDatabase::new();
     db.set_project_root(Path::new(root_path));
 
@@ -142,6 +153,20 @@ pub fn new(
     let engine = BexEngine::new(bytecode, sys_ops)?;
 
     Ok(Arc::new(engine))
+}
+
+/// Compile source files and create a Bex runtime. Returns [`Arc<dyn Bex>`] for use from any consumer.
+///
+/// # Arguments
+/// * `root_path` - Root path for BAML files
+/// * `src_files` - Map of filename to content
+/// * `sys_ops` - System operations provider
+pub fn new(
+    root_path: &str,
+    src_files: &HashMap<String, String>,
+    sys_ops: SysOps,
+) -> Result<Arc<dyn Bex>, RuntimeError> {
+    Ok(new_engine(root_path, src_files, sys_ops)?)
 }
 
 /// Create an incremental runtime that holds the project DB.

@@ -38,18 +38,22 @@ mod cycles;
 mod exhaustiveness;
 pub mod jinja;
 mod lower;
+mod narrowing;
 mod normalize;
 pub mod pretty;
 mod resolve;
 mod types;
 
 // Re-export HIR types that are part of TIR's public API (used in Ty variants).
-pub use baml_compiler_hir::{Namespace, QualifiedName};
+pub use baml_base::{Namespace, QualifiedName};
 // Crate-internal imports (used within this file but not re-exported)
 use builtins::Bindings;
 pub use cycles::{validate_class_cycles, validate_type_alias_cycles};
 use exhaustiveness::ExhaustivenessChecker;
 use lower::lower_type_ref;
+use narrowing::{
+    extract_condition_narrowing, extract_early_return_narrowing, infer_union_member_field,
+};
 pub use normalize::find_recursive_aliases;
 pub use pretty::render_function_tree;
 use resolve::ResolutionMap;
@@ -90,6 +94,8 @@ fn substitute_with_fallback(pattern: &baml_builtins::TypePattern, bindings: &Bin
         },
         TypePattern::Resource => Ty::Resource,
         TypePattern::BuiltinUnknown => Ty::BuiltinUnknown,
+        TypePattern::Enum(path) => Ty::Enum(builtins::parse_builtin_path(path)),
+        TypePattern::Type => Ty::Type,
     }
 }
 
@@ -206,20 +212,20 @@ pub struct TypeAliasesMap<'db> {
     pub errors: Vec<TirTypeError>,
 }
 
-/// Tracked struct holding class names.
+/// Tracked struct holding class names mapped to their qualified names.
 #[salsa::tracked]
 pub struct ClassNamesSet<'db> {
     #[tracked]
     #[returns(ref)]
-    pub names: HashSet<Name>,
+    pub names: HashMap<Name, baml_compiler_hir::QualifiedName>,
 }
 
-/// Tracked struct holding enum names.
+/// Tracked struct holding enum names mapped to their qualified names.
 #[salsa::tracked]
 pub struct EnumNamesSet<'db> {
     #[tracked]
     #[returns(ref)]
-    pub names: HashSet<Name>,
+    pub names: HashMap<Name, baml_compiler_hir::QualifiedName>,
 }
 
 /// Tracked struct holding type alias names.
@@ -243,6 +249,17 @@ pub fn enum_variants(db: &dyn Db, project: Project) -> EnumVariantsMap<'_> {
     let items = baml_compiler_hir::project_items(db, project);
     let mut enums = HashMap::new();
 
+    // Add builtin enum variants (keyed by FQN)
+    for builtin_enum in baml_builtins::builtin_enums() {
+        let variants: Vec<Name> = builtin_enum
+            .variants
+            .iter()
+            .map(|v| Name::new(*v))
+            .collect();
+        enums.insert(Name::new(builtin_enum.path), variants);
+    }
+
+    // Add user-defined enum variants
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Enum(enum_loc) = item {
             let file = enum_loc.file(db);
@@ -366,7 +383,10 @@ pub fn class_field_types(db: &dyn Db, project: Project) -> ClassFieldTypesMap<'_
         if let baml_compiler_hir::ItemId::Class(class_loc) = item {
             let item_tree = baml_compiler_hir::file_item_tree(db, class_loc.file(db));
             let class_data = &item_tree[class_loc.id(db)];
-            let class_name = class_data.name.clone();
+            // Use qualified name so the key matches Ty::Class(fqn) references
+            // (e.g., builtin file classes like "baml.llm.OrchestrationStep").
+            let fqn = baml_compiler_hir::class_qualified_name(db, *class_loc);
+            let class_name = fqn.display_name();
 
             let mut lowered_fields: HashMap<Name, Ty> = HashMap::new();
 
@@ -438,21 +458,21 @@ pub fn type_aliases(db: &dyn Db, project: Project) -> TypeAliasesMap<'_> {
 /// Query: Get class names for a project.
 #[salsa::tracked]
 pub fn class_names(db: &dyn Db, project: Project) -> ClassNamesSet<'_> {
+    use baml_compiler_hir::QualifiedName;
     let items = baml_compiler_hir::project_items(db, project);
-    let mut names = HashSet::new();
+    let mut names = HashMap::new();
 
-    // Add builtin class names
+    // Add builtin class names (Rust-defined builtins like PrimitiveClient, PromptAst)
     for builtin in baml_builtins::builtin_types() {
-        names.insert(Name::new(builtin.path));
+        let qn = QualifiedName::from_builtin_path(builtin.path);
+        names.insert(Name::new(builtin.path), qn);
     }
 
-    // Add user-defined class names
+    // Add user-defined class names (using FQN for builtin-file classes)
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Class(class_loc) = item {
-            let file = class_loc.file(db);
-            let item_tree = baml_compiler_hir::file_item_tree(db, file);
-            let class_data = &item_tree[class_loc.id(db)];
-            names.insert(class_data.name.clone());
+            let qn = baml_compiler_hir::class_qualified_name(db, *class_loc);
+            names.insert(qn.display_name(), qn);
         }
     }
 
@@ -462,15 +482,26 @@ pub fn class_names(db: &dyn Db, project: Project) -> ClassNamesSet<'_> {
 /// Query: Get enum names for a project.
 #[salsa::tracked]
 pub fn enum_names(db: &dyn Db, project: Project) -> EnumNamesSet<'_> {
+    use baml_compiler_hir::QualifiedName;
     let items = baml_compiler_hir::project_items(db, project);
-    let mut names = HashSet::new();
+    let mut names = HashMap::new();
 
+    // Add builtin enum names (FQN, e.g. "baml.llm.ClientType")
+    for builtin_enum in baml_builtins::builtin_enums() {
+        let qn = QualifiedName::from_builtin_path(builtin_enum.path);
+        names.insert(Name::new(builtin_enum.path), qn);
+    }
+
+    // Add user-defined enum names
     for item in items.items(db) {
         if let baml_compiler_hir::ItemId::Enum(enum_loc) = item {
             let file = enum_loc.file(db);
             let item_tree = baml_compiler_hir::file_item_tree(db, file);
             let enum_data = &item_tree[enum_loc.id(db)];
-            names.insert(enum_data.name.clone());
+            names.insert(
+                enum_data.name.clone(),
+                QualifiedName::local(enum_data.name.clone()),
+            );
         }
     }
 
@@ -500,8 +531,8 @@ pub fn type_alias_names(db: &dyn Db, project: Project) -> TypeAliasNamesSet<'_> 
 /// This bundles together all the sets needed for resolved type lowering.
 /// Create this once per project and reuse it for all type lowering operations.
 pub struct TypeResolutionContext {
-    pub class_names: HashSet<Name>,
-    pub enum_names: HashSet<Name>,
+    pub class_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
+    pub enum_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
     pub type_alias_names: HashSet<Name>,
 }
 
@@ -596,10 +627,10 @@ pub struct TypeContext<'db> {
     type_aliases: HashMap<Name, Ty>,
     /// Enum variant definitions: `enum_name` -> `Vec<variant_name>`
     enum_variants: HashMap<Name, Vec<Name>>,
-    /// Class names for type resolution
-    class_names: HashSet<Name>,
-    /// Enum names for type resolution
-    enum_names: HashSet<Name>,
+    /// Class names mapped to their qualified names for type resolution
+    class_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
+    /// Enum names mapped to their qualified names for type resolution
+    enum_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
     /// Type alias names for validation
     type_alias_names: HashSet<Name>,
     /// Inferred types for expressions.
@@ -638,8 +669,8 @@ impl<'db> TypeContext<'db> {
         class_fields: HashMap<Name, HashMap<Name, Ty>>,
         type_aliases: HashMap<Name, Ty>,
         enum_variants: HashMap<Name, Vec<Name>>,
-        class_names: HashSet<Name>,
-        enum_names: HashSet<Name>,
+        class_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
+        enum_names: HashMap<Name, baml_compiler_hir::QualifiedName>,
         type_alias_names: HashSet<Name>,
         file_id: FileId,
         hir_source_map: Option<HirSourceMap>,
@@ -843,16 +874,15 @@ impl<'db> TypeContext<'db> {
 
     /// Resolve a named type to its proper Ty representation.
     ///
-    /// This resolves class and enum names to `Ty::Class` and `Ty::Enum` with FQNs,
-    /// while type aliases and unknown types stay as `Ty::TypeAlias`.
+    /// Looks up the name in the class/enum maps to get the pre-computed `QualifiedName`.
+    /// Type aliases and unknown types stay as `Ty::TypeAlias`.
     pub fn resolve_named_type(&self, name: &Name) -> Ty {
         use baml_compiler_hir::QualifiedName;
-        if self.class_names.contains(name) {
-            Ty::Class(QualifiedName::local(name.clone()))
-        } else if self.enum_names.contains(name) {
-            Ty::Enum(QualifiedName::local(name.clone()))
+        if let Some(qn) = self.class_names.get(name) {
+            Ty::Class(qn.clone())
+        } else if let Some(qn) = self.enum_names.get(name) {
+            Ty::Enum(qn.clone())
         } else {
-            // Type alias or unknown type - stays as TypeAlias, will be resolved during normalization
             Ty::TypeAlias(QualifiedName::local(name.clone()))
         }
     }
@@ -932,8 +962,8 @@ pub fn infer_function_body<'db>(
     class_fields: Option<HashMap<Name, HashMap<Name, Ty>>>,
     type_aliases: Option<HashMap<Name, Ty>>,
     enum_variants: Option<HashMap<Name, Vec<Name>>>,
-    class_names_opt: Option<HashSet<Name>>,
-    enum_names_opt: Option<HashSet<Name>>,
+    class_names_opt: Option<HashMap<Name, baml_compiler_hir::QualifiedName>>,
+    enum_names_opt: Option<HashMap<Name, baml_compiler_hir::QualifiedName>>,
     type_alias_names: Option<HashSet<Name>>,
     function_loc: FunctionLoc<'db>,
 ) -> InferenceResult {
@@ -1797,14 +1827,12 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                             name: name.clone(),
                             definition_site: None,
                         }
-                    } else if ctx.class_names.contains(name) {
+                    } else if let Some(qn) = ctx.class_names.get(name) {
                         // Class name (in global scope)
-                        use baml_compiler_hir::QualifiedName;
-                        ResolvedValue::Class(QualifiedName::local(name.clone()))
-                    } else if ctx.enum_names.contains(name) {
+                        ResolvedValue::Class(qn.clone())
+                    } else if let Some(qn) = ctx.enum_names.get(name) {
                         // Enum name (in global scope)
-                        use baml_compiler_hir::QualifiedName;
-                        ResolvedValue::Enum(QualifiedName::local(name.clone()))
+                        ResolvedValue::Enum(qn.clone())
                     } else if ctx.type_aliases.contains_key(name) {
                         // Type alias (in global scope)
                         use baml_compiler_hir::QualifiedName;
@@ -1826,94 +1854,68 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     Ty::Unknown
                 }
             } else {
-                // Multi-segment path: could be:
-                // 1. A native builtin function (e.g., baml.Array.length)
-                // 2. A BAML-defined function in a namespace (e.g., baml.llm.render_prompt)
-                // 3. An enum variant (e.g., Status.Active)
-                // 4. A variable followed by field accesses (e.g., obj.field)
-
-                // First, check if this is a native builtin function path
-                let full_path = segments
-                    .iter()
-                    .map(smol_str::SmolStr::as_str)
-                    .collect::<Vec<_>>()
-                    .join(".");
-                if let Some(def) = builtins::lookup_builtin_by_path(&full_path) {
-                    // Store resolution for builtin function
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::BuiltinFunction(
-                            baml_base::QualifiedName::from_builtin_path(def.path),
-                        ),
-                    );
-
-                    // It's a builtin function - return its function type
-                    let mut param_types: Vec<(Option<Name>, Ty)> = Vec::new();
-                    if let Some(ref receiver_pattern) = def.receiver {
-                        param_types.push((None, builtins::substitute_unknown(receiver_pattern)));
-                    }
-                    for (param_name, pattern) in &def.params {
-                        param_types.push((
-                            Some(Name::new(*param_name)),
-                            builtins::substitute_unknown(pattern),
-                        ));
-                    }
-                    let return_type = builtins::substitute_unknown(&def.returns);
-                    return Ty::Function {
-                        params: param_types,
-                        ret: Box::new(return_type),
-                    };
-                }
-
-                // Check if this is a BAML-defined function in a namespace (e.g., baml.llm.render_prompt)
-                // These are stored in globals with their qualified name as the key
-                let path_name = Name::new(&full_path);
-                if let Some(func_ty) = ctx.lookup(&path_name).cloned() {
-                    // Found a function in globals with this qualified name
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::Function(baml_base::QualifiedName::from_path_segments(
-                            &segments.clone(),
-                        )),
-                    );
-                    return func_ty;
-                }
-
-                // Check if this is an enum variant (e.g., Status.Active)
-                if segments.len() == 2 {
-                    let enum_name = &segments[0];
-                    let variant_name = &segments[1];
-
-                    if let Some(variants) = ctx.lookup_enum_variants(enum_name) {
-                        if variants.contains(variant_name) {
-                            use baml_compiler_hir::QualifiedName;
-                            let enum_fqn = QualifiedName::local(enum_name.clone());
-
-                            // Store resolution for enum variant
+                // Multi-segment path: use HIR name resolution first, then
+                // fall back to variable + field access chain for unresolved paths.
+                let project = ctx.db.project();
+                if let Some(resolution) =
+                    baml_compiler_hir::path_resolve::resolve_path(ctx.db, project, segments)
+                {
+                    use baml_compiler_hir::path_resolve::PathResolution;
+                    match resolution {
+                        PathResolution::BuiltinFunction(qn) => {
+                            ctx.set_expr_resolution(
+                                expr_id,
+                                ResolvedValue::BuiltinFunction(qn.clone()),
+                            );
+                            // Look up builtin signature and compute function type
+                            let full_path = qn.display();
+                            if let Some(def) = builtins::lookup_builtin_by_path(full_path.as_str())
+                            {
+                                let mut param_types: Vec<(Option<Name>, Ty)> = Vec::new();
+                                if let Some(ref receiver_pattern) = def.receiver {
+                                    param_types.push((
+                                        None,
+                                        builtins::substitute_unknown(receiver_pattern),
+                                    ));
+                                }
+                                for (param_name, pattern) in &def.params {
+                                    param_types.push((
+                                        Some(Name::new(*param_name)),
+                                        builtins::substitute_unknown(pattern),
+                                    ));
+                                }
+                                let return_type = builtins::substitute_unknown(&def.returns);
+                                return Ty::Function {
+                                    params: param_types,
+                                    ret: Box::new(return_type),
+                                };
+                            }
+                            return Ty::Unknown;
+                        }
+                        PathResolution::Function(qn) => {
+                            ctx.set_expr_resolution(expr_id, ResolvedValue::Function(qn.clone()));
+                            let path_name = qn.display_name();
+                            if let Some(func_ty) = ctx.lookup(&path_name).cloned() {
+                                return func_ty;
+                            }
+                            return Ty::Unknown;
+                        }
+                        PathResolution::EnumVariant { enum_fqn, variant } => {
                             ctx.set_expr_resolution(
                                 expr_id,
                                 ResolvedValue::EnumVariant {
                                     enum_fqn: enum_fqn.clone(),
-                                    variant: variant_name.clone(),
+                                    variant: variant.clone(),
                                 },
                             );
-
-                            // This is a valid enum variant - record it and return the enum type
-                            ctx.enum_variant_exprs
-                                .insert(expr_id, (enum_name.clone(), variant_name.clone()));
+                            let enum_name = enum_fqn.display_name();
+                            ctx.enum_variant_exprs.insert(expr_id, (enum_name, variant));
                             return Ty::Enum(enum_fqn);
                         }
-                        // Enum exists but variant doesn't
-                        ctx.push_error(TypeError::UnknownEnumVariant {
-                            enum_name: enum_name.to_string(),
-                            variant_name: variant_name.to_string(),
-                            location,
-                        });
-                        return Ty::Unknown;
                     }
                 }
 
-                // Otherwise, treat as variable + field accesses
+                // Unresolved: treat as variable + field accesses
                 let first = &segments[0];
                 let mut ty = if let Some(t) = ctx.lookup(first) {
                     t.clone()
@@ -1968,8 +1970,13 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         // Check if this is a method (function type) or a data field
                         if matches!(field_ty, Ty::Function { .. }) {
                             // Method reference - use qualified name
-                            let method_qn =
-                                baml_base::QualifiedName::local_method(&class_fqn.name, field);
+                            let method_qn = baml_base::QualifiedName {
+                                namespace: class_fqn.namespace.clone(),
+                                name: baml_base::QualifiedName::local_method_from_str(
+                                    class_fqn.name.as_str(),
+                                    field.as_str(),
+                                ),
+                            };
                             ctx.set_expr_resolution(
                                 expr_id,
                                 ResolvedValue::Function(method_qn.clone()),
@@ -2388,12 +2395,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 
             // Store resolution for IDE features if this is a class instantiation
             if let Some(name) = type_name {
-                if ctx.class_names.contains(name) {
-                    use baml_compiler_hir::QualifiedName;
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::Class(QualifiedName::local(name.clone())),
-                    );
+                if let Some(qn) = ctx.class_names.get(name) {
+                    ctx.set_expr_resolution(expr_id, ResolvedValue::Class(qn.clone()));
                 }
             }
 
@@ -2446,9 +2449,13 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
         Expr::Block { stmts, tail_expr } => {
             ctx.push_scope();
 
-            // Type check statements
+            // Type check statements, applying narrowing after early-return ifs
             for &stmt_id in stmts {
                 check_stmt(ctx, stmt_id, body);
+
+                for (var_name, narrowed_ty) in extract_early_return_narrowing(ctx, stmt_id, body) {
+                    ctx.define(var_name, narrowed_ty);
+                }
             }
 
             // Type of block is type of tail expression
@@ -2467,24 +2474,16 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
             then_branch,
             else_branch,
         } => {
-            // Condition must be bool
-            let cond_ty = infer_expr(ctx, *condition, body);
-            if !ctx.is_subtype_of(&cond_ty, &Ty::Bool) {
-                ctx.push_error(TypeError::TypeMismatch {
-                    expected: Ty::Bool,
-                    found: cond_ty,
-                    location,
-                    info_location: None,
-                });
-            }
+            // Condition: accept any type (truthiness check), not just bool
+            infer_expr(ctx, *condition, body);
 
-            // Check for instanceof narrowing
-            let instanceof_narrowing = extract_instanceof_narrowing(ctx, *condition, body);
-
-            // Infer then-branch with narrowed type if applicable
-            let then_ty = if let Some((var_name, narrowed_ty)) = &instanceof_narrowing {
+            // Apply true-branch narrowing (instanceof + null checks + truthiness)
+            let true_narrowings = extract_condition_narrowing(ctx, *condition, body, true);
+            let then_ty = if !true_narrowings.is_empty() {
                 ctx.push_scope();
-                ctx.define(var_name.clone(), narrowed_ty.clone());
+                for (var_name, narrowed_ty) in true_narrowings {
+                    ctx.define(var_name, narrowed_ty);
+                }
                 let ty = infer_expr(ctx, *then_branch, body);
                 ctx.pop_scope();
                 ty
@@ -2492,8 +2491,20 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 infer_expr(ctx, *then_branch, body)
             };
 
+            // Apply false-branch narrowing to else
+            let false_narrowings = extract_condition_narrowing(ctx, *condition, body, false);
             let else_ty = if let Some(else_expr) = else_branch {
-                infer_expr(ctx, *else_expr, body)
+                if !false_narrowings.is_empty() {
+                    ctx.push_scope();
+                    for (var_name, narrowed_ty) in false_narrowings {
+                        ctx.define(var_name, narrowed_ty);
+                    }
+                    let ty = infer_expr(ctx, *else_expr, body);
+                    ctx.pop_scope();
+                    ty
+                } else {
+                    infer_expr(ctx, *else_expr, body)
+                }
             } else {
                 Ty::Void
             };
@@ -2515,9 +2526,21 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
         }
 
         // Match expressions synthesize a type.
-        // TODO: we should support bidirectional type checking
-        Expr::Match { scrutinee, arms } => {
-            let scrutinee_ty = infer_expr(ctx, *scrutinee, body);
+        Expr::Match {
+            scrutinee,
+            scrutinee_type,
+            arms,
+        } => {
+            // Infer the scrutinee expression (needed for variable resolution / side effects)
+            let inferred_ty = infer_expr(ctx, *scrutinee, body);
+            // If there's an explicit type annotation, use it; otherwise use inferred type
+            let scrutinee_ty = if let Some(type_id) = scrutinee_type {
+                let type_ref = &body.types[*type_id];
+                let span = ctx.type_span(*type_id);
+                ctx.lower_type(type_ref, span)
+            } else {
+                inferred_ty
+            };
 
             if arms.is_empty() {
                 // Empty match is non-exhaustive (unless scrutinee is uninhabited).
@@ -2533,8 +2556,12 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 }
                 Ty::Unknown
             } else {
+                let arms_and_patterns: Vec<(MatchArmId, PatId)> = arms
+                    .iter()
+                    .map(|arm_id| (*arm_id, body.match_arms[*arm_id].pattern))
+                    .collect();
                 // Perform exhaustiveness checking and unreachable arm detection
-                check_match_exhaustiveness(ctx, &scrutinee_ty, arms, body, expr_id);
+                check_match_exhaustiveness(ctx, &scrutinee_ty, &arms_and_patterns, body, expr_id);
 
                 // Collect result types from all arms
                 let arm_types: Vec<Ty> = arms
@@ -2600,6 +2627,21 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
 ///
 /// Returns the actual type of the expression (which should be a subtype of expected).
 fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expected: &Ty) -> Ty {
+    check_expr_with_info_location(ctx, expr_id, body, expected, None)
+}
+
+/// Check an expression with an optional location for the type constraint source.
+///
+/// When `info_location` is provided, type mismatches include a secondary location
+/// that points to where the expected type requirement came from (for example,
+/// a `let` type annotation).
+fn check_expr_with_info_location(
+    ctx: &mut TypeContext<'_>,
+    expr_id: ExprId,
+    body: &ExprBody,
+    expected: &Ty,
+    info_location: Option<&ErrorLocation>,
+) -> Ty {
     use baml_compiler_hir::Expr;
 
     let expr = &body.exprs[expr_id];
@@ -2611,9 +2653,13 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
         Expr::Block { stmts, tail_expr } => {
             ctx.push_scope();
 
-            // Type check statements with expected return type for better checking
+            // Type check statements, applying narrowing after early-return ifs
             for &stmt_id in stmts {
                 check_stmt_with_return(ctx, stmt_id, body, Some(expected));
+
+                for (var_name, narrowed_ty) in extract_early_return_narrowing(ctx, stmt_id, body) {
+                    ctx.define(var_name, narrowed_ty);
+                }
             }
 
             // Check tail expression against expected type
@@ -2634,16 +2680,16 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
             then_branch,
             else_branch,
         } => {
-            // Check condition against Bool type (checking mode)
-            check_expr(ctx, *condition, body, &Ty::Bool);
+            // Condition: accept any type (truthiness check), not just bool
+            infer_expr(ctx, *condition, body);
 
-            // Check for instanceof narrowing (same as infer_expr)
-            let instanceof_narrowing = extract_instanceof_narrowing(ctx, *condition, body);
-
-            // Check then-branch with narrowed type if applicable
-            let then_ty = if let Some((var_name, narrowed_ty)) = &instanceof_narrowing {
+            // Apply true-branch narrowing (instanceof + null checks + truthiness)
+            let true_narrowings = extract_condition_narrowing(ctx, *condition, body, true);
+            let then_ty = if !true_narrowings.is_empty() {
                 ctx.push_scope();
-                ctx.define(var_name.clone(), narrowed_ty.clone());
+                for (var_name, narrowed_ty) in true_narrowings {
+                    ctx.define(var_name, narrowed_ty);
+                }
                 let ty = check_expr(ctx, *then_branch, body, expected);
                 ctx.pop_scope();
                 ty
@@ -2651,8 +2697,20 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                 check_expr(ctx, *then_branch, body, expected)
             };
 
+            // Apply false-branch narrowing to else
+            let false_narrowings = extract_condition_narrowing(ctx, *condition, body, false);
             let else_ty = if let Some(else_expr) = else_branch {
-                check_expr(ctx, *else_expr, body, expected)
+                if !false_narrowings.is_empty() {
+                    ctx.push_scope();
+                    for (var_name, narrowed_ty) in false_narrowings {
+                        ctx.define(var_name, narrowed_ty);
+                    }
+                    let ty = check_expr(ctx, *else_expr, body, expected);
+                    ctx.pop_scope();
+                    ty
+                } else {
+                    check_expr(ctx, *else_expr, body, expected)
+                }
             } else {
                 Ty::Void
             };
@@ -2693,7 +2751,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                         expected: expected.clone(),
                         found: generalize_for_error(expected, &ty),
                         location,
-                        info_location: None,
+                        info_location: info_location.cloned(),
                     });
                 }
                 ty
@@ -2707,18 +2765,13 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
         } => {
             // Store resolution for IDE features if this is a class instantiation
             if let Some(name) = type_name {
-                if ctx.class_names.contains(name) {
-                    use baml_compiler_hir::QualifiedName;
-                    ctx.set_expr_resolution(
-                        expr_id,
-                        ResolvedValue::Class(QualifiedName::local(name.clone())),
-                    );
+                if let Some(qn) = ctx.class_names.get(name) {
+                    ctx.set_expr_resolution(expr_id, ResolvedValue::Class(qn.clone()));
                 }
             }
 
             // If we expect a specific class type, we can use its field types
             if let Ty::Class(expected_fqn) = expected {
-                use baml_compiler_hir::QualifiedName;
                 // Check field types against the expected class fields
                 for (field_name, value_expr) in fields {
                     // Clone the field type to avoid borrow issues
@@ -2736,7 +2789,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                 if type_name.as_ref() == Some(&expected_fqn.name) {
                     expected.clone()
                 } else if let Some(name) = type_name {
-                    Ty::Class(QualifiedName::local(name.clone()))
+                    ctx.resolve_named_type(name)
                 } else {
                     Ty::Unknown
                 }
@@ -2771,7 +2824,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                         expected: expected.clone(),
                         found: generalize_for_error(expected, &ty),
                         location,
-                        info_location: None,
+                        info_location: info_location.cloned(),
                     });
                 }
                 ty
@@ -2810,7 +2863,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                         expected: expected.clone(),
                         found: generalize_for_error(expected, &ty),
                         location,
-                        info_location: None,
+                        info_location: info_location.cloned(),
                     });
                 }
                 ty
@@ -2832,7 +2885,7 @@ fn check_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody, expec
                     expected: expected.clone(),
                     found: generalize_for_error(expected, &ty),
                     location,
-                    info_location: None,
+                    info_location: info_location.cloned(),
                 });
             }
             ty
@@ -2921,7 +2974,7 @@ fn extract_pattern_binding(
 fn check_match_exhaustiveness(
     ctx: &mut TypeContext<'_>,
     scrutinee_ty: &Ty,
-    arm_ids: &[MatchArmId],
+    arms_and_patterns: &[(MatchArmId, PatId)],
     body: &ExprBody,
     match_expr_id: ExprId,
 ) {
@@ -2939,13 +2992,17 @@ fn check_match_exhaustiveness(
         &ctx.type_alias_names,
     );
 
-    let result = checker.check(scrutinee_ty, arm_ids, body);
+    let arms = arms_and_patterns
+        .iter()
+        .map(|(arm, _)| *arm)
+        .collect::<Vec<_>>();
+    let result = checker.check(scrutinee_ty, &arms, body);
 
     // Report unreachable arms using position-independent MatchArmId
     for arm_idx in result.unreachable_arms {
-        let arm_id = arm_ids[arm_idx];
+        let pat_id = arms_and_patterns[arm_idx].1;
         ctx.push_error(TypeError::UnreachableArm {
-            location: ErrorLocation::MatchArm(arm_id),
+            location: ErrorLocation::Pattern(pat_id),
         });
     }
 
@@ -3011,48 +3068,6 @@ fn generalize_for_error(expected: &Ty, found: &Ty) -> Ty {
     } else {
         generalize(found)
     }
-}
-
-/// Extract instanceof narrowing info from a condition expression.
-///
-/// If the condition is `x instanceof Foo`, returns `Some((x, Foo_type))`.
-/// Otherwise returns `None`.
-fn extract_instanceof_narrowing(
-    _ctx: &TypeContext<'_>,
-    condition: ExprId,
-    body: &ExprBody,
-) -> Option<(Name, Ty)> {
-    use baml_compiler_hir::Expr;
-
-    let expr = &body.exprs[condition];
-
-    // Check if this is an instanceof expression
-    if let Expr::Binary { op, lhs, rhs } = expr {
-        if *op == baml_compiler_hir::BinaryOp::Instanceof {
-            // LHS should be a simple path (variable name)
-            if let Expr::Path(segments) = &body.exprs[*lhs] {
-                if segments.len() == 1 {
-                    let var_name = segments[0].clone();
-
-                    // RHS should be a simple path (type name)
-                    if let Expr::Path(type_segments) = &body.exprs[*rhs] {
-                        if type_segments.len() == 1 {
-                            use baml_compiler_hir::QualifiedName;
-                            let type_name = type_segments[0].clone();
-                            // Return the variable name and the narrowed type
-                            // Use TypeAlias as a fallback - will be resolved during normalization
-                            return Some((
-                                var_name,
-                                Ty::TypeAlias(QualifiedName::local(type_name)),
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    None
 }
 
 /// Infer the result type of a binary operation.
@@ -3220,16 +3235,10 @@ fn infer_unary_op(
 
     match op {
         Not => {
-            if matches!(operand, Ty::Bool | Ty::Literal(LiteralValue::Bool(_))) {
-                Ty::Bool
-            } else {
-                ctx.push_error(TypeError::InvalidUnaryOp {
-                    op: "!".to_string(),
-                    operand: generalize(operand),
-                    location,
-                });
-                Ty::Error
-            }
+            // `!` is a truthiness check: accepts any type, returns bool.
+            // For bool operands this is logical negation; for other types
+            // it converts to bool (falsy: null, false; truthy: everything else).
+            Ty::Bool
         }
         Neg => match operand {
             Ty::Int | Ty::Literal(LiteralValue::Int(_)) => Ty::Int,
@@ -3310,9 +3319,14 @@ fn infer_field_access(
                 .cloned()
         }
         Ty::Class(fqn) => {
-            // First try to find a method using qualified name (ClassName.methodName)
-            let method_qn = QualifiedName::local_method(&fqn.name, field);
-            if let Some(method_ty) = ctx.lookup(&method_qn.name).cloned() {
+            // First try to find a method using a class-qualified name in the same
+            // namespace as the class (e.g., `baml.llm.Foo.bar`).
+            let method_qn = QualifiedName {
+                namespace: fqn.namespace.clone(),
+                name: QualifiedName::local_method_from_str(fqn.name.as_str(), field.as_str()),
+            };
+            let method_lookup_name = method_qn.display_name();
+            if let Some(method_ty) = ctx.lookup(&method_lookup_name).cloned() {
                 // Store resolution for method reference so MIR can look it up
                 if let Some(expr_id) = expr_id {
                     ctx.set_expr_resolution(expr_id, ResolvedValue::Function(method_qn));
@@ -3324,6 +3338,25 @@ fn infer_field_access(
             // (e.g., "baml.http.Response") while keeping simple names for locals.
             let key = fqn.display_name();
             ctx.lookup_class_field(&key, field).cloned()
+        }
+        // Union field access: x.field where x: A | B is allowed if all members
+        // have the field. Result type is the union of field types across members.
+        Ty::Union(members) => {
+            let field_types: Vec<Ty> = members
+                .iter()
+                .filter_map(|member| infer_union_member_field(ctx, member, field))
+                .collect();
+            if field_types.len() == members.len() {
+                // All members have the field — return union of field types
+                // (deduplicated: if all the same, just return that type)
+                if field_types.iter().all(|t| t == &field_types[0]) {
+                    Some(field_types.into_iter().next().unwrap())
+                } else {
+                    Some(Ty::Union(field_types))
+                }
+            } else {
+                None
+            }
         }
         Ty::Unknown => return Ty::Unknown,
         _ => None,
@@ -3458,9 +3491,16 @@ fn check_stmt_with_return(
                     let type_ref = &body.types[*type_id];
                     let span = ctx.type_span(*type_id);
                     let annot_ty = ctx.lower_type(type_ref, span);
+                    let annotation_location = ErrorLocation::Span(span);
                     // Use check_expr when we have an expected type
                     // check_expr already reports any type mismatch errors
-                    check_expr(ctx, *init, body, &annot_ty);
+                    check_expr_with_info_location(
+                        ctx,
+                        *init,
+                        body,
+                        &annot_ty,
+                        Some(&annotation_location),
+                    );
                     annot_ty
                 } else {
                     // No type annotation - infer and generalize for mutable variables
@@ -3524,8 +3564,8 @@ fn check_stmt_with_return(
             after,
             origin: _, // origin is used for diagnostics, not type checking
         } => {
-            // Check condition against Bool (bidirectional)
-            check_expr(ctx, *condition, body, &Ty::Bool);
+            // Condition: accept any type (truthiness check)
+            infer_expr(ctx, *condition, body);
             infer_expr(ctx, *while_body, body);
             // Type-check the after statement (for desugared C-style for loops)
             if let Some(after_stmt) = after {

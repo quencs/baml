@@ -131,7 +131,6 @@ fn convert_instruction(
         bex_vm_types::Instruction::Watch(idx) => Instruction::Watch(*idx),
         bex_vm_types::Instruction::Unwatch(idx) => Instruction::Unwatch(*idx),
         bex_vm_types::Instruction::Notify(idx) => Instruction::Notify(*idx),
-        bex_vm_types::Instruction::Call(n) => Instruction::Call(*n),
         bex_vm_types::Instruction::Return => Instruction::Return,
         bex_vm_types::Instruction::Assert => Instruction::Assert,
         bex_vm_types::Instruction::NotifyBlock(idx) => Instruction::NotifyBlock(*idx),
@@ -144,6 +143,9 @@ fn convert_instruction(
         bex_vm_types::Instruction::Discriminant => Instruction::Discriminant,
         bex_vm_types::Instruction::TypeTag => Instruction::TypeTag,
         bex_vm_types::Instruction::Unreachable => Instruction::Unreachable,
+        bex_vm_types::Instruction::Call(_) | bex_vm_types::Instruction::CallIndirect => {
+            anyhow::bail!("CALL instructions are handled by the caller")
+        }
     })
 }
 
@@ -239,7 +241,6 @@ fn compile_source(source: &str) -> CompileResult {
 }
 
 /// Helper function to assert that source code compiles to expected bytecode instructions.
-#[track_caller]
 pub fn assert_compiles(input: Program) -> anyhow::Result<()> {
     let (functions, globals) = compile_source(input.source);
 
@@ -265,20 +266,32 @@ pub fn assert_compiles(input: Program) -> anyhow::Result<()> {
         eprintln!();
 
         // Convert runtime instructions to test instructions
+        let globals_by_index: HashMap<usize, &str> = globals
+            .iter()
+            .map(|(name, idx)| (*idx, name.as_str()))
+            .collect();
+
         let actual_instructions: Vec<Instruction> = function
             .bytecode
             .instructions
             .iter()
             .enumerate()
-            .map(|(inst_idx, inst)| {
-                convert_instruction(
+            .map(|(inst_idx, inst)| match inst {
+                bex_vm_types::Instruction::Call(callee) => Ok(Instruction::Call(
+                    globals_by_index
+                        .get(&callee.raw())
+                        .map(|s| (*s).to_string())
+                        .unwrap_or_else(|| format!("global_{callee}")),
+                )),
+                bex_vm_types::Instruction::CallIndirect => Ok(Instruction::CallIndirect),
+                _ => convert_instruction(
                     inst,
                     inst_idx,
                     &function.bytecode.constants,
                     objects,
                     &globals,
                     function,
-                )
+                ),
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
 

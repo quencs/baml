@@ -11,6 +11,7 @@ pub use bex_external_types::{AsBexExternalValue, BexExternalValue};
 pub use bex_heap::BexHeap;
 // Re-export SysOp for convenience
 pub use bex_vm_types::SysOp;
+pub use tokio_util::sync::CancellationToken;
 // ============================================================================
 // Operation Errors
 // ============================================================================
@@ -237,18 +238,58 @@ pub type SysOpFn = Arc<
 ///
 /// All `sys_ops` receive `&SysOpContext` for signature uniformity (keeps `SysOpFn`
 /// as a plain `fn` pointer). Ops that don't use it ignore the parameter.
+///
+/// # Per-call fields
+///
+/// The `cancel` field is per-call, not per-engine. All other fields are
+/// `Arc`-wrapped so that [`with_cancel`](Self::with_cancel) is O(1) — just
+/// reference-count increments, no data cloning. This is necessary because
+/// `SysOpFn` takes a single `&SysOpContext`; splitting into shared + per-call
+/// parts would require changing that signature and the proc macro codegen.
+#[derive(Clone)]
 pub struct SysOpContext {
     /// Pre-extracted LLM function metadata, keyed by function name.
     /// Used by LLM ops that need to look up function prompt templates, client names, etc.
-    pub llm_functions: std::collections::HashMap<String, LlmFunctionInfo>,
+    pub llm_functions: Arc<std::collections::HashMap<String, LlmFunctionInfo>>,
 
     /// Maps function names to their global indices in the VM.
-    /// Used by `get_client_function` to return `FunctionRef` values.
-    pub function_global_indices: std::collections::HashMap<String, usize>,
+    /// Used by `resolve_client` to return `FunctionRef` values.
+    pub function_global_indices: Arc<std::collections::HashMap<String, usize>>,
 
     /// Pre-formatted Jinja `{% macro %}` definitions for all `template_strings`.
     /// Prepended to templates by `get_jinja_template`.
-    pub template_strings_macros: String,
+    pub template_strings_macros: Arc<String>,
+
+    /// Client metadata for building full client trees, keyed by client name.
+    /// Used by `get_client` to recursively construct `LlmClient` with sub-clients and retry policies.
+    pub client_metadata: Arc<std::collections::HashMap<String, ClientBuildMeta>>,
+
+    /// Atomic round-robin counters, keyed by client name.
+    /// Used by `round_robin_next` to cycle through sub-clients.
+    pub round_robin_counters:
+        Arc<std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicUsize>>>,
+
+    /// Per-call cancellation token.
+    ///
+    /// Defaults to a never-cancelled token for the shared engine context.
+    /// In `execute_sys_op`, a per-call clone is created with the real token.
+    pub cancel: CancellationToken,
+}
+
+/// Pre-extracted metadata for building a Client tree at runtime.
+///
+/// Populated from HIR `Client` and `RetryPolicy` items during compilation.
+/// Used by `get_client` to recursively build `LlmClient` objects.
+#[derive(Debug, Clone)]
+pub struct ClientBuildMeta {
+    /// The client type (`Primitive`, `Fallback`, `RoundRobin`).
+    pub client_type: bex_heap::builtin_types::owned::LlmClientType,
+    /// Sub-client names (for composite clients: fallback/round-robin).
+    pub sub_client_names: Vec<String>,
+    /// Retry policy, if one was specified.
+    pub retry_policy: Option<bex_heap::builtin_types::owned::LlmRetryPolicy>,
+    /// Optional round-robin start index used to initialize the RR counter.
+    pub round_robin_start: Option<usize>,
 }
 
 /// Pre-extracted metadata for an LLM function.
@@ -268,9 +309,23 @@ impl SysOpContext {
     /// Create an empty context (for testing or when no LLM functions exist).
     pub fn empty() -> Self {
         Self {
-            llm_functions: std::collections::HashMap::new(),
-            function_global_indices: std::collections::HashMap::new(),
-            template_strings_macros: String::new(),
+            llm_functions: Arc::new(std::collections::HashMap::new()),
+            function_global_indices: Arc::new(std::collections::HashMap::new()),
+            template_strings_macros: Arc::new(String::new()),
+            client_metadata: Arc::new(std::collections::HashMap::new()),
+            round_robin_counters: Arc::new(std::collections::HashMap::new()),
+            cancel: CancellationToken::new(),
+        }
+    }
+
+    /// Create a per-call clone with the given cancellation token.
+    ///
+    /// All `Arc`-wrapped fields are shared (just reference-count increments).
+    #[must_use]
+    pub fn with_cancel(&self, cancel: CancellationToken) -> Self {
+        Self {
+            cancel,
+            ..self.clone()
         }
     }
 }
@@ -479,23 +534,25 @@ impl<T> SysOpLlm for T {
         &self,
         primitive_client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
         response: String,
+        type_def: baml_type::Ty,
+    ) -> SysOpOutput {
+        SysOpOutput::Ready(
+            sys_llm::execute_parse_response_from_owned(&primitive_client, &response, &type_def)
+                .map_err(OpErrorKind::from),
+        )
+    }
+
+    fn baml_llm_get_return_type(
+        &self,
         function_name: String,
         ctx: &SysOpContext,
-    ) -> SysOpOutput {
+    ) -> SysOpOutput<baml_type::Ty> {
         let Some(info) = ctx.llm_functions.get(&function_name) else {
             return SysOpOutput::err(OpErrorKind::Other(format!(
                 "LLM function not found: {function_name}"
             )));
         };
-
-        SysOpOutput::Ready(
-            sys_llm::execute_parse_response_from_owned(
-                &primitive_client,
-                &response,
-                &info.return_type,
-            )
-            .map_err(OpErrorKind::from),
-        )
+        SysOpOutput::ok(info.return_type.clone())
     }
 
     fn baml_llm_get_jinja_template(
@@ -571,18 +628,25 @@ impl<T> SysOpLlm for T {
         })
     }
 
-    fn baml_llm_get_client_function(
+    fn baml_llm_get_client(
         &self,
         function_name: String,
         ctx: &SysOpContext,
-    ) -> SysOpOutput {
+    ) -> SysOpOutput<bex_heap::builtin_types::owned::LlmClient> {
         let Some(info) = ctx.llm_functions.get(&function_name) else {
             return SysOpOutput::err(OpErrorKind::Other(format!(
                 "LLM function not found: {function_name}"
             )));
         };
 
-        let resolve_fn_name = format!("{}.resolve", info.client_name);
+        match build_client_tree(&info.client_name, &ctx.client_metadata) {
+            Ok(client) => SysOpOutput::ok(client),
+            Err(e) => SysOpOutput::err(OpErrorKind::Other(e)),
+        }
+    }
+
+    fn baml_llm_resolve_client(&self, client_name: String, ctx: &SysOpContext) -> SysOpOutput {
+        let resolve_fn_name = format!("{client_name}.resolve");
         let Some(global_index) = ctx.function_global_indices.get(&resolve_fn_name) else {
             return SysOpOutput::err(OpErrorKind::Other(format!(
                 "Client resolve function not found: {resolve_fn_name}"
@@ -594,6 +658,67 @@ impl<T> SysOpLlm for T {
                 .into_external(),
         )
     }
+
+    fn baml_llm_round_robin_next(
+        &self,
+        client_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<i64> {
+        let Some(counter) = ctx.round_robin_counters.get(&client_name).cloned() else {
+            return SysOpOutput::err(OpErrorKind::Other(format!(
+                "Round-robin counter not found for client: {client_name}"
+            )));
+        };
+        let val = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        #[allow(clippy::cast_possible_wrap)]
+        SysOpOutput::ok(val as i64)
+    }
+
+    fn baml_llm_round_robin_peek(
+        &self,
+        client_name: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<i64> {
+        let Some(counter) = ctx.round_robin_counters.get(&client_name).cloned() else {
+            return SysOpOutput::err(OpErrorKind::Other(format!(
+                "Round-robin counter not found for client: {client_name}"
+            )));
+        };
+        let val = counter.load(std::sync::atomic::Ordering::SeqCst);
+        #[allow(clippy::cast_possible_wrap)]
+        SysOpOutput::ok(val as i64)
+    }
+}
+
+// ============================================================================
+// Client Tree Builder
+// ============================================================================
+
+/// Recursively build a `LlmClient` tree from `ClientBuildMeta`.
+///
+/// For primitive clients, this returns a leaf node.
+/// For composite clients (fallback/round-robin), this recursively builds
+/// sub-client trees from the metadata.
+fn build_client_tree(
+    client_name: &str,
+    metadata: &std::collections::HashMap<String, ClientBuildMeta>,
+) -> Result<bex_heap::builtin_types::owned::LlmClient, String> {
+    let Some(meta) = metadata.get(client_name) else {
+        return Err(format!("Client not found: {client_name}"));
+    };
+
+    let sub_clients = meta
+        .sub_client_names
+        .iter()
+        .map(|sub_name| build_client_tree(sub_name, metadata))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(bex_heap::builtin_types::owned::LlmClient {
+        name: client_name.to_string(),
+        client_type: meta.client_type,
+        sub_clients,
+        retry: meta.retry_policy.clone(),
+    })
 }
 
 // ============================================================================
