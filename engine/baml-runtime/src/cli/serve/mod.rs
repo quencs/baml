@@ -8,7 +8,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc, task::Poll};
 use anyhow::{Context, Result};
 use arg_validation::BamlServeValidate;
 use axum::{
-    extract::{self, DefaultBodyLimit},
+    extract::{self},
     http::{HeaderName, HeaderValue, StatusCode},
     middleware::Next,
     response::{
@@ -36,6 +36,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::{net::TcpListener, sync::RwLock};
 use tokio_stream::StreamExt;
+use tower_http::limit::RequestBodyLimitLayer;
 
 use crate::{
     cli::dotenv::DotenvArgs, client_registry::ClientRegistry, errors::ExposedError,
@@ -296,10 +297,9 @@ impl Server {
             get(move || s.clone().openapi_json_handler()),
         );
 
-        // Set request body size limit to 100 MiB. This is chosen to be larger than
-        // providers like Gemini which accept files up to 50 MiB. The default Axum
-        // limit is only 2 MiB which is too restrictive for PDF uploads and similar use cases.
-        let app = app.layer(DefaultBodyLimit::max(100 * 1024 * 1024));
+        // Set request body size limit to 50 MB globally. This provides sufficient capacity
+        // for large payloads like PDF uploads while maintaining reasonable resource limits.
+        let app = app.layer(RequestBodyLimitLayer::new(50 * 1024 * 1024));
 
         let service = axum::serve(
             tcp_listener,

@@ -177,6 +177,7 @@ aws-sdk-bedrockruntime = { version = "=1.106.0", default-features = false, featu
 ] }
 axum = "0.7.5"
 axum-extra = { version = "0.9.3", features = ["erased-json", "typed-header"] }
+tower-http = { version = "0.5", features = ["limit"] }
 criterion = "0.5.1"
 # depends on ring
 gcp_auth = "0.12.3"
