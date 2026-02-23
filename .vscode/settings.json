@@ -45,6 +45,7 @@
   "[baml]": {
     "editor.defaultFormatter": "Boundary.baml-extension"
   },
+  "baml.cliPath": "/media/tony/WesternDigitalNvmeSsd/Code/baml/baml_language/target/debug/baml-cli",
   "[typescript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features",
     "editor.insertSpaces": true,
