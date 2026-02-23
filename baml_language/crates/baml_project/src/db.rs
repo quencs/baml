@@ -345,8 +345,11 @@ impl ProjectDatabase {
             .and_then(|path| self.file_map.get(path).copied())
     }
 
-    /// Get the compiled bytecode for the project.
-    pub fn get_bytecode(&self) -> Result<bex_vm_types::Program, baml_compiler_emit::LoweringError> {
+    /// Get the compiled bytecode for the project using the requested optimization level.
+    pub fn get_bytecode_with_opt(
+        &self,
+        opt: baml_compiler_emit::OptLevel,
+    ) -> Result<bex_vm_types::Program, baml_compiler_emit::LoweringError> {
         // First ensure no diagnostics errors are present
         let diagnostics = self.check();
         if diagnostics
@@ -356,7 +359,26 @@ impl ProjectDatabase {
         {
             return Err(baml_compiler_emit::LoweringError::HasDiagnosticsErrors);
         }
-        baml_compiler_emit::generate_project_bytecode(self)
+
+        let project = self
+            .get_project()
+            .expect("project must be set before requesting bytecode");
+        let files = project.files(self).clone();
+        baml_compiler_emit::compile_files(self, &files, opt)
+    }
+
+    /// Get the compiled bytecode for the project.
+    pub fn get_bytecode(&self) -> Result<bex_vm_types::Program, baml_compiler_emit::LoweringError> {
+        self.get_bytecode_with_opt(baml_compiler_emit::OptLevel::One)
+    }
+
+    /// Get debugger-oriented bytecode for the project.
+    ///
+    /// This uses `OptLevel::Zero` to preserve source-level stepping fidelity.
+    pub fn get_debug_bytecode(
+        &self,
+    ) -> Result<bex_vm_types::Program, baml_compiler_emit::LoweringError> {
+        self.get_bytecode_with_opt(baml_compiler_emit::OptLevel::Zero)
     }
 }
 

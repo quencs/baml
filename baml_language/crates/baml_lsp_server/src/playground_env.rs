@@ -48,6 +48,18 @@ impl PlaygroundEnvState {
 /// `SysOpEnv` implementation that asks the webview for every env var.
 pub struct PlaygroundEnv(pub Arc<PlaygroundEnvState>);
 
+impl PlaygroundEnv {
+    fn local_env_get(key: &str) -> Option<String> {
+        std::env::var(key).ok()
+    }
+
+    fn local_env_get_or_err(key: &str) -> Result<String, sys_types::OpErrorKind> {
+        std::env::var(key).map_err(|_| {
+            sys_types::OpErrorKind::Other(format!("Environment variable '{}' not found", key))
+        })
+    }
+}
+
 impl sys_types::SysOpEnv for PlaygroundEnv {
     fn env_get(
         &self,
@@ -56,17 +68,32 @@ impl sys_types::SysOpEnv for PlaygroundEnv {
     ) -> sys_types::SysOpOutput<Option<String>> {
         let state = self.0.clone();
         sys_types::SysOpOutput::async_op(async move {
+            // Avoid blocking LSP requests when no playground/webview client is connected.
+            if state.broadcast_tx.receiver_count() == 0 {
+                return Ok(Self::local_env_get(&key));
+            }
+
             let (tx, rx) = oneshot::channel();
             let id = state.next_id.fetch_add(1, Ordering::Relaxed);
             state.pending.lock().unwrap().insert(id, tx);
-            let _ = state
+
+            if state
                 .broadcast_tx
-                .send(WsOutMessage::EnvVarRequest { id, variable: key });
+                .send(WsOutMessage::EnvVarRequest {
+                    id,
+                    variable: key.clone(),
+                })
+                .is_err()
+            {
+                state.pending.lock().unwrap().remove(&id);
+                return Ok(Self::local_env_get(&key));
+            }
+
             match tokio::time::timeout(ENV_REQUEST_TIMEOUT, rx).await {
                 Ok(Ok(value)) => Ok(value),
                 Ok(Err(_)) | Err(_) => {
                     state.pending.lock().unwrap().remove(&id);
-                    Ok(None)
+                    Ok(Self::local_env_get(&key))
                 }
             }
         })
@@ -80,34 +107,37 @@ impl sys_types::SysOpEnv for PlaygroundEnv {
         let state = self.0.clone();
         let key_for_err = key.clone();
         sys_types::SysOpOutput::async_op(async move {
+            // Avoid blocking LSP requests when no playground/webview client is connected.
+            if state.broadcast_tx.receiver_count() == 0 {
+                return Self::local_env_get_or_err(&key_for_err);
+            }
+
             let (tx, rx) = oneshot::channel();
             let id = state.next_id.fetch_add(1, Ordering::Relaxed);
             state.pending.lock().unwrap().insert(id, tx);
-            let _ = state
+
+            if state
                 .broadcast_tx
-                .send(WsOutMessage::EnvVarRequest { id, variable: key });
+                .send(WsOutMessage::EnvVarRequest {
+                    id,
+                    variable: key.clone(),
+                })
+                .is_err()
+            {
+                state.pending.lock().unwrap().remove(&id);
+                return Self::local_env_get_or_err(&key_for_err);
+            }
+
             match tokio::time::timeout(ENV_REQUEST_TIMEOUT, rx).await {
                 Ok(Ok(Some(val))) => Ok(val),
-                Ok(Ok(None)) => Err(sys_types::OpErrorKind::Other(format!(
-                    "Environment variable '{}' not found",
-                    key_for_err
-                ))),
+                Ok(Ok(None)) => Self::local_env_get_or_err(&key_for_err),
                 Ok(Err(_)) => {
                     state.pending.lock().unwrap().remove(&id);
-                    Err(sys_types::OpErrorKind::Other(format!(
-                        "Environment variable '{}' request cancelled",
-                        key_for_err
-                    )))
+                    Self::local_env_get_or_err(&key_for_err)
                 }
                 Err(_) => {
                     state.pending.lock().unwrap().remove(&id);
-                    Err(sys_types::OpErrorKind::Timeout {
-                        message: format!(
-                            "Environment variable '{}' request timed out",
-                            key_for_err
-                        ),
-                        duration: ENV_REQUEST_TIMEOUT,
-                    })
+                    Self::local_env_get_or_err(&key_for_err)
                 }
             }
         })

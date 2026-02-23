@@ -18,6 +18,7 @@ pub struct NativePlaygroundSender {
     lsp_sender: Arc<dyn bex_project::LspClientSenderTrait + Send + Sync>,
     playground_port: u16,
     playground_via_browser: bool,
+    playground_enabled: bool,
 }
 
 impl NativePlaygroundSender {
@@ -26,12 +27,14 @@ impl NativePlaygroundSender {
         lsp_sender: Arc<dyn bex_project::LspClientSenderTrait + Send + Sync>,
         playground_port: u16,
         playground_via_browser: bool,
+        playground_enabled: bool,
     ) -> Self {
         Self {
             broadcast_tx,
             lsp_sender,
             playground_port,
             playground_via_browser,
+            playground_enabled,
         }
     }
 }
@@ -43,6 +46,18 @@ impl bex_project::PlaygroundSender for NativePlaygroundSender {
             ref function_name,
         } = notification
         {
+            if !self.playground_enabled || self.playground_port == 0 {
+                let params = serde_json::json!({
+                    "type": 2,
+                    "message": "BAML Playground is not configured in this build. Set BAML_PLAYGROUND_DIR or BAML_PLAYGROUND_DEV_PORT to enable it.",
+                });
+                let notif = lsp_server::Notification::new("window/showMessage".to_string(), params);
+                if let Err(e) = self.lsp_sender.send_notification(notif) {
+                    tracing::error!("Failed to send playground unavailable message: {}", e);
+                }
+                return;
+            }
+
             if self.playground_via_browser {
                 let url = format!("http://localhost:{}", self.playground_port);
                 if let Err(e) = webbrowser::open(&url) {

@@ -530,6 +530,12 @@ impl<'ctx, 'obj> StackifyCodegen<'ctx, 'obj> {
 
     /// Set the current debug span used for subsequent emitted instructions.
     fn set_debug_span(&mut self, span: Option<Span>, sequence_point: bool) {
+        // Preserve a pending statement/terminator boundary until the next emitted
+        // instruction consumes it. This avoids losing sequence points when helper
+        // routines temporarily retag spans for operand attribution.
+        if self.pending_sequence_point && !sequence_point {
+            return;
+        }
         self.current_debug_span = span;
         self.pending_sequence_point = sequence_point;
     }

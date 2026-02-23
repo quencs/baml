@@ -7,6 +7,7 @@ export default defineConfig({
   target: 'node18',
   format: ['cjs'],
   external: ['vscode'],
+  noExternal: [/^vscode-languageclient/],
   bundle: true,
   sourcemap: true,
   clean: true,

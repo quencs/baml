@@ -12,6 +12,7 @@
 
 pub mod builtins;
 pub mod debug;
+pub mod debugger;
 pub mod errors;
 pub mod indexable;
 pub mod native;
@@ -19,6 +20,9 @@ pub mod types;
 pub mod vm;
 pub mod watch;
 
+pub use debugger::{
+    DebugBreakpoint, DebugScopedLocal, DebugStackFrame, DebugStepMode, DebugStop, DebugStopReason,
+};
 pub use errors::{InternalError, RuntimeError, StackTrace};
 pub use indexable::EvalStack;
 pub use native::NativeFunction;

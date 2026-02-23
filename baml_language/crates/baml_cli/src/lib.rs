@@ -10,6 +10,7 @@
 )]
 
 pub(crate) mod commands;
+pub(crate) mod dap;
 pub(crate) mod format;
 pub(crate) mod lsp;
 

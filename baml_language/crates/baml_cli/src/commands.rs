@@ -58,6 +58,12 @@ pub(crate) enum Commands {
     // DumpBytecode(baml_runtime::cli::dump_intermediate::DumpIntermediateArgs),
     #[command(about = "Starts a language server", name = "lsp")]
     LanguageServer(crate::lsp::LanguageServerArgs),
+    #[command(
+        about = "Starts the BAML Debug Adapter Protocol server",
+        name = "dap",
+        hide = true
+    )]
+    DebugAdapter(crate::dap::DebugAdapterArgs),
     // #[command(about = "Start an interactive REPL for BAML expressions", hide = true)]
     // Repl(baml_runtime::cli::repl::ReplArgs),
 
@@ -109,6 +115,16 @@ impl RuntimeCli {
     pub fn run(&self) -> Result<crate::ExitCode> {
         match &self.command {
             Commands::LanguageServer(args) => match args.run() {
+                Ok(()) => Ok(crate::ExitCode::Success),
+                Err(e) => {
+                    #[allow(clippy::print_stderr)]
+                    {
+                        eprintln!("Error: {e}");
+                    }
+                    Ok(crate::ExitCode::Other)
+                }
+            },
+            Commands::DebugAdapter(args) => match args.run() {
                 Ok(()) => Ok(crate::ExitCode::Success),
                 Err(e) => {
                     #[allow(clippy::print_stderr)]

@@ -84,7 +84,7 @@ pub fn run_server(playground_via_browser: bool) -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("debug")),
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
         .with_ansi(false)
         .init();
@@ -122,6 +122,9 @@ pub fn run_server(playground_via_browser: bool) -> anyhow::Result<()> {
         Arc::new(native_lsp_sender::NativeLspSender::new(&writer_tx));
 
     // Pick the playground port early so we can pass it to the sender.
+    let playground_enabled = std::env::var("BAML_PLAYGROUND_DEV_PORT").is_ok()
+        || std::env::var("BAML_PLAYGROUND_DIR").is_ok();
+
     let (playground_listener, playground_port): (Option<TcpListener>, u16) =
         match tokio_runtime.block_on(playground_server::pick_port(3700, 100)) {
             Ok((listener, port)) => (Some(listener), port),
@@ -137,6 +140,7 @@ pub fn run_server(playground_via_browser: bool) -> anyhow::Result<()> {
         lsp_sender.clone(),
         playground_port,
         playground_via_browser,
+        playground_enabled,
     ));
 
     // Start the native event sink if BAML_TRACE_FILE is set.
@@ -162,7 +166,14 @@ pub fn run_server(playground_via_browser: bool) -> anyhow::Result<()> {
         let es = env_state.clone();
         tokio_runtime.spawn(async move {
             if let Err(e) = playground_server::run(listener, bex_for_playground, btx, es).await {
-                tracing::error!("Playground server exited: {e}");
+                let message = e.to_string();
+                if message.contains("BAML_PLAYGROUND_DEV_PORT")
+                    || message.contains("BAML_PLAYGROUND_DIR")
+                {
+                    tracing::info!("Playground server disabled: {message}");
+                } else {
+                    tracing::error!("Playground server exited: {e}");
+                }
             }
         });
     }

@@ -1,6 +1,7 @@
 //! Compiler tests for while loops, break, and continue.
 
 use baml_tests::{
+    bytecode::{assert_no_diagnostic_errors, setup_test_db},
     codegen::{Program, assert_compiles},
     vm::{Instruction, Value},
 };
@@ -356,6 +357,59 @@ fn break_nested() -> anyhow::Result<()> {
             ],
         )],
     })
+}
+
+#[test]
+fn while_loop_unoptimized_keeps_condition_and_body_sequence_points() {
+    let source = r#"function sum_to(n: int) -> int {
+    let total = 0;
+    let i = 1;
+
+    while (i <= n) {
+        total = total + i;
+        i = i + 1;
+    }
+
+    total
+}"#;
+
+    let db = setup_test_db(source);
+    assert_no_diagnostic_errors(&db);
+
+    let project = db.get_project().expect("project must be set");
+    let files = project.files(&db).clone();
+    let program =
+        baml_compiler_emit::compile_files(&db, &files, baml_compiler_emit::OptLevel::Zero)
+            .expect("compile_files should succeed for valid while-loop source");
+    let sum_to_idx = program
+        .function_index("sum_to")
+        .expect("sum_to should be present in compiled program");
+    let Some(bex_vm_types::Object::Function(sum_to)) = program.objects.get(sum_to_idx) else {
+        panic!("sum_to object index did not resolve to a function");
+    };
+
+    let mut seq_lines: Vec<usize> = sum_to
+        .bytecode
+        .line_table
+        .iter()
+        .filter(|entry| entry.sequence_point)
+        .map(|entry| entry.line)
+        .collect();
+    seq_lines.sort_unstable();
+    seq_lines.dedup();
+
+    assert!(
+        seq_lines.contains(&5),
+        "expected sequence points to include while condition line 5; got {seq_lines:?}"
+    );
+    assert!(
+        seq_lines.contains(&6),
+        "expected sequence points to include loop body line 6; got {seq_lines:?}"
+    );
+    assert!(
+        seq_lines.contains(&7),
+        "expected sequence points to include loop body line 7; got {seq_lines:?}"
+    );
 }
 
 /// Test break with variable conditions to verify bytecode generation.

@@ -1366,6 +1366,12 @@ impl BexEngine {
                         }
                     }
                 }
+
+                VmExecState::DebugStop(_stop) => {
+                    return Err(EngineError::TypeMismatch {
+                        message: "unexpected VM debug stop during non-debug execution".to_string(),
+                    });
+                }
             }
         }
     }

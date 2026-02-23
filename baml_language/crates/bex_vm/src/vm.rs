@@ -14,7 +14,10 @@
 
 #![allow(unsafe_code)]
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use bex_heap::{BexHeap, Tlab};
 use bex_resource_types::ResourceHandle;
@@ -28,6 +31,10 @@ use indexmap::IndexMap;
 
 use crate::{
     StackTrace,
+    debugger::{
+        DebugBreakpoint, DebugScopedLocal, DebugStackFrame, DebugStepMode, DebugStop,
+        DebugStopReason,
+    },
     errors::{ErrorLocation, InternalError, RuntimeError, VmError},
     indexable::{EvalStack, EvalStackTrait},
     native::NativeFunction,
@@ -57,6 +64,13 @@ pub(crate) struct Frame {
 
     /// Local variables offset in the eval stack.
     pub(crate) locals_offset: StackIndex,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct DebugStopKey {
+    frame_depth: usize,
+    function_ptr: HeapPtr,
+    pc: usize,
 }
 
 /// The beast.
@@ -201,6 +215,18 @@ pub struct BexVm {
     /// Frame depths for traced function calls. Always sorted ascending (LIFO).
     /// Checked on `Return` to yield `FunctionExit` notifications.
     traced_frames: Vec<usize>,
+
+    /// Active source-level breakpoints.
+    debug_breakpoints: HashSet<DebugBreakpoint>,
+
+    /// Request a stop at the next sequence point.
+    debug_pause_requested: bool,
+
+    /// Current stepping mode.
+    debug_step_mode: DebugStepMode,
+
+    /// Suppress exactly one duplicate stop after a resume.
+    debug_resume_skip: Option<DebugStopKey>,
 }
 
 /// VM execution state.
@@ -233,6 +259,9 @@ pub enum VmExecState {
 
     /// Notify about span lifecycle (from traced `Call` / `Return`).
     SpanNotify(SpanNotification),
+
+    /// VM paused for debugger control.
+    DebugStop(DebugStop),
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -412,6 +441,10 @@ impl BexVm {
             watched_vars: HashMap::new(),
             interrupt_frame: None,
             traced_frames: Vec::new(),
+            debug_breakpoints: HashSet::new(),
+            debug_pause_requested: false,
+            debug_step_mode: DebugStepMode::Continue,
+            debug_resume_skip: None,
         }
     }
 
@@ -655,6 +688,125 @@ impl BexVm {
         self.frames.clear();
     }
 
+    /// Replace active breakpoints.
+    pub fn debug_set_breakpoints(
+        &mut self,
+        breakpoints: impl IntoIterator<Item = DebugBreakpoint>,
+    ) {
+        self.debug_breakpoints = breakpoints.into_iter().collect();
+    }
+
+    /// Continue execution until a breakpoint, pause, or completion.
+    pub fn debug_continue(&mut self) {
+        self.debug_step_mode = DebugStepMode::Continue;
+        self.debug_pause_requested = false;
+    }
+
+    /// Stop on the next sequence point.
+    pub fn debug_step_in(&mut self) {
+        self.debug_step_mode = DebugStepMode::StepIn;
+        self.debug_pause_requested = false;
+    }
+
+    /// Step to the next sequence point in the current frame.
+    pub fn debug_step_over(&mut self) {
+        self.debug_step_mode = DebugStepMode::StepOver {
+            start_depth: self.frames.len().saturating_sub(1),
+        };
+        self.debug_pause_requested = false;
+    }
+
+    /// Continue until returning to the caller frame.
+    pub fn debug_step_out(&mut self) {
+        self.debug_step_mode = DebugStepMode::StepOut {
+            start_depth: self.frames.len().saturating_sub(1),
+        };
+        self.debug_pause_requested = false;
+    }
+
+    /// Request a pause at the next sequence point.
+    pub fn debug_pause(&mut self) {
+        self.debug_pause_requested = true;
+    }
+
+    /// Current stack trace snapshot (top frame first).
+    pub fn debug_stack_frames(&self) -> Vec<DebugStackFrame> {
+        self.frames
+            .iter()
+            .enumerate()
+            .rev()
+            .filter_map(|(frame_depth, frame)| {
+                let Ok(function) = self.get_object(frame.function).as_function() else {
+                    return None;
+                };
+
+                let pc = frame.instruction_ptr;
+                let line_entry = function.bytecode.line_entry_for_pc(pc).cloned();
+
+                Some(DebugStackFrame {
+                    frame_depth,
+                    function_name: function.name.clone(),
+                    pc,
+                    line_entry,
+                })
+            })
+            .collect()
+    }
+
+    /// In-scope locals for a frame at its current instruction pointer.
+    pub fn debug_frame_locals(&self, frame_depth: usize) -> Vec<DebugScopedLocal> {
+        let Some(frame) = self.frames.get(frame_depth) else {
+            return Vec::new();
+        };
+        let Ok(function) = self.get_object(frame.function).as_function() else {
+            return Vec::new();
+        };
+
+        let mut locals = Vec::new();
+        let mut seen_slots = std::collections::HashSet::new();
+
+        for local in function.debug_locals_in_scope(frame.instruction_ptr) {
+            if local.slot == 0 {
+                continue;
+            }
+
+            let stack_index = Self::local_slot_stack_index(frame.locals_offset, local.slot);
+            let Some(value) = self.stack.get(stack_index.raw()).copied() else {
+                continue;
+            };
+
+            seen_slots.insert(local.slot);
+            locals.push(DebugScopedLocal {
+                name: local.name.clone(),
+                slot: local.slot,
+                stack_index,
+                value,
+            });
+        }
+
+        // Fallback for cases where lexical debug scopes are incomplete:
+        // include all named local slots so debugger locals remain useful.
+        for (slot, name) in function.local_names.iter().enumerate().skip(1) {
+            if seen_slots.contains(&slot) || name.is_empty() {
+                continue;
+            }
+
+            let stack_index = Self::local_slot_stack_index(frame.locals_offset, slot);
+            let Some(value) = self.stack.get(stack_index.raw()).copied() else {
+                continue;
+            };
+
+            locals.push(DebugScopedLocal {
+                name: name.clone(),
+                slot,
+                stack_index,
+                value,
+            });
+        }
+
+        locals
+    }
+
     /// Returns a reference to the pending future.
     ///
     /// Returns [`InternalError::TypeError`] if the future is not pending, or not a future.
@@ -889,6 +1041,67 @@ impl BexVm {
             "local slot 0 is reserved and should never be materialized on stack"
         );
         StackIndex::from_raw(locals_offset.raw() + slot - 1)
+    }
+
+    fn debug_step_matches(&self, frame_depth: usize) -> bool {
+        match self.debug_step_mode {
+            DebugStepMode::Continue => false,
+            DebugStepMode::StepIn => true,
+            DebugStepMode::StepOver { start_depth } => frame_depth <= start_depth,
+            DebugStepMode::StepOut { start_depth } => frame_depth < start_depth,
+        }
+    }
+
+    fn debug_try_stop(
+        &mut self,
+        frame_depth: usize,
+        function_ptr: HeapPtr,
+        function: &Function,
+        pc: usize,
+    ) -> Option<DebugStop> {
+        let line_entry = function.bytecode.line_entry_for_pc(pc)?;
+        if !line_entry.sequence_point {
+            return None;
+        }
+
+        let key = DebugStopKey {
+            frame_depth,
+            function_ptr,
+            pc,
+        };
+        if self.debug_resume_skip == Some(key) {
+            self.debug_resume_skip = None;
+            return None;
+        }
+
+        let pause_hit = self.debug_pause_requested;
+        let breakpoint_hit = self.debug_breakpoints.contains(&DebugBreakpoint {
+            file_id: line_entry.span.file_id.as_u32(),
+            line: line_entry.line,
+        });
+        let step_hit = self.debug_step_matches(frame_depth);
+
+        let reason = if pause_hit {
+            Some(DebugStopReason::Pause)
+        } else if breakpoint_hit {
+            Some(DebugStopReason::Breakpoint)
+        } else if step_hit {
+            Some(DebugStopReason::Step)
+        } else {
+            None
+        }?;
+
+        self.debug_pause_requested = false;
+        self.debug_step_mode = DebugStepMode::Continue;
+        self.debug_resume_skip = Some(key);
+
+        Some(DebugStop {
+            reason,
+            frame_depth,
+            function_name: function.name.clone(),
+            pc,
+            line_entry: line_entry.clone(),
+        })
     }
 
     fn resolve_callable_target(&self, callee_value: Value) -> Result<(HeapPtr, usize), VmError> {
@@ -1189,6 +1402,13 @@ impl BexVm {
         loop {
             // Current instruction pointer (read from frame).
             let instruction_ptr = self.frames[frame_idx].instruction_ptr;
+            let function_ptr = self.frames[frame_idx].function;
+
+            if let Some(stop) =
+                self.debug_try_stop(frame_idx, function_ptr, function, instruction_ptr)
+            {
+                return Ok(VmExecState::DebugStop(stop));
+            }
 
             // Move the frame's IP to the next instruction. We'll deal with
             // jump offsets later.

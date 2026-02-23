@@ -1,35 +1,15 @@
 use super::{BexMulitProject, LspError, ProjectRefreshMode};
 use crate::bex_lsp::notification::BexLspNotification;
 
-impl BexLspNotification for BexMulitProject {
-    fn notification_sender(
-        &self,
-    ) -> Box<dyn Fn(lsp_server::Notification) -> Result<(), LspError> + '_> {
-        let sender = self.sender.clone();
-        Box::new(move |notif| sender.send_notification(notif))
-    }
-
-    fn on_notification_exit(
-        &self,
-        _params: lsp_notification_params!("exit"),
-    ) -> Result<(), LspError> {
-        tracing::info!("LSP exit received");
-        let mut projects = self.projects.lock().unwrap();
-        projects.clear();
-        Ok(())
-    }
-
-    fn on_notification_initialized(
-        &self,
-        _params: lsp_notification_params!("initialized"),
-    ) -> Result<(), LspError> {
+impl BexMulitProject {
+    fn discover_workspace_projects(&self) {
         let workspace_roots = self.workspace_roots.lock().unwrap().clone();
 
         if workspace_roots.is_empty() {
             tracing::warn!(
                 "No workspace roots provided during initialize — skipping project discovery"
             );
-            return Ok(());
+            return;
         }
 
         let mut project_roots = Vec::new();
@@ -55,6 +35,43 @@ impl BexLspNotification for BexMulitProject {
                 continue;
             };
             self.refresh_project(&project_root, ProjectRefreshMode::Full);
+        }
+    }
+}
+
+impl BexLspNotification for BexMulitProject {
+    fn notification_sender(
+        &self,
+    ) -> Box<dyn Fn(lsp_server::Notification) -> Result<(), LspError> + '_> {
+        let sender = self.sender.clone();
+        Box::new(move |notif| sender.send_notification(notif))
+    }
+
+    fn on_notification_exit(
+        &self,
+        _params: lsp_notification_params!("exit"),
+    ) -> Result<(), LspError> {
+        tracing::info!("LSP exit received");
+        let mut projects = self.projects.lock().unwrap();
+        projects.clear();
+        Ok(())
+    }
+
+    fn on_notification_initialized(
+        &self,
+        _params: lsp_notification_params!("initialized"),
+    ) -> Result<(), LspError> {
+        let this = self.clone();
+        let thread_name = "baml-lsp-project-discovery".to_string();
+        let spawn_result = std::thread::Builder::new()
+            .name(thread_name)
+            .spawn(move || this.discover_workspace_projects());
+
+        if let Err(err) = spawn_result {
+            tracing::warn!(
+                "Failed to spawn project discovery thread; running inline instead: {err}"
+            );
+            self.discover_workspace_projects();
         }
 
         Ok(())

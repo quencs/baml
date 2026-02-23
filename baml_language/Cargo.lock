@@ -358,9 +358,16 @@ dependencies = [
  "anyhow",
  "baml_fmt",
  "baml_lsp_server",
+ "baml_project",
+ "bex_vm",
+ "bex_vm_types",
  "clap",
  "clap-cargo",
  "ctrlc",
+ "indexmap",
+ "serde",
+ "serde_json",
+ "walkdir",
 ]
 
 [[package]]

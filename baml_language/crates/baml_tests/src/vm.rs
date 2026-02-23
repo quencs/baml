@@ -299,6 +299,10 @@ impl ExecState {
                 // The test runner will call exec() again to continue.
                 Ok(ExecState::Emit(vec![]))
             }
+            VmExecState::DebugStop(_) => {
+                // Debugger stops are ignored by legacy VM tests.
+                Ok(ExecState::Emit(vec![]))
+            }
             VmExecState::Notify(notification) => match notification {
                 VmWatchNotification::Variables(nodes) => {
                     let notifications = nodes

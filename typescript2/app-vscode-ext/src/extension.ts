@@ -5,6 +5,7 @@ import {
   type ServerOptions,
   State,
 } from 'vscode-languageclient/node';
+import { BamlDebugAdapterFactory } from './debugger';
 import { WebviewPanel } from './panels/WebviewPanel';
 
 let client: LanguageClient | undefined;
@@ -93,6 +94,11 @@ export async function activate(context: vscode.ExtensionContext) {
     command: cliPath,
     args: ['lsp'],
   };
+
+  const debugAdapterFactory = new BamlDebugAdapterFactory(cliPath);
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory('baml', debugAdapterFactory),
+  );
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ language: 'baml', scheme: 'file' }],

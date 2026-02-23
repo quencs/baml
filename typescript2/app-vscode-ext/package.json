@@ -14,7 +14,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onLanguage:baml"
+    "onLanguage:baml",
+    "onDebug"
   ],
   "contributes": {
     "languages": [
@@ -44,6 +45,54 @@
         "language": "baml-jinja",
         "scopeName": "source.baml-jinja",
         "path": "./syntaxes/jinja.tmLanguage.json"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "baml"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "baml",
+        "label": "BAML",
+        "languages": ["baml"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["projectPath", "functionName"],
+            "properties": {
+              "projectPath": {
+                "type": "string",
+                "description": "Absolute path to the BAML project root directory."
+              },
+              "functionName": {
+                "type": "string",
+                "description": "BAML function to execute in the debugger."
+              },
+              "args": {
+                "type": ["array", "object", "null"],
+                "default": {},
+                "description": "Function arguments. Use an object for named parameters or an array for positional parameters."
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "default": false,
+                "description": "Pause on the first debugger sequence point after launch."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": "BAML Debug Function",
+            "type": "baml",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}",
+            "functionName": "main",
+            "args": {},
+            "stopOnEntry": false
+          }
+        ]
       }
     ],
     "commands": [

@@ -1702,6 +1702,11 @@ impl CompilerRunner {
             Ok(VmExecState::SpanNotify(_)) => {
                 // Span notifications are ignored in the VM Runner — just continue.
             }
+            Ok(VmExecState::DebugStop(_)) => {
+                self.vm_runner_state.execution_result = Some(VmExecutionResult::Error(
+                    "Function hit a debugger stop (not supported in VM Runner)".to_string(),
+                ));
+            }
             Err(e) => {
                 self.vm_runner_state.execution_result =
                     Some(VmExecutionResult::Error(format!("{:?}", e)));

@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "BAML: Debug smoke main()",
+      "type": "baml",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/debugger_smoke",
+      "functionName": "main",
+      "args": {},
+      "stopOnEntry": false
+    },
+    {
       "name": "Launch VS Code extension (v2)",
       "type": "extensionHost",
       "request": "launch",
