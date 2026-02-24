@@ -5,11 +5,11 @@ use bex_project::{BexExternalAdt, BexExternalValue, Ty};
 use crate::{
     baml::cffi::{
         BamlFieldType, BamlFieldTypeAny, BamlFieldTypeBool, BamlFieldTypeFloat, BamlFieldTypeInt,
-        BamlFieldTypeList, BamlFieldTypeMap, BamlFieldTypeNull, BamlFieldTypeOptional,
-        BamlFieldTypeString, BamlFieldTypeUnionVariant, BamlHandle, BamlOutboundMapEntry,
-        BamlOutboundValue, BamlTypeName, BamlTypeNamespace, BamlValueClass, BamlValueEnum,
-        BamlValueList, BamlValueMap, BamlValueUnionVariant, baml_field_type::Type as FieldType,
-        baml_outbound_value::Value as BamlValueVariant,
+        BamlFieldTypeList, BamlFieldTypeMap, BamlFieldTypeMedia, BamlFieldTypeNull,
+        BamlFieldTypeOptional, BamlFieldTypeString, BamlFieldTypeUnionVariant, BamlHandle,
+        BamlOutboundMapEntry, BamlOutboundValue, BamlTypeName, BamlTypeNamespace, BamlValueClass,
+        BamlValueEnum, BamlValueList, BamlValueMap, BamlValueUnionVariant,
+        baml_field_type::Type as FieldType, baml_outbound_value::Value as BamlValueVariant,
     },
     error::CtypesError,
     handle_table::{HandleTableOptions, HandleTableValue},
@@ -121,8 +121,9 @@ pub fn external_to_baml_value(
         | BexExternalValue::Resource(_)
         | BexExternalValue::FunctionRef { .. }
         | BexExternalValue::Adt(_) => {
-            let table_value = HandleTableValue::try_from(value.clone())
-                .expect("matched variants are always handle-eligible");
+            let table_value = HandleTableValue::try_from(value.clone()).map_err(|e| {
+                CtypesError::InternalError(format!("handle table insertion failed: {e}"))
+            })?;
             let ht = table_value.handle_type();
             let key = options.table.insert(table_value);
             Some(BamlValueVariant::HandleValue(BamlHandle {
@@ -135,20 +136,21 @@ pub fn external_to_baml_value(
     Ok(BamlOutboundValue { value: variant })
 }
 
+fn media_kind_to_proto_enum(kind: bex_project::MediaKind) -> crate::baml::cffi::MediaTypeEnum {
+    use crate::baml::cffi::MediaTypeEnum as E;
+    match kind {
+        bex_project::MediaKind::Image => E::Image,
+        bex_project::MediaKind::Audio => E::Audio,
+        bex_project::MediaKind::Video => E::Video,
+        bex_project::MediaKind::Pdf => E::Pdf,
+        bex_project::MediaKind::Generic => E::Other,
+    }
+}
+
 fn bex_media_to_proto_media(media: &bex_project::MediaValue) -> crate::baml::cffi::BamlValueMedia {
-    use crate::baml::cffi::{
-        BamlValueMedia, MediaTypeEnum as BamlMediaTypeEnum,
-        baml_value_media::Value as BamlValueMediaValue,
-    };
+    use crate::baml::cffi::{BamlValueMedia, baml_value_media::Value as BamlValueMediaValue};
     BamlValueMedia {
-        media: match media.kind {
-            bex_project::MediaKind::Image => BamlMediaTypeEnum::Image,
-            bex_project::MediaKind::Audio => BamlMediaTypeEnum::Audio,
-            bex_project::MediaKind::Video => BamlMediaTypeEnum::Video,
-            bex_project::MediaKind::Pdf => BamlMediaTypeEnum::Pdf,
-            bex_project::MediaKind::Generic => BamlMediaTypeEnum::Other,
-        }
-        .into(),
+        media: media_kind_to_proto_enum(media.kind).into(),
         mime_type: media.mime_type.clone(),
         value: Some(media.read_content(|content| match content {
             bex_project::MediaContent::Url { url, .. } => BamlValueMediaValue::Url(url.clone()),
@@ -185,7 +187,7 @@ fn bex_prompt_ast_to_proto_prompt_ast(
                 BamlValuePromptAstValue::Multiple(BamlValuePromptAstMultiple {
                     items: vec
                         .iter()
-                        .map(|p| bex_prompt_ast_to_proto_prompt_ast(p))
+                        .map(|p| bex_prompt_ast_to_proto_prompt_ast(p.as_ref()))
                         .collect(),
                 })
             }
@@ -214,7 +216,7 @@ fn bex_prompt_ast_simple_to_proto_prompt_ast_simple(
                 BamlValuePromptAstSimpleMultiple {
                     items: multiple
                         .iter()
-                        .map(|s| bex_prompt_ast_simple_to_proto_prompt_ast_simple(s))
+                        .map(|s| bex_prompt_ast_simple_to_proto_prompt_ast_simple(s.as_ref()))
                         .collect::<Vec<_>>(),
                 },
             )),
@@ -253,7 +255,10 @@ fn ty_to_field_type(ty: &Ty) -> BamlFieldType {
         Ty::Optional(inner) => Some(FieldType::OptionalType(Box::new(BamlFieldTypeOptional {
             value: Some(Box::new(ty_to_field_type(inner))),
         }))),
-        Ty::Media(_) | Ty::Literal(_) => Some(FieldType::AnyType(BamlFieldTypeAny {})),
+        Ty::Media(kind) => Some(FieldType::MediaType(BamlFieldTypeMedia {
+            media: media_kind_to_proto_enum(*kind).into(),
+        })),
+        Ty::Literal(_) => Some(FieldType::AnyType(BamlFieldTypeAny {})),
         Ty::Opaque(tn) => {
             unreachable!("runtime-only {tn} should not reach FFI type encoding")
         }

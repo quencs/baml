@@ -469,11 +469,15 @@ self.onmessage = async (event: MessageEvent) => {
         const bytes = new Uint8Array(resultBytes);
         const handles: BamlHandle[] = [];
         const decoded = decodeCallResult(bytes, (key, handleType, typeName) => {
-          const h = new BamlHandle(key, handleType);
+          const h = new BamlHandle(key.toString(), handleType);
           handles.push(h);
           return h;
         });
         if (handles.length > 0) {
+          const existing = liveHandles.get(msg.id);
+          if (existing) {
+            for (const h of existing) h.free();
+          }
           liveHandles.set(msg.id, handles);
         }
         const result = JSON.stringify(decoded, null, 2);
@@ -523,6 +527,10 @@ self.onmessage = async (event: MessageEvent) => {
 
     case "clearHandles":
       for (const id of msg.runIds) {
+        const handles = liveHandles.get(id);
+        if (handles) {
+          for (const h of handles) h.free();
+        }
         liveHandles.delete(id);
       }
       return;

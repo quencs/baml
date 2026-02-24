@@ -39,6 +39,7 @@ const ValueRenderer: FC<{ value: unknown; customRenderers?: Record<string, FC<Re
   if (type) {
     const Renderer = resolve(type, customRenderers);
     if (Renderer) return <Renderer value={value} />;
+    return <pre className={codeBlockCls}>{JSON.stringify(value, null, 2)}</pre>;
   }
 
   if (Array.isArray(value)) {

@@ -30,7 +30,7 @@ export function handleTypeName(handleType: number): string {
   return HANDLE_TYPE_NAMES[handleType] ?? `handle(${handleType})`;
 }
 
-export type WrapHandleFn<T> = (key: number, handleType: number, typeName: string) => T;
+export type WrapHandleFn<T> = (key: bigint, handleType: number, typeName: string) => T;
 
 const MEDIA_TYPE_NAMES: Record<number, BamlJsMedia['media_type']> = {
   [MediaTypeEnum.IMAGE]: 'image',
@@ -180,9 +180,11 @@ function deserializeValue<T>(
 
     case 'handleValue': {
       const handle = holder.value.handleValue;
+      const key =
+        typeof handle.key === 'bigint' ? handle.key : BigInt(handle.key);
       return {
         $baml: { type: '$handle' as const },
-        handle: wrapHandle(handle.key, handle.handleType, handleTypeName(handle.handleType)),
+        handle: wrapHandle(key, handle.handleType, handleTypeName(handle.handleType)),
       } satisfies BamlJsHandle<T>;
     }
 

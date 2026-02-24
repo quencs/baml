@@ -199,13 +199,18 @@ export class WebSocketRuntimePort implements RuntimePort {
         return { type: 'playgroundNotification', notification: raw.notification };
       case 'callFunctionResult': {
         const bytes = base64ToUint8Array(raw.result);
-        const decoded = decodeCallResult(bytes, (_key, _handleType, typeName) => ({
-          handle_type: typeName,
+        const decoded = decodeCallResult(bytes, (key, handleType, typeName) => ({
+          handle_key: key,
+          handle_type: handleType,
+          type_name: typeName,
         }));
         return {
           type: 'callFunctionResult',
           id: raw.id,
-          result: JSON.stringify(decoded, null, 2),
+          result: JSON.stringify(decoded, (_, v) =>
+            typeof v === 'bigint' ? v.toString() : v,
+            2,
+          ),
         };
       }
       case 'callFunctionError':

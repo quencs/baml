@@ -975,6 +975,7 @@ dependencies = [
  "bex_project",
  "bridge_cffi",
  "bridge_ctypes",
+ "log",
  "prost",
  "pyo3",
  "pyo3-async-runtimes",

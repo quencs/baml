@@ -85,7 +85,18 @@ impl TryFrom<BexExternalValue> for HandleTableValue {
                 Ok(Self::FunctionRef { global_index })
             }
             BexExternalValue::Adt(a) => Ok(Self::Adt(a)),
-            _ => Err("only opaque BexExternalValue variants can be held as handles"),
+            BexExternalValue::Null
+            | BexExternalValue::Int(_)
+            | BexExternalValue::Float(_)
+            | BexExternalValue::Bool(_)
+            | BexExternalValue::String(_)
+            | BexExternalValue::Array { .. }
+            | BexExternalValue::Map { .. }
+            | BexExternalValue::Instance { .. }
+            | BexExternalValue::Variant { .. }
+            | BexExternalValue::Union { .. } => {
+                Err("only opaque BexExternalValue variants can be held as handles")
+            }
         }
     }
 }
@@ -121,28 +132,46 @@ impl HandleTable {
     /// Insert a value and return its unique key.
     pub fn insert(&self, value: HandleTableValue) -> u64 {
         let key = self.next_key.fetch_add(1, Ordering::Relaxed);
-        self.entries.write().unwrap().insert(key, Arc::new(value));
+        let mut entries = self
+            .entries
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        entries.insert(key, Arc::new(value));
         key
     }
 
     /// Clone a handle: creates a new key pointing to the same Arc.
     pub fn clone_handle(&self, key: u64) -> Option<u64> {
-        let entries = self.entries.read().unwrap();
+        let entries = self
+            .entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let arc = entries.get(&key)?.clone();
         drop(entries);
         let new_key = self.next_key.fetch_add(1, Ordering::Relaxed);
-        self.entries.write().unwrap().insert(new_key, arc);
+        self.entries
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(new_key, arc);
         Some(new_key)
     }
 
     /// Resolve a key to its value (cheap Arc clone).
     pub fn resolve(&self, key: u64) -> Option<Arc<HandleTableValue>> {
-        self.entries.read().unwrap().get(&key).cloned()
+        self.entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(&key)
+            .cloned()
     }
 
     /// Release a handle. Returns true if the key was present.
     pub fn release(&self, key: u64) -> bool {
-        self.entries.write().unwrap().remove(&key).is_some()
+        self.entries
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&key)
+            .is_some()
     }
 }
 

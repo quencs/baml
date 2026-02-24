@@ -16,4 +16,7 @@ pub enum CtypesError {
 
     #[error("Map entry missing key")]
     MapEntryMissingKey,
+
+    #[error("Internal error: {0}")]
+    InternalError(String),
 }

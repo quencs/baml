@@ -68,13 +68,13 @@ describe('encodeCallArgs', () => {
       toBaml() {
         return {
           value: {
-            $case: 'classValue' as const,
+            $case: 'classValue',
             classValue: {
               name: 'MyClass',
               fields: [
                 {
-                  key: { $case: 'stringKey' as const, stringKey: 'x' },
-                  value: { value: { $case: 'intValue' as const, intValue: 42 } },
+                  key: { $case: 'stringKey', stringKey: 'x' },
+                  value: { value: { $case: 'intValue', intValue: 42 } },
                 },
               ],
             },
@@ -97,7 +97,7 @@ describe('decodeCallResult', () => {
     return BamlOutboundValue.encode(holder).finish();
   }
 
-  const defaultWrapHandle = (_key: number, _handleType: number, typeName: string) => ({ handle_type: typeName });
+  const defaultWrapHandle = (_key: bigint, _handleType: number, typeName: string) => ({ handle_type: typeName });
 
   it('decodes a sorted int array', () => {
     const bytes = encodeResult({
@@ -245,14 +245,14 @@ describe('decodeCallResult', () => {
       },
     });
     const result = decodeCallResult(bytes, (key, handleType, typeName) => {
-      expect(key).toBe(42);
+      expect(key).toBe(42n);
       expect(handleType).toBe(5);
       expect(typeName).toBe('function_ref');
-      return { kind: 'functionRef', key: 42 };
+      return { kind: 'functionRef', key: 42n };
     });
     expect(result).toEqual({
       $baml: { type: '$handle' },
-      handle: { kind: 'functionRef', key: 42 },
+      handle: { kind: 'functionRef', key: 42n },
     });
   });
 });

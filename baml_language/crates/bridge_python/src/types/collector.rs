@@ -149,9 +149,13 @@ impl FunctionLog {
     fn result(&self) -> Option<Vec<u8>> {
         let handle_options = bridge_ctypes::HandleTableOptions::for_in_process();
         self.inner.result.as_ref().and_then(|val| {
-            external_to_baml_value(val, &handle_options)
-                .ok()
-                .map(|baml_val| baml_val.encode_to_vec())
+            match external_to_baml_value(val, &handle_options) {
+                Ok(baml_val) => Some(baml_val.encode_to_vec()),
+                Err(e) => {
+                    log::warn!("FunctionLog.result: failed to convert value: {e}");
+                    None
+                }
+            }
         })
     }
 

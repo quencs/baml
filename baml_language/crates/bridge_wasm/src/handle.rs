@@ -39,14 +39,14 @@ pub struct BamlHandle {
 #[wasm_bindgen]
 impl BamlHandle {
     /// Construct from proto-decoded key + type tag.
-    /// The key is passed as f64 because wasm-bindgen does not support u64 without
-    /// the bigint feature; f64 safely represents all integers up to 2^53.
+    /// Key is passed as string (e.g. from `BigInt.toString()`) to avoid f64 precision loss.
+    /// Invalid or non-numeric string becomes 0 (invalid sentinel).
     /// `handle_type` is the i32 proto enum value.
     #[wasm_bindgen(constructor)]
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    pub fn new(key: f64, handle_type: i32) -> BamlHandle {
+    pub fn new(key: &str, handle_type: i32) -> BamlHandle {
+        let key = key.parse().unwrap_or(0);
         BamlHandle {
-            key: key as u64,
+            key,
             handle_type: BamlHandleType::try_from(handle_type)
                 .unwrap_or(BamlHandleType::HandleUnknown),
         }
@@ -70,11 +70,10 @@ impl BamlHandle {
         self.handle_type as i32
     }
 
-    /// The handle key as f64 (safe for all keys up to 2^53).
+    /// The handle key as decimal string (safe for u64; use BigInt(key) in JS if needed).
     #[wasm_bindgen(getter)]
-    #[allow(clippy::cast_precision_loss)]
-    pub fn key(&self) -> f64 {
-        self.key as f64
+    pub fn key(&self) -> String {
+        self.key.to_string()
     }
 
     #[allow(clippy::doc_markdown)]
@@ -90,6 +89,11 @@ impl BamlHandle {
     #[wasm_bindgen(js_name = "toJSON")]
     pub fn to_json(&self) -> JsValue {
         let obj = Object::new();
+        let _ = Reflect::set(
+            &obj,
+            &"key".into(),
+            &JsValue::from_str(&self.key.to_string()),
+        );
         let _ = Reflect::set(
             &obj,
             &"handle_type".into(),
