@@ -803,6 +803,7 @@ version = "0.0.0-beta"
 dependencies = [
  "async-trait",
  "baml_base",
+ "baml_builtins",
  "baml_compiler_diagnostics",
  "baml_compiler_emit",
  "baml_db",
@@ -949,6 +950,7 @@ name = "bridge_ctypes"
 version = "0.1.0"
 dependencies = [
  "bex_project",
+ "bex_resource_types",
  "indexmap",
  "prost",
  "prost-build",

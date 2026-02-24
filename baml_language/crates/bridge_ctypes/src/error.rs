@@ -11,8 +11,8 @@ pub enum CtypesError {
     #[error("Null buffer pointer")]
     NullBuffer,
 
-    #[error("Handle values not supported")]
-    HandleNotSupported,
+    #[error("Invalid handle key: {0}")]
+    InvalidHandleKey(u64),
 
     #[error("Map entry missing key")]
     MapEntryMissingKey,

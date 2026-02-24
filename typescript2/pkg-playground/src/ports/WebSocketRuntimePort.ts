@@ -13,6 +13,7 @@
 
 import type { RuntimePort } from '../runtime-port';
 import type { WorkerOutMessage, WorkerInMessage, PlaygroundNotification } from '../worker-protocol';
+import { decodeCallResult } from '@b/pkg-proto';
 
 /** Server → Client message shapes (must match playground_ws.rs WsOutMessage) */
 type WsOutMessage =
@@ -177,6 +178,8 @@ export class WebSocketRuntimePort implements RuntimePort {
         return null; // handled locally, not sent to server
       case 'requestState':
         return { type: 'requestState' };
+      case 'clearHandles':
+        return null; // handles live in the Rust process; no TS-side cleanup needed
       case 'dispose':
         return null; // worker-only; no server equivalent
     }
@@ -194,12 +197,17 @@ export class WebSocketRuntimePort implements RuntimePort {
         return { type: 'ready' };
       case 'playgroundNotification':
         return { type: 'playgroundNotification', notification: raw.notification };
-      case 'callFunctionResult':
+      case 'callFunctionResult': {
+        const bytes = base64ToUint8Array(raw.result);
+        const decoded = decodeCallResult(bytes, (_key, _handleType, typeName) => ({
+          handle_type: typeName,
+        }));
         return {
           type: 'callFunctionResult',
           id: raw.id,
-          result: base64ToUint8Array(raw.result),
+          result: JSON.stringify(decoded, null, 2),
         };
+      }
       case 'callFunctionError':
         return { type: 'callFunctionError', id: raw.id, error: raw.error };
       case 'envVarRequest':
