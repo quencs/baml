@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-use bridge_ctypes::{HANDLE_TABLE, external_to_baml_value};
+use bridge_ctypes::external_to_baml_value;
 use prost::Message;
 use pyo3::prelude::*;
 

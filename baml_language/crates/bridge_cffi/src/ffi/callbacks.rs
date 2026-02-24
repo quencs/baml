@@ -1,7 +1,7 @@
 //! Callback registration and invocation.
 
 use bex_project::BexExternalValue;
-use bridge_ctypes::{HANDLE_TABLE, external_to_baml_value};
+use bridge_ctypes::external_to_baml_value;
 use once_cell::sync::OnceCell;
 use prost::Message;
 

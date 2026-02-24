@@ -77,6 +77,7 @@ impl BamlHandle {
         self.key as f64
     }
 
+    #[allow(clippy::doc_markdown)]
     /// The human-readable handle type name (e.g. "image", "prompt_ast").
     #[wasm_bindgen(getter, js_name = "typeName")]
     pub fn type_name_str(&self) -> String {

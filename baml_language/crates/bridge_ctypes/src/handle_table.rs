@@ -29,7 +29,7 @@ pub struct HandleTableOptions<'a> {
     pub(crate) serialize_prompt_ast: bool,
 }
 
-impl<'a> HandleTableOptions<'a> {
+impl HandleTableOptions<'_> {
     pub fn for_wire() -> Self {
         Self {
             table: &HANDLE_TABLE,
@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn roundtrip_to_bex_external_value() {
         let original = HandleTableValue::FunctionRef { global_index: 99 };
-        let bex: BexExternalValue = original.clone().into();
+        let bex: BexExternalValue = original.into();
         let back = HandleTableValue::try_from(bex).unwrap();
         assert!(matches!(
             back,
