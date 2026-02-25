@@ -812,6 +812,7 @@ version = "0.0.0-beta"
 dependencies = [
  "async-trait",
  "baml_base",
+ "baml_builtins",
  "baml_compiler_diagnostics",
  "baml_compiler_emit",
  "baml_db",
@@ -957,7 +958,9 @@ dependencies = [
 name = "bridge_ctypes"
 version = "0.1.0"
 dependencies = [
+ "baml_type",
  "bex_project",
+ "bex_resource_types",
  "indexmap",
  "prost",
  "prost-build",
@@ -973,6 +976,7 @@ dependencies = [
  "bex_project",
  "bridge_cffi",
  "bridge_ctypes",
+ "log",
  "prost",
  "pyo3",
  "pyo3-async-runtimes",
