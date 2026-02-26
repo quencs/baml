@@ -646,7 +646,8 @@ export function BepRouteShell() {
         {
           id: MAIN_CONTENT_ID,
           title: "README",
-          hasContent: !!viewingVersion?.content,
+          // Keep README visible even when the document starts blank.
+          hasContent: true,
         },
         ...(viewingVersion?.pagesSnapshot ?? []).map((p) => ({
           id: p.slug,
@@ -658,7 +659,8 @@ export function BepRouteShell() {
         {
           id: MAIN_CONTENT_ID,
           title: "README",
-          hasContent: !!bep.content,
+          // Keep README visible even when the document starts blank.
+          hasContent: true,
         },
         ...bep.pages.map((p) => ({
           id: p.slug,
@@ -693,6 +695,9 @@ export function BepRouteShell() {
     isContentRoute && contentSection !== MAIN_CONTENT_ID
       ? bep.pages.find((p) => p.slug === contentSection)?._id
       : undefined;
+  const hasExistingContent =
+    (bep.content ?? "").trim().length > 0 ||
+    bep.pages.some((page) => page.content.trim().length > 0);
   const currentContent = getCurrentContent(contentSection);
   const openIssueCount = bep.issues.filter((i) => !i.resolved).length;
   const isContentPage =
@@ -913,6 +918,7 @@ export function BepRouteShell() {
         onDiscard={handleDiscardChanges}
         hasConflict={hasConflict}
         conflictVersion={conflictVersion}
+        defaultVersionMode={hasExistingContent ? "new" : "current"}
       />
 
       <BepAddPageModal
