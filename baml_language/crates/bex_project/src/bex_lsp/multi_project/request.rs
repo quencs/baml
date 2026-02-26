@@ -1,8 +1,9 @@
 use lsp_types::{
     CodeLens, CodeLensOptions, CompletionOptions, DiagnosticOptions, DiagnosticServerCapabilities,
-    HoverProviderCapability, SaveOptions, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions,
-    WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
+    HoverProviderCapability, InlayHintOptions, InlayHintServerCapabilities, SaveOptions,
+    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+    TextDocumentSyncSaveOptions, WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities,
+    WorkspaceServerCapabilities,
 };
 
 use super::{BexMulitProject, LspError, WithDiagnostics, commands, wasm_helpers};
@@ -54,6 +55,12 @@ pub(super) fn server_capabilities() -> ServerCapabilities {
             }),
             ..Default::default()
         }),
+        inlay_hint_provider: Some(lsp_types::OneOf::Right(
+            InlayHintServerCapabilities::Options(InlayHintOptions {
+                work_done_progress_options: WorkDoneProgressOptions::default(),
+                resolve_provider: Some(false),
+            }),
+        )),
         ..Default::default()
     }
 }
@@ -160,6 +167,111 @@ impl BexLspRequest for BexMulitProject {
         };
 
         Ok(Some(lenses))
+    }
+
+    fn on_request_text_document_inlay_hint(
+        &self,
+        params: lsp_request_params!("textDocument/inlayHint"),
+    ) -> Result<lsp_request_result!("textDocument/inlayHint"), LspError> {
+        let path = self.get_path_from_uri(&params.text_document.uri)?;
+        let root_path = Self::get_baml_project_root(&path)?;
+        let project_handle = self.get_or_create_project(root_path)?;
+
+        let project = project_handle.project.try_lock_db()?;
+        let lsp_db = project.db();
+        let Some(baml_project) = project.project() else {
+            return Ok(None);
+        };
+        let Some(source_file) = lsp_db.get_file(std::path::Path::new(path.as_str())) else {
+            return Ok(None);
+        };
+
+        // Get hints and filter to the requested range before converting to LSP types.
+        let hints = baml_lsp_actions::inlay_hints::inlay_hints(lsp_db, source_file, baml_project);
+        let text = source_file.text(lsp_db);
+        let range_start = text_size::TextSize::from(
+            u32::try_from(baml_project::position::lsp_position_to_offset(
+                text,
+                &params.range.start,
+            ))
+            .unwrap_or(0),
+        );
+        let range_end = text_size::TextSize::from(
+            u32::try_from(baml_project::position::lsp_position_to_offset(
+                text,
+                &params.range.end,
+            ))
+            .unwrap_or(u32::MAX),
+        );
+        let lsp_hints = hints
+            .into_iter()
+            .filter(|h| h.offset >= range_start && h.offset < range_end) // Constrict to the requested range
+            .map(|h| {
+                let label = lsp_types::InlayHintLabel::LabelParts(
+                    h.label
+                        .into_iter()
+                        .map(|part| {
+                            let location = part.target.and_then(|t| {
+                                let uri = wasm_helpers::from_file_path(&t.file_path).ok()?;
+                                let target_file_id = lsp_db.path_to_file_id(&t.file_path)?;
+                                let target_source = lsp_db.get_file_by_id(target_file_id)?;
+                                let target_text = target_source.text(lsp_db);
+                                let range =
+                                    baml_project::position::span_to_lsp_range(target_text, &t.span);
+                                Some(lsp_types::Location { uri, range })
+                            });
+
+                            lsp_types::InlayHintLabelPart {
+                                value: part.value,
+                                tooltip: None, // Nothing here at least for now
+                                location,
+                                command: None,
+                            }
+                        })
+                        .collect(),
+                );
+                lsp_types::InlayHint {
+                    position: baml_project::position::offset_to_lsp_position(
+                        text,
+                        usize::from(h.offset),
+                    ),
+                    label,
+                    kind: h.kind.map(|k| match k {
+                        baml_lsp_actions::inlay_hints::InlayHintKind::Parameter => {
+                            lsp_types::InlayHintKind::PARAMETER
+                        }
+                        baml_lsp_actions::inlay_hints::InlayHintKind::Type => {
+                            lsp_types::InlayHintKind::TYPE
+                        }
+                    }),
+                    padding_left: Some(h.padding_left),
+                    padding_right: Some(h.padding_right),
+                    text_edits: if h.text_edits.is_empty() {
+                        None
+                    } else {
+                        Some(
+                            h.text_edits
+                                .iter()
+                                .map(|edit| {
+                                    let pos = baml_project::position::offset_to_lsp_position(
+                                        text,
+                                        usize::from(edit.offset),
+                                    );
+                                    lsp_types::TextEdit {
+                                        range: lsp_types::Range::new(pos, pos),
+                                        new_text: edit.new_text.clone(),
+                                    }
+                                })
+                                .collect(),
+                        )
+                    },
+                    tooltip: None,
+                    data: None,
+                }
+            })
+            .collect();
+
+        Ok(Some(lsp_hints))
     }
 
     fn on_request_text_document_code_action(
