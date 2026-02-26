@@ -97,7 +97,7 @@ function createComponents(linkContext?: BepLinkContext): Components {
       }
 
       return (
-        <pre className="my-5 overflow-x-auto rounded-xl bg-muted p-5 font-mono text-sm">
+        <pre className="my-5 overflow-x-auto rounded-xl bg-code-bg p-5 font-mono text-sm text-code-fg">
           {children}
         </pre>
       );
@@ -106,7 +106,7 @@ function createComponents(linkContext?: BepLinkContext): Components {
       const isInline = !className;
       if (isInline) {
         return (
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground border border-border">
+          <code className="rounded bg-code-bg px-1.5 py-0.5 font-mono text-[0.875em] text-code-fg border border-code-border">
             {children}
           </code>
         );
