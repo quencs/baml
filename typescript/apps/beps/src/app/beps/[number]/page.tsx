@@ -260,8 +260,15 @@ function BepDetailPageInner() {
   // Handle edit mode toggle
   const handleEditModeToggle = () => {
     if (isEditMode) {
-      // In edit mode - show the submit modal for Submit/Keep Editing/Discard options
-      handleSubmitClick();
+      if (hasChanges) {
+        // In edit mode with changes - show submit modal for Submit/Keep Editing/Discard options
+        handleSubmitClick();
+      } else {
+        // No unsaved changes - exit edit mode directly
+        setEditMode(false);
+        setNewPages([]);
+        setShowSubmitModal(false);
+      }
     } else {
       // Entering edit mode
       setEditMode(true);
