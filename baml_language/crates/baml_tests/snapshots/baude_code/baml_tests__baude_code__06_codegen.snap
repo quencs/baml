@@ -1,0 +1,347 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+function Claude.resolve() -> baml.llm.PrimitiveClient {
+    load_const "ANTHROPIC_API_KEY"
+    dispatch_future env.get_or_panic
+    await
+    store_var _15
+    load_const "Claude"
+    load_const "anthropic"
+    load_const "user"
+    load_const "user"
+    load_const "assistant"
+    load_const "system"
+    alloc_array 3
+    load_const "claude-sonnet-4-20250514"
+    load_const 4096
+    load_var _15
+    load_const "model"
+    load_const "max_tokens"
+    load_const "api_key"
+    alloc_map 3
+    dispatch_future baml.llm.build_primitive_client
+    await
+    return
+}
+
+function DecideAction(context_files: string, messages: Message[]) -> ReadFile | WriteFile | Bash | Respond {
+    load_const "DecideAction"
+    load_var context_files
+    load_var messages
+    load_const "context_files"
+    load_const "messages"
+    alloc_map 2
+    call baml.llm.call_llm_function
+    return
+}
+
+function DecideAction.build_request(context_files: string, messages: Message[]) -> baml.http.Request {
+    load_const "DecideAction"
+    load_var context_files
+    load_var messages
+    load_const "context_files"
+    load_const "messages"
+    alloc_map 2
+    call baml.llm.build_request
+    return
+}
+
+function DecideAction.render_prompt(context_files: string, messages: Message[]) -> baml.llm.PromptAst {
+    load_const "DecideAction"
+    load_var context_files
+    load_var messages
+    load_const "context_files"
+    load_const "messages"
+    alloc_map 2
+    call baml.llm.render_prompt
+    return
+}
+
+function ExecuteBash(action: Bash) -> ToolResult {
+    load_var action
+    load_field .command
+    dispatch_future baml.sys.shell
+    await
+    store_var output
+    alloc_instance ToolResult
+    copy 0
+    load_const "Bash"
+    store_field .tool_name
+    copy 0
+    load_const true
+    store_field .success
+    copy 0
+    load_var output
+    store_field .output
+    return
+}
+
+function ExecuteReadFile(action: ReadFile) -> ToolResult {
+    load_var action
+    load_field .path
+    dispatch_future baml.fs.open
+    await
+    dispatch_future baml.fs.File.read
+    await
+    store_var content
+    alloc_instance ToolResult
+    copy 0
+    load_const "ReadFile"
+    store_field .tool_name
+    copy 0
+    load_const true
+    store_field .success
+    copy 0
+    load_var content
+    store_field .output
+    return
+}
+
+function ExecuteTool(action: ReadFile | WriteFile | Bash | Respond) -> ToolResult {
+    load_var action
+    type_tag
+    jump_table [L0, _, L1, _, L3, L2], default L5
+
+  L0: Respond
+    alloc_instance ToolResult
+    copy 0
+    load_const "Respond"
+    store_field .tool_name
+    copy 0
+    load_const true
+    store_field .success
+    copy 0
+    load_var action
+    load_field .text
+    store_field .output
+    jump L4
+
+  L1: Bash
+    load_var action
+    call ExecuteBash
+    jump L4
+
+  L2: WriteFile
+    load_var action
+    call ExecuteWriteFile
+    jump L4
+
+  L3: ReadFile
+    load_var action
+    call ExecuteReadFile
+
+  L4:
+    return
+
+  L5:
+    unreachable
+}
+
+function ExecuteWriteFile(action: WriteFile) -> ToolResult {
+    load_const "cat > "
+    load_var action
+    load_field .path
+    bin_op +
+    load_const " <<'BAUDE_EOF'\\n"
+    bin_op +
+    load_var action
+    load_field .content
+    bin_op +
+    load_const "\\nBAUDE_EOF"
+    bin_op +
+    dispatch_future baml.sys.shell
+    await
+    pop 1
+    alloc_instance ToolResult
+    copy 0
+    load_const "WriteFile"
+    store_field .tool_name
+    copy 0
+    load_const true
+    store_field .success
+    copy 0
+    load_const "Wrote to "
+    load_var action
+    load_field .path
+    bin_op +
+    store_field .output
+    return
+}
+
+function LoadContext() -> string {
+    load_const ""
+    store_var context
+    load_const "cat CLAUDE.md 2>/dev/null || true"
+    dispatch_future baml.sys.shell
+    await
+    store_var claude_md
+    load_const "cat BAUDE.md 2>/dev/null || true"
+    dispatch_future baml.sys.shell
+    await
+    store_var baude_md
+    load_var claude_md
+    load_const ""
+    cmp_op !=
+    pop_jump_if_false L0
+    load_var context
+    load_const "# CLAUDE.md\\n"
+    bin_op +
+    load_var claude_md
+    bin_op +
+    load_const "\\n\\n"
+    bin_op +
+    store_var context
+
+  L0:
+    load_var baude_md
+    load_const ""
+    cmp_op !=
+    pop_jump_if_false L1
+    load_var context
+    load_const "# BAUDE.md\\n"
+    bin_op +
+    load_var baude_md
+    bin_op +
+    load_const "\\n\\n"
+    bin_op +
+    store_var context
+
+  L1:
+    load_var context
+    return
+}
+
+function Main() -> string {
+    call LoadContext
+    store_var context
+    alloc_array 0
+    store_var messages
+    load_const "echo 'Welcome to Baude Code! Type /quit to exit.'"
+    dispatch_future baml.sys.shell
+    await
+    pop 1
+
+  L0:
+    load_const true
+    pop_jump_if_false L5
+    load_const "printf '> '"
+    dispatch_future baml.sys.shell
+    await
+    pop 1
+    call ReadLine
+    store_var input
+    load_var input
+    load_const "/quit"
+    cmp_op ==
+    pop_jump_if_false L1
+    jump L5
+
+  L1:
+    load_var messages
+    alloc_instance Message
+    copy 0
+    load_const "user"
+    store_field .role
+    copy 0
+    load_var input
+    store_field .content
+    call baml.Array.push
+    pop 1
+    load_const false
+    store_var done
+
+  L2:
+    load_var done
+    unary_op !
+    pop_jump_if_false L0
+    load_var context
+    load_var messages
+    call DecideAction
+    store_var action
+    load_var action
+    load_const <class Respond>
+    cmp_op instanceof
+    pop_jump_if_false L3
+    jump L4
+
+  L3:
+    load_var action
+    pop 1
+    load_const false
+    pop_jump_if_false L2
+    load_var action
+    store_var tool
+    load_var action
+    call ExecuteTool
+    store_var result
+    load_const "echo '["
+    load_var result
+    load_field .tool_name
+    bin_op +
+    load_const "] "
+    bin_op +
+    load_var result
+    load_field .output
+    bin_op +
+    load_const "'"
+    bin_op +
+    dispatch_future baml.sys.shell
+    await
+    pop 1
+    load_var messages
+    alloc_instance Message
+    copy 0
+    load_const "tool"
+    store_field .role
+    copy 0
+    load_var result
+    load_field .tool_name
+    load_const ": "
+    bin_op +
+    load_var result
+    load_field .output
+    bin_op +
+    store_field .content
+    call baml.Array.push
+    pop 1
+    jump L2
+
+  L4:
+    load_var action
+    store_var r
+    load_const "echo '"
+    load_var r
+    load_field .text
+    bin_op +
+    load_const "'"
+    bin_op +
+    dispatch_future baml.sys.shell
+    await
+    pop 1
+    load_var messages
+    alloc_instance Message
+    copy 0
+    load_const "assistant"
+    store_field .role
+    copy 0
+    load_var r
+    load_field .text
+    store_field .content
+    call baml.Array.push
+    pop 1
+    load_const true
+    store_var done
+    jump L2
+
+  L5:
+    load_const "Goodbye!"
+    return
+}
+
+function ReadLine() -> string {
+    load_const "read -r line && echo \\"$line\\""
+    dispatch_future baml.sys.shell
+    await
+    return
+}

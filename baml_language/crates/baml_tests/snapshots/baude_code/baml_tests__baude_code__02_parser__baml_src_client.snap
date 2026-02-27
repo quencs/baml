@@ -1,0 +1,59 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== SYNTAX TREE ===
+SOURCE_FILE
+  RETRY_POLICY_DEF
+    KW_RETRY_POLICY "retry_policy"
+    WORD "DefaultRetry"
+    CONFIG_BLOCK
+      L_BRACE "{"
+      CONFIG_ITEM
+        WORD "max_retries"
+        CONFIG_VALUE "2"
+          INTEGER_LITERAL "2"
+      R_BRACE "}"
+  CLIENT_DEF
+    KW_CLIENT "client"
+    CLIENT_TYPE "<llm>"
+      LESS "<"
+      WORD "llm"
+      GREATER ">"
+    WORD "Claude"
+    CONFIG_BLOCK
+      L_BRACE "{"
+      CONFIG_ITEM
+        WORD "provider"
+        CONFIG_VALUE "anthropic"
+          WORD "anthropic"
+      CONFIG_ITEM
+        KW_RETRY_POLICY "retry_policy"
+        CONFIG_VALUE "DefaultRetry"
+          WORD "DefaultRetry"
+      CONFIG_ITEM
+        WORD "options"
+        CONFIG_BLOCK
+          L_BRACE "{"
+          CONFIG_ITEM
+            WORD "model"
+            CONFIG_VALUE
+              STRING_LITERAL "claude-sonnet-4-20250514"
+                QUOTE """
+                WORD "claude-sonnet-4-20250514"
+                QUOTE """
+          CONFIG_ITEM
+            WORD "max_tokens"
+            CONFIG_VALUE "4096"
+              INTEGER_LITERAL "4096"
+          CONFIG_ITEM
+            WORD "api_key"
+            CONFIG_VALUE
+              ENV_ACCESS_EXPR "env.ANTHROPIC_API_KEY"
+                KW_ENV "env"
+                DOT "."
+                WORD "ANTHROPIC_API_KEY"
+          R_BRACE "}"
+      R_BRACE "}"
+
+=== ERRORS ===
+None

@@ -1,0 +1,842 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== MIR ===
+fn DecideAction.render_prompt(context_files: string, messages: Message[]) -> baml.llm.PromptAst {
+    // Locals:
+    let _0: baml.llm.PromptAst // return
+    let _1: string // context_files // param
+    let _2: Message[] // messages // param
+    let _3: (string, map<string, unknown>) -> baml.llm.PromptAst
+    let _4: "DecideAction"
+    let _5: map<string, unknown>
+    let _6: "context_files"
+    let _7: string
+    let _8: "messages"
+    let _9: Message[]
+
+    bb0: {
+        _3 = const fn baml.llm.render_prompt;
+        _4 = const "DecideAction";
+        _6 = const "context_files";
+        _7 = copy _1;
+        _8 = const "messages";
+        _9 = copy _2;
+        _5 = { copy _6: copy _7, copy _8: copy _9 };
+        _0 = call copy _3(copy _4, copy _5) -> [bb2];
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        goto -> bb1;
+    }
+}
+
+fn DecideAction.build_request(context_files: string, messages: Message[]) -> baml.http.Request {
+    // Locals:
+    let _0: baml.http.Request // return
+    let _1: string // context_files // param
+    let _2: Message[] // messages // param
+    let _3: (string, map<string, unknown>) -> baml.http.Request
+    let _4: "DecideAction"
+    let _5: map<string, unknown>
+    let _6: "context_files"
+    let _7: string
+    let _8: "messages"
+    let _9: Message[]
+
+    bb0: {
+        _3 = const fn baml.llm.build_request;
+        _4 = const "DecideAction";
+        _6 = const "context_files";
+        _7 = copy _1;
+        _8 = const "messages";
+        _9 = copy _2;
+        _5 = { copy _6: copy _7, copy _8: copy _9 };
+        _0 = call copy _3(copy _4, copy _5) -> [bb2];
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        goto -> bb1;
+    }
+}
+
+fn DecideAction(context_files: string, messages: Message[]) -> ReadFile | WriteFile | Bash | Respond {
+    // Locals:
+    let _0: ReadFile | WriteFile | Bash | Respond // return
+    let _1: string // context_files // param
+    let _2: Message[] // messages // param
+    let _3: (string, map<string, unknown>) -> unknown
+    let _4: "DecideAction"
+    let _5: map<string, unknown>
+    let _6: "context_files"
+    let _7: string
+    let _8: "messages"
+    let _9: Message[]
+
+    bb0: {
+        _3 = const fn baml.llm.call_llm_function;
+        _4 = const "DecideAction";
+        _6 = const "context_files";
+        _7 = copy _1;
+        _8 = const "messages";
+        _9 = copy _2;
+        _5 = { copy _6: copy _7, copy _8: copy _9 };
+        _0 = call copy _3(copy _4, copy _5) -> [bb2];
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        goto -> bb1;
+    }
+}
+
+fn Claude.resolve() -> baml.llm.PrimitiveClient {
+    // Locals:
+    let _0: baml.llm.PrimitiveClient // return
+    let _1: (string, string, string, string[], map<string, unknown>) -> baml.llm.PrimitiveClient
+    let _2: "Claude"
+    let _3: "anthropic"
+    let _4: "user"
+    let _5: string[]
+    let _6: "user"
+    let _7: "assistant"
+    let _8: "system"
+    let _9: map<string, unknown>
+    let _10: "model"
+    let _11: "claude-sonnet-4-20250514"
+    let _12: "max_tokens"
+    let _13: 4096
+    let _14: "api_key"
+    let _15: string
+    let _16: (string) -> string
+    let _17: "ANTHROPIC_API_KEY"
+    let _18: null
+    let _19: null
+
+    bb0: {
+        _1 = const fn baml.llm.build_primitive_client;
+        _2 = const "Claude";
+        _3 = const "anthropic";
+        _4 = const "user";
+        _6 = const "user";
+        _7 = const "assistant";
+        _8 = const "system";
+        _5 = [copy _6, copy _7, copy _8];
+        _10 = const "model";
+        _11 = const "claude-sonnet-4-20250514";
+        _12 = const "max_tokens";
+        _13 = const 4096_i64;
+        _14 = const "api_key";
+        _16 = const fn env.get_or_panic;
+        _17 = const "ANTHROPIC_API_KEY";
+        _18 = dispatch_future copy _16(copy _17) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _15 = await _18 -> [bb3];
+    }
+
+    bb3: {
+        _9 = { copy _10: copy _11, copy _12: copy _13, copy _14: copy _15 };
+        _19 = dispatch_future copy _1(copy _2, copy _3, copy _4, copy _5, copy _9) -> bb4;
+    }
+
+    bb4: {
+        _0 = await _19 -> [bb5];
+    }
+
+    bb5: {
+        goto -> bb1;
+    }
+}
+
+fn Main() -> string {
+    // Locals:
+    let _0: string // return
+    let _1: string // context
+    let _2: () -> string
+    let _3: Message[] // messages
+    let _4: string
+    let _5: (string) -> string
+    let _6: "echo 'Welcome to Baude Code! Type /quit to exit.'"
+    let _7: null
+    let _8: void
+    let _9: bool
+    let _10: void
+    let _11: string
+    let _12: (string) -> string
+    let _13: "printf '> '"
+    let _14: null
+    let _15: string // input
+    let _16: () -> string
+    let _17: void
+    let _18: bool
+    let _19: string
+    let _20: "/quit"
+    let _21: void
+    let _22: null
+    let _23: Message[]
+    let _24: Message
+    let _25: "user"
+    let _26: string
+    let _27: (Message[], Message) -> null
+    let _28: false // done
+    let _29: void
+    let _30: bool
+    let _31: bool
+    let _32: void
+    let _33: ReadFile | WriteFile | Bash | Respond // action
+    let _34: (string, Message[]) -> ReadFile | WriteFile | Bash | Respond
+    let _35: string
+    let _36: Message[]
+    let _37: void
+    let _38: bool
+    let _39: Respond // r
+    let _40: string
+    let _41: (string) -> string
+    let _42: string
+    let _43: string
+    let _44: "echo '"
+    let _45: string
+    let _46: Respond
+    let _47: "'"
+    let _48: null
+    let _49: null
+    let _50: Message[]
+    let _51: Message
+    let _52: "assistant"
+    let _53: string
+    let _54: Respond
+    let _55: (Message[], Message) -> null
+    let _56: void
+    let _57: true
+    let _58: bool
+    let _59: ReadFile | WriteFile | Bash // tool
+    let _60: ToolResult // result
+    let _61: (ReadFile | WriteFile | Bash | Respond) -> ToolResult
+    let _62: ReadFile | WriteFile | Bash | Respond
+    let _63: string
+    let _64: (string) -> string
+    let _65: string
+    let _66: string
+    let _67: string
+    let _68: string
+    let _69: "echo '["
+    let _70: string
+    let _71: ToolResult
+    let _72: "] "
+    let _73: string
+    let _74: ToolResult
+    let _75: "'"
+    let _76: null
+    let _77: null
+    let _78: Message[]
+    let _79: Message
+    let _80: "tool"
+    let _81: string
+    let _82: string
+    let _83: string
+    let _84: ToolResult
+    let _85: ": "
+    let _86: string
+    let _87: ToolResult
+    let _88: (Message[], Message) -> null
+
+    bb0: {
+        _2 = const fn LoadContext;
+        _1 = call copy _2() -> [bb2];
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _3 = [];
+        _5 = const fn baml.sys.shell;
+        _6 = const "echo 'Welcome to Baude Code! Type /quit to exit.'";
+        _7 = dispatch_future copy _5(copy _6) -> bb3;
+    }
+
+    bb3: {
+        _4 = await _7 -> [bb4];
+    }
+
+    bb4: {
+        goto -> bb5;
+    }
+
+    bb5: {
+        _9 = const true;
+        branch copy _9 -> [bb6, bb7];
+    }
+
+    bb6: {
+        _12 = const fn baml.sys.shell;
+        _13 = const "printf '> '";
+        _14 = dispatch_future copy _12(copy _13) -> bb8;
+    }
+
+    bb7: {
+        _8 = const null;
+        _0 = const "Goodbye!";
+        goto -> bb1;
+    }
+
+    bb8: {
+        _11 = await _14 -> [bb9];
+    }
+
+    bb9: {
+        _16 = const fn ReadLine;
+        _15 = call copy _16() -> [bb10];
+    }
+
+    bb10: {
+        _19 = copy _15;
+        _20 = const "/quit";
+        _18 = copy _19 == copy _20;
+        branch copy _18 -> [bb11, bb12];
+    }
+
+    bb11: {
+        goto -> bb7;
+    }
+
+    bb12: {
+        _17 = const null;
+        goto -> bb13;
+    }
+
+    bb13: {
+        _23 = copy _3;
+        _25 = const "user";
+        _26 = copy _15;
+        _24 = Message { copy _25, copy _26 };
+        _27 = const fn baml.Array.push;
+        _22 = call copy _27(copy _23, copy _24) -> [bb14];
+    }
+
+    bb14: {
+        _28 = const false;
+        goto -> bb15;
+    }
+
+    bb15: {
+        _31 = copy _28;
+        _30 = !copy _31;
+        branch copy _30 -> [bb16, bb17];
+    }
+
+    bb16: {
+        _34 = const fn DecideAction;
+        _35 = copy _1;
+        _36 = copy _3;
+        _33 = call copy _34(copy _35, copy _36) -> [bb18];
+    }
+
+    bb17: {
+        _29 = const null;
+        _10 = const null;
+        goto -> bb5;
+    }
+
+    bb18: {
+        _38 = is_type(copy _33, Class(TypeName { name: "Respond", module_path: [], display_name: "Respond" }));
+        branch copy _38 -> [bb23, bb22];
+    }
+
+    bb19: {
+        _32 = const null;
+        goto -> bb15;
+    }
+
+    bb20: {
+        unreachable;
+    }
+
+    bb21: {
+        _41 = const fn baml.sys.shell;
+        _44 = const "echo '";
+        _46 = copy _39;
+        _45 = copy _46.0;
+        _43 = copy _44 + copy _45;
+        _47 = const "'";
+        _42 = copy _43 + copy _47;
+        _48 = dispatch_future copy _41(copy _42) -> bb24;
+    }
+
+    bb22: {
+        _58 = is_type(copy _33, Union([Class(TypeName { name: "ReadFile", module_path: [], display_name: "ReadFile" }), Class(TypeName { name: "WriteFile", module_path: [], display_name: "WriteFile" }), Class(TypeName { name: "Bash", module_path: [], display_name: "Bash" })]));
+        branch copy _58 -> [bb28, bb20];
+    }
+
+    bb23: {
+        _39 = copy _33;
+        goto -> bb21;
+    }
+
+    bb24: {
+        _40 = await _48 -> [bb25];
+    }
+
+    bb25: {
+        _50 = copy _3;
+        _52 = const "assistant";
+        _54 = copy _39;
+        _53 = copy _54.0;
+        _51 = Message { copy _52, copy _53 };
+        _55 = const fn baml.Array.push;
+        _49 = call copy _55(copy _50, copy _51) -> [bb26];
+    }
+
+    bb26: {
+        _57 = const true;
+        _28 = copy _57;
+        _56 = const null;
+        _37 = const null;
+        goto -> bb19;
+    }
+
+    bb27: {
+        _61 = const fn ExecuteTool;
+        _62 = copy _33;
+        _60 = call copy _61(copy _62) -> [bb29];
+    }
+
+    bb28: {
+        _59 = copy _33;
+        goto -> bb27;
+    }
+
+    bb29: {
+        _64 = const fn baml.sys.shell;
+        _69 = const "echo '[";
+        _71 = copy _60;
+        _70 = copy _71.0;
+        _68 = copy _69 + copy _70;
+        _72 = const "] ";
+        _67 = copy _68 + copy _72;
+        _74 = copy _60;
+        _73 = copy _74.2;
+        _66 = copy _67 + copy _73;
+        _75 = const "'";
+        _65 = copy _66 + copy _75;
+        _76 = dispatch_future copy _64(copy _65) -> bb30;
+    }
+
+    bb30: {
+        _63 = await _76 -> [bb31];
+    }
+
+    bb31: {
+        _78 = copy _3;
+        _80 = const "tool";
+        _84 = copy _60;
+        _83 = copy _84.0;
+        _85 = const ": ";
+        _82 = copy _83 + copy _85;
+        _87 = copy _60;
+        _86 = copy _87.2;
+        _81 = copy _82 + copy _86;
+        _79 = Message { copy _80, copy _81 };
+        _88 = const fn baml.Array.push;
+        _77 = call copy _88(copy _78, copy _79) -> [bb32];
+    }
+
+    bb32: {
+        _37 = const null;
+        goto -> bb19;
+    }
+}
+
+fn LoadContext() -> string {
+    // Locals:
+    let _0: string // return
+    let _1: "" // context
+    let _2: string // claude_md
+    let _3: (string) -> string
+    let _4: "cat CLAUDE.md 2>/dev/null || true"
+    let _5: null
+    let _6: string // baude_md
+    let _7: (string) -> string
+    let _8: "cat BAUDE.md 2>/dev/null || true"
+    let _9: null
+    let _10: void
+    let _11: bool
+    let _12: string
+    let _13: ""
+    let _14: void
+    let _15: string
+    let _16: string
+    let _17: string
+    let _18: string
+    let _19: "# CLAUDE.md\n"
+    let _20: string
+    let _21: "\n\n"
+    let _22: void
+    let _23: bool
+    let _24: string
+    let _25: ""
+    let _26: void
+    let _27: string
+    let _28: string
+    let _29: string
+    let _30: string
+    let _31: "# BAUDE.md\n"
+    let _32: string
+    let _33: "\n\n"
+
+    bb0: {
+        _1 = const "";
+        _3 = const fn baml.sys.shell;
+        _4 = const "cat CLAUDE.md 2>/dev/null || true";
+        _5 = dispatch_future copy _3(copy _4) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _2 = await _5 -> [bb3];
+    }
+
+    bb3: {
+        _7 = const fn baml.sys.shell;
+        _8 = const "cat BAUDE.md 2>/dev/null || true";
+        _9 = dispatch_future copy _7(copy _8) -> bb4;
+    }
+
+    bb4: {
+        _6 = await _9 -> [bb5];
+    }
+
+    bb5: {
+        _12 = copy _2;
+        _13 = const "";
+        _11 = copy _12 != copy _13;
+        branch copy _11 -> [bb6, bb7];
+    }
+
+    bb6: {
+        _18 = copy _1;
+        _19 = const "# CLAUDE.md\\n";
+        _17 = copy _18 + copy _19;
+        _20 = copy _2;
+        _16 = copy _17 + copy _20;
+        _21 = const "\\n\\n";
+        _15 = copy _16 + copy _21;
+        _1 = copy _15;
+        _14 = const null;
+        _10 = const null;
+        goto -> bb8;
+    }
+
+    bb7: {
+        _10 = const null;
+        goto -> bb8;
+    }
+
+    bb8: {
+        _24 = copy _6;
+        _25 = const "";
+        _23 = copy _24 != copy _25;
+        branch copy _23 -> [bb9, bb10];
+    }
+
+    bb9: {
+        _30 = copy _1;
+        _31 = const "# BAUDE.md\\n";
+        _29 = copy _30 + copy _31;
+        _32 = copy _6;
+        _28 = copy _29 + copy _32;
+        _33 = const "\\n\\n";
+        _27 = copy _28 + copy _33;
+        _1 = copy _27;
+        _26 = const null;
+        _22 = const null;
+        goto -> bb11;
+    }
+
+    bb10: {
+        _22 = const null;
+        goto -> bb11;
+    }
+
+    bb11: {
+        _0 = copy _1;
+        goto -> bb1;
+    }
+}
+
+fn ReadLine() -> string {
+    // Locals:
+    let _0: string // return
+    let _1: (string) -> string
+    let _2: "read -r line && echo \"$line\""
+    let _3: null
+
+    bb0: {
+        _1 = const fn baml.sys.shell;
+        _2 = const "read -r line && echo \\\"$line\\\"";
+        _3 = dispatch_future copy _1(copy _2) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _0 = await _3 -> [bb3];
+    }
+
+    bb3: {
+        goto -> bb1;
+    }
+}
+
+fn ExecuteWriteFile(action: WriteFile) -> ToolResult {
+    // Locals:
+    let _0: ToolResult // return
+    let _1: WriteFile // action // param
+    let _2: string // cmd
+    let _3: string
+    let _4: string
+    let _5: string
+    let _6: "cat > "
+    let _7: string
+    let _8: WriteFile
+    let _9: " <<'BAUDE_EOF'\n"
+    let _10: string
+    let _11: WriteFile
+    let _12: "\nBAUDE_EOF"
+    let _13: string
+    let _14: (string) -> string
+    let _15: string
+    let _16: null
+    let _17: "WriteFile"
+    let _18: true
+    let _19: string
+    let _20: "Wrote to "
+    let _21: string
+    let _22: WriteFile
+
+    bb0: {
+        _6 = const "cat > ";
+        _8 = copy _1;
+        _7 = copy _8.0;
+        _5 = copy _6 + copy _7;
+        _9 = const " <<'BAUDE_EOF'\\n";
+        _4 = copy _5 + copy _9;
+        _11 = copy _1;
+        _10 = copy _11.1;
+        _3 = copy _4 + copy _10;
+        _12 = const "\\nBAUDE_EOF";
+        _2 = copy _3 + copy _12;
+        _14 = const fn baml.sys.shell;
+        _15 = copy _2;
+        _16 = dispatch_future copy _14(copy _15) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _13 = await _16 -> [bb3];
+    }
+
+    bb3: {
+        _17 = const "WriteFile";
+        _18 = const true;
+        _20 = const "Wrote to ";
+        _22 = copy _1;
+        _21 = copy _22.0;
+        _19 = copy _20 + copy _21;
+        _0 = ToolResult { copy _17, copy _18, copy _19 };
+        goto -> bb1;
+    }
+}
+
+fn ExecuteBash(action: Bash) -> ToolResult {
+    // Locals:
+    let _0: ToolResult // return
+    let _1: Bash // action // param
+    let _2: string // output
+    let _3: (string) -> string
+    let _4: string
+    let _5: Bash
+    let _6: null
+    let _7: "Bash"
+    let _8: true
+    let _9: string
+
+    bb0: {
+        _3 = const fn baml.sys.shell;
+        _5 = copy _1;
+        _4 = copy _5.0;
+        _6 = dispatch_future copy _3(copy _4) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _2 = await _6 -> [bb3];
+    }
+
+    bb3: {
+        _7 = const "Bash";
+        _8 = const true;
+        _9 = copy _2;
+        _0 = ToolResult { copy _7, copy _8, copy _9 };
+        goto -> bb1;
+    }
+}
+
+fn ExecuteReadFile(action: ReadFile) -> ToolResult {
+    // Locals:
+    let _0: ToolResult // return
+    let _1: ReadFile // action // param
+    let _2: string // content
+    let _3: baml.fs.File
+    let _4: (string) -> baml.fs.File
+    let _5: string
+    let _6: ReadFile
+    let _7: null
+    let _8: (baml.fs.File) -> string
+    let _9: null
+    let _10: "ReadFile"
+    let _11: true
+    let _12: string
+
+    bb0: {
+        _4 = const fn baml.fs.open;
+        _6 = copy _1;
+        _5 = copy _6.0;
+        _7 = dispatch_future copy _4(copy _5) -> bb2;
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        _3 = await _7 -> [bb3];
+    }
+
+    bb3: {
+        _8 = const fn baml.fs.File.read;
+        _9 = dispatch_future copy _8(copy _3) -> bb4;
+    }
+
+    bb4: {
+        _2 = await _9 -> [bb5];
+    }
+
+    bb5: {
+        _10 = const "ReadFile";
+        _11 = const true;
+        _12 = copy _2;
+        _0 = ToolResult { copy _10, copy _11, copy _12 };
+        goto -> bb1;
+    }
+}
+
+fn ExecuteTool(action: ReadFile | WriteFile | Bash | Respond) -> ToolResult {
+    // Locals:
+    let _0: ToolResult // return
+    let _1: ReadFile | WriteFile | Bash | Respond // action // param
+    let _2: int
+    let _3: ReadFile // rf
+    let _4: (ReadFile) -> ToolResult
+    let _5: ReadFile
+    let _6: WriteFile // wf
+    let _7: (WriteFile) -> ToolResult
+    let _8: WriteFile
+    let _9: Bash // b
+    let _10: (Bash) -> ToolResult
+    let _11: Bash
+    let _12: Respond // r
+    let _13: "Respond"
+    let _14: true
+    let _15: string
+    let _16: Respond
+
+    bb0: {
+        _2 = type_tag(_1);
+        switch copy _2 [ReadFile: bb3, WriteFile: bb4, Bash: bb5, Respond: bb6, otherwise: bb7] (exhaustive);
+    }
+
+    bb1: {
+        return;
+    }
+
+    bb2: {
+        goto -> bb1;
+    }
+
+    bb3: {
+        _3 = copy _1;
+        _4 = const fn ExecuteReadFile;
+        _5 = copy _3;
+        _0 = call copy _4(copy _5) -> [bb8];
+    }
+
+    bb4: {
+        _6 = copy _1;
+        _7 = const fn ExecuteWriteFile;
+        _8 = copy _6;
+        _0 = call copy _7(copy _8) -> [bb9];
+    }
+
+    bb5: {
+        _9 = copy _1;
+        _10 = const fn ExecuteBash;
+        _11 = copy _9;
+        _0 = call copy _10(copy _11) -> [bb10];
+    }
+
+    bb6: {
+        _12 = copy _1;
+        _13 = const "Respond";
+        _14 = const true;
+        _16 = copy _12;
+        _15 = copy _16.0;
+        _0 = ToolResult { copy _13, copy _14, copy _15 };
+        goto -> bb2;
+    }
+
+    bb7: {
+        unreachable;
+    }
+
+    bb8: {
+        goto -> bb2;
+    }
+
+    bb9: {
+        goto -> bb2;
+    }
+
+    bb10: {
+        goto -> bb2;
+    }
+}

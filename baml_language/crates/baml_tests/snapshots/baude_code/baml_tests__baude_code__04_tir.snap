@@ -1,0 +1,26 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== TYPE INFERENCE ===
+  Function DecideAction.render_prompt:
+    Return: Class(QualifiedName { namespace: Builtin { path: ["llm"] }, name: "PromptAst" })
+  Function DecideAction.build_request:
+    Return: Class(QualifiedName { namespace: Builtin { path: ["http"] }, name: "Request" })
+  Function DecideAction:
+    Return: TypeAlias(QualifiedName { namespace: Local, name: "AgentAction" })
+  Function Claude.resolve:
+    Return: Class(QualifiedName { namespace: Builtin { path: ["llm"] }, name: "PrimitiveClient" })
+  Function Main:
+    Return: Literal(String("Goodbye!"))
+  Function LoadContext:
+    Return: String
+  Function ReadLine:
+    Return: String
+  Function ExecuteWriteFile:
+    Return: Class(QualifiedName { namespace: Local, name: "ToolResult" })
+  Function ExecuteBash:
+    Return: Class(QualifiedName { namespace: Local, name: "ToolResult" })
+  Function ExecuteReadFile:
+    Return: Class(QualifiedName { namespace: Local, name: "ToolResult" })
+  Function ExecuteTool:
+    Return: Class(QualifiedName { namespace: Local, name: "ToolResult" })

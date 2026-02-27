@@ -1,0 +1,182 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== SYNTAX TREE ===
+SOURCE_FILE
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "ReadFile"
+    L_BRACE "{"
+    FIELD
+      WORD "path"
+      TYPE_EXPR "string"
+        WORD "string"
+      ATTRIBUTE
+        AT "@"
+        WORD "description"
+        ATTRIBUTE_ARGS
+          L_PAREN "("
+          STRING_LITERAL "Path of the file to read"
+            QUOTE """
+            WORD "Path"
+            WORD "of"
+            WORD "the"
+            WORD "file"
+            WORD "to"
+            WORD "read"
+            QUOTE """
+          R_PAREN ")"
+    R_BRACE "}"
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "WriteFile"
+    L_BRACE "{"
+    FIELD
+      WORD "path"
+      TYPE_EXPR "string"
+        WORD "string"
+      ATTRIBUTE
+        AT "@"
+        WORD "description"
+        ATTRIBUTE_ARGS
+          L_PAREN "("
+          STRING_LITERAL "Path of the file to write"
+            QUOTE """
+            WORD "Path"
+            WORD "of"
+            WORD "the"
+            WORD "file"
+            WORD "to"
+            WORD "write"
+            QUOTE """
+          R_PAREN ")"
+    FIELD
+      WORD "content"
+      TYPE_EXPR "string"
+        WORD "string"
+      ATTRIBUTE
+        AT "@"
+        WORD "description"
+        ATTRIBUTE_ARGS
+          L_PAREN "("
+          STRING_LITERAL "Content to write to the file"
+            QUOTE """
+            WORD "Content"
+            WORD "to"
+            WORD "write"
+            WORD "to"
+            WORD "the"
+            WORD "file"
+            QUOTE """
+          R_PAREN ")"
+    R_BRACE "}"
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "Bash"
+    L_BRACE "{"
+    FIELD
+      WORD "command"
+      TYPE_EXPR "string"
+        WORD "string"
+      ATTRIBUTE
+        AT "@"
+        WORD "description"
+        ATTRIBUTE_ARGS
+          L_PAREN "("
+          STRING_LITERAL "Shell command to execute"
+            QUOTE """
+            WORD "Shell"
+            WORD "command"
+            WORD "to"
+            WORD "execute"
+            QUOTE """
+          R_PAREN ")"
+    R_BRACE "}"
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "Respond"
+    L_BRACE "{"
+    FIELD
+      WORD "text"
+      TYPE_EXPR "string"
+        WORD "string"
+      ATTRIBUTE
+        AT "@"
+        WORD "description"
+        ATTRIBUTE_ARGS
+          L_PAREN "("
+          STRING_LITERAL "Text response to show the user"
+            QUOTE """
+            WORD "Text"
+            WORD "response"
+            WORD "to"
+            WORD "show"
+            WORD "the"
+            WORD "user"
+            QUOTE """
+          R_PAREN ")"
+    R_BRACE "}"
+  TYPE_ALIAS_DEF
+    WORD "type"
+    WORD "AgentAction"
+    EQUALS "="
+    TYPE_EXPR "ReadFile | WriteFile | Bash | Respond"
+      WORD "ReadFile"
+      PIPE "|"
+      WORD "WriteFile"
+      PIPE "|"
+      WORD "Bash"
+      PIPE "|"
+      WORD "Respond"
+  TYPE_ALIAS_DEF
+    WORD "type"
+    WORD "Role"
+    EQUALS "="
+    TYPE_EXPR
+      STRING_LITERAL "user"
+        QUOTE """
+        WORD "user"
+        QUOTE """
+      PIPE "|"
+      STRING_LITERAL "assistant"
+        QUOTE """
+        WORD "assistant"
+        QUOTE """
+      PIPE "|"
+      STRING_LITERAL "tool"
+        QUOTE """
+        WORD "tool"
+        QUOTE """
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "Message"
+    L_BRACE "{"
+    FIELD
+      WORD "role"
+      TYPE_EXPR "Role"
+        WORD "Role"
+    FIELD
+      WORD "content"
+      TYPE_EXPR "string"
+        WORD "string"
+    R_BRACE "}"
+  CLASS_DEF
+    KW_CLASS "class"
+    WORD "ToolResult"
+    L_BRACE "{"
+    FIELD
+      WORD "tool_name"
+      TYPE_EXPR "string"
+        WORD "string"
+    FIELD
+      WORD "success"
+      TYPE_EXPR "bool"
+        WORD "bool"
+    FIELD
+      WORD "output"
+      TYPE_EXPR "string"
+        WORD "string"
+    R_BRACE "}"
+
+=== ERRORS ===
+None

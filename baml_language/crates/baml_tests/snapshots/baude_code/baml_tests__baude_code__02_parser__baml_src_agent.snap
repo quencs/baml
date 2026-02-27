@@ -1,0 +1,65 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== SYNTAX TREE ===
+SOURCE_FILE
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "DecideAction"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "context_files"
+        COLON ":"
+        TYPE_EXPR "string"
+          WORD "string"
+      COMMA ","
+      PARAMETER
+        WORD "messages"
+        COLON ":"
+        TYPE_EXPR "Message[]"
+          WORD "Message"
+          L_BRACKET "["
+          R_BRACKET "]"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR "AgentAction"
+      WORD "AgentAction"
+    LLM_FUNCTION_BODY
+      L_BRACE "{"
+      CLIENT_FIELD "client Claude"
+        KW_CLIENT "client"
+        WORD "Claude"
+      PROMPT_FIELD
+        WORD "prompt"
+        RAW_STRING_LITERAL
+          HASH "#"
+          QUOTE """
+          TEMPLATE_INTERPOLATION "{{ SystemPrompt(context_files, ToolDescriptions()) }}"
+            L_BRACE "{"
+            L_BRACE "{"
+            WORD "SystemPrompt"
+            L_PAREN "("
+            WORD "context_files"
+            COMMA ","
+            WORD "ToolDescriptions"
+            L_PAREN "("
+            R_PAREN ")"
+            R_PAREN ")"
+            R_BRACE "}"
+            R_BRACE "}"
+          TEMPLATE_INTERPOLATION "{{ ConversationHistory(messages) }}"
+            L_BRACE "{"
+            L_BRACE "{"
+            WORD "ConversationHistory"
+            L_PAREN "("
+            WORD "messages"
+            R_PAREN ")"
+            R_BRACE "}"
+            R_BRACE "}"
+          QUOTE """
+          HASH "#"
+      R_BRACE "}"
+
+=== ERRORS ===
+None

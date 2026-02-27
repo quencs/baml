@@ -1,0 +1,330 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== SYNTAX TREE ===
+SOURCE_FILE
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "ExecuteReadFile"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "action"
+        COLON ":"
+        TYPE_EXPR "ReadFile"
+          WORD "ReadFile"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR "ToolResult"
+      WORD "ToolResult"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        LET_STMT
+          KW_LET "let"
+          WORD "content"
+          EQUALS "="
+          CALL_EXPR
+            FIELD_ACCESS_EXPR
+              CALL_EXPR
+                PATH_EXPR "baml.fs.open"
+                  WORD "baml"
+                  DOT "."
+                  WORD "fs"
+                  DOT "."
+                  WORD "open"
+                CALL_ARGS
+                  L_PAREN "("
+                  PATH_EXPR "action.path"
+                    WORD "action"
+                    DOT "."
+                    WORD "path"
+                  R_PAREN ")"
+              DOT "."
+              WORD "read"
+            CALL_ARGS "()"
+              L_PAREN "("
+              R_PAREN ")"
+          SEMICOLON ";"
+        OBJECT_LITERAL
+          WORD "ToolResult"
+          L_BRACE "{"
+          OBJECT_FIELD
+            WORD "tool_name"
+            COLON ":"
+            STRING_LITERAL "ReadFile"
+              QUOTE """
+              WORD "ReadFile"
+              QUOTE """
+          COMMA ","
+          OBJECT_FIELD "success: true"
+            WORD "success"
+            COLON ":"
+            WORD "true"
+          COMMA ","
+          OBJECT_FIELD "output: content"
+            WORD "output"
+            COLON ":"
+            WORD "content"
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "ExecuteWriteFile"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "action"
+        COLON ":"
+        TYPE_EXPR "WriteFile"
+          WORD "WriteFile"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR "ToolResult"
+      WORD "ToolResult"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        LET_STMT
+          KW_LET "let"
+          WORD "cmd"
+          EQUALS "="
+          BINARY_EXPR
+            BINARY_EXPR
+              BINARY_EXPR
+                BINARY_EXPR
+                  STRING_LITERAL "cat > "
+                    QUOTE """
+                    WORD "cat"
+                    GREATER ">"
+                    QUOTE """
+                  PLUS "+"
+                  PATH_EXPR "action.path"
+                    WORD "action"
+                    DOT "."
+                    WORD "path"
+                PLUS "+"
+                STRING_LITERAL " <<'BAUDE_EOF'\n"
+                  QUOTE """
+                  LESS_LESS "<<"
+                  ERROR_TOKEN "'"
+                  WORD "BAUDE_EOF"
+                  ERROR_TOKEN "'"
+                  BACKSLASH "\"
+                  WORD "n"
+                  QUOTE """
+              PLUS "+"
+              PATH_EXPR "action.content"
+                WORD "action"
+                DOT "."
+                WORD "content"
+            PLUS "+"
+            STRING_LITERAL "\nBAUDE_EOF"
+              QUOTE """
+              BACKSLASH "\"
+              WORD "nBAUDE_EOF"
+              QUOTE """
+          SEMICOLON ";"
+        CALL_EXPR
+          PATH_EXPR "baml.sys.shell"
+            WORD "baml"
+            DOT "."
+            WORD "sys"
+            DOT "."
+            WORD "shell"
+          CALL_ARGS "(cmd)"
+            L_PAREN "("
+            WORD "cmd"
+            R_PAREN ")"
+        SEMICOLON ";"
+        OBJECT_LITERAL
+          WORD "ToolResult"
+          L_BRACE "{"
+          OBJECT_FIELD
+            WORD "tool_name"
+            COLON ":"
+            STRING_LITERAL "WriteFile"
+              QUOTE """
+              WORD "WriteFile"
+              QUOTE """
+          COMMA ","
+          OBJECT_FIELD "success: true"
+            WORD "success"
+            COLON ":"
+            WORD "true"
+          COMMA ","
+          OBJECT_FIELD
+            WORD "output"
+            COLON ":"
+            BINARY_EXPR
+              STRING_LITERAL "Wrote to "
+                QUOTE """
+                WORD "Wrote"
+                WORD "to"
+                QUOTE """
+              PLUS "+"
+              PATH_EXPR "action.path"
+                WORD "action"
+                DOT "."
+                WORD "path"
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "ExecuteBash"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "action"
+        COLON ":"
+        TYPE_EXPR "Bash"
+          WORD "Bash"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR "ToolResult"
+      WORD "ToolResult"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        LET_STMT
+          KW_LET "let"
+          WORD "output"
+          EQUALS "="
+          CALL_EXPR
+            PATH_EXPR "baml.sys.shell"
+              WORD "baml"
+              DOT "."
+              WORD "sys"
+              DOT "."
+              WORD "shell"
+            CALL_ARGS
+              L_PAREN "("
+              PATH_EXPR "action.command"
+                WORD "action"
+                DOT "."
+                WORD "command"
+              R_PAREN ")"
+          SEMICOLON ";"
+        OBJECT_LITERAL
+          WORD "ToolResult"
+          L_BRACE "{"
+          OBJECT_FIELD
+            WORD "tool_name"
+            COLON ":"
+            STRING_LITERAL "Bash"
+              QUOTE """
+              WORD "Bash"
+              QUOTE """
+          COMMA ","
+          OBJECT_FIELD "success: true"
+            WORD "success"
+            COLON ":"
+            WORD "true"
+          COMMA ","
+          OBJECT_FIELD "output: output"
+            WORD "output"
+            COLON ":"
+            WORD "output"
+          R_BRACE "}"
+        R_BRACE "}"
+  FUNCTION_DEF
+    KW_FUNCTION "function"
+    WORD "ExecuteTool"
+    PARAMETER_LIST
+      L_PAREN "("
+      PARAMETER
+        WORD "action"
+        COLON ":"
+        TYPE_EXPR "AgentAction"
+          WORD "AgentAction"
+      R_PAREN ")"
+    ARROW "->"
+    TYPE_EXPR "ToolResult"
+      WORD "ToolResult"
+    EXPR_FUNCTION_BODY
+      BLOCK_EXPR
+        L_BRACE "{"
+        MATCH_EXPR
+          KW_MATCH "match"
+          L_PAREN "("
+          WORD "action"
+          R_PAREN ")"
+          L_BRACE "{"
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "rf"
+              COLON ":"
+              TYPE_EXPR "ReadFile"
+                WORD "ReadFile"
+            FAT_ARROW "=>"
+            CALL_EXPR
+              WORD "ExecuteReadFile"
+              CALL_ARGS "(rf)"
+                L_PAREN "("
+                WORD "rf"
+                R_PAREN ")"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "wf"
+              COLON ":"
+              TYPE_EXPR "WriteFile"
+                WORD "WriteFile"
+            FAT_ARROW "=>"
+            CALL_EXPR
+              WORD "ExecuteWriteFile"
+              CALL_ARGS "(wf)"
+                L_PAREN "("
+                WORD "wf"
+                R_PAREN ")"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "b"
+              COLON ":"
+              TYPE_EXPR "Bash"
+                WORD "Bash"
+            FAT_ARROW "=>"
+            CALL_EXPR
+              WORD "ExecuteBash"
+              CALL_ARGS "(b)"
+                L_PAREN "("
+                WORD "b"
+                R_PAREN ")"
+            COMMA ","
+          MATCH_ARM
+            MATCH_PATTERN
+              WORD "r"
+              COLON ":"
+              TYPE_EXPR "Respond"
+                WORD "Respond"
+            FAT_ARROW "=>"
+            OBJECT_LITERAL
+              WORD "ToolResult"
+              L_BRACE "{"
+              OBJECT_FIELD
+                WORD "tool_name"
+                COLON ":"
+                STRING_LITERAL "Respond"
+                  QUOTE """
+                  WORD "Respond"
+                  QUOTE """
+              COMMA ","
+              OBJECT_FIELD "success: true"
+                WORD "success"
+                COLON ":"
+                WORD "true"
+              COMMA ","
+              OBJECT_FIELD
+                WORD "output"
+                COLON ":"
+                PATH_EXPR "r.text"
+                  WORD "r"
+                  DOT "."
+                  WORD "text"
+              R_BRACE "}"
+          R_BRACE "}"
+        R_BRACE "}"
+
+=== ERRORS ===
+None

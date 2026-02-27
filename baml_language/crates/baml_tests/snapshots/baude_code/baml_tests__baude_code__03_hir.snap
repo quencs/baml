@@ -1,0 +1,133 @@
+---
+source: crates/baml_tests/src/generated_tests.rs
+---
+=== HIR ITEMS ===
+function DecideAction.render_prompt(context_files: string, messages: Message[]) -> baml.llm.PromptAst {
+    baml.llm.render_prompt("DecideAction", { "context_files": context_files, "messages": messages })
+}
+
+function DecideAction.build_request(context_files: string, messages: Message[]) -> baml.http.Request {
+    baml.llm.build_request("DecideAction", { "context_files": context_files, "messages": messages })
+}
+
+function DecideAction(context_files: string, messages: Message[]) -> AgentAction {
+    baml.llm.call_llm_function("DecideAction", { "context_files": context_files, "messages": messages })
+}
+
+function Claude.resolve() -> baml.llm.PrimitiveClient {
+    baml.llm.build_primitive_client("Claude", "anthropic", "user", ["user", "assistant", "system"], { "model": "claude-sonnet-4-20250514", "max_tokens": 4096, "api_key": env.get_or_panic("ANTHROPIC_API_KEY") })
+}
+
+client Claude {
+  provider: anthropic
+}
+
+retry_policy DefaultRetry
+
+function Main() -> string {
+    let context = LoadContext();
+    let messages: Message[] = [];
+    baml.sys.shell("echo 'Welcome to Baude Code! Type /quit to exit.'");
+    while (true) {
+        baml.sys.shell("printf '> '");
+        let input = ReadLine();
+        if (input == "/quit") {
+            break;
+        };
+        messages.push(Message { role: "user", content: input });
+        let done = false;
+        while (!done) {
+            let action = DecideAction(context, messages);
+            match (action) {
+                r: Respond => {
+                    baml.sys.shell("echo '" + r.text + "'");
+                    messages.push(Message { role: "assistant", content: r.text });
+                    done = true;
+                },
+                tool: ReadFile | WriteFile | Bash => {
+                    let result = ExecuteTool(action);
+                    baml.sys.shell("echo '[" + result.tool_name + "] " + result.output + "'");
+                    messages.push(Message { role: "tool", content: result.tool_name + ": " + result.output });
+                },
+            };
+        }
+    }
+    "Goodbye!"
+}
+
+function LoadContext() -> string {
+    let context = "";
+    let claude_md = baml.sys.shell("cat CLAUDE.md 2>/dev/null || true");
+    let baude_md = baml.sys.shell("cat BAUDE.md 2>/dev/null || true");
+    if (claude_md != "") {
+        context = context + "# CLAUDE.md\n" + claude_md + "\n\n";
+    };
+    if (baude_md != "") {
+        context = context + "# BAUDE.md\n" + baude_md + "\n\n";
+    };
+    context
+}
+
+function ReadLine() -> string {
+    baml.sys.shell("read -r line && echo \"$line\"")
+}
+
+template_string SystemPrompt(context_files: string, tool_descriptions: string)
+template_string ToolDescriptions()
+template_string ConversationHistory(messages: Message[])
+function ExecuteWriteFile(action: WriteFile) -> ToolResult {
+    let cmd = "cat > " + action.path + " <<'BAUDE_EOF'\n" + action.content + "\nBAUDE_EOF";
+    baml.sys.shell(cmd);
+    ToolResult { tool_name: "WriteFile", success: true, output: "Wrote to " + action.path }
+}
+
+function ExecuteBash(action: Bash) -> ToolResult {
+    let output = baml.sys.shell(action.command);
+    ToolResult { tool_name: "Bash", success: true, output: output }
+}
+
+function ExecuteReadFile(action: ReadFile) -> ToolResult {
+    let content = baml.fs.open(action.path).read();
+    ToolResult { tool_name: "ReadFile", success: true, output: content }
+}
+
+function ExecuteTool(action: AgentAction) -> ToolResult {
+    match (action) {
+        rf: ReadFile => ExecuteReadFile(rf),
+        wf: WriteFile => ExecuteWriteFile(wf),
+        b: Bash => ExecuteBash(b),
+        r: Respond => ToolResult { tool_name: "Respond", success: true, output: r.text },
+    }
+}
+
+class Respond {
+  text: string
+}
+
+class Message {
+  role: Role
+  content: string
+}
+
+class Bash {
+  command: string
+}
+
+class ToolResult {
+  tool_name: string
+  success: bool
+  output: string
+}
+
+class ReadFile {
+  path: string
+}
+
+class WriteFile {
+  path: string
+  content: string
+}
+
+type Role = "user" | "assistant" | "tool"
+
+type AgentAction = ReadFile | WriteFile | Bash | Respond

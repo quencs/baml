@@ -1,0 +1,73 @@
+// Baude Code — Entry point and agent loop
+
+// Load context files (CLAUDE.md, BAUDE.md) from the working directory.
+// Missing files are silently ignored.
+function LoadContext() -> string {
+    let context = "";
+
+    let claude_md = baml.sys.shell("cat CLAUDE.md 2>/dev/null || true");
+    let baude_md = baml.sys.shell("cat BAUDE.md 2>/dev/null || true");
+
+    if (claude_md != "") {
+        context = context + "# CLAUDE.md\n" + claude_md + "\n\n";
+    };
+    if (baude_md != "") {
+        context = context + "# BAUDE.md\n" + baude_md + "\n\n";
+    };
+
+    context
+}
+
+// Read one line from stdin.
+function ReadLine() -> string {
+    baml.sys.shell("read -r line && echo \"$line\"")
+}
+
+// Main agent loop.
+function Main() -> string {
+    let context = LoadContext();
+    let messages: Message[] = [];
+
+    baml.sys.shell("echo 'Welcome to Baude Code! Type /quit to exit.'");
+
+    while (true) {
+        // Prompt and read user input
+        baml.sys.shell("printf '> '");
+        let input = ReadLine();
+
+        // Handle slash commands
+        if (input == "/quit") {
+            break;
+        };
+
+        // Append user message to history
+        messages.push(Message { role: "user", content: input });
+
+        // Inner tool loop: call the LLM repeatedly until it Responds
+        let done = false;
+        while (!done) {
+            let action = DecideAction(context, messages);
+
+            match (action) {
+                r: Respond => {
+                    baml.sys.shell("echo '" + r.text + "'");
+                    messages.push(Message {
+                        role: "assistant",
+                        content: r.text
+                    });
+                    done = true;
+                },
+                tool: ReadFile | WriteFile | Bash => {
+                    let result = ExecuteTool(action);
+                    baml.sys.shell("echo '[" + result.tool_name + "] " + result.output + "'");
+                    messages.push(Message {
+                        role: "tool",
+                        content: result.tool_name + ": " + result.output
+                    });
+                }
+            };
+        };
+    };
+
+    "Goodbye!"
+}
