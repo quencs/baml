@@ -7,7 +7,7 @@
 function DecideAction(context_files: string, messages: Message[]) -> AgentAction {
     client Claude
     prompt #"
-        {{ SystemPrompt(context_files, ToolDescriptions()) }}
+        {{ SystemPrompt(context_files) }}
 
         {{ ConversationHistory(messages) }}
     "#

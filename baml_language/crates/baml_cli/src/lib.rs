@@ -12,6 +12,7 @@
 pub(crate) mod commands;
 pub(crate) mod format;
 pub(crate) mod lsp;
+pub(crate) mod run_command;
 pub(crate) mod test_command;
 pub(crate) mod test_filter;
 

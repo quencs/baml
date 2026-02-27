@@ -5,19 +5,23 @@
 // ---------------------------------------------------------------------------
 
 class ReadFile {
+    type "read_file"
     path string @description("Path of the file to read")
 }
 
 class WriteFile {
+    type "write_file"
     path string @description("Path of the file to write")
     content string @description("Content to write to the file")
 }
 
 class Bash {
+    type "bash"
     command string @description("Shell command to execute")
 }
 
 class Respond {
+    type "respond"
     text string @description("Text response to show the user")
 }
 

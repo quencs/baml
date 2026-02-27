@@ -1,6 +1,6 @@
 // Baude Code — Prompt composition via template_strings
 
-template_string SystemPrompt(context_files: string, tool_descriptions: string) #"
+template_string SystemPrompt(context_files: string) #"
 You are Baude Code, a coding assistant running in the user's terminal.
 You help users read, write, and navigate code by using the tools available
 to you. Be concise and helpful.
@@ -10,8 +10,6 @@ to you. Be concise and helpful.
 You have access to the following tools. On each turn you MUST return exactly
 one JSON object matching one of the tool schemas below.
 To reply with text, use the Respond tool.
-
-{{ tool_descriptions }}
 
 {{ ctx.output_format }}
 "#

@@ -56,6 +56,9 @@ pub(crate) enum Commands {
 
     // #[command(about = "Print Bytecode from BAML files", hide = true)]
     // DumpBytecode(baml_runtime::cli::dump_intermediate::DumpIntermediateArgs),
+    #[command(about = "Run a BAML function")]
+    Run(crate::run_command::RunArgs),
+
     #[command(about = "Run BAML tests")]
     Test(crate::test_command::TestArgs),
 
@@ -111,6 +114,7 @@ impl RuntimeCli {
 
     pub fn run(&self) -> Result<crate::ExitCode> {
         match &self.command {
+            Commands::Run(args) => args.run(),
             Commands::Test(args) => args.run(),
             Commands::LanguageServer(args) => match args.run() {
                 Ok(()) => Ok(crate::ExitCode::Success),
