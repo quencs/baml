@@ -1,14 +1,33 @@
-// Baude Code — The core LLM function
-//
-// DecideAction takes the full conversation context and returns exactly one
-// AgentAction: either a tool call (ReadFile, WriteFile, Bash) or a direct
-// text response (Respond).
+function ChooseTool(chat_context: ChatContext) -> Tool {
 
-function DecideAction(context_files: string, messages: Message[]) -> AgentAction {
-    client Claude
-    prompt #"
-        {{ SystemPrompt(context_files) }}
+  client "anthropic/claude-opus-4.6"
+  prompt #"
+    You are baude-code, a Claude Code clone built to help founders ship unbreakable agents.
+    (You're a coding assistant.)
 
-        {{ ConversationHistory(messages) }}
-    "#
+    Choose a tool to help the user satisfy their goal.
+
+    This sessions's history:
+    {% for message in chat_context.messages %}
+      {{ m.type }}
+      {{ m.timestamp }}
+      {{ m.contents }}
+    {% endfor %}
+
+    {{ ctx.output_format }}
+  "#
+
+}
+
+class ChatContext {
+  memory_files: map<baml.fs.Path, string>,
+  messages: Message[]
+}
+
+type Message = UserMessage | ToolResult
+
+class UserMessage {
+  type "user_message"
+  timestamp int
+  contents string
 }

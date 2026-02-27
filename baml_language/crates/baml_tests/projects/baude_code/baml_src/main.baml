@@ -1,73 +1,44 @@
-// Baude Code — Entry point and agent loop
+function main() {
 
-// Load context files (CLAUDE.md, BAUDE.md) from the working directory.
-// Missing files are silently ignored.
-function LoadContext() -> string {
-    let context = "";
+  let agents_md_contents = baml.fs.read_file("AGENTS.MD") catch (_) {
+    ""
+  };
 
-    let claude_md = baml.sys.shell("cat CLAUDE.md 2>/dev/null || true");
-    let baude_md = baml.sys.shell("cat BAUDE.md 2>/dev/null || true");
+  let claude_md_contents = baml.fs.read_file("CLAUDE.MD") catch (_) {
+    ""
+  };
 
-    if (claude_md != "") {
-        context = context + "# CLAUDE.md\n" + claude_md + "\n\n";
-    };
-    if (baude_md != "") {
-        context = context + "# BAUDE.md\n" + baude_md + "\n\n";
-    };
+  let chat_context = ChatContext {
+    memory_files: { "AGENTS.MD": agents_md_contents, "CLAUDE.MD": claude_md_contents },
+    messages: [],
+  };
 
-    context
-}
+  while (true) {
 
-// Read one line from stdin.
-function ReadLine() -> string {
-    baml.sys.shell("read -r line && echo \"$line\"")
-}
+    let user_line = baml.sys.read_line();
+    if (user_line == "/quit") {
+      break;
+    }
 
-// Main agent loop.
-function Main() -> string {
-    let context = LoadContext();
-    let messages: Message[] = [];
-
-    baml.sys.shell("echo 'Welcome to Baude Code! Type /quit to exit.'");
-
-    while (true) {
-        // Prompt and read user input
-        baml.sys.shell("printf '> '");
-        let input = ReadLine();
-
-        // Handle slash commands
-        if (input == "/quit") {
-            break;
-        };
-
-        // Append user message to history
-        messages.push(Message { role: "user", content: input });
-
-        // Inner tool loop: call the LLM repeatedly until it Responds
-        let done = false;
-        while (!done) {
-            let action = DecideAction(context, messages);
-
-            match (action) {
-                r: Respond => {
-                    baml.sys.shell("echo '" + r.text + "'");
-                    messages.push(Message {
-                        role: "assistant",
-                        content: r.text
-                    });
-                    done = true;
-                },
-                tool: ReadFile | WriteFile | Bash => {
-                    let result = ExecuteTool(action);
-                    baml.sys.shell("echo '[" + result.tool_name + "] " + result.output + "'");
-                    messages.push(Message {
-                        role: "tool",
-                        content: result.tool_name + ": " + result.output
-                    });
-                }
-            };
-        };
+    chat_context.messages.push(UserMessage {
+      contents: user_line,
+      timestamp: baml.sys.now_unix_timestamp(),
     };
 
-    "Goodbye!"
+    let agent_finished = false;
+
+    while (!agent_finished) {
+
+      let tool = ChooseTool(chat_context);
+      let tool_result = execute_tool(tool);
+
+      if tool.type == "respond" {
+        agent_finished = true;
+      }
+
+      chat_context.messages.push(tool_result);
+
+  }
+
+
 }
