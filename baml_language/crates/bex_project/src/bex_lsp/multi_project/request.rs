@@ -48,6 +48,8 @@ pub(super) fn server_capabilities() -> ServerCapabilities {
                 ..Default::default()
             },
         )),
+        document_symbol_provider: Some(lsp_types::OneOf::Left(true)),
+        workspace_symbol_provider: Some(lsp_types::OneOf::Left(true)),
         workspace: Some(WorkspaceServerCapabilities {
             workspace_folders: Some(WorkspaceFoldersServerCapabilities {
                 supported: Some(true),
@@ -565,6 +567,143 @@ impl BexLspRequest for BexMulitProject {
                 },
             ),
         ))
+    }
+
+    fn on_request_workspace_symbol(
+        &self,
+        params: lsp_request_params!("workspace/symbol"),
+    ) -> Result<lsp_request_result!("workspace/symbol"), LspError> {
+        let query = params.query.to_lowercase();
+        let mut symbols = Vec::new();
+
+        let projects = self.projects.lock().unwrap();
+        for project_handle in projects.values() {
+            let Ok(db_guard) = project_handle.project.try_lock_db() else {
+                continue;
+            };
+            let lsp_db = db_guard.db();
+            let Some(project) = db_guard.project() else {
+                continue;
+            };
+
+            let all_symbols = std::iter::empty()
+                .chain(baml_project::list_functions(lsp_db, project))
+                .chain(baml_project::list_classes(lsp_db, project))
+                .chain(baml_project::list_enums(lsp_db, project))
+                .chain(baml_project::list_type_aliases(lsp_db, project))
+                .chain(baml_project::list_clients(lsp_db, project))
+                .chain(baml_project::list_tests(lsp_db, project))
+                .chain(baml_project::list_generators(lsp_db, project));
+
+            for sym in all_symbols {
+                if !query.is_empty() && !sym.name.to_lowercase().contains(&query) {
+                    continue;
+                }
+                let Ok(uri) = wasm_helpers::from_file_path(&sym.file_path) else {
+                    continue;
+                };
+                let range = lsp_db
+                    .get_file(&sym.file_path)
+                    .map(|source_file| {
+                        let text = source_file.text(lsp_db.db());
+                        baml_project::position::span_to_lsp_range(text, &sym.span)
+                    })
+                    .unwrap_or_default();
+
+                symbols.push(lsp_types::WorkspaceSymbol {
+                    name: sym.name,
+                    kind: to_lsp_symbol_kind(sym.kind),
+                    tags: None,
+                    container_name: None,
+                    location: lsp_types::OneOf::Left(lsp_types::Location { uri, range }),
+                    data: None,
+                });
+            }
+        }
+
+        if symbols.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(lsp_types::WorkspaceSymbolResponse::Nested(symbols)))
+        }
+    }
+
+    fn on_request_text_document_document_symbol(
+        &self,
+        params: lsp_request_params!("textDocument/documentSymbol"),
+    ) -> Result<lsp_request_result!("textDocument/documentSymbol"), LspError> {
+        fn convert_symbol(
+            sym: &baml_db::baml_compiler_hir::FileSymbol,
+            text: &str,
+        ) -> lsp_types::DocumentSymbol {
+            let range = baml_project::position::text_range_to_lsp_range(text, sym.range);
+            let selection_range =
+                baml_project::position::text_range_to_lsp_range(text, sym.selection_range);
+
+            let children = if sym.children.is_empty() {
+                None
+            } else {
+                Some(
+                    sym.children
+                        .iter()
+                        .map(|child| convert_symbol(child, text))
+                        .collect(),
+                )
+            };
+
+            #[allow(deprecated)]
+            lsp_types::DocumentSymbol {
+                name: sym.name.clone(),
+                kind: to_lsp_symbol_kind(sym.kind),
+                detail: None,
+                tags: None,
+                deprecated: None,
+                range,
+                selection_range,
+                children,
+            }
+        }
+
+        let path = self.get_path_from_uri(&params.text_document.uri)?;
+        let root_path = Self::get_baml_project_root(&path)?;
+        let project_handle = self.get_or_create_project(root_path)?;
+
+        let project = project_handle.project.try_lock_db()?;
+        let lsp_db = project.db();
+        let Some(source_file) = lsp_db.get_file(std::path::Path::new(path.as_str())) else {
+            return Ok(None);
+        };
+
+        let text = source_file.text(lsp_db);
+        let file_symbols = baml_db::baml_compiler_hir::list_file_symbols(lsp_db, source_file);
+
+        let symbols: Vec<_> = file_symbols
+            .iter()
+            .map(|sym| convert_symbol(sym, text))
+            .collect();
+
+        if symbols.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(lsp_types::DocumentSymbolResponse::Nested(symbols)))
+        }
+    }
+}
+
+fn to_lsp_symbol_kind(kind: baml_project::SymbolKind) -> lsp_types::SymbolKind {
+    use baml_project::SymbolKind;
+    match kind {
+        SymbolKind::Function => lsp_types::SymbolKind::FUNCTION,
+        SymbolKind::Class => lsp_types::SymbolKind::CLASS,
+        SymbolKind::Enum => lsp_types::SymbolKind::ENUM,
+        SymbolKind::TypeAlias => lsp_types::SymbolKind::CLASS,
+        SymbolKind::Client => lsp_types::SymbolKind::STRUCT,
+        SymbolKind::Test => lsp_types::SymbolKind::METHOD,
+        SymbolKind::Generator => lsp_types::SymbolKind::INTERFACE,
+        SymbolKind::TemplateString => lsp_types::SymbolKind::FUNCTION,
+        SymbolKind::RetryPolicy => lsp_types::SymbolKind::STRUCT,
+        SymbolKind::Field => lsp_types::SymbolKind::FIELD,
+        SymbolKind::EnumVariant => lsp_types::SymbolKind::ENUM_MEMBER,
     }
 }
 
