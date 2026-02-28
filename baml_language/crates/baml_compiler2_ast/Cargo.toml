@@ -1,0 +1,17 @@
+[package]
+name = "baml_compiler2_ast"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+baml_base = { path = "../baml_base" }
+baml_compiler_diagnostics = { path = "../baml_compiler_diagnostics" }
+baml_compiler_syntax = { path = "../baml_compiler_syntax" }
+la-arena = { workspace = true }
+rowan = { workspace = true }
+rustc-hash = { workspace = true }
+text-size = { workspace = true }
+smol_str = { workspace = true }

@@ -401,6 +401,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml_compiler2_ast"
+version = "0.1.0"
+dependencies = [
+ "baml_base",
+ "baml_compiler_diagnostics",
+ "baml_compiler_syntax",
+ "la-arena",
+ "rowan 0.16.1",
+ "rustc-hash 2.1.1",
+ "smol_str",
+ "text-size",
+]
+
+[[package]]
 name = "baml_compiler_diagnostics"
 version = "0.0.0-beta"
 dependencies = [

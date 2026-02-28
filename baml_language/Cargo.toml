@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "crates/baml_compiler2_ast",
   "crates/baml_base",
   "crates/baml_builtins",
   "crates/baml_builtins_macros",
