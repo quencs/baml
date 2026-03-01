@@ -31,7 +31,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -75,7 +75,7 @@ jobs:
 
       - name: "Upload test results on failure"
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-failures-linux
           path: |
@@ -88,7 +88,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -123,7 +123,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -159,7 +159,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -196,7 +196,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -221,7 +221,7 @@ jobs:
 
       - name: "Upload size-gate report"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: size-gate-linux
           path: baml_language/size-gate-linux.json
@@ -229,7 +229,7 @@ jobs:
 
       - name: "Upload size-gate binary"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: size-gate-binary
           path: baml_language/target/debug/cargo-size-gate
@@ -245,7 +245,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -270,7 +270,7 @@ jobs:
 
       - name: "Upload size-gate report"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: size-gate-macos
           path: baml_language/size-gate-macos.json
@@ -286,7 +286,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -311,7 +311,7 @@ jobs:
 
       - name: "Upload size-gate report"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: size-gate-windows
           path: baml_language/size-gate-windows.json
@@ -327,7 +327,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -354,7 +354,7 @@ jobs:
 
       - name: "Upload size-gate report"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: size-gate-wasm
           path: baml_language/size-gate-wasm.json
@@ -373,7 +373,7 @@ jobs:
       pull-requests: write
     steps:
       - name: "Download size-gate reports and binary"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: size-gate-*
           merge-multiple: true
@@ -428,7 +428,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -464,7 +464,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -488,7 +488,7 @@ jobs:
     if: ${{ inputs.code_changed == 'true' || inputs.run_all }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -524,7 +524,7 @@ jobs:
 
       - name: "Upload snapshot failures"
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snapshot-failures
           path: |
