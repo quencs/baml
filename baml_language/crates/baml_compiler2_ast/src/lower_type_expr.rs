@@ -4,12 +4,10 @@
 //! The output is the same recursive structure but as `ast::TypeExpr` instead of `TypeRef`.
 
 use baml_base::Name;
-use baml_compiler_syntax::ast::TypeExpr as CstTypeExpr;
-use baml_compiler_syntax::FunctionTypeParam;
+use baml_compiler_syntax::{FunctionTypeParam, ast::TypeExpr as CstTypeExpr};
 use rowan::ast::AstNode;
 
-use crate::ast::TypeExpr;
-use crate::ast::FunctionTypeParam as AstFunctionTypeParam;
+use crate::ast::{FunctionTypeParam as AstFunctionTypeParam, TypeExpr};
 
 /// Convert a CST `TypeExpr` node to our `ast::TypeExpr` recursive enum.
 pub(crate) fn lower_type_expr_node(type_expr: &CstTypeExpr) -> TypeExpr {

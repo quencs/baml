@@ -7,11 +7,11 @@ edition = "2024"
 workspace = true
 
 [dependencies]
-baml_base = { path = "../baml_base" }
-baml_compiler_diagnostics = { path = "../baml_compiler_diagnostics" }
-baml_compiler_syntax = { path = "../baml_compiler_syntax" }
+baml_base = { workspace = true }
+baml_compiler_diagnostics = { workspace = true }
+baml_compiler_syntax = { workspace = true }
 la-arena = { workspace = true }
 rowan = { workspace = true }
 rustc-hash = { workspace = true }
-text-size = { workspace = true }
 smol_str = { workspace = true }
+text-size = { workspace = true }

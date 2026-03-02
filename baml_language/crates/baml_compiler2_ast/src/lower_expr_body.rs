@@ -11,8 +11,9 @@ use rowan::ast::AstNode;
 use text_size::{TextRange, TextSize};
 
 use crate::ast::{
-    AssignOp, AstSourceMap, BinaryOp, Expr, ExprBody, ExprId, Literal, LoopOrigin, LetOrigin,
-    MatchArm, MatchArmId, Pattern, PatId, SpreadField, Stmt, StmtId, TypeExpr, TypeAnnotId, UnaryOp,
+    AssignOp, AstSourceMap, BinaryOp, Expr, ExprBody, ExprId, LetOrigin, Literal, LoopOrigin,
+    MatchArm, MatchArmId, PatId, Pattern, SpreadField, Stmt, StmtId, TypeAnnotId, TypeExpr,
+    UnaryOp,
 };
 
 /// Lower a CST `ExprFunctionBody` to an owned `ExprBody` + parallel `AstSourceMap`.
@@ -130,9 +131,7 @@ impl LoweringContext {
                         SyntaxKind::RETURN_STMT => self.lower_return_stmt(node),
                         SyntaxKind::WHILE_STMT => self.lower_while_stmt(node),
                         SyntaxKind::FOR_EXPR => self.lower_for_stmt(node),
-                        SyntaxKind::BREAK_STMT => {
-                            self.alloc_stmt(Stmt::Break, node.text_range())
-                        }
+                        SyntaxKind::BREAK_STMT => self.alloc_stmt(Stmt::Break, node.text_range()),
                         SyntaxKind::CONTINUE_STMT => {
                             self.alloc_stmt(Stmt::Continue, node.text_range())
                         }
@@ -287,8 +286,7 @@ impl LoweringContext {
                         SyntaxKind::KW_INSTANCEOF => op = Some(BinaryOp::Instanceof),
                         SyntaxKind::INTEGER_LITERAL => {
                             let value = token.text().parse::<i64>().unwrap_or(0);
-                            let expr_id =
-                                self.alloc_expr(Expr::Literal(Literal::Int(value)), span);
+                            let expr_id = self.alloc_expr(Expr::Literal(Literal::Int(value)), span);
                             if lhs.is_none() {
                                 lhs = Some(expr_id);
                             } else {
@@ -382,8 +380,7 @@ impl LoweringContext {
                     match token.kind() {
                         SyntaxKind::INTEGER_LITERAL => {
                             let value = token.text().parse::<i64>().unwrap_or(0);
-                            let expr_id =
-                                self.alloc_expr(Expr::Literal(Literal::Int(value)), span);
+                            let expr_id = self.alloc_expr(Expr::Literal(Literal::Int(value)), span);
                             if lhs.is_none() {
                                 lhs = Some(expr_id);
                             } else {
@@ -547,9 +544,8 @@ impl LoweringContext {
                         match token.kind() {
                             SyntaxKind::INTEGER_LITERAL => {
                                 let value = token.text().parse::<i64>().unwrap_or(0);
-                                scrutinee = Some(
-                                    self.alloc_expr(Expr::Literal(Literal::Int(value)), span),
-                                );
+                                scrutinee =
+                                    Some(self.alloc_expr(Expr::Literal(Literal::Int(value)), span));
                             }
                             SyntaxKind::WORD => {
                                 let text = token.text();
@@ -645,16 +641,17 @@ impl LoweringContext {
                     }
                     SyntaxKind::INTEGER_LITERAL if seen_fat_arrow && body.is_none() => {
                         let value = token.text().parse::<i64>().unwrap_or(0);
-                        body = Some(self.alloc_expr(
-                            Expr::Literal(Literal::Int(value)),
-                            token.text_range(),
-                        ));
+                        body = Some(
+                            self.alloc_expr(Expr::Literal(Literal::Int(value)), token.text_range()),
+                        );
                     }
                     SyntaxKind::FLOAT_LITERAL if seen_fat_arrow && body.is_none() => {
                         let text = token.text().to_string();
-                        body = Some(
-                            self.alloc_expr(Expr::Literal(Literal::Float(text)), token.text_range()),
-                        );
+                        body =
+                            Some(self.alloc_expr(
+                                Expr::Literal(Literal::Float(text)),
+                                token.text_range(),
+                            ));
                     }
                     SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL
                         if seen_fat_arrow && body.is_none() =>
@@ -792,9 +789,8 @@ impl LoweringContext {
                                 } else {
                                     // Multi-segment path followed by colon — not valid; treat as binding
                                     let name = segs.last().cloned().unwrap_or(Name::new("_"));
-                                    current_element = Some(PatternElement::TypedBindingStart(
-                                        name, start,
-                                    ));
+                                    current_element =
+                                        Some(PatternElement::TypedBindingStart(name, start));
                                 }
                             }
                         }
@@ -885,16 +881,23 @@ impl LoweringContext {
                 let range = TextRange::new(start, start);
                 match segs.len() {
                     0 => self.alloc_pattern(Pattern::Binding(Name::new("_")), range),
-                    1 => self.alloc_pattern(Pattern::Binding(segs.into_iter().next().unwrap()), range),
+                    1 => self
+                        .alloc_pattern(Pattern::Binding(segs.into_iter().next().unwrap()), range),
                     _ => {
                         // Multi-segment: last is variant, rest form enum name
-                        let mut iter = segs.into_iter();
+                        let iter = segs.into_iter();
                         let mut collected = Vec::new();
-                        while let Some(s) = iter.next() {
+                        for s in iter {
                             collected.push(s);
                         }
                         let variant = collected.pop().unwrap();
-                        let enum_name = Name::new(&collected.iter().map(|n| n.as_str()).collect::<Vec<_>>().join("."));
+                        let enum_name = Name::new(
+                            collected
+                                .iter()
+                                .map(Name::as_str)
+                                .collect::<Vec<_>>()
+                                .join("."),
+                        );
                         self.alloc_pattern(Pattern::EnumVariant { enum_name, variant }, range)
                     }
                 }
@@ -915,9 +918,7 @@ impl LoweringContext {
 
     fn lower_call_expr(&mut self, node: &SyntaxNode) -> ExprId {
         // CALL_EXPR structure: callee expr node (or WORD token), then CALL_ARGS node
-        let callee_node = node
-            .children()
-            .find(|n| n.kind() != SyntaxKind::CALL_ARGS);
+        let callee_node = node.children().find(|n| n.kind() != SyntaxKind::CALL_ARGS);
 
         let callee = if let Some(n) = callee_node {
             self.lower_expr(&n)
@@ -929,7 +930,10 @@ impl LoweringContext {
                 .find(|t| t.kind() == SyntaxKind::WORD);
 
             if let Some(token) = word_token {
-                self.alloc_expr(Expr::Path(vec![Name::new(token.text())]), token.text_range())
+                self.alloc_expr(
+                    Expr::Path(vec![Name::new(token.text())]),
+                    token.text_range(),
+                )
             } else {
                 self.alloc_expr(Expr::Missing, node.text_range())
             }
@@ -966,10 +970,12 @@ impl LoweringContext {
                                 }
                                 SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
                                     let content = strip_string_delimiters(token.text());
-                                    args.push(self.alloc_expr(
-                                        Expr::Literal(Literal::String(content)),
-                                        span,
-                                    ));
+                                    args.push(
+                                        self.alloc_expr(
+                                            Expr::Literal(Literal::String(content)),
+                                            span,
+                                        ),
+                                    );
                                 }
                                 SyntaxKind::WORD => {
                                     let text = token.text();
@@ -1013,14 +1019,12 @@ impl LoweringContext {
         if segments.len() == 1 {
             match segments[0].as_str() {
                 "true" => {
-                    return self.alloc_expr(Expr::Literal(Literal::Bool(true)), node.text_range())
+                    return self.alloc_expr(Expr::Literal(Literal::Bool(true)), node.text_range());
                 }
                 "false" => {
-                    return self.alloc_expr(Expr::Literal(Literal::Bool(false)), node.text_range())
+                    return self.alloc_expr(Expr::Literal(Literal::Bool(false)), node.text_range());
                 }
-                "null" => {
-                    return self.alloc_expr(Expr::Literal(Literal::Null), node.text_range())
-                }
+                "null" => return self.alloc_expr(Expr::Literal(Literal::Null), node.text_range()),
                 _ => {}
             }
         }
@@ -1073,7 +1077,13 @@ impl LoweringContext {
         }
 
         let field = field.unwrap_or_else(|| Name::new("_"));
-        self.alloc_expr(Expr::FieldAccess { base: env_expr, field }, range)
+        self.alloc_expr(
+            Expr::FieldAccess {
+                base: env_expr,
+                field,
+            },
+            range,
+        )
     }
 
     fn lower_index_expr(&mut self, node: &SyntaxNode) -> ExprId {
@@ -1142,7 +1152,7 @@ impl LoweringContext {
                                     val_node = Some(n);
                                 }
                             }
-                            _ => {}
+                            rowan::NodeOrToken::Token(_) => {}
                         }
                     }
                     if let (Some(k), Some(v)) = (key, val_node) {
@@ -1191,22 +1201,25 @@ impl LoweringContext {
                         rowan::NodeOrToken::Token(t) => {
                             if t.kind() == SyntaxKind::COLON {
                                 seen_colon = true;
-                            } else if !seen_colon && key_expr.is_none() && t.kind() == SyntaxKind::WORD {
+                            } else if !seen_colon
+                                && key_expr.is_none()
+                                && t.kind() == SyntaxKind::WORD
+                            {
                                 let span = t.text_range();
                                 key_expr = Some(self.alloc_expr(
                                     Expr::Literal(Literal::String(t.text().to_string())),
                                     span,
                                 ));
-                            } else if !seen_colon && key_expr.is_none()
+                            } else if !seen_colon
+                                && key_expr.is_none()
                                 && (t.kind() == SyntaxKind::STRING_LITERAL
                                     || t.kind() == SyntaxKind::RAW_STRING_LITERAL)
                             {
                                 let content = strip_string_delimiters(t.text());
                                 let span = t.text_range();
-                                key_expr = Some(self.alloc_expr(
-                                    Expr::Literal(Literal::String(content)),
-                                    span,
-                                ));
+                                key_expr = Some(
+                                    self.alloc_expr(Expr::Literal(Literal::String(content)), span),
+                                );
                             }
                         }
                         rowan::NodeOrToken::Node(n) => {
@@ -1251,9 +1264,7 @@ impl LoweringContext {
                     }
                     SyntaxKind::FLOAT_LITERAL => {
                         let text = token.text().to_string();
-                        return Some(
-                            self.alloc_expr(Expr::Literal(Literal::Float(text)), span),
-                        );
+                        return Some(self.alloc_expr(Expr::Literal(Literal::Float(text)), span));
                     }
                     SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
                         let content = strip_string_delimiters(token.text());
@@ -1374,10 +1385,11 @@ impl LoweringContext {
                         }
                         SyntaxKind::WORD if seen_let_kw && pattern_id.is_none() => {
                             let range = token.text_range();
-                            pattern_id = Some(self.alloc_pattern(
-                                Pattern::Binding(Name::new(token.text())),
-                                range,
-                            ));
+                            pattern_id =
+                                Some(self.alloc_pattern(
+                                    Pattern::Binding(Name::new(token.text())),
+                                    range,
+                                ));
                         }
                         SyntaxKind::EQUALS | SyntaxKind::COLON => break,
                         _ => {}
@@ -1391,6 +1403,7 @@ impl LoweringContext {
         });
 
         let origin = if is_watched {
+            // TODO: Handle watched let statements
             LetOrigin::Source
         } else {
             LetOrigin::Source

@@ -10,16 +10,17 @@
 
 use baml_base::Name;
 use baml_compiler_diagnostics::HirDiagnostic;
-use baml_compiler_syntax::ast;
-use baml_compiler_syntax::SyntaxNode;
+use baml_compiler_syntax::{SyntaxNode, ast};
 use rowan::ast::AstNode;
 
-use crate::ast::{
-    ClientDef, ConfigItemDef, EnumDef, FieldDef, FunctionBodyDef, FunctionDef, GeneratorDef,
-    Interpolation, Item, LlmBodyDef, Param, RawAttribute, RawAttributeArg, RawPrompt, RetryPolicyDef,
-    SpannedTypeExpr, TemplateStringDef, TestDef, TypeAliasDef, VariantDef,
+use crate::{
+    ast::{
+        ClientDef, ConfigItemDef, EnumDef, FieldDef, FunctionBodyDef, FunctionDef, GeneratorDef,
+        Interpolation, Item, LlmBodyDef, Param, RawAttribute, RawAttributeArg, RawPrompt,
+        RetryPolicyDef, SpannedTypeExpr, TemplateStringDef, TestDef, TypeAliasDef, VariantDef,
+    },
+    lower_expr_body, lower_type_expr,
 };
-use crate::{lower_expr_body, lower_type_expr};
 
 // ── File-level lowering ─────────────────────────────────────────
 
@@ -32,7 +33,7 @@ pub fn lower_file(root: &SyntaxNode) -> (Vec<Item>, Vec<HirDiagnostic>) {
     let diagnostics = Vec::new();
 
     for child in root.children() {
-        match child.kind().into() {
+        match child.kind() {
             baml_compiler_syntax::SyntaxKind::FUNCTION_DEF => {
                 if let Some(func) = lower_function(&child) {
                     items.push(Item::Function(func));
@@ -164,8 +165,10 @@ fn lower_llm_body(llm_body: &ast::LlmFunctionBody) -> LlmBodyDef {
 }
 
 fn lower_raw_prompt(raw_string: &ast::RawStringLiteral) -> RawPrompt {
-    use baml_compiler_syntax::SyntaxKind;
-    use baml_compiler_syntax::ast::{JinjaExpression, JinjaStatement, PromptText};
+    use baml_compiler_syntax::{
+        SyntaxKind,
+        ast::{JinjaExpression, JinjaStatement, PromptText},
+    };
 
     let mut text = String::new();
     let mut interpolations = Vec::new();
@@ -415,7 +418,9 @@ fn lower_attributes_from_node(node: &SyntaxNode) -> Vec<RawAttribute> {
 /// Lower a single field attribute (single @).
 fn lower_attribute(attr: &ast::Attribute) -> Option<RawAttribute> {
     let name_token = attr.name()?;
-    let attr_name = attr.full_name().unwrap_or_else(|| name_token.text().to_string());
+    let attr_name = attr
+        .full_name()
+        .unwrap_or_else(|| name_token.text().to_string());
     let span = attr.syntax().text_range();
 
     let args = lower_attribute_args_from_node(attr.syntax());
@@ -430,7 +435,9 @@ fn lower_attribute(attr: &ast::Attribute) -> Option<RawAttribute> {
 /// Lower a single block attribute (@@).
 fn lower_block_attribute(attr: &ast::BlockAttribute) -> Option<RawAttribute> {
     let name_token = attr.name()?;
-    let attr_name = attr.full_name().unwrap_or_else(|| name_token.text().to_string());
+    let attr_name = attr
+        .full_name()
+        .unwrap_or_else(|| name_token.text().to_string());
     let span = attr.syntax().text_range();
 
     let args = lower_attribute_args_from_node(attr.syntax());
@@ -446,9 +453,7 @@ fn lower_block_attribute(attr: &ast::BlockAttribute) -> Option<RawAttribute> {
 fn lower_attribute_args_from_node(node: &SyntaxNode) -> Vec<RawAttributeArg> {
     // Arguments are inside ATTRIBUTE_ARGS nodes
     node.children()
-        .filter(|n| {
-            n.kind() == baml_compiler_syntax::SyntaxKind::ATTRIBUTE_ARGS
-        })
+        .filter(|n| n.kind() == baml_compiler_syntax::SyntaxKind::ATTRIBUTE_ARGS)
         .flat_map(|args_node| {
             args_node.children().map(|arg_node| {
                 let text = arg_node.text().to_string();

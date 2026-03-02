@@ -32,7 +32,7 @@ pub struct RawAttributeArg {
 /// Full recursive type expression — all structural content in memory.
 ///
 /// Corresponds to `TypeRef` in `baml_compiler_hir/src/type_ref.rs` but lives
-/// in the AST layer (before any name resolution). CST → TypeExpr conversion
+/// in the AST layer (before any name resolution). CST → `TypeExpr` conversion
 /// happens once during `lower_file` and is never repeated.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeExpr {
@@ -118,7 +118,7 @@ pub struct ExprBody {
     pub root_expr: Option<ExprId>,
 }
 
-/// Parallel span storage for an ExprBody — maps arena IDs to source ranges.
+/// Parallel span storage for an `ExprBody` — maps arena IDs to source ranges.
 /// Separated so semantic queries (type checking) can ignore spans and get
 /// Salsa early-cutoff on whitespace changes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -332,6 +332,7 @@ pub enum AssignOp {
 // ── Top-Level Items ─────────────────────────────────────────────
 
 /// Top-level item — the output unit of CST → AST lowering.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Item {
     Function(FunctionDef),
