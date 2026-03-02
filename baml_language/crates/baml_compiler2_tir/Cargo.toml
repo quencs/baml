@@ -1,0 +1,20 @@
+[package]
+name = "baml_compiler2_tir"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+baml_base = { path = "../baml_base" }
+baml_compiler2_ast = { path = "../baml_compiler2_ast" }
+baml_compiler2_hir = { path = "../baml_compiler2_hir" }
+baml_compiler_diagnostics = { path = "../baml_compiler_diagnostics" }
+baml_workspace = { path = "../baml_workspace" }
+indexmap = { workspace = true }
+la-arena = { workspace = true }
+rustc-hash = { workspace = true }
+salsa = { workspace = true }
+smol_str = { workspace = true }
+text-size = { workspace = true }

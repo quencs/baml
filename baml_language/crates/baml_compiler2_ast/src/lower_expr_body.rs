@@ -101,6 +101,40 @@ impl LoweringContext {
         self.type_annotations.alloc(ty)
     }
 
+    /// Try to lower a bare token (not wrapped in a node) into an expression.
+    ///
+    /// The parser sometimes emits single identifiers and literals as bare tokens
+    /// rather than wrapping them in PATH_EXPR or other nodes. This helper handles
+    /// those cases so lowering functions that iterate `children_with_tokens()` can
+    /// process both nodes and tokens uniformly.
+    fn try_lower_bare_token(
+        &mut self,
+        token: &rowan::SyntaxToken<baml_compiler_syntax::BamlLanguage>,
+    ) -> Option<ExprId> {
+        let span = token.text_range();
+        match token.kind() {
+            SyntaxKind::WORD => {
+                let text = token.text();
+                let expr = match text {
+                    "true" => Expr::Literal(Literal::Bool(true)),
+                    "false" => Expr::Literal(Literal::Bool(false)),
+                    "null" => Expr::Literal(Literal::Null),
+                    _ => Expr::Path(vec![Name::new(text)]),
+                };
+                Some(self.alloc_expr(expr, span))
+            }
+            SyntaxKind::INTEGER_LITERAL => {
+                let value = token.text().parse::<i64>().unwrap_or(0);
+                Some(self.alloc_expr(Expr::Literal(Literal::Int(value)), span))
+            }
+            SyntaxKind::FLOAT_LITERAL => Some(self.alloc_expr(
+                Expr::Literal(Literal::Float(token.text().to_string())),
+                span,
+            )),
+            _ => None,
+        }
+    }
+
     fn finish(self, root_expr: Option<ExprId>) -> (ExprBody, AstSourceMap) {
         let body = ExprBody {
             exprs: self.exprs,
@@ -484,23 +518,32 @@ impl LoweringContext {
     }
 
     fn lower_if_expr(&mut self, node: &SyntaxNode) -> ExprId {
-        let children: Vec<_> = node.children().collect();
+        // Collect sub-expressions from both child nodes and bare tokens
+        let mut sub_exprs = Vec::new();
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child) => {
+                    sub_exprs.push(self.lower_expr(&child));
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    if let Some(expr_id) = self.try_lower_bare_token(&token) {
+                        sub_exprs.push(expr_id);
+                    }
+                }
+            }
+        }
 
-        let condition = children
+        let condition = sub_exprs
             .first()
-            .map(|n| self.lower_expr(n))
+            .copied()
             .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
 
-        let then_branch = children
+        let then_branch = sub_exprs
             .get(1)
-            .map(|n| self.lower_expr(n))
+            .copied()
             .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
 
-        let else_branch = if children.len() > 2 {
-            Some(self.lower_expr(&children[2]))
-        } else {
-            None
-        };
+        let else_branch = sub_exprs.get(2).copied();
 
         self.alloc_expr(
             Expr::If {
@@ -1029,7 +1072,21 @@ impl LoweringContext {
             }
         }
 
-        self.alloc_expr(Expr::Path(segments), node.text_range())
+        // Desugar multi-segment paths into FieldAccess chains:
+        //   Color.Red  → FieldAccess { base: Path(["Color"]), field: "Red" }
+        //   a.b.c      → FieldAccess { base: FieldAccess { base: Path(["a"]), field: "b" }, field: "c" }
+        // After this, Path is always single-segment (a bare identifier).
+        let mut base = self.alloc_expr(Expr::Path(vec![segments[0].clone()]), node.text_range());
+        for seg in &segments[1..] {
+            base = self.alloc_expr(
+                Expr::FieldAccess {
+                    base,
+                    field: seg.clone(),
+                },
+                node.text_range(),
+            );
+        }
+        base
     }
 
     fn lower_field_access_expr(&mut self, node: &SyntaxNode) -> ExprId {
@@ -1087,15 +1144,35 @@ impl LoweringContext {
     }
 
     fn lower_index_expr(&mut self, node: &SyntaxNode) -> ExprId {
-        let children: Vec<_> = node.children().collect();
-        let base = children
-            .first()
-            .map(|n| self.lower_expr(n))
-            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
-        let index = children
-            .get(1)
-            .map(|n| self.lower_expr(n))
-            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
+        let mut base = None;
+        let mut index = None;
+        let mut seen_lbracket = false;
+
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child) => {
+                    if !seen_lbracket {
+                        if base.is_none() {
+                            base = Some(self.lower_expr(&child));
+                        }
+                    } else if index.is_none() {
+                        index = Some(self.lower_expr(&child));
+                    }
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    if token.kind() == SyntaxKind::L_BRACKET {
+                        seen_lbracket = true;
+                    } else if !seen_lbracket && base.is_none() {
+                        base = self.try_lower_bare_token(&token);
+                    } else if seen_lbracket && index.is_none() {
+                        index = self.try_lower_bare_token(&token);
+                    }
+                }
+            }
+        }
+
+        let base = base.unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
+        let index = index.unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
 
         self.alloc_expr(Expr::Index { base, index }, node.text_range())
     }
@@ -1107,7 +1184,19 @@ impl LoweringContext {
     }
 
     fn lower_array_literal(&mut self, node: &SyntaxNode) -> ExprId {
-        let elements: Vec<_> = node.children().map(|c| self.lower_expr(&c)).collect();
+        let mut elements = Vec::new();
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child) => {
+                    elements.push(self.lower_expr(&child));
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    if let Some(expr_id) = self.try_lower_bare_token(&token) {
+                        elements.push(expr_id);
+                    }
+                }
+            }
+        }
         self.alloc_expr(Expr::Array { elements }, node.text_range())
     }
 
@@ -1139,32 +1228,47 @@ impl LoweringContext {
                 SyntaxKind::OBJECT_FIELD => {
                     // OBJECT_FIELD: WORD COLON expr
                     let mut key = None;
-                    let mut val_node = None;
+                    let mut val = None;
+                    let mut seen_colon = false;
                     for elem in child.children_with_tokens() {
                         match elem {
-                            rowan::NodeOrToken::Token(t) if t.kind() == SyntaxKind::WORD => {
+                            rowan::NodeOrToken::Token(t) if t.kind() == SyntaxKind::COLON => {
+                                seen_colon = true;
+                            }
+                            rowan::NodeOrToken::Token(t)
+                                if t.kind() == SyntaxKind::WORD && !seen_colon =>
+                            {
                                 if key.is_none() {
                                     key = Some(Name::new(t.text()));
                                 }
                             }
-                            rowan::NodeOrToken::Node(n) => {
-                                if val_node.is_none() {
-                                    val_node = Some(n);
-                                }
+                            rowan::NodeOrToken::Node(n) if seen_colon && val.is_none() => {
+                                val = Some(self.lower_expr(&n));
+                            }
+                            rowan::NodeOrToken::Token(t) if seen_colon && val.is_none() => {
+                                val = self.try_lower_bare_token(&t);
                             }
                             rowan::NodeOrToken::Token(_) => {}
+                            rowan::NodeOrToken::Node(_) => {}
                         }
                     }
-                    if let (Some(k), Some(v)) = (key, val_node) {
-                        let val_id = self.lower_expr(&v);
+                    if let (Some(k), Some(val_id)) = (key, val) {
                         fields.push((k, val_id));
                     }
                     position += 1;
                 }
                 SyntaxKind::SPREAD_ELEMENT => {
                     // SPREAD_ELEMENT: ... expr
-                    if let Some(expr_node) = child.children().next() {
-                        let expr = self.lower_expr(&expr_node);
+                    let spread_expr = if let Some(expr_node) = child.children().next() {
+                        Some(self.lower_expr(&expr_node))
+                    } else {
+                        // Try bare token: ...x where x is a single identifier
+                        child
+                            .children_with_tokens()
+                            .filter_map(rowan::NodeOrToken::into_token)
+                            .find_map(|t| self.try_lower_bare_token(&t))
+                    };
+                    if let Some(expr) = spread_expr {
                         spreads.push(SpreadField { expr, position });
                     }
                     position += 1;
@@ -1220,6 +1324,8 @@ impl LoweringContext {
                                 key_expr = Some(
                                     self.alloc_expr(Expr::Literal(Literal::String(content)), span),
                                 );
+                            } else if seen_colon && val_expr.is_none() {
+                                val_expr = self.try_lower_bare_token(&t);
                             }
                         }
                         rowan::NodeOrToken::Node(n) => {
@@ -1336,6 +1442,40 @@ impl LoweringContext {
                         seen_colon = true;
                     }
                     SyntaxKind::KW_LET | SyntaxKind::KW_WATCH => {}
+                    _ if seen_equals && initializer.is_none() => {
+                        // Token-level initializer (e.g. `let x = 1;` where 1 is INTEGER_LITERAL token)
+                        let span = token.text_range();
+                        match token.kind() {
+                            SyntaxKind::INTEGER_LITERAL => {
+                                let value = token.text().parse::<i64>().unwrap_or(0);
+                                initializer =
+                                    Some(self.alloc_expr(Expr::Literal(Literal::Int(value)), span));
+                            }
+                            SyntaxKind::FLOAT_LITERAL => {
+                                let text = token.text().to_string();
+                                initializer = Some(
+                                    self.alloc_expr(Expr::Literal(Literal::Float(text)), span),
+                                );
+                            }
+                            SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                                let content = strip_string_delimiters(token.text());
+                                initializer = Some(
+                                    self.alloc_expr(Expr::Literal(Literal::String(content)), span),
+                                );
+                            }
+                            SyntaxKind::WORD => {
+                                let text = token.text();
+                                let e = match text {
+                                    "true" => Expr::Literal(Literal::Bool(true)),
+                                    "false" => Expr::Literal(Literal::Bool(false)),
+                                    "null" => Expr::Literal(Literal::Null),
+                                    _ => Expr::Path(vec![Name::new(text)]),
+                                };
+                                initializer = Some(self.alloc_expr(e, span));
+                            }
+                            _ => {}
+                        }
+                    }
                     _ => {}
                 },
                 rowan::NodeOrToken::Node(child) => {
@@ -1423,19 +1563,78 @@ impl LoweringContext {
 
     fn lower_return_stmt(&mut self, node: &SyntaxNode) -> StmtId {
         // RETURN_STMT: KW_RETURN expr?
-        let expr = node.children().next().map(|n| self.lower_expr(&n));
+        // Try child nodes first, then fall back to token-level expressions
+        let expr = if let Some(child_node) = node.children().next() {
+            Some(self.lower_expr(&child_node))
+        } else {
+            // No child node — check for a token-level expression (e.g. `return 1;`)
+            let mut result = None;
+            for elem in node.children_with_tokens() {
+                if let rowan::NodeOrToken::Token(token) = elem {
+                    let span = token.text_range();
+                    match token.kind() {
+                        SyntaxKind::KW_RETURN | SyntaxKind::SEMICOLON => continue,
+                        SyntaxKind::INTEGER_LITERAL => {
+                            let value = token.text().parse::<i64>().unwrap_or(0);
+                            result =
+                                Some(self.alloc_expr(Expr::Literal(Literal::Int(value)), span));
+                            break;
+                        }
+                        SyntaxKind::FLOAT_LITERAL => {
+                            let text = token.text().to_string();
+                            result =
+                                Some(self.alloc_expr(Expr::Literal(Literal::Float(text)), span));
+                            break;
+                        }
+                        SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                            let content = strip_string_delimiters(token.text());
+                            result = Some(
+                                self.alloc_expr(Expr::Literal(Literal::String(content)), span),
+                            );
+                            break;
+                        }
+                        SyntaxKind::WORD => {
+                            let text = token.text();
+                            let e = match text {
+                                "true" => Expr::Literal(Literal::Bool(true)),
+                                "false" => Expr::Literal(Literal::Bool(false)),
+                                "null" => Expr::Literal(Literal::Null),
+                                _ => Expr::Path(vec![Name::new(text)]),
+                            };
+                            result = Some(self.alloc_expr(e, span));
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            result
+        };
         self.alloc_stmt(Stmt::Return(expr), node.text_range())
     }
 
     fn lower_while_stmt(&mut self, node: &SyntaxNode) -> StmtId {
-        let children: Vec<_> = node.children().collect();
-        let condition = children
+        let mut sub_exprs = Vec::new();
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child) => {
+                    sub_exprs.push(self.lower_expr(&child));
+                }
+                rowan::NodeOrToken::Token(token) => {
+                    if let Some(expr_id) = self.try_lower_bare_token(&token) {
+                        sub_exprs.push(expr_id);
+                    }
+                }
+            }
+        }
+
+        let condition = sub_exprs
             .first()
-            .map(|n| self.lower_expr(n))
+            .copied()
             .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
-        let body = children
+        let body = sub_exprs
             .get(1)
-            .map(|n| self.lower_expr(n))
+            .copied()
             .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
 
         self.alloc_stmt(
@@ -1469,7 +1668,11 @@ impl LoweringContext {
                     SyntaxKind::WORD if !seen_in => {
                         _iter_name = Name::new(token.text());
                     }
-                    _ => {}
+                    _ => {
+                        if seen_in && iter_expr_opt.is_none() {
+                            iter_expr_opt = self.try_lower_bare_token(&token);
+                        }
+                    }
                 },
                 rowan::NodeOrToken::Node(child) => {
                     if seen_in && iter_expr_opt.is_none() {
@@ -1498,11 +1701,15 @@ impl LoweringContext {
     }
 
     fn lower_assert_stmt(&mut self, node: &SyntaxNode) -> StmtId {
-        let condition = node
-            .children()
-            .next()
-            .map(|n| self.lower_expr(&n))
-            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
+        let condition = if let Some(n) = node.children().next() {
+            self.lower_expr(&n)
+        } else {
+            // Try bare token: `assert x;`
+            node.children_with_tokens()
+                .filter_map(rowan::NodeOrToken::into_token)
+                .find_map(|t| self.try_lower_bare_token(&t))
+                .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()))
+        };
 
         self.alloc_stmt(Stmt::Assert { condition }, node.text_range())
     }

@@ -70,6 +70,12 @@ impl baml_workspace::Db for ProjectDatabase {
 }
 
 #[salsa::db]
+impl baml_compiler2_hir::Db for ProjectDatabase {}
+
+#[salsa::db]
+impl baml_compiler2_tir::Db for ProjectDatabase {}
+
+#[salsa::db]
 impl baml_compiler_hir::Db for ProjectDatabase {}
 
 #[salsa::db]

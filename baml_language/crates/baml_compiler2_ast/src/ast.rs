@@ -138,6 +138,39 @@ impl AstSourceMap {
             match_arm_spans: Arena::new(),
         }
     }
+
+    /// Look up the source span of a statement by its `StmtId`.
+    ///
+    /// The `stmt_spans` arena is parallel to `ExprBody::stmts` — same indices,
+    /// different element type. We convert via raw index.
+    pub fn stmt_span(&self, id: StmtId) -> TextRange {
+        let raw: u32 = id.into_raw().into_u32();
+        self.stmt_spans
+            .iter()
+            .nth(raw as usize)
+            .map(|(_, &span)| span)
+            .unwrap_or_default()
+    }
+
+    /// Look up the source span of an expression by its `ExprId`.
+    pub fn expr_span(&self, id: ExprId) -> TextRange {
+        let raw: u32 = id.into_raw().into_u32();
+        self.expr_spans
+            .iter()
+            .nth(raw as usize)
+            .map(|(_, &span)| span)
+            .unwrap_or_default()
+    }
+
+    /// Look up the source span of a pattern by its `PatId`.
+    pub fn pattern_span(&self, id: PatId) -> TextRange {
+        let raw: u32 = id.into_raw().into_u32();
+        self.pattern_spans
+            .iter()
+            .nth(raw as usize)
+            .map(|(_, &span)| span)
+            .unwrap_or_default()
+    }
 }
 
 impl Default for AstSourceMap {

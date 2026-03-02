@@ -64,6 +64,8 @@ pub enum DiagnosticId {
     // HIR diagnostics (E0012-E0027)
     DuplicateField,
     DuplicateVariant,
+    DuplicateMethod,
+    DuplicateBinding,
     DuplicateAttribute,
     UnknownAttribute,
     InvalidAttributeContext,
@@ -198,6 +200,8 @@ impl DiagnosticId {
             // HIR diagnostics
             DiagnosticId::DuplicateField => "E0012",
             DiagnosticId::DuplicateVariant => "E0013",
+            DiagnosticId::DuplicateMethod => "E0093",
+            DiagnosticId::DuplicateBinding => "E0094",
             DiagnosticId::DuplicateAttribute => "E0014",
             DiagnosticId::UnknownAttribute => "E0015",
             DiagnosticId::InvalidAttributeContext => "E0016",

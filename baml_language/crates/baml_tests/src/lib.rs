@@ -11,6 +11,9 @@ pub mod codegen;
 pub mod vm;
 
 #[cfg(test)]
+pub mod compiler2_hir;
+
+#[cfg(test)]
 pub mod incremental;
 
 #[cfg(test)]
