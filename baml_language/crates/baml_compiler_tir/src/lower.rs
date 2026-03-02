@@ -232,6 +232,11 @@ fn lower_type_ref_resolved_with_ctx(
             attr: TyAttr::default(),
         },
 
+        // Never - the bottom type
+        TypeRef::Never => Ty::Never {
+            attr: TyAttr::default(),
+        },
+
         // Type - the `type` keyword for the meta-type
         TypeRef::Type => Ty::Type {
             attr: TyAttr::default(),

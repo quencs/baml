@@ -173,6 +173,7 @@ pub fn convert_tir_ty(
             Box::new(convert_tir_ty(inner, aliases, recursive_aliases)?),
             attr.clone(),
         )),
+        baml_compiler_tir::Ty::Never { attr } => Ok(Ty::Null { attr: attr.clone() }),
     }
 }
 

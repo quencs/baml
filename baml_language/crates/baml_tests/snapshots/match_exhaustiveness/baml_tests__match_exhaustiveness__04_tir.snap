@@ -78,7 +78,7 @@ source: crates/baml_tests/src/generated_tests.rs
     Errors:
       - Non-exhaustive match on DoubleMaybe: missing null
   Function ExhaustiveDoubleMaybe:
-    Return: Union([String { attr: TyAttr(None) }, String { attr: TyAttr(None) }, Literal(String("nothing"), TyAttr(None))], TyAttr(None))
+    Return: Union([String { attr: TyAttr(None) }, Literal(String("nothing"), TyAttr(None))], TyAttr(None))
   Function ExhaustiveOptionalSingleton:
     Return: Union([Literal(String("OK"), TyAttr(None)), Literal(String("no code"), TyAttr(None))], TyAttr(None))
   Function BoolWithCatchAll:
@@ -123,7 +123,7 @@ source: crates/baml_tests/src/generated_tests.rs
   Function EnumVariantUnion:
     Return: Union([Literal(String("actionable"), TyAttr(None)), Literal(String("inactive"), TyAttr(None))], TyAttr(None))
   Function NestedTypeAlias:
-    Return: Union([String { attr: TyAttr(None) }, String { attr: TyAttr(None) }, Literal(String("nothing"), TyAttr(None))], TyAttr(None))
+    Return: Union([String { attr: TyAttr(None) }, Literal(String("nothing"), TyAttr(None))], TyAttr(None))
   Function ExhaustiveFalseType:
     Return: Literal(String("always false"), TyAttr(None))
   Function NonExhaustiveOptionalMissingNull:

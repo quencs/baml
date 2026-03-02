@@ -193,6 +193,7 @@ mod tests {
         let mut mir = MirFunction {
             name: Name::new("f"),
             arity: 0,
+            unwind_error_locals: std::collections::HashMap::new(),
             blocks: vec![
                 BasicBlock {
                     id: BlockId(0),
@@ -241,6 +242,7 @@ mod tests {
         let mut mir = MirFunction {
             name: Name::new("f"),
             arity: 0,
+            unwind_error_locals: std::collections::HashMap::new(),
             blocks: vec![
                 BasicBlock {
                     id: BlockId(0),
@@ -287,6 +289,7 @@ mod tests {
         let mut mir = MirFunction {
             name: Name::new("f"),
             arity: 0,
+            unwind_error_locals: std::collections::HashMap::new(),
             blocks: vec![BasicBlock {
                 id: BlockId(0),
                 statements: vec![],

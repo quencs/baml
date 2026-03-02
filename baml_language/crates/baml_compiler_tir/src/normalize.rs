@@ -68,6 +68,7 @@ enum StructuralTy {
     /// Internal-only type for builtins - any type is assignable to it.
     BuiltinUnknown,
     WatchAccessor(Box<StructuralTy>),
+    Never,
     Type,
 }
 
@@ -86,6 +87,11 @@ impl StructuralTy {
 
         // Reflexivity
         if self == other {
+            return true;
+        }
+
+        // Never <: T for all T (bottom type)
+        if matches!(self, StructuralTy::Never) {
             return true;
         }
 
@@ -292,6 +298,7 @@ fn is_valid_map_key_type(ty: &Ty, aliases: &HashMap<Name, Ty>) -> bool {
             StructuralTy::Resource => false,
             StructuralTy::BuiltinUnknown => false,
             StructuralTy::WatchAccessor(_) => false,
+            StructuralTy::Never => false,
             StructuralTy::Type => false,
         }
     }
@@ -368,6 +375,7 @@ fn normalize_impl(
         Ty::Void { .. } => StructuralTy::Void,
         Ty::Resource { .. } => StructuralTy::Resource,
         Ty::BuiltinUnknown { .. } => StructuralTy::BuiltinUnknown,
+        Ty::Never { .. } => StructuralTy::Never,
         Ty::Type { .. } => StructuralTy::Type,
         Ty::Literal(lit, _) => StructuralTy::Literal(lit.clone()),
         Ty::Class(fqn, _) => StructuralTy::Class(fqn.name.clone()),
@@ -398,9 +406,12 @@ fn normalize_impl(
                     // Non-recursive: expand inline
                     normalize_impl(alias_ty, aliases, recursive, expanding)
                 }
+            } else if let Some((prefix, _variant)) = name.as_str().rsplit_once('.') {
+                // Enum variant alias: throw inference creates TypeAlias names like
+                // "Errors.AuthError" to preserve variant-level precision for display.
+                // Resolve to the enum type for correct subtype semantics.
+                StructuralTy::Enum(Name::new(prefix))
             } else {
-                // Not a known alias - this shouldn't happen if TIR lowering is correct.
-                // Treat as error for now (error recovery will handle it).
                 StructuralTy::Error
             }
         }

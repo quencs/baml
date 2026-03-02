@@ -155,6 +155,13 @@ pub enum Ty {
     /// Contains the inner type being watched for method resolution.
     WatchAccessor(Box<Ty>, TyAttr),
 
+    /// The bottom type (uninhabited). A `throw` expression or a function that
+    /// always diverges produces `Never`. It is a subtype of every type:
+    /// `Never <: T` for all `T`, and `never | T = T`.
+    Never {
+        attr: TyAttr,
+    },
+
     /// Meta-type — the type of type values at the TIR level.
     /// Matches `TypePattern::Type` in builtin signatures.
     Type {
@@ -198,6 +205,7 @@ impl Ty {
         match self {
             // Error recovery: don't emit additional errors when type inference failed
             Ty::Unknown { .. } | Ty::Error { .. } => true,
+            Ty::Never { .. } => true,
             // Empty union has no members, therefore no possible values
             Ty::Union(types, _) => types.is_empty(),
             // All other types are inhabited
@@ -309,6 +317,7 @@ impl fmt::Display for Ty {
             Ty::Resource { .. } => write!(f, "resource"),
             Ty::BuiltinUnknown { .. } => write!(f, "unknown"),
             Ty::WatchAccessor(inner, _) => write!(f, "{inner}.$watch"),
+            Ty::Never { .. } => write!(f, "never"),
             Ty::Type { .. } => write!(f, "type"),
         }
     }

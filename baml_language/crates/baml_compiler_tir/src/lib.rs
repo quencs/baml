@@ -11,7 +11,7 @@
 //! This follows patterns from rust-analyzer and ruff for incremental type checking.
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
     sync::Arc,
 };
 
@@ -35,6 +35,7 @@ pub type TirTypeError = TypeError<TirContext<Ty>>;
 
 pub mod builtins;
 mod cycles;
+mod divergence;
 mod exhaustiveness;
 pub mod jinja;
 mod lower;
@@ -42,6 +43,7 @@ mod narrowing;
 mod normalize;
 pub mod pretty;
 mod resolve;
+pub mod throw_inference;
 mod types;
 
 // Re-export HIR types that are part of TIR's public API (used in Ty variants).
@@ -248,6 +250,22 @@ pub struct TypeAliasNamesSet<'db> {
     pub names: HashSet<Name>,
 }
 
+/// Tracked set of functions that always diverge.
+#[salsa::tracked]
+pub struct FunctionDivergenceSet<'db> {
+    #[tracked]
+    #[returns(ref)]
+    pub functions: HashSet<Name>,
+}
+
+/// Tracked map of transitive throw sets per function.
+#[salsa::tracked]
+pub struct FunctionThrowSets<'db> {
+    #[tracked]
+    #[returns(ref)]
+    pub transitive: HashMap<Name, BTreeSet<String>>,
+}
+
 // ============================================================================
 // TIR Queries
 // ============================================================================
@@ -374,6 +392,214 @@ pub fn typing_context(db: &dyn Db, project: Project) -> TypingContextMap<'_> {
     }
 
     TypingContextMap::new(db, context /* functions */)
+}
+
+/// Query: functions that always diverge.
+///
+/// Uses a monotonic fixed-point over call dependencies. This is cycle-safe:
+/// mutually-recursive functions only become divergent when at least one member
+/// has a direct divergence seed (throw/return/break/continue or a divergent tail).
+#[salsa::tracked]
+pub fn function_divergence_set(db: &dyn Db, project: Project) -> FunctionDivergenceSet<'_> {
+    let items = baml_compiler_hir::project_items(db, project);
+    let mut function_locs: HashMap<Name, FunctionLoc<'_>> = HashMap::new();
+
+    for item in items.items(db) {
+        if let baml_compiler_hir::ItemId::Function(func_loc) = item {
+            let function_name =
+                baml_compiler_hir::function_qualified_name(db, *func_loc).display_name();
+            function_locs.insert(function_name, *func_loc);
+        }
+    }
+
+    let functions = divergence::solve_divergence_fixed_point(
+        function_locs.keys().cloned(),
+        |function_name, known_diverging| {
+            let Some(function_loc) = function_locs.get(function_name) else {
+                return false;
+            };
+            let body = baml_compiler_hir::function_body(db, *function_loc);
+            let baml_compiler_hir::FunctionBody::Expr(expr_body, _) = body.as_ref() else {
+                return false;
+            };
+            let Some(root_expr) = expr_body.root_expr else {
+                return false;
+            };
+            divergence::expr_never_returns(root_expr, expr_body, &|callee| {
+                known_diverging.contains(callee)
+            })
+        },
+    );
+
+    FunctionDivergenceSet::new(db, functions)
+}
+
+/// Query: transitive throw types per function.
+///
+/// Uses `AnalysisGraph` (BEP-007) to propagate direct throw facts transitively
+/// over call edges with SCC-safe fixed-point semantics.
+///
+/// When a function has a `throws` declaration, the declared facts are used
+/// as its caller-visible throw set (modular checking). Without a declaration,
+/// body-derived facts propagate transitively as before.
+#[salsa::tracked]
+pub fn function_throw_sets(db: &dyn Db, project: Project) -> FunctionThrowSets<'_> {
+    use throw_inference::{ThrowAnalysisInput, analyze_throws};
+
+    let items = baml_compiler_hir::project_items(db, project);
+    let enum_variants_map = enum_variants(db, project).enums(db).clone();
+    let enum_name_set = enum_names(db, project).names(db).clone();
+    let type_alias_refs = collect_type_alias_refs(db, project);
+
+    let mut entries: Vec<(Name, Arc<FunctionBody>, Option<BTreeSet<String>>)> = Vec::new();
+
+    for item in items.items(db) {
+        if let baml_compiler_hir::ItemId::Function(func_loc) = item {
+            let function_name =
+                baml_compiler_hir::function_qualified_name(db, *func_loc).display_name();
+            let body = baml_compiler_hir::function_body(db, *func_loc);
+
+            let sig = baml_compiler_hir::function_signature(db, *func_loc);
+            let declared_throws = sig.throws.as_ref().map(|type_ref| {
+                lower_throws_to_facts(
+                    type_ref,
+                    &enum_variants_map,
+                    &enum_name_set,
+                    &type_alias_refs,
+                )
+            });
+
+            entries.push((function_name, body, declared_throws));
+        }
+    }
+
+    let inputs: Vec<ThrowAnalysisInput<'_>> = entries
+        .iter()
+        .map(|(name, body, declared)| ThrowAnalysisInput {
+            name: name.clone(),
+            body: match body.as_ref() {
+                FunctionBody::Expr(expr_body, _) => Some(expr_body),
+                _ => None,
+            },
+            declared_throws: declared.clone(),
+        })
+        .collect();
+
+    let analysis = analyze_throws(&inputs);
+    let mut transitive: HashMap<Name, BTreeSet<String>> = HashMap::new();
+
+    for (name, _, _) in &entries {
+        let throw_set = analysis.transitive(name).cloned().unwrap_or_default();
+        transitive.insert(name.clone(), throw_set);
+    }
+
+    FunctionThrowSets::new(db, transitive)
+}
+
+/// Query: precise transitive throw types per function (post-TIR).
+///
+/// Runs `AnalysisGraph` a second time, seeded with TIR-precise facts instead
+/// of HIR pre-pass facts. Functions are categorized:
+///
+/// 1. **`throws` declaration** → firewall (declared facts, no call edges)
+/// 2. **Has catch in body** → TIR `effective_throws` is already precise
+///    (catch subtraction applied locally), used as-is (no call edges)
+/// 3. **No catches** → "own throws" (effective minus pre-pass callee
+///    contributions) + call edges for precise callee propagation
+///
+/// Used for display (hover) — NOT for TIR inference itself.
+#[salsa::tracked]
+pub fn precise_function_throw_sets(db: &dyn Db, project: Project) -> FunctionThrowSets<'_> {
+    use baml_compiler_analysis::AnalysisGraph;
+
+    let items = baml_compiler_hir::project_items(db, project);
+    let pre_pass = function_throw_sets(db, project);
+    let enum_variants_map = enum_variants(db, project).enums(db).clone();
+    let enum_name_set = enum_names(db, project).names(db).clone();
+    let type_alias_refs = collect_type_alias_refs(db, project);
+
+    let mut graph: AnalysisGraph<Name, String> = AnalysisGraph::new();
+
+    for item in items.items(db) {
+        if let baml_compiler_hir::ItemId::Function(func_loc) = item {
+            let function_name =
+                baml_compiler_hir::function_qualified_name(db, *func_loc).display_name();
+            let body = baml_compiler_hir::function_body(db, *func_loc);
+            let sig = baml_compiler_hir::function_signature(db, *func_loc);
+            let inference = function_type_inference(db, *func_loc);
+
+            if let Some(throws_ref) = &sig.throws {
+                // Category 1: has `throws` declaration → firewall
+                let declared = lower_throws_to_facts(
+                    throws_ref,
+                    &enum_variants_map,
+                    &enum_name_set,
+                    &type_alias_refs,
+                );
+                graph.add_node(function_name, declared);
+            } else if body_has_catch(&body) {
+                // Category 2: has catch → TIR effective_throws is precise
+                graph.add_node(function_name, inference.effective_throws.clone());
+            } else {
+                // Category 3: no catches → own throws + call edges
+                let callee_prepass = compute_callee_prepass_throws(&body, pre_pass, db);
+                let own_throws: BTreeSet<String> = inference
+                    .effective_throws
+                    .difference(&callee_prepass)
+                    .cloned()
+                    .collect();
+                graph.add_node(function_name.clone(), own_throws);
+
+                if let FunctionBody::Expr(expr_body, _) = &*body {
+                    for target in throw_inference::collect_call_targets(expr_body) {
+                        graph.add_edge(function_name.clone(), target);
+                    }
+                }
+            }
+        }
+    }
+
+    let analysis = graph.analyze();
+    let mut transitive: HashMap<Name, BTreeSet<String>> = HashMap::new();
+
+    for item in items.items(db) {
+        if let baml_compiler_hir::ItemId::Function(func_loc) = item {
+            let name = baml_compiler_hir::function_qualified_name(db, *func_loc).display_name();
+            let throw_set = analysis.transitive(&name).cloned().unwrap_or_default();
+            transitive.insert(name, throw_set);
+        }
+    }
+
+    FunctionThrowSets::new(db, transitive)
+}
+
+/// Check if a function body contains any catch expressions.
+fn body_has_catch(body: &Arc<FunctionBody>) -> bool {
+    if let FunctionBody::Expr(expr_body, _) = &**body {
+        expr_body
+            .exprs
+            .iter()
+            .any(|(_, expr)| matches!(expr, baml_compiler_hir::Expr::Catch { .. }))
+    } else {
+        false
+    }
+}
+
+/// Compute the union of pre-pass callee throw contributions for a function.
+fn compute_callee_prepass_throws(
+    body: &Arc<FunctionBody>,
+    pre_pass: FunctionThrowSets<'_>,
+    db: &dyn Db,
+) -> BTreeSet<String> {
+    let mut callee_throws = BTreeSet::new();
+    if let FunctionBody::Expr(expr_body, _) = &**body {
+        for target in throw_inference::collect_call_targets(expr_body) {
+            if let Some(ts) = pre_pass.transitive(db).get(&target) {
+                callee_throws.extend(ts.iter().cloned());
+            }
+        }
+    }
+    callee_throws
 }
 
 /// Query: Get class field types for a project.
@@ -610,11 +836,22 @@ pub struct InferenceResult {
     /// Used by codegen to emit `unreachable` for fallthrough paths,
     /// enabling phi-like optimization for match results.
     pub exhaustive_matches: HashSet<ExprId>,
+    /// Whether the function body always diverges (every code path throws/returns-never).
+    /// Used at call sites: if `body_diverges` is true, the call expression's type is
+    /// refined to `Never` instead of the declared return type, since the function can
+    /// never produce a value.
+    pub body_diverges: bool,
+    /// Throw types that actually escape the function after catch handling.
+    /// Computed post-inference; used for `throws` contract checking.
+    pub effective_throws: BTreeSet<String>,
     /// Type checking errors.
     pub errors: Vec<TirTypeError>,
     /// Resolution information for IDE features (go-to-definition, find-references).
     /// Maps expression IDs to what they resolve to.
     pub expr_resolutions: ResolutionMap,
+    /// Types for pattern bindings (catch, match arm).
+    /// Used by hover to show the binding's declaration type at the pattern site.
+    pub pattern_types: HashMap<PatId, Ty>,
 }
 
 // ============================================================================
@@ -628,6 +865,8 @@ pub enum DefinitionSite {
     Statement(StmtId),
     /// Defined as a function parameter (with its index).
     Parameter(usize),
+    /// Defined by a pattern binding (catch, match arm).
+    Pattern(PatId),
 }
 
 /// Context for type inference, tracking scopes and accumulated results.
@@ -666,12 +905,21 @@ pub struct TypeContext<'db> {
     file_id: FileId,
     /// Variables declared with `watch let` (tracked for $watch validation).
     watched_vars: HashSet<Name>,
+    /// Residual throw types for each catch expression (types that escape the catch).
+    /// Populated during inference, used for `throws` contract checking.
+    catch_residual_throws: HashMap<ExprId, BTreeSet<String>>,
     /// Resolution map for expressions (for IDE features).
     expr_resolutions: ResolutionMap,
     /// Track where local variables were defined (for go-to-definition).
     local_definitions: HashMap<Name, DefinitionSite>,
+    /// Types for pattern bindings (catch, match arm).
+    pattern_types: HashMap<PatId, Ty>,
     /// Optional source map for looking up spans (for type annotation errors).
     hir_source_map: Option<HirSourceMap>,
+    /// The function's declared return type.
+    /// Used as a fallback so that `return` statements in deeply nested contexts
+    /// (e.g. catch arms, match arms) are always validated.
+    fn_return_type: Option<Ty>,
 }
 
 impl<'db> TypeContext<'db> {
@@ -707,9 +955,12 @@ impl<'db> TypeContext<'db> {
             errors: Vec::new(),
             file_id,
             watched_vars: HashSet::new(),
+            catch_residual_throws: HashMap::new(),
             expr_resolutions: HashMap::new(),
             local_definitions: HashMap::new(),
+            pattern_types: HashMap::new(),
             hir_source_map,
+            fn_return_type: None,
         }
     }
 
@@ -980,6 +1231,7 @@ pub fn infer_function_body<'db>(
     enum_names_opt: Option<HashMap<Name, baml_compiler_hir::QualifiedName>>,
     type_alias_names: Option<HashSet<Name>>,
     function_loc: FunctionLoc<'db>,
+    declared_throws: Option<&(BTreeSet<String>, Span)>,
 ) -> InferenceResult {
     let file_id = function_loc.file(db).file_id(db);
 
@@ -1001,6 +1253,8 @@ pub fn infer_function_body<'db>(
         file_id,
         hir_source_map,
     );
+
+    ctx.fn_return_type = Some(expected_return.clone());
 
     // Add parameters to the current scope (on top of globals)
     // Track their index in the parameter list for go-to-definition
@@ -1082,6 +1336,61 @@ pub fn infer_function_body<'db>(
         Ty::Void { attr: d() }
     };
 
+    // Track whether control flow can ever complete normally.
+    let body_diverges = match body {
+        FunctionBody::Expr(expr_body, _) => expr_body
+            .root_expr
+            .is_some_and(|root_expr| expr_always_diverges(ctx.db(), root_expr, expr_body)),
+        _ => false,
+    };
+
+    // Compute effective throws (catch-aware) for contract checking
+    let effective_throws = match body {
+        FunctionBody::Expr(expr_body, _) => {
+            let mut throws = BTreeSet::new();
+            if let Some(root_expr) = expr_body.root_expr {
+                collect_effective_throws_from_expr(&ctx, root_expr, expr_body, &mut throws);
+            }
+            throws
+        }
+        _ => BTreeSet::new(),
+    };
+
+    // Check throws contract if declared (fact-set comparison, no Ty conversion)
+    if let Some((declared_facts, throws_span)) = declared_throws {
+        let location = ErrorLocation::Span(*throws_span);
+
+        // Violation: effective throws include facts not in the declared set
+        let uncovered: Vec<String> = effective_throws
+            .iter()
+            .filter(|fact| !declared_facts.contains(*fact))
+            .cloned()
+            .collect();
+        if !uncovered.is_empty() {
+            ctx.push_error(TypeError::ThrowsContractViolation {
+                extra_types: uncovered,
+                location: location.clone(),
+            });
+        }
+
+        // Extraneous: declared facts not matched by any effective throw.
+        // Skip when effective throws is empty (stub function) or declared
+        // is empty (`throws never` — an assertion, not a type list).
+        if !effective_throws.is_empty() && !declared_facts.is_empty() {
+            let unused: Vec<String> = declared_facts
+                .iter()
+                .filter(|df| !effective_throws.contains(*df))
+                .cloned()
+                .collect();
+            if !unused.is_empty() {
+                ctx.push_error(TypeError::ThrowsContractExtraneous {
+                    unused_types: unused,
+                    location,
+                });
+            }
+        }
+    }
+
     InferenceResult {
         return_type,
         param_types,
@@ -1090,8 +1399,11 @@ pub fn infer_function_body<'db>(
         path_segment_resolutions: ctx.path_segment_resolutions,
         enum_variant_exprs: ctx.enum_variant_exprs,
         exhaustive_matches: ctx.exhaustive_matches,
+        body_diverges,
+        effective_throws,
         errors: ctx.errors,
         expr_resolutions: ctx.expr_resolutions,
+        pattern_types: ctx.pattern_types,
     }
 }
 
@@ -1736,6 +2048,19 @@ pub fn infer_function<'db>(
     );
     type_errors.extend(errors);
 
+    // Lower declared throws to fact set (bypasses Ty lattice for variant precision)
+    let declared_throws = signature.throws.as_ref().map(|throws_type_ref| {
+        let enum_variants_map = crate::enum_variants(db, project).enums(db).clone();
+        let alias_refs = collect_type_alias_refs(db, project);
+        let facts = lower_throws_to_facts(
+            throws_type_ref,
+            &enum_variants_map,
+            &enum_name_set,
+            &alias_refs,
+        );
+        (facts, return_type_span)
+    });
+
     // Validate map key types in function signature
     // Check return type for invalid map keys (only if we have a valid span)
     if return_type_span != Span::default() {
@@ -1788,6 +2113,7 @@ pub fn infer_function<'db>(
         Some(enum_name_set),
         Some(type_alias_name_set),
         function_loc,
+        declared_throws.as_ref(),
     );
 
     // Prepend type lowering errors to the result
@@ -1828,9 +2154,8 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                             definition_site: Some(definition_site),
                         }
                     } else if ctx.is_in_local_scope(name) {
-                        // Found in a local scope (not global) but no definition site tracked.
-                        // This happens for match arm pattern bindings which use ctx.define()
-                        // without tracking definition site. Still a local variable.
+                        // In a local scope but no definition site — this is a scope-narrowed
+                        // variable (e.g. scrutinee narrowed inside a match/catch arm).
                         ResolvedValue::Local {
                             name: name.clone(),
                             definition_site: None,
@@ -2329,8 +2654,19 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         }
                     }
 
-                    // Return the function's return type
-                    (**ret).clone()
+                    // Return the function's return type, refined to `never` when the
+                    // callee is known to always diverge.
+                    if let Some(target_name) =
+                        divergence::call_target_from_callee_expr(*callee, body)
+                    {
+                        if is_function_always_diverging(ctx, &target_name) {
+                            Ty::Never { attr: d() }
+                        } else {
+                            (**ret).clone()
+                        }
+                    } else {
+                        (**ret).clone()
+                    }
                 }
                 Ty::Unknown { .. } => Ty::Unknown { attr: d() },
                 _ => {
@@ -2482,11 +2818,19 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                 }
             }
 
-            // Type of block is type of tail expression
+            // Preserve diagnostics in unreachable tails by still inferring/checking
+            // the tail expression, but force block type to `never` if any prior
+            // statement definitely diverges.
+            let block_diverges = block_always_diverges(ctx, stmts, body);
             let result = if let Some(tail) = tail_expr {
-                infer_expr(ctx, *tail, body)
+                let tail_ty = infer_expr(ctx, *tail, body);
+                if block_diverges {
+                    Ty::Never { attr: d() }
+                } else {
+                    tail_ty
+                }
             } else {
-                Ty::Void { attr: d() }
+                block_without_tail_type(ctx, stmts, body)
             };
 
             ctx.pop_scope();
@@ -2536,14 +2880,19 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
             // Generalize literal types for the result, similar to arrays.
             // This ensures `if (c) { 1 } else { 2 }` is `int` not `1 | 2`.
             let then_ty = generalize(&then_ty);
-            let else_ty = generalize(&else_ty);
+            let else_ty = if else_branch.is_none() {
+                // An if-without-else implicitly produces null on the false path.
+                Ty::Null { attr: d() }
+            } else {
+                generalize(&else_ty)
+            };
 
-            // Result is union of branches (simplified)
-            if then_ty == else_ty {
+            // Never is the bottom type: never | T = T, so a diverging
+            // branch doesn't contribute to the result type.
+            if matches!(then_ty, Ty::Never { .. }) {
+                else_ty
+            } else if matches!(else_ty, Ty::Never { .. }) || then_ty == else_ty {
                 then_ty
-            } else if else_branch.is_none() {
-                // if without else returns optional
-                Ty::Union(vec![then_ty, Ty::Null { attr: d() }], d())
             } else {
                 Ty::Union(vec![then_ty, else_ty], d())
             }
@@ -2601,11 +2950,21 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         let (binding_name, narrowed_ty) =
                             extract_pattern_binding(ctx, pattern, arm.pattern, &scrutinee_ty, body);
 
-                        // Bind the pattern variable with the narrowed type.
-                        // `_` is a discard binding
+                        // Narrow the scrutinee variable itself within this arm scope,
+                        // so that e.g. `Ok => r.value` sees `r` as `Ok` not `Ok | Err`.
+                        if let Expr::Path(segments) = &body.exprs[*scrutinee] {
+                            if segments.len() == 1 && narrowed_ty != scrutinee_ty {
+                                ctx.define(segments[0].clone(), narrowed_ty.clone());
+                            }
+                        }
+
                         if let Some(name) = binding_name {
                             if name.as_str() != "_" {
-                                ctx.define(name, narrowed_ty);
+                                ctx.define_with_site(
+                                    name,
+                                    narrowed_ty,
+                                    DefinitionSite::Pattern(arm.pattern),
+                                );
                             }
                         }
 
@@ -2632,16 +2991,122 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     })
                     .collect();
 
-                // If all arms have the same type, use that; otherwise union
-                if arm_types.iter().all(|t| t == &arm_types[0]) {
-                    arm_types
-                        .into_iter()
-                        .next()
-                        .unwrap_or(Ty::Unknown { attr: d() })
-                } else {
-                    Ty::Union(arm_types, d())
-                }
+                normalize_union_members(arm_types)
             }
+        }
+
+        Expr::Catch { base, clauses } => {
+            use baml_compiler_hir::CatchClauseKind;
+
+            let base_ty = infer_expr(ctx, *base, body);
+            let mut residual_throw_types = catch_base_throw_types(ctx, *base, &base_ty, body);
+
+            let mut arm_types: Vec<Ty> = Vec::new();
+
+            for clause in clauses {
+                ctx.push_scope();
+
+                let clause_scrutinee_ty = throw_types_to_ty(ctx, &residual_throw_types);
+                let binding_pat = &body.patterns[clause.binding];
+                validate_catch_binding_type(ctx, binding_pat, clause.binding, body);
+                let (binding_name, binding_ty) = extract_pattern_binding(
+                    ctx,
+                    binding_pat,
+                    clause.binding,
+                    &clause_scrutinee_ty,
+                    body,
+                );
+
+                // Remember the clause binding name and type for per-arm narrowing
+                let clause_binding_name = match binding_pat {
+                    Pattern::Binding(name) => Some(name.clone()),
+                    Pattern::TypedBinding { name, .. } => Some(name.clone()),
+                    _ => None,
+                };
+                let clause_binding_ty = binding_ty.clone();
+
+                if let Some(ref name) = binding_name {
+                    if name.as_str() != "_" {
+                        ctx.define_with_site(
+                            name.clone(),
+                            binding_ty,
+                            DefinitionSite::Pattern(clause.binding),
+                        );
+                    }
+                }
+
+                let mut clause_residual = residual_throw_types.clone();
+
+                for arm_id in &clause.arms {
+                    let arm = &body.catch_arms[*arm_id];
+                    ctx.push_scope();
+
+                    let arm_pat = &body.patterns[arm.pattern];
+                    validate_catch_binding_type(ctx, arm_pat, arm.pattern, body);
+
+                    let match_sets =
+                        match_throw_types_for_pattern(ctx, arm.pattern, &clause_residual, body);
+                    if match_sets.may_match.is_empty() {
+                        ctx.push_error(TypeError::UnreachableCatchArm {
+                            location: ErrorLocation::Pattern(arm.pattern),
+                        });
+                    }
+
+                    let arm_scrutinee_ty = throw_types_to_ty(ctx, &match_sets.may_match);
+                    let (arm_name, arm_binding_ty) =
+                        extract_pattern_binding(ctx, arm_pat, arm.pattern, &arm_scrutinee_ty, body);
+
+                    // Narrow the clause binding variable within this arm
+                    if let Some(ref clause_name) = clause_binding_name {
+                        if clause_name.as_str() != "_" && arm_scrutinee_ty != clause_binding_ty {
+                            ctx.define(clause_name.clone(), arm_scrutinee_ty.clone());
+                        }
+                    }
+
+                    if let Some(name) = arm_name {
+                        if name.as_str() != "_" {
+                            ctx.define_with_site(
+                                name,
+                                arm_binding_ty,
+                                DefinitionSite::Pattern(arm.pattern),
+                            );
+                        }
+                    }
+
+                    let arm_ty = infer_expr(ctx, arm.body, body);
+                    arm_types.push(arm_ty);
+                    ctx.pop_scope();
+
+                    for handled in match_sets.definitely_handled {
+                        clause_residual.remove(&handled);
+                    }
+                }
+
+                residual_throw_types = clause_residual;
+
+                if !residual_throw_types.is_empty()
+                    && matches!(clause.kind, CatchClauseKind::CatchAll)
+                {
+                    ctx.push_error(TypeError::NonExhaustiveCatch {
+                        unhandled_types: residual_throw_types.iter().cloned().collect(),
+                        location: ErrorLocation::Expr(expr_id),
+                    });
+                }
+
+                ctx.pop_scope();
+            }
+
+            ctx.catch_residual_throws
+                .insert(expr_id, residual_throw_types);
+
+            let mut all_types = vec![base_ty];
+            all_types.extend(arm_types);
+            normalize_union_members(all_types)
+        }
+
+        Expr::Throw { value } => {
+            infer_expr(ctx, *value, body);
+            Ty::Never { attr: d() }
         }
 
         Expr::Missing => Ty::Unknown { attr: d() },
@@ -2695,12 +3160,17 @@ fn check_expr_with_info_location(
             }
 
             // Check tail expression against expected type
+            let block_diverges = block_always_diverges(ctx, stmts, body);
             let result = if let Some(tail) = tail_expr {
-                check_expr(ctx, *tail, body, expected)
+                let tail_ty = check_expr(ctx, *tail, body, expected);
+                if block_diverges {
+                    Ty::Never { attr: d() }
+                } else {
+                    tail_ty
+                }
             } else {
-                // No tail expression means the block evaluates to void
-                // This is fine - the function might return via explicit return statements
-                Ty::Void { attr: d() }
+                // A tail-less block can still diverge (e.g. `{ throw e }`).
+                block_without_tail_type(ctx, stmts, body)
             };
 
             ctx.pop_scope();
@@ -2744,16 +3214,14 @@ fn check_expr_with_info_location(
                     check_expr(ctx, *else_expr, body, expected)
                 }
             } else {
-                Ty::Void { attr: d() }
+                Ty::Null { attr: d() }
             };
 
-            // In checking mode, don't generalize - the branches were checked against
-            // the expected type, so return the union of actual types (or expected if they match)
-            if then_ty == else_ty {
+            // Never is the bottom type: never | T = T.
+            if matches!(then_ty, Ty::Never { .. }) {
+                else_ty
+            } else if matches!(else_ty, Ty::Never { .. }) || then_ty == else_ty {
                 then_ty
-            } else if else_branch.is_none() {
-                // if without else returns optional
-                Ty::Union(vec![then_ty, Ty::Null { attr: d() }], d())
             } else {
                 Ty::Union(vec![then_ty, else_ty], d())
             }
@@ -2926,6 +3394,783 @@ fn check_expr_with_info_location(
     ty
 }
 
+/// Infer the type of a block with no tail expression.
+///
+/// `{ throw e }` and similar blocks do not complete normally and should not
+/// be treated as `void`.
+fn block_without_tail_type(ctx: &TypeContext<'_>, stmts: &[StmtId], body: &ExprBody) -> Ty {
+    if block_always_diverges(ctx, stmts, body) {
+        Ty::Never { attr: d() }
+    } else {
+        Ty::Void { attr: d() }
+    }
+}
+
+fn is_function_always_diverging(ctx: &TypeContext<'_>, function_name: &Name) -> bool {
+    let divergence = function_divergence_set(ctx.db(), ctx.db().project());
+    divergence.functions(ctx.db()).contains(function_name)
+}
+
+fn expr_always_diverges(db: &dyn Db, expr_id: ExprId, body: &ExprBody) -> bool {
+    divergence::expr_definitely_diverges(expr_id, body, &|callee| {
+        let divergence = function_divergence_set(db, db.project());
+        divergence.functions(db).contains(callee)
+    })
+}
+
+fn block_always_diverges(ctx: &TypeContext<'_>, stmts: &[StmtId], body: &ExprBody) -> bool {
+    divergence::any_stmt_diverges(stmts, body, &|callee| {
+        is_function_always_diverging(ctx, callee)
+    })
+}
+
+fn throw_fact_to_ty(ctx: &TypeContext<'_>, throw_fact: &str) -> Ty {
+    match throw_fact {
+        "int" => Ty::Int { attr: d() },
+        "float" => Ty::Float { attr: d() },
+        "string" => Ty::String { attr: d() },
+        "bool" => Ty::Bool { attr: d() },
+        "null" => Ty::Null { attr: d() },
+        "unknown" => Ty::Unknown { attr: d() },
+        named => {
+            let direct = ctx.resolve_named_type(&Name::new(named));
+            if !direct.is_unknown() {
+                return direct;
+            }
+
+            // Variant facts are stored as `EnumName.Variant` (or namespaced
+            // `pkg.EnumName.Variant`), so recover the enum type from the prefix.
+            if let Some((type_name, _variant_name)) = named.rsplit_once('.') {
+                let from_prefix = ctx.resolve_named_type(&Name::new(type_name));
+                if !from_prefix.is_unknown() {
+                    return from_prefix;
+                }
+            }
+
+            Ty::Unknown { attr: d() }
+        }
+    }
+}
+
+fn throw_types_to_ty(ctx: &TypeContext<'_>, throw_types: &BTreeSet<String>) -> Ty {
+    let members: Vec<Ty> = throw_types
+        .iter()
+        .map(|throw_fact| throw_fact_to_ty(ctx, throw_fact))
+        .collect();
+    normalize_union_members(members)
+}
+
+/// Collect type alias name -> `TypeRef` map for resolving aliases in throws clauses.
+fn collect_type_alias_refs(
+    db: &dyn Db,
+    project: Project,
+) -> HashMap<Name, baml_compiler_hir::TypeRef> {
+    let items = baml_compiler_hir::project_items(db, project);
+    let mut alias_refs = HashMap::new();
+
+    for item in items.items(db) {
+        if let baml_compiler_hir::ItemId::TypeAlias(alias_loc) = item {
+            let item_tree = baml_compiler_hir::file_item_tree(db, alias_loc.file(db));
+            let alias_data = &item_tree[alias_loc.id(db)];
+            alias_refs.insert(alias_data.name.clone(), alias_data.type_ref.clone());
+        }
+    }
+
+    alias_refs
+}
+
+/// Lower a `throws` clause `TypeRef` directly to throw facts.
+///
+/// Unlike `lower_type_ref` (which produces a Ty), this produces the set of
+/// throw-fact strings that the declaration covers. This keeps `throws` in
+/// the fact lattice — the same lattice used by catch exhaustiveness — so
+/// variant-level precision is preserved.
+///
+/// Expansion rules:
+/// - Primitive names: `string` → {"string"}, `int` → {"int"}, etc.
+/// - Enum names: `Errors` → {"Errors.V1", "Errors.V2", ...} (all variants)
+/// - Enum variant paths: `Errors.AuthError` → {"Errors.AuthError"}
+/// - Other names (classes, etc.): `MyError` → {`"MyError"`}
+/// - Type alias names: resolved through to their underlying `TypeRef`
+/// - Unions: recurse and merge
+/// - `never` → {} (empty set)
+fn lower_throws_to_facts(
+    type_ref: &baml_compiler_hir::TypeRef,
+    enum_variants: &HashMap<Name, Vec<Name>>,
+    enum_names: &HashMap<Name, baml_compiler_hir::QualifiedName>,
+    type_alias_refs: &HashMap<Name, baml_compiler_hir::TypeRef>,
+) -> BTreeSet<String> {
+    use baml_compiler_hir::TypeRef;
+
+    let mut facts = BTreeSet::new();
+    match type_ref {
+        TypeRef::Int => {
+            facts.insert("int".into());
+        }
+        TypeRef::Float => {
+            facts.insert("float".into());
+        }
+        TypeRef::String => {
+            facts.insert("string".into());
+        }
+        TypeRef::Bool => {
+            facts.insert("bool".into());
+        }
+        TypeRef::Null => {
+            facts.insert("null".into());
+        }
+        TypeRef::Never => {}
+
+        TypeRef::Path(path) => match path.segments.len() {
+            1 => {
+                let name = &path.segments[0];
+                if enum_names.contains_key(name) {
+                    if let Some(variants) = enum_variants.get(name) {
+                        for v in variants {
+                            facts.insert(format!("{}.{}", name.as_str(), v.as_str()));
+                        }
+                    } else {
+                        facts.insert(name.as_str().into());
+                    }
+                } else if let Some(alias_ref) = type_alias_refs.get(name) {
+                    facts.extend(lower_throws_to_facts(
+                        alias_ref,
+                        enum_variants,
+                        enum_names,
+                        type_alias_refs,
+                    ));
+                } else {
+                    facts.insert(name.as_str().into());
+                }
+            }
+            2 => {
+                let enum_name = &path.segments[0];
+                let variant_name = &path.segments[1];
+                facts.insert(format!("{}.{}", enum_name.as_str(), variant_name.as_str()));
+            }
+            _ => {
+                let full = path
+                    .segments
+                    .iter()
+                    .map(smol_str::SmolStr::as_str)
+                    .collect::<Vec<_>>()
+                    .join(".");
+                facts.insert(full);
+            }
+        },
+
+        TypeRef::Union(members) => {
+            for m in members {
+                facts.extend(lower_throws_to_facts(
+                    m,
+                    enum_variants,
+                    enum_names,
+                    type_alias_refs,
+                ));
+            }
+        }
+
+        TypeRef::Optional(inner) => {
+            facts.insert("null".into());
+            facts.extend(lower_throws_to_facts(
+                inner,
+                enum_variants,
+                enum_names,
+                type_alias_refs,
+            ));
+        }
+
+        TypeRef::StringLiteral(_) => {
+            facts.insert("string".into());
+        }
+        TypeRef::IntLiteral(_) => {
+            facts.insert("int".into());
+        }
+        TypeRef::FloatLiteral(_) => {
+            facts.insert("float".into());
+        }
+        TypeRef::BoolLiteral(_) => {
+            facts.insert("bool".into());
+        }
+
+        _ => {
+            facts.insert("unknown".into());
+        }
+    }
+    facts
+}
+
+/// Build a canonical union type:
+/// - removes `never` members (bottom type)
+/// - deduplicates remaining members preserving order
+/// - returns bare member when cardinality is 1
+fn normalize_union_members(mut members: Vec<Ty>) -> Ty {
+    members.retain(|ty| !matches!(ty, Ty::Never { .. }));
+
+    let mut deduped: Vec<Ty> = Vec::new();
+    for ty in members {
+        if !deduped.contains(&ty) {
+            deduped.push(ty);
+        }
+    }
+
+    match deduped.len() {
+        0 => Ty::Never { attr: d() },
+        1 => deduped
+            .into_iter()
+            .next()
+            .unwrap_or(Ty::Never { attr: d() }),
+        _ => Ty::Union(deduped, d()),
+    }
+}
+
+fn literal_throw_fact(lit: &baml_compiler_hir::Literal) -> &'static str {
+    match lit {
+        baml_compiler_hir::Literal::Int(_) => "int",
+        baml_compiler_hir::Literal::Float(_) => "float",
+        baml_compiler_hir::Literal::String(_) => "string",
+        baml_compiler_hir::Literal::Bool(_) => "bool",
+        baml_compiler_hir::Literal::Null => "null",
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ThrowPatternMatch {
+    No,
+    Maybe,
+    Definite,
+}
+
+impl ThrowPatternMatch {
+    fn is_match(self) -> bool {
+        !matches!(self, ThrowPatternMatch::No)
+    }
+
+    fn is_definite(self) -> bool {
+        matches!(self, ThrowPatternMatch::Definite)
+    }
+}
+
+#[derive(Debug, Default)]
+struct ThrowPatternMatchSets {
+    may_match: BTreeSet<String>,
+    definitely_handled: BTreeSet<String>,
+}
+
+fn throw_fact_matches_named_type(throw_fact: &str, type_name: &str) -> bool {
+    throw_fact == type_name
+        || throw_fact
+            .strip_prefix(type_name)
+            .is_some_and(|rest| rest.starts_with('.'))
+}
+
+fn ty_matches_throw_fact(ty: &Ty, throw_fact: &str) -> bool {
+    if throw_fact == "unknown" {
+        return true;
+    }
+
+    match ty {
+        Ty::Int { .. } => throw_fact == "int",
+        Ty::Float { .. } => throw_fact == "float",
+        Ty::String { .. } => throw_fact == "string",
+        Ty::Bool { .. } => throw_fact == "bool",
+        Ty::Null { .. } => throw_fact == "null",
+        Ty::Literal(lit, _) => match lit {
+            LiteralValue::Int(_) => throw_fact == "int",
+            LiteralValue::Float(_) => throw_fact == "float",
+            LiteralValue::String(_) => throw_fact == "string",
+            LiteralValue::Bool(_) => throw_fact == "bool",
+        },
+        Ty::Optional(inner, _) => throw_fact == "null" || ty_matches_throw_fact(inner, throw_fact),
+        Ty::Union(members, _) => members
+            .iter()
+            .any(|member| ty_matches_throw_fact(member, throw_fact)),
+        Ty::Class(qn, _) | Ty::Enum(qn, _) | Ty::TypeAlias(qn, _) => {
+            throw_fact_matches_named_type(throw_fact, qn.display_name().as_str())
+        }
+        Ty::Unknown { .. } | Ty::Error { .. } | Ty::BuiltinUnknown { .. } => true,
+        Ty::Never { .. } => false,
+        _ => false,
+    }
+}
+
+fn pattern_match_strength(
+    ctx: &mut TypeContext<'_>,
+    pattern_id: PatId,
+    throw_fact: &str,
+    body: &ExprBody,
+) -> ThrowPatternMatch {
+    let pattern = &body.patterns[pattern_id];
+    match pattern {
+        Pattern::Binding(_) => ThrowPatternMatch::Definite,
+        Pattern::TypedBinding { ty, .. } => {
+            let span = ctx.pattern_span(pattern_id);
+            let lowered = ctx.lower_type(ty, span);
+            if !ty_matches_throw_fact(&lowered, throw_fact) {
+                ThrowPatternMatch::No
+            } else if throw_fact == "unknown" {
+                ThrowPatternMatch::Maybe
+            } else {
+                let throw_ty = throw_fact_to_ty(ctx, throw_fact);
+                if !throw_ty.is_unknown() && ctx.is_subtype_of(&throw_ty, &lowered) {
+                    ThrowPatternMatch::Definite
+                } else {
+                    ThrowPatternMatch::Maybe
+                }
+            }
+        }
+        Pattern::Literal(lit) => {
+            if throw_fact == "unknown" || literal_throw_fact(lit) == throw_fact {
+                ThrowPatternMatch::Maybe
+            } else {
+                ThrowPatternMatch::No
+            }
+        }
+        Pattern::EnumVariant { enum_name, variant } => {
+            let enum_name = enum_name.as_str();
+            let variant_fact = format!("{enum_name}.{}", variant.as_str());
+            if throw_fact == variant_fact {
+                ThrowPatternMatch::Definite
+            } else if throw_fact == enum_name || throw_fact == "unknown" {
+                ThrowPatternMatch::Maybe
+            } else {
+                ThrowPatternMatch::No
+            }
+        }
+        Pattern::Union(parts) => {
+            let mut saw_maybe = false;
+            for part in parts {
+                match pattern_match_strength(ctx, *part, throw_fact, body) {
+                    ThrowPatternMatch::Definite => return ThrowPatternMatch::Definite,
+                    ThrowPatternMatch::Maybe => saw_maybe = true,
+                    ThrowPatternMatch::No => {}
+                }
+            }
+            if saw_maybe {
+                ThrowPatternMatch::Maybe
+            } else {
+                ThrowPatternMatch::No
+            }
+        }
+    }
+}
+
+fn match_throw_types_for_pattern(
+    ctx: &mut TypeContext<'_>,
+    pattern_id: PatId,
+    residual_throw_types: &BTreeSet<String>,
+    body: &ExprBody,
+) -> ThrowPatternMatchSets {
+    let mut out = ThrowPatternMatchSets::default();
+    for throw_fact in residual_throw_types {
+        let strength = pattern_match_strength(ctx, pattern_id, throw_fact, body);
+        if strength.is_match() {
+            out.may_match.insert(throw_fact.clone());
+        }
+        if strength.is_definite() {
+            out.definitely_handled.insert(throw_fact.clone());
+        }
+    }
+    out
+}
+
+/// TIR-level counterpart to `throw_inference::throw_fact_from_expr`.
+///
+/// Operates on fully inferred types (`ctx.expr_types`) rather than raw syntax,
+/// so it can resolve variables, function results, and other expressions that the
+/// HIR-level pre-pass records as `"unknown"`. Used for local catch-base analysis
+/// during type inference.
+fn collect_throw_facts_from_value(
+    ctx: &TypeContext<'_>,
+    value_expr_id: ExprId,
+    _body: &ExprBody,
+    out: &mut BTreeSet<String>,
+) {
+    if let Some((enum_name, variant_name)) = ctx.enum_variant_exprs.get(&value_expr_id) {
+        out.insert(format!("{}.{}", enum_name.as_str(), variant_name.as_str()));
+        return;
+    }
+
+    let unknown_ty = Ty::Unknown { attr: d() };
+    let thrown_ty = ctx.expr_types.get(&value_expr_id).unwrap_or(&unknown_ty);
+    match thrown_ty {
+        Ty::Literal(lit, _) => {
+            out.insert(match lit {
+                LiteralValue::Int(_) => "int".to_string(),
+                LiteralValue::Float(_) => "float".to_string(),
+                LiteralValue::String(_) => "string".to_string(),
+                LiteralValue::Bool(_) => "bool".to_string(),
+            });
+        }
+        Ty::Int { .. } => {
+            out.insert("int".to_string());
+        }
+        Ty::Float { .. } => {
+            out.insert("float".to_string());
+        }
+        Ty::String { .. } => {
+            out.insert("string".to_string());
+        }
+        Ty::Bool { .. } => {
+            out.insert("bool".to_string());
+        }
+        Ty::Null { .. } => {
+            out.insert("null".to_string());
+        }
+        Ty::Class(qn, _) | Ty::Enum(qn, _) | Ty::TypeAlias(qn, _) => {
+            out.insert(qn.display_name().as_str().to_string());
+        }
+        Ty::Union(members, _) => {
+            for member in members {
+                if let Ty::Class(qn, _) | Ty::Enum(qn, _) | Ty::TypeAlias(qn, _) = member {
+                    out.insert(qn.display_name().as_str().to_string());
+                }
+            }
+        }
+        Ty::Never { .. } => {
+            // Uninhabited — no value of this type exists, so no fact to record.
+            // This arises when `throw e` appears inside an unreachable catch arm
+            // (the catch binding has type Never because the base never throws).
+        }
+        _ => {
+            out.insert("unknown".to_string());
+        }
+    }
+}
+
+fn collect_throw_facts_from_stmt(
+    ctx: &TypeContext<'_>,
+    stmt_id: StmtId,
+    body: &ExprBody,
+    out: &mut BTreeSet<String>,
+) {
+    use baml_compiler_hir::Stmt;
+
+    match &body.stmts[stmt_id] {
+        Stmt::Expr(expr_id) => collect_throw_facts_from_expr(ctx, *expr_id, body, out),
+        Stmt::Let { initializer, .. } => {
+            if let Some(initializer) = initializer {
+                collect_throw_facts_from_expr(ctx, *initializer, body, out);
+            }
+        }
+        Stmt::While {
+            condition,
+            body: loop_body,
+            after,
+            ..
+        } => {
+            collect_throw_facts_from_expr(ctx, *condition, body, out);
+            collect_throw_facts_from_expr(ctx, *loop_body, body, out);
+            if let Some(after) = after {
+                collect_throw_facts_from_stmt(ctx, *after, body, out);
+            }
+        }
+        Stmt::Return(expr) => {
+            if let Some(expr) = expr {
+                collect_throw_facts_from_expr(ctx, *expr, body, out);
+            }
+        }
+        Stmt::Assign { target, value } => {
+            collect_throw_facts_from_expr(ctx, *target, body, out);
+            collect_throw_facts_from_expr(ctx, *value, body, out);
+        }
+        Stmt::AssignOp { target, value, .. } => {
+            collect_throw_facts_from_expr(ctx, *target, body, out);
+            collect_throw_facts_from_expr(ctx, *value, body, out);
+        }
+        Stmt::Assert { condition } => collect_throw_facts_from_expr(ctx, *condition, body, out),
+        Stmt::Throw { value } => {
+            collect_throw_facts_from_expr(ctx, *value, body, out);
+            collect_throw_facts_from_value(ctx, *value, body, out);
+        }
+        Stmt::Break | Stmt::Continue | Stmt::Missing | Stmt::HeaderComment { .. } => {}
+    }
+}
+
+fn collect_throw_facts_from_expr(
+    ctx: &TypeContext<'_>,
+    expr_id: ExprId,
+    body: &ExprBody,
+    out: &mut BTreeSet<String>,
+) {
+    use baml_compiler_hir::Expr;
+
+    match &body.exprs[expr_id] {
+        Expr::Throw { value } => {
+            collect_throw_facts_from_expr(ctx, *value, body, out);
+            collect_throw_facts_from_value(ctx, *value, body, out);
+        }
+        Expr::Call { callee, args } => {
+            collect_throw_facts_from_expr(ctx, *callee, body, out);
+            for arg in args {
+                collect_throw_facts_from_expr(ctx, *arg, body, out);
+            }
+
+            if let Some(function_name) = divergence::call_target_from_callee_expr(*callee, body) {
+                let throws = function_throw_sets(ctx.db(), ctx.db().project());
+                if let Some(transitive) = throws.transitive(ctx.db()).get(&function_name) {
+                    out.extend(transitive.iter().cloned());
+                } else if is_function_always_diverging(ctx, &function_name) {
+                    out.insert("unknown".to_string());
+                }
+            }
+        }
+        Expr::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_throw_facts_from_expr(ctx, *condition, body, out);
+            collect_throw_facts_from_expr(ctx, *then_branch, body, out);
+            if let Some(else_branch) = else_branch {
+                collect_throw_facts_from_expr(ctx, *else_branch, body, out);
+            }
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            collect_throw_facts_from_expr(ctx, *scrutinee, body, out);
+            for arm_id in arms {
+                let arm = &body.match_arms[*arm_id];
+                if let Some(guard) = arm.guard {
+                    collect_throw_facts_from_expr(ctx, guard, body, out);
+                }
+                collect_throw_facts_from_expr(ctx, arm.body, body, out);
+            }
+        }
+        Expr::Binary { lhs, rhs, .. } => {
+            collect_throw_facts_from_expr(ctx, *lhs, body, out);
+            collect_throw_facts_from_expr(ctx, *rhs, body, out);
+        }
+        Expr::Unary { expr, .. } => collect_throw_facts_from_expr(ctx, *expr, body, out),
+        Expr::Object {
+            fields, spreads, ..
+        } => {
+            for (_, value) in fields {
+                collect_throw_facts_from_expr(ctx, *value, body, out);
+            }
+            for spread in spreads {
+                collect_throw_facts_from_expr(ctx, spread.expr, body, out);
+            }
+        }
+        Expr::Array { elements } => {
+            for elem in elements {
+                collect_throw_facts_from_expr(ctx, *elem, body, out);
+            }
+        }
+        Expr::Map { entries } => {
+            for (key, value) in entries {
+                collect_throw_facts_from_expr(ctx, *key, body, out);
+                collect_throw_facts_from_expr(ctx, *value, body, out);
+            }
+        }
+        Expr::Block { stmts, tail_expr } => {
+            for stmt_id in stmts {
+                collect_throw_facts_from_stmt(ctx, *stmt_id, body, out);
+            }
+            if let Some(tail_expr) = tail_expr {
+                collect_throw_facts_from_expr(ctx, *tail_expr, body, out);
+            }
+        }
+        Expr::FieldAccess { base, .. } => collect_throw_facts_from_expr(ctx, *base, body, out),
+        Expr::Index { base, index } => {
+            collect_throw_facts_from_expr(ctx, *base, body, out);
+            collect_throw_facts_from_expr(ctx, *index, body, out);
+        }
+        Expr::Catch { base, .. } => {
+            collect_throw_facts_from_expr(ctx, *base, body, out);
+        }
+        Expr::Literal(_) | Expr::Path(_) | Expr::Missing => {}
+    }
+}
+
+fn catch_base_throw_types(
+    ctx: &TypeContext<'_>,
+    base_expr_id: ExprId,
+    base_ty: &Ty,
+    body: &ExprBody,
+) -> BTreeSet<String> {
+    let mut throw_types = BTreeSet::new();
+    collect_throw_facts_from_expr(ctx, base_expr_id, body, &mut throw_types);
+    if !throw_types.is_empty() {
+        return throw_types;
+    }
+
+    if matches!(base_ty, Ty::Never { .. }) {
+        BTreeSet::from(["unknown".to_string()])
+    } else {
+        BTreeSet::new()
+    }
+}
+
+/// Collect the effective throw types that escape a function body, accounting for
+/// catch clauses. Unlike `collect_throw_facts_from_expr`, this uses the residual
+/// throw types computed during type inference to correctly subtract what catches handle.
+fn collect_effective_throws_from_expr(
+    ctx: &TypeContext<'_>,
+    expr_id: ExprId,
+    body: &ExprBody,
+    out: &mut BTreeSet<String>,
+) {
+    use baml_compiler_hir::Expr;
+
+    match &body.exprs[expr_id] {
+        Expr::Throw { value } => {
+            collect_effective_throws_from_expr(ctx, *value, body, out);
+            collect_throw_facts_from_value(ctx, *value, body, out);
+        }
+        Expr::Call { callee, args } => {
+            collect_effective_throws_from_expr(ctx, *callee, body, out);
+            for arg in args {
+                collect_effective_throws_from_expr(ctx, *arg, body, out);
+            }
+            if let Some(function_name) = divergence::call_target_from_callee_expr(*callee, body) {
+                let throws = function_throw_sets(ctx.db(), ctx.db().project());
+                if let Some(transitive) = throws.transitive(ctx.db()).get(&function_name) {
+                    out.extend(transitive.iter().cloned());
+                } else if is_function_always_diverging(ctx, &function_name) {
+                    out.insert("unknown".to_string());
+                }
+            }
+        }
+        Expr::Catch { base, .. } => {
+            // Use the residual from type inference (catch-aware)
+            if let Some(residual) = ctx.catch_residual_throws.get(&expr_id) {
+                out.extend(residual.iter().cloned());
+            }
+            // Still recurse into catch arm bodies for throws within handlers
+            if let Expr::Catch { clauses, .. } = &body.exprs[expr_id] {
+                for clause in clauses {
+                    for arm_id in &clause.arms {
+                        let arm = &body.catch_arms[*arm_id];
+                        collect_effective_throws_from_expr(ctx, arm.body, body, out);
+                    }
+                }
+            }
+            // Don't recurse into base — its throws are accounted for by the residual
+            let _ = base;
+        }
+        Expr::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_effective_throws_from_expr(ctx, *condition, body, out);
+            collect_effective_throws_from_expr(ctx, *then_branch, body, out);
+            if let Some(else_branch) = else_branch {
+                collect_effective_throws_from_expr(ctx, *else_branch, body, out);
+            }
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            collect_effective_throws_from_expr(ctx, *scrutinee, body, out);
+            for arm_id in arms {
+                let arm = &body.match_arms[*arm_id];
+                if let Some(guard) = arm.guard {
+                    collect_effective_throws_from_expr(ctx, guard, body, out);
+                }
+                collect_effective_throws_from_expr(ctx, arm.body, body, out);
+            }
+        }
+        Expr::Binary { lhs, rhs, .. } => {
+            collect_effective_throws_from_expr(ctx, *lhs, body, out);
+            collect_effective_throws_from_expr(ctx, *rhs, body, out);
+        }
+        Expr::Unary { expr, .. } => {
+            collect_effective_throws_from_expr(ctx, *expr, body, out);
+        }
+        Expr::Object {
+            fields, spreads, ..
+        } => {
+            for (_, value) in fields {
+                collect_effective_throws_from_expr(ctx, *value, body, out);
+            }
+            for spread in spreads {
+                collect_effective_throws_from_expr(ctx, spread.expr, body, out);
+            }
+        }
+        Expr::Array { elements } => {
+            for elem in elements {
+                collect_effective_throws_from_expr(ctx, *elem, body, out);
+            }
+        }
+        Expr::Map { entries } => {
+            for (key, value) in entries {
+                collect_effective_throws_from_expr(ctx, *key, body, out);
+                collect_effective_throws_from_expr(ctx, *value, body, out);
+            }
+        }
+        Expr::Block { stmts, tail_expr } => {
+            for stmt_id in stmts {
+                collect_effective_throws_from_stmt(ctx, *stmt_id, body, out);
+            }
+            if let Some(tail_expr) = tail_expr {
+                collect_effective_throws_from_expr(ctx, *tail_expr, body, out);
+            }
+        }
+        Expr::FieldAccess { base, .. } => {
+            collect_effective_throws_from_expr(ctx, *base, body, out);
+        }
+        Expr::Index { base, index } => {
+            collect_effective_throws_from_expr(ctx, *base, body, out);
+            collect_effective_throws_from_expr(ctx, *index, body, out);
+        }
+        Expr::Literal(_) | Expr::Path(_) | Expr::Missing => {}
+    }
+}
+
+fn collect_effective_throws_from_stmt(
+    ctx: &TypeContext<'_>,
+    stmt_id: StmtId,
+    body: &ExprBody,
+    out: &mut BTreeSet<String>,
+) {
+    use baml_compiler_hir::Stmt;
+
+    match &body.stmts[stmt_id] {
+        Stmt::Expr(expr_id) => collect_effective_throws_from_expr(ctx, *expr_id, body, out),
+        Stmt::Let { initializer, .. } => {
+            if let Some(initializer) = initializer {
+                collect_effective_throws_from_expr(ctx, *initializer, body, out);
+            }
+        }
+        Stmt::While {
+            condition,
+            body: loop_body,
+            after,
+            ..
+        } => {
+            collect_effective_throws_from_expr(ctx, *condition, body, out);
+            collect_effective_throws_from_expr(ctx, *loop_body, body, out);
+            if let Some(after) = after {
+                collect_effective_throws_from_stmt(ctx, *after, body, out);
+            }
+        }
+        Stmt::Return(expr) => {
+            if let Some(expr) = expr {
+                collect_effective_throws_from_expr(ctx, *expr, body, out);
+            }
+        }
+        Stmt::Assign { target, value } => {
+            collect_effective_throws_from_expr(ctx, *target, body, out);
+            collect_effective_throws_from_expr(ctx, *value, body, out);
+        }
+        Stmt::AssignOp { target, value, .. } => {
+            collect_effective_throws_from_expr(ctx, *target, body, out);
+            collect_effective_throws_from_expr(ctx, *value, body, out);
+        }
+        Stmt::Assert { condition } => {
+            collect_effective_throws_from_expr(ctx, *condition, body, out);
+        }
+        Stmt::Throw { value } => {
+            collect_effective_throws_from_expr(ctx, *value, body, out);
+            collect_throw_facts_from_value(ctx, *value, body, out);
+        }
+        Stmt::Break | Stmt::Continue | Stmt::Missing | Stmt::HeaderComment { .. } => {}
+    }
+}
+
 /// Extract binding name and narrowed type from a match pattern.
 ///
 /// Returns `(Some(name), narrowed_type)` for binding patterns, or `(None, scrutinee_type)` for
@@ -2943,7 +4188,7 @@ fn extract_pattern_binding(
     scrutinee_ty: &Ty,
     _body: &ExprBody,
 ) -> (Option<Name>, Ty) {
-    match pattern {
+    let result = match pattern {
         // Typed binding: `s: Success` -> s has type Success
         Pattern::TypedBinding { name, ty } => {
             // Use the pattern's span for type errors (points to where the type is used)
@@ -2953,11 +4198,7 @@ fn extract_pattern_binding(
         }
 
         // Simple binding: `x` or `_` -> binds with scrutinee type (catch-all)
-        Pattern::Binding(name) => {
-            // `_` is semantically discarded but still creates a binding during type checking
-            // The "discard" behavior is handled in codegen, not here
-            (Some(name.clone()), scrutinee_ty.clone())
-        }
+        Pattern::Binding(name) => (Some(name.clone()), scrutinee_ty.clone()),
 
         // Literal patterns don't introduce bindings
         Pattern::Literal(_) => (None, scrutinee_ty.clone()),
@@ -2969,6 +4210,40 @@ fn extract_pattern_binding(
         // Union patterns don't introduce bindings
         // (they're unions of literals or enum variants)
         Pattern::Union(_) => (None, scrutinee_ty.clone()),
+    };
+
+    if result.0.is_some() {
+        ctx.pattern_types.insert(pattern_id, result.1.clone());
+    }
+
+    result
+}
+
+/// Reject `any` and `unknown` type annotations in catch binding positions.
+fn validate_catch_binding_type(
+    ctx: &mut TypeContext<'_>,
+    pattern: &Pattern,
+    pattern_id: PatId,
+    _body: &ExprBody,
+) {
+    if let Pattern::TypedBinding { ty, .. } = pattern {
+        use baml_compiler_hir::TypeRef;
+        let banned_name = match ty {
+            TypeRef::BuiltinUnknown => Some("unknown"),
+            TypeRef::Path(path)
+                if path.is_simple()
+                    && path.first_segment().map(baml_base::Name::as_str) == Some("any") =>
+            {
+                Some("any")
+            }
+            _ => None,
+        };
+        if let Some(name) = banned_name {
+            ctx.push_error(TypeError::InvalidCatchBindingType {
+                type_name: name.to_string(),
+                location: ErrorLocation::Pattern(pattern_id),
+            });
+        }
     }
 }
 
@@ -3146,10 +4421,14 @@ fn infer_binary_op(
         }
     }
 
-    // Don't emit errors for operations involving unknown or error types - the root cause
-    // (e.g., unknown variable) has already been reported
+    // Don't emit errors for operations involving unknown, error, or never types.
+    // Unknown/Error: the root cause (e.g., unknown variable) has already been reported.
+    // Never: the expression is unreachable (e.g., after throw), so no error needed.
     if lhs.is_unknown() || lhs.is_error() || rhs.is_unknown() || rhs.is_error() {
         return Ty::Unknown { attr: d() };
+    }
+    if matches!(lhs, Ty::Never { .. }) || matches!(rhs, Ty::Never { .. }) {
+        return Ty::Never { attr: d() };
     }
 
     match op {
@@ -3580,9 +4859,10 @@ fn check_stmt_with_return(
         }
 
         Stmt::Return(expr) => {
+            let fn_ret = ctx.fn_return_type.clone();
+            let effective_expected = expected_return.or(fn_ret.as_ref());
             let return_ty = if let Some(e) = expr {
-                // If we have an expected return type, use check_expr for bidirectional typing
-                if let Some(expected) = expected_return {
+                if let Some(expected) = effective_expected {
                     check_expr(ctx, *e, body, expected)
                 } else {
                     infer_expr(ctx, *e, body)
@@ -3592,7 +4872,6 @@ fn check_stmt_with_return(
                     attr: TyAttr::default(),
                 }
             };
-            // Record return type (span resolved at render time if needed)
             ctx.record_return(return_ty, Span::default());
         }
 
@@ -3666,6 +4945,10 @@ fn check_stmt_with_return(
 
         Stmt::HeaderComment { .. } => {
             // Header comments don't need type checking - they're just annotations
+        }
+
+        Stmt::Throw { value } => {
+            infer_expr(ctx, *value, body);
         }
     }
 }
