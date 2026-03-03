@@ -693,6 +693,203 @@ impl<'g> Tarjan<'g> {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CLASS REQUIRED-FIELD CYCLE DETECTION
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Classes with required (non-optional, non-list, non-map) fields that form
+// a cycle are impossible to construct at runtime. We detect these using the
+// same Tarjan's SCC infrastructure.
+//
+// Unlike type alias cycles, there is no "structural guard" exemption —
+// every SCC found is unconditionally an error.
+
+/// A class cycle: the names participating and a formatted path string.
+pub struct ClassCycleInfo {
+    /// All class names in this cycle.
+    pub members: Vec<QualifiedTypeName>,
+    /// Human-readable cycle path, e.g. "A -> B -> A".
+    pub cycle_path: String,
+}
+
+/// Find all classes that participate in unconstructable required-field cycles.
+///
+/// A "required" field is one that is NOT optional, NOT a list, and NOT a map.
+/// Optional/list/map fields can be null/empty, breaking the construction chain.
+///
+/// Returns a list of `ClassCycleInfo`, one per SCC found.
+pub fn find_invalid_class_cycles(
+    class_fields: &HashMap<QualifiedTypeName, Vec<(Name, Ty)>>,
+    type_aliases: &HashMap<QualifiedTypeName, Ty>,
+) -> Vec<ClassCycleInfo> {
+    let graph = build_class_graph(class_fields, type_aliases);
+    let sccs = Tarjan::components(&graph);
+
+    sccs.into_iter()
+        .map(|scc| {
+            let cycle_path = format_cycle_path(&scc);
+            ClassCycleInfo {
+                members: scc,
+                cycle_path,
+            }
+        })
+        .collect()
+}
+
+/// Build a dependency graph of classes based on required field types.
+fn build_class_graph(
+    class_fields: &HashMap<QualifiedTypeName, Vec<(Name, Ty)>>,
+    type_aliases: &HashMap<QualifiedTypeName, Ty>,
+) -> HashMap<QualifiedTypeName, HashSet<QualifiedTypeName>> {
+    let mut graph: HashMap<QualifiedTypeName, HashSet<QualifiedTypeName>> = HashMap::new();
+
+    // All classes must be in the graph (even if they have no required deps)
+    for class_name in class_fields.keys() {
+        graph.entry(class_name.clone()).or_default();
+    }
+
+    for (class_name, fields) in class_fields {
+        let mut deps = HashSet::new();
+        for (_field_name, field_ty) in fields {
+            extract_required_class_deps(
+                field_ty,
+                class_fields,
+                type_aliases,
+                &mut deps,
+                false, // not optional
+                false, // not in list/map
+                &mut HashSet::new(),
+            );
+        }
+        graph.insert(class_name.clone(), deps);
+    }
+
+    graph
+}
+
+/// Extract required class dependencies from a field type.
+///
+/// A class reference is "required" only if it is NOT behind Optional, List,
+/// or Map. Type aliases are resolved transparently.
+fn extract_required_class_deps(
+    ty: &Ty,
+    class_fields: &HashMap<QualifiedTypeName, Vec<(Name, Ty)>>,
+    type_aliases: &HashMap<QualifiedTypeName, Ty>,
+    deps: &mut HashSet<QualifiedTypeName>,
+    optional: bool,
+    in_list_or_map: bool,
+    visiting: &mut HashSet<QualifiedTypeName>,
+) {
+    match ty {
+        Ty::Class(qn) => {
+            // Only add if the field is truly required
+            if !optional && !in_list_or_map && class_fields.contains_key(qn) {
+                deps.insert(qn.clone());
+            }
+        }
+        Ty::TypeAlias(qn) => {
+            // Resolve through type aliases (only if still required context)
+            if !optional && !in_list_or_map && !visiting.contains(qn) {
+                if let Some(alias_ty) = type_aliases.get(qn) {
+                    visiting.insert(qn.clone());
+                    extract_required_class_deps(
+                        alias_ty,
+                        class_fields,
+                        type_aliases,
+                        deps,
+                        optional,
+                        in_list_or_map,
+                        visiting,
+                    );
+                    visiting.remove(qn);
+                }
+            }
+        }
+        Ty::Optional(inner) => {
+            // Optional breaks the hard dependency
+            extract_required_class_deps(
+                inner,
+                class_fields,
+                type_aliases,
+                deps,
+                true,
+                in_list_or_map,
+                visiting,
+            );
+        }
+        Ty::List(inner) | Ty::EvolvingList(inner) => {
+            // List breaks the hard dependency (can be empty)
+            extract_required_class_deps(
+                inner,
+                class_fields,
+                type_aliases,
+                deps,
+                optional,
+                true,
+                visiting,
+            );
+        }
+        Ty::Map(key, value) | Ty::EvolvingMap(key, value) => {
+            // Map breaks the hard dependency (can be empty)
+            extract_required_class_deps(
+                key,
+                class_fields,
+                type_aliases,
+                deps,
+                optional,
+                true,
+                visiting,
+            );
+            extract_required_class_deps(
+                value,
+                class_fields,
+                type_aliases,
+                deps,
+                optional,
+                true,
+                visiting,
+            );
+        }
+        Ty::Union(members) => {
+            // Union: only a hard dependency if ALL variants lead to the same class.
+            // If any variant provides an alternative (e.g. string), the cycle is broken.
+            let mut variant_deps_list = Vec::new();
+            for member in members {
+                let mut variant_deps = HashSet::new();
+                extract_required_class_deps(
+                    member,
+                    class_fields,
+                    type_aliases,
+                    &mut variant_deps,
+                    optional,
+                    in_list_or_map,
+                    visiting,
+                );
+                variant_deps_list.push(variant_deps);
+            }
+            // Only add if ALL variants produce the same single dep
+            if !variant_deps_list.is_empty() {
+                let first = &variant_deps_list[0];
+                if first.len() == 1 && variant_deps_list.iter().all(|d| d == first) {
+                    deps.extend(first.iter().cloned());
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Format a cycle path as "A -> B -> C -> A".
+fn format_cycle_path(cycle: &[QualifiedTypeName]) -> String {
+    if cycle.len() == 1 {
+        cycle[0].name.to_string()
+    } else {
+        let mut path: Vec<String> = cycle.iter().map(|qn| qn.name.to_string()).collect();
+        path.push(cycle[0].name.to_string());
+        path.join(" -> ")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

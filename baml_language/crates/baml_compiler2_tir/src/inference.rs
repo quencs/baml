@@ -311,6 +311,39 @@ pub fn detect_invalid_alias_cycles<'db>(
     crate::normalize::find_invalid_alias_cycles(&aliases)
 }
 
+/// Detect invalid required-field class cycles in a package.
+///
+/// Returns a list of `ClassCycleInfo`, one per unconstructable cycle found.
+/// Cycles through optional, list, or map fields are valid (can be null/empty).
+pub fn detect_invalid_class_cycles<'db>(
+    db: &'db dyn crate::Db,
+    pkg_id: PackageId<'db>,
+) -> Vec<crate::normalize::ClassCycleInfo> {
+    let pkg_items = package_items(db, pkg_id);
+    let aliases = collect_type_aliases(db, pkg_items);
+    let class_fields = collect_class_fields(db, pkg_items);
+    crate::normalize::find_invalid_class_cycles(&class_fields, &aliases)
+}
+
+/// Build a map of class qualified name → resolved fields from all classes in the package.
+fn collect_class_fields<'db>(
+    db: &'db dyn crate::Db,
+    pkg_items: &PackageItems<'db>,
+) -> HashMap<crate::ty::QualifiedTypeName, Vec<(Name, crate::ty::Ty)>> {
+    let mut classes = HashMap::new();
+    for ns in pkg_items.namespaces.values() {
+        for (name, def) in &ns.types {
+            if let Definition::Class(loc) = def {
+                let resolved = resolve_class_fields(db, *loc);
+                let qualified =
+                    crate::lower_type_expr::qualify_def(db, Definition::Class(*loc), name);
+                classes.insert(qualified, resolved.fields.clone());
+            }
+        }
+    }
+    classes
+}
+
 // ── Per-Item Queries ────────────────────────────────────────────────────────
 
 /// Resolved class fields — `TypeExpr` resolved to `Ty` for each field.

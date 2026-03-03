@@ -392,7 +392,9 @@ pub(crate) mod support {
     /// Render a file's TIR output in the same format as the onion skin tool.
     pub fn render_tir(db: &ProjectDatabase, file: baml_base::SourceFile) -> String {
         use baml_compiler2_hir::package::{PackageId, package_items};
-        use baml_compiler2_tir::inference::detect_invalid_alias_cycles;
+        use baml_compiler2_tir::inference::{
+            detect_invalid_alias_cycles, detect_invalid_class_cycles,
+        };
 
         let mut output = String::new();
         let index = file_semantic_index(db, file);
@@ -404,6 +406,15 @@ pub(crate) mod support {
 
         // Pre-compute invalid alias cycles for the package
         let invalid_cycles = detect_invalid_alias_cycles(db, pkg_id);
+
+        // Pre-compute invalid class cycles — build a map from class QN → cycle_path
+        let class_cycles_info = detect_invalid_class_cycles(db, pkg_id);
+        let mut class_cycle_map = std::collections::HashMap::new();
+        for cycle in &class_cycles_info {
+            for member in &cycle.members {
+                class_cycle_map.insert(member.clone(), cycle.cycle_path.clone());
+            }
+        }
         for (i, scope) in index.scopes.iter().enumerate() {
             let scope_id = index.scope_ids[i];
             let kind_str = match &scope.kind {
@@ -434,6 +445,20 @@ pub(crate) mod support {
                                         writeln!(output, "  {fname}: {fty}").ok();
                                     }
                                     writeln!(output, "}}").ok();
+                                    // Render class cycle diagnostic if applicable
+                                    let qn = baml_compiler2_tir::lower_type_expr::qualify(
+                                        pkg_info.package.as_str(),
+                                        name,
+                                    );
+                                    if let Some(cycle_path) = class_cycle_map.get(&qn) {
+                                        let start = u32::from(scope.range.start());
+                                        let end = u32::from(scope.range.end());
+                                        writeln!(
+                                            output,
+                                            "  !! {start}..{end}: class cycle: {cycle_path}"
+                                        )
+                                        .ok();
+                                    }
                                     break;
                                 }
                             }

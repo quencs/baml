@@ -74,6 +74,12 @@ pub enum TirTypeError {
     /// Valid recursion through containers (`type JSON = string | JSON[]`) does NOT
     /// trigger this — only cycles with no base case.
     AliasCycle { name: Name },
+    /// Class participates in an unconstructable required-field cycle.
+    ///
+    /// Examples: `class A { b B }; class B { a A }`.
+    /// Cycles through optional, list, or map fields are valid since those can
+    /// be null/empty, breaking the construction dependency.
+    ClassCycle { name: Name, cycle_path: String },
 }
 
 impl fmt::Display for TirTypeError {
@@ -128,6 +134,9 @@ impl fmt::Display for TirTypeError {
             }
             TirTypeError::AliasCycle { name } => {
                 write!(f, "recursive type alias cycle: {name}")
+            }
+            TirTypeError::ClassCycle { cycle_path, .. } => {
+                write!(f, "class cycle: {cycle_path}")
             }
         }
     }
