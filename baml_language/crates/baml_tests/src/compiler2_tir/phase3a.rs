@@ -309,9 +309,9 @@ fn float_literal_in_annotation() {
         "function f(x: 3.14 | 2.72) -> float { return x; }",
     );
     insta::assert_snapshot!(render_tir(&db, file), @r"
-    function user.f(x: unknown | unknown) -> float {
+    function user.f(x: 3.14 | 2.72) -> float {
       { : never
-        return x : unknown | unknown
+        return x : 3.14 | 2.72
       }
     }
     ");
@@ -448,9 +448,8 @@ function f(x: Cat | Dog) -> string { return x.name; }"#,
     }
     function user.f(x: user.Cat | user.Dog) -> string {
       { : never
-        return x.name : unknown
+        return x.name : string | string
       }
-      !! 113..120: unresolved member: user.Cat | user.Dog.name
     }
     ");
 }
@@ -479,7 +478,120 @@ function f(x: Cat | Dog) -> int { return x.whiskers; }"#,
       { : never
         return x.whiskers : unknown
       }
-      !! 115..126: unresolved member: user.Cat | user.Dog.whiskers
+      !! 115..126: unresolved member: user.Dog.whiskers
+    }
+    ");
+}
+
+#[test]
+fn union_field_access_missing_on_one_of_three() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        r#"class A { name string }
+class B { name string }
+class C { age int }
+function f(x: A | B | C) -> string { return x.name; }"#,
+    );
+    // C has no `name` field → error on the whole union
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.A {
+      name: string
+    }
+    class user.B {
+      name: string
+    }
+    class user.C {
+      age: int
+    }
+    function user.f(x: user.A | user.B | user.C) -> string {
+      { : never
+        return x.name : unknown
+      }
+      !! 111..118: unresolved member: user.C.name
+    }
+    ");
+}
+
+#[test]
+fn union_field_access_missing_on_two_of_three() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        r#"class A { name string }
+class B { age string }
+class C { age int }
+function f(x: A | B | C) -> string { return x.name; }"#,
+    );
+    // C has no `name` field → error on the whole union
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.A {
+      name: string
+    }
+    class user.B {
+      age: string
+    }
+    class user.C {
+      age: int
+    }
+    function user.f(x: user.A | user.B | user.C) -> string {
+      { : never
+        return x.name : unknown
+      }
+      !! 110..117: unresolved member: user.B.name
+      !! 110..117: unresolved member: user.C.name
+    }
+    ");
+}
+
+#[test]
+fn union_field_access_different_types() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        r#"class A { value int }
+class B { value string }
+function f(x: A | B) -> string { return x.value; }"#,
+    );
+    // Both have `value` but different types → union of field types
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.A {
+      value: int
+    }
+    class user.B {
+      value: string
+    }
+    function user.f(x: user.A | user.B) -> string {
+      { : never
+        return x.value : int | string
+      }
+      !! 86..94: type mismatch: expected string, got int | string
+    }
+    ");
+}
+
+#[test]
+fn union_field_access_optional_member() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        r#"class A { name string }
+class B { name string }
+function f(x: A | B | null) -> string { return x.name; }"#,
+    );
+    // null in union → can't access field (needs narrowing first)
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.A {
+      name: string
+    }
+    class user.B {
+      name: string
+    }
+    function user.f(x: user.A | user.B | null) -> string {
+      { : never
+        return x.name : unknown
+      }
+      !! 94..101: unresolved member: null.name
     }
     ");
 }

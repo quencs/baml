@@ -253,6 +253,14 @@ impl UnionMemberParts {
             .find(|t| t.kind() == SyntaxKind::INTEGER_LITERAL)
             .and_then(|t| t.text().parse().ok())
     }
+
+    /// Check if this member has a `FLOAT_LITERAL` token and return its text.
+    pub fn float_literal(&self) -> Option<String> {
+        self.tokens
+            .iter()
+            .find(|t| t.kind() == SyntaxKind::FLOAT_LITERAL)
+            .map(|t| t.text().to_string())
+    }
 }
 
 impl Default for UnionMemberParts {
@@ -464,6 +472,15 @@ impl TypeExpr {
             .filter_map(rowan::NodeOrToken::into_token)
             .find(|t| t.kind() == SyntaxKind::INTEGER_LITERAL)
             .and_then(|t| t.text().parse().ok())
+    }
+
+    /// Check if this is a float literal type like `3.14`.
+    pub fn float_literal(&self) -> Option<String> {
+        self.syntax
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|t| t.kind() == SyntaxKind::FLOAT_LITERAL)
+            .map(|t| t.text().to_string())
     }
 
     /// Check if this is a boolean literal (`true` or `false`).

@@ -104,7 +104,7 @@ impl LoweringContext {
     /// Try to lower a bare token (not wrapped in a node) into an expression.
     ///
     /// The parser sometimes emits single identifiers and literals as bare tokens
-    /// rather than wrapping them in PATH_EXPR or other nodes. This helper handles
+    /// rather than wrapping them in `PATH_EXPR` or other nodes. This helper handles
     /// those cases so lowering functions that iterate `children_with_tokens()` can
     /// process both nodes and tokens uniformly.
     fn try_lower_bare_token(

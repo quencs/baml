@@ -57,9 +57,7 @@ pub enum TypeExpr {
     },
     /// A | B | C
     Union(Vec<TypeExpr>),
-    /// Literal types in unions: `"user"`, `200`, `true`.
-    /// Note: float literal types are not supported in the grammar — only
-    /// string, int, and bool literals can appear in type position.
+    /// Literal types in unions: `"user"`, `200`, `3.14`, `true`.
     Literal(baml_base::Literal),
     /// Function type: (params) -> return
     Function {

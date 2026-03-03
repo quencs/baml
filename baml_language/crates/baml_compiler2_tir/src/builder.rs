@@ -732,6 +732,37 @@ impl<'db> TypeInferenceBuilder<'db> {
                 );
                 Ty::Unknown
             }
+            Ty::Union(members) => {
+                // For union types, try to resolve the field on each member.
+                // If ALL members have the field, return Union(resolved_types).
+                // If any member is missing the field, report per-member errors.
+                let members = members.clone();
+                let resolved: Vec<(Ty, Option<Ty>)> = members
+                    .iter()
+                    .map(|m| (m.clone(), self.try_resolve_member_on_ty(m, member)))
+                    .collect();
+
+                if resolved.iter().all(|(_, r)| r.is_some()) {
+                    // All members have the field — return union of resolved types
+                    let field_tys: Vec<Ty> =
+                        resolved.into_iter().map(|(_, r)| r.unwrap()).collect();
+                    Ty::Union(field_tys)
+                } else {
+                    // Report an error for each member that's missing the field
+                    for (member_ty, result) in &resolved {
+                        if result.is_none() {
+                            self.context.report_simple(
+                                TirTypeError::UnresolvedMember {
+                                    base_type: member_ty.clone(),
+                                    member: member.clone(),
+                                },
+                                at,
+                            );
+                        }
+                    }
+                    Ty::Unknown
+                }
+            }
             Ty::Unknown => {
                 // Base type unknown — can't resolve member, but don't emit error
                 // (the base type error was already reported upstream)
@@ -748,6 +779,34 @@ impl<'db> TypeInferenceBuilder<'db> {
                 );
                 Ty::Unknown
             }
+        }
+    }
+
+    /// Try to resolve a member on a type without emitting diagnostics.
+    ///
+    /// Returns `Some(Ty)` if the member exists, `None` if it doesn't.
+    /// Used by `resolve_member` for union type handling.
+    fn try_resolve_member_on_ty(&self, ty: &Ty, member: &Name) -> Option<Ty> {
+        match ty {
+            Ty::Class(class_name) => {
+                let fields = self.lookup_class_fields(class_name);
+                if let Some(field_ty) = fields.get(member) {
+                    return Some(field_ty.clone());
+                }
+                if let Some(method_ty) = self.lookup_class_method(class_name, member) {
+                    return Some(method_ty);
+                }
+                None
+            }
+            Ty::Optional(inner) => {
+                // Drill through Optional to resolve the member on the inner type
+                self.try_resolve_member_on_ty(inner, member)
+            }
+            Ty::Unknown => {
+                // Unknown propagates — treat as if the field exists with Unknown type
+                Some(Ty::Unknown)
+            }
+            _ => None,
         }
     }
 

@@ -112,9 +112,6 @@ fn lower_base(type_expr: &CstTypeExpr) -> TypeExpr {
 }
 
 /// Parse a base type (no modifiers, not a union).
-///
-/// Only string, int, and bool literal types are supported in the grammar.
-/// Float literal types (e.g. `3.14` as a type) are intentionally not parsed.
 fn lower_base_type(type_expr: &CstTypeExpr) -> TypeExpr {
     if let Some(s) = type_expr.string_literal() {
         return TypeExpr::Literal(baml_base::Literal::String(s));
@@ -122,6 +119,10 @@ fn lower_base_type(type_expr: &CstTypeExpr) -> TypeExpr {
 
     if let Some(i) = type_expr.integer_literal() {
         return TypeExpr::Literal(baml_base::Literal::Int(i));
+    }
+
+    if let Some(f) = type_expr.float_literal() {
+        return TypeExpr::Literal(baml_base::Literal::Float(f));
     }
 
     if let Some(b) = type_expr.bool_literal() {
@@ -177,6 +178,11 @@ fn lower_union_member(parts: &baml_compiler_syntax::ast::UnionMemberParts) -> Ty
 
     if let Some(i) = parts.integer_literal() {
         let base = TypeExpr::Literal(baml_base::Literal::Int(i));
+        return apply_modifiers_from_parts(base, parts);
+    }
+
+    if let Some(f) = parts.float_literal() {
+        let base = TypeExpr::Literal(baml_base::Literal::Float(f));
         return apply_modifiers_from_parts(base, parts);
     }
 
