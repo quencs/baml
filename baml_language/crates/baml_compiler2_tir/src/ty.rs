@@ -4,18 +4,43 @@ use std::fmt;
 
 use baml_base::Name;
 
+/// A qualified type name with separate package and local name.
+///
+/// Used in `Ty::Class`, `Ty::Enum`, and `Ty::TypeAlias` to unambiguously
+/// identify a type by its definition's package (e.g. `"user"`, `"baml"`)
+/// and its short name (e.g. `"Foo"`, `"PrimitiveClient"`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct QualifiedTypeName {
+    /// The package this type is defined in (e.g. `"user"`, `"baml"`).
+    pub pkg: Name,
+    /// The short/local name of the type (e.g. `"Foo"`).
+    pub name: Name,
+}
+
+impl QualifiedTypeName {
+    pub fn new(pkg: Name, name: Name) -> Self {
+        Self { pkg, name }
+    }
+}
+
+impl fmt::Display for QualifiedTypeName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.pkg, self.name)
+    }
+}
+
 /// Resolved type — the output of type resolution (Pass 2).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Ty {
     /// A class type — just the name, no expansion.
-    Class(Name),
+    Class(QualifiedTypeName),
     /// An enum type.
-    Enum(Name),
-    /// An enum variant — Enum(name) . Variant(name).
-    EnumVariant(Name, Name),
+    Enum(QualifiedTypeName),
+    /// An enum variant — Enum(qualified) . Variant(name).
+    EnumVariant(QualifiedTypeName, Name),
     /// A type alias — opaque name reference, NOT expanded.
     /// Expansion happens lazily at subtype-checking time.
-    TypeAlias(Name),
+    TypeAlias(QualifiedTypeName),
     /// Primitive types.
     Primitive(PrimitiveType),
     /// T[]
@@ -32,7 +57,7 @@ pub enum Ty {
     /// literal types. Fresh literals (from expressions) widen to their base
     /// primitive at mutable binding sites. Regular literals (from type
     /// annotations or contextual typing) are preserved.
-    Literal(LiteralValue, Freshness),
+    Literal(baml_base::Literal, Freshness),
     /// Evolving list — created from empty array literal `[]` at mutable
     /// binding sites (via `make_evolving()`). Element type starts as `Never`
     /// and is refined by mutations (`.push()`, index assignment).
@@ -68,6 +93,20 @@ pub enum Ty {
     /// Analogous to TypeScript's fresh-object excess-property check pattern:
     /// the type is valid only when nobody reads the value.
     Void,
+    /// The explicit `unknown` keyword type — a top type (supertype of everything).
+    ///
+    /// Any `T` is a subtype of `BuiltinUnknown`, but `BuiltinUnknown` is NOT a
+    /// subtype of any specific type. Analogous to TypeScript's `unknown`.
+    ///
+    /// Used in builtin function signatures where any value may be accepted, e.g.:
+    /// ```baml
+    /// function render_prompt(function_name: string, args: map<string, unknown>) -> PromptAst
+    /// ```
+    ///
+    /// NOTE: This is **distinct** from `Ty::Unknown` which is the error-recovery
+    /// sentinel meaning "type inference failed". `BuiltinUnknown` is a well-formed
+    /// type that appears in valid programs; `Unknown` signals a compiler error.
+    BuiltinUnknown,
     /// Error recovery — the type is structurally unknown (e.g., name unresolved).
     Unknown,
     /// Error sentinel — a hard error was emitted for this expression.
@@ -87,12 +126,15 @@ pub enum PrimitiveType {
     Pdf,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LiteralValue {
-    String(std::string::String),
-    Int(i64),
-    Float(std::string::String),
-    Bool(bool),
+impl PrimitiveType {
+    pub fn from_literal(lit: &baml_base::Literal) -> Self {
+        match lit {
+            baml_base::Literal::Int(_) => Self::Int,
+            baml_base::Literal::Float(_) => Self::Float,
+            baml_base::Literal::String(_) => Self::String,
+            baml_base::Literal::Bool(_) => Self::Bool,
+        }
+    }
 }
 
 /// Freshness flag for literal types.
@@ -111,6 +153,9 @@ pub enum Freshness {
     Regular,
 }
 
+/// Re-export `baml_base::Literal` as `LiteralValue` for backward compatibility.
+pub type LiteralValue = baml_base::Literal;
+
 impl Ty {
     /// Widen fresh literal types to their base primitive.
     ///
@@ -118,7 +163,7 @@ impl Ty {
     /// Regular (non-fresh) literals pass through unchanged.
     pub fn widen_fresh(self) -> Ty {
         match self {
-            Ty::Literal(lit, Freshness::Fresh) => Ty::Primitive(lit.base_primitive()),
+            Ty::Literal(lit, Freshness::Fresh) => Ty::Primitive(PrimitiveType::from_literal(&lit)),
             other => other,
         }
     }
@@ -144,27 +189,15 @@ impl Ty {
     }
 }
 
-impl LiteralValue {
-    /// The base primitive type that this literal widens to.
-    pub fn base_primitive(&self) -> PrimitiveType {
-        match self {
-            LiteralValue::String(_) => PrimitiveType::String,
-            LiteralValue::Int(_) => PrimitiveType::Int,
-            LiteralValue::Float(_) => PrimitiveType::Float,
-            LiteralValue::Bool(_) => PrimitiveType::Bool,
-        }
-    }
-}
-
 // ── Display impls ────────────────────────────────────────────────────────────
 
 impl fmt::Display for Ty {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Ty::Class(n) => write!(f, "{n}"),
-            Ty::Enum(n) => write!(f, "enum {n}"),
-            Ty::EnumVariant(e, v) => write!(f, "{e}.{v}"),
-            Ty::TypeAlias(n) => write!(f, "type {n}"),
+            Ty::Class(qn) => write!(f, "{qn}"),
+            Ty::Enum(qn) => write!(f, "{qn}"),
+            Ty::EnumVariant(qn, v) => write!(f, "{qn}.{v}"),
+            Ty::TypeAlias(qn) => write!(f, "{qn}"),
             Ty::Primitive(p) => write!(f, "{p}"),
             Ty::List(inner) => write!(f, "{inner}[]"),
             Ty::Map(k, v) => write!(f, "map<{k}, {v}>"),
@@ -201,6 +234,7 @@ impl fmt::Display for Ty {
             }
             Ty::Never => write!(f, "never"),
             Ty::Void => write!(f, "void"),
+            Ty::BuiltinUnknown => write!(f, "unknown"),
             Ty::Unknown => write!(f, "unknown"),
             Ty::Error => write!(f, "!error"),
         }
@@ -219,17 +253,6 @@ impl fmt::Display for PrimitiveType {
             PrimitiveType::Audio => write!(f, "audio"),
             PrimitiveType::Video => write!(f, "video"),
             PrimitiveType::Pdf => write!(f, "pdf"),
-        }
-    }
-}
-
-impl fmt::Display for LiteralValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LiteralValue::String(s) => write!(f, "\"{s}\""),
-            LiteralValue::Int(i) => write!(f, "{i}"),
-            LiteralValue::Float(s) => write!(f, "{s}"),
-            LiteralValue::Bool(b) => write!(f, "{b}"),
         }
     }
 }

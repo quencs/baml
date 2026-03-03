@@ -245,11 +245,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new(
-        entry: FrameEntry,
-        node_id: NodeId,
-        lexical_segment: Option<PathSegment>,
-    ) -> Self {
+    pub fn new(entry: FrameEntry, node_id: NodeId, lexical_segment: Option<PathSegment>) -> Self {
         Self {
             entry,
             node_id,

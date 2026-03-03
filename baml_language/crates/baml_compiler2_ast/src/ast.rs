@@ -57,11 +57,10 @@ pub enum TypeExpr {
     },
     /// A | B | C
     Union(Vec<TypeExpr>),
-    /// Literal types in unions: "user", 200, true
-    StringLiteral(std::string::String),
-    IntLiteral(i64),
-    FloatLiteral(std::string::String),
-    BoolLiteral(bool),
+    /// Literal types in unions: `"user"`, `200`, `true`.
+    /// Note: float literal types are not supported in the grammar — only
+    /// string, int, and bool literals can appear in type position.
+    Literal(baml_base::Literal),
     /// Function type: (params) -> return
     Function {
         params: Vec<FunctionTypeParam>,
@@ -183,6 +182,7 @@ impl Default for AstSourceMap {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     Literal(Literal),
+    Null,
     /// Path expression: `x`, `user.name`, `Status.Active`
     Path(Vec<Name>),
     If {
@@ -279,6 +279,7 @@ pub enum Pattern {
     Binding(Name),
     TypedBinding { name: Name, ty: TypeExpr },
     Literal(Literal),
+    Null,
     EnumVariant { enum_name: Name, variant: Name },
     Union(Vec<PatId>),
 }
@@ -296,14 +297,8 @@ pub struct SpreadField {
     pub position: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Literal {
-    String(std::string::String),
-    Int(i64),
-    Float(std::string::String),
-    Bool(bool),
-    Null,
-}
+/// Re-export `baml_base::Literal` as the canonical literal type.
+pub type Literal = baml_base::Literal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LetOrigin {

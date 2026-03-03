@@ -47,6 +47,27 @@ pub enum TirTypeError {
     /// A `void` expression (e.g. `if` without `else`) was used where a value
     /// is required — assigned to a variable, passed as an argument, or returned.
     VoidUsedAsValue,
+    /// Expression is not callable (e.g. `42(1)` or `Foo(1)` where Foo is a class).
+    NotCallable { ty: Ty },
+    /// Expression is not indexable (e.g. `true[0]`).
+    NotIndexable { ty: Ty },
+    /// Invalid operand types for a binary operator (e.g. `true + false`).
+    InvalidBinaryOp {
+        op: baml_compiler2_ast::BinaryOp,
+        lhs: Ty,
+        rhs: Ty,
+    },
+    /// Invalid operand type for a unary operator (e.g. `-"hello"`).
+    InvalidUnaryOp {
+        op: baml_compiler2_ast::UnaryOp,
+        operand: Ty,
+    },
+    /// A type name in a type annotation could not be resolved.
+    UnresolvedType { name: Name },
+    /// Wrong number of arguments in a function call.
+    ArgumentCountMismatch { expected: usize, got: usize },
+    /// Function body ends without returning a value.
+    MissingReturn { expected: Ty },
 }
 
 impl fmt::Display for TirTypeError {
@@ -75,6 +96,30 @@ impl fmt::Display for TirTypeError {
                     "`if` without `else` cannot be used as a value; add an `else` branch"
                 )
             }
+            TirTypeError::NotCallable { ty } => {
+                write!(f, "type `{ty}` is not callable")
+            }
+            TirTypeError::NotIndexable { ty } => {
+                write!(f, "type `{ty}` is not indexable")
+            }
+            TirTypeError::InvalidBinaryOp { op, lhs, rhs } => {
+                write!(
+                    f,
+                    "operator `{op:?}` cannot be applied to `{lhs}` and `{rhs}`"
+                )
+            }
+            TirTypeError::InvalidUnaryOp { op, operand } => {
+                write!(f, "operator `{op:?}` cannot be applied to `{operand}`")
+            }
+            TirTypeError::UnresolvedType { name } => {
+                write!(f, "unresolved type: {name}")
+            }
+            TirTypeError::ArgumentCountMismatch { expected, got } => {
+                write!(f, "expected {expected} argument(s), got {got}")
+            }
+            TirTypeError::MissingReturn { expected } => {
+                write!(f, "missing return: expected `{expected}`")
+            }
         }
     }
 }
@@ -99,11 +144,13 @@ pub enum RelatedLocation<'db> {
     Item(Definition<'db>),
 }
 
-/// Primary location for a diagnostic — either an expression or a statement.
+/// Primary location for a diagnostic — either an expression, a statement,
+/// or a raw source span (for type annotations that lack an ExprId).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DiagnosticLocation {
     Expr(ExprId),
     Stmt(StmtId),
+    Span(TextRange),
 }
 
 /// A single type-check diagnostic with primary location and optional related spans.
@@ -131,6 +178,7 @@ impl<'db> TirDiagnostic<'db> {
             DiagnosticLocation::Stmt(id) => {
                 source_map.map(|sm| sm.stmt_span(*id)).unwrap_or_default()
             }
+            DiagnosticLocation::Span(range) => *range,
         };
 
         RenderedTirDiagnostic {
@@ -224,6 +272,18 @@ impl<'db> InferContext<'db> {
     /// Convenience: report an error with no related locations.
     pub fn report_simple(&self, error: TirTypeError, at: ExprId) {
         self.report(error, at, Vec::new());
+    }
+
+    /// Report a type error at a raw source span (for type annotations).
+    pub fn report_at_span(&self, error: TirTypeError, span: TextRange) {
+        self.diagnostics
+            .borrow_mut()
+            .diagnostics
+            .push(TirDiagnostic {
+                error,
+                primary: DiagnosticLocation::Span(span),
+                related: Vec::new(),
+            });
     }
 
     /// Report a type error at a specific statement.

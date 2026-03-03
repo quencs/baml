@@ -118,7 +118,7 @@ impl LoweringContext {
                 let expr = match text {
                     "true" => Expr::Literal(Literal::Bool(true)),
                     "false" => Expr::Literal(Literal::Bool(false)),
-                    "null" => Expr::Literal(Literal::Null),
+                    "null" => Expr::Null,
                     _ => Expr::Path(vec![Name::new(text)]),
                 };
                 Some(self.alloc_expr(expr, span))
@@ -198,7 +198,7 @@ impl LoweringContext {
                             let e = match text {
                                 "true" => Expr::Literal(Literal::Bool(true)),
                                 "false" => Expr::Literal(Literal::Bool(false)),
-                                "null" => Expr::Literal(Literal::Null),
+                                "null" => Expr::Null,
                                 _ => Expr::Path(vec![Name::new(text)]),
                             };
                             self.alloc_expr(e, span)
@@ -345,7 +345,7 @@ impl LoweringContext {
                                 "false" => {
                                     self.alloc_expr(Expr::Literal(Literal::Bool(false)), span)
                                 }
-                                "null" => self.alloc_expr(Expr::Literal(Literal::Null), span),
+                                "null" => self.alloc_expr(Expr::Null, span),
                                 _ => self.alloc_expr(Expr::Path(vec![Name::new(text)]), span),
                             };
                             if lhs.is_none() {
@@ -428,7 +428,7 @@ impl LoweringContext {
                                 "false" => {
                                     self.alloc_expr(Expr::Literal(Literal::Bool(false)), span)
                                 }
-                                "null" => self.alloc_expr(Expr::Literal(Literal::Null), span),
+                                "null" => self.alloc_expr(Expr::Null, span),
                                 _ => self.alloc_expr(Expr::Path(vec![Name::new(text)]), span),
                             };
                             if lhs.is_none() {
@@ -491,7 +491,7 @@ impl LoweringContext {
                                 "false" => {
                                     self.alloc_expr(Expr::Literal(Literal::Bool(false)), span)
                                 }
-                                "null" => self.alloc_expr(Expr::Literal(Literal::Null), span),
+                                "null" => self.alloc_expr(Expr::Null, span),
                                 _ => self.alloc_expr(Expr::Path(vec![Name::new(text)]), span),
                             };
                             operand = Some(expr_id);
@@ -595,7 +595,7 @@ impl LoweringContext {
                                 let e = match text {
                                     "true" => Expr::Literal(Literal::Bool(true)),
                                     "false" => Expr::Literal(Literal::Bool(false)),
-                                    "null" => Expr::Literal(Literal::Null),
+                                    "null" => Expr::Null,
                                     _ => Expr::Path(vec![Name::new(text)]),
                                 };
                                 scrutinee = Some(self.alloc_expr(e, span));
@@ -647,7 +647,7 @@ impl LoweringContext {
                                             let e = match text {
                                                 "true" => Expr::Literal(Literal::Bool(true)),
                                                 "false" => Expr::Literal(Literal::Bool(false)),
-                                                "null" => Expr::Literal(Literal::Null),
+                                                "null" => Expr::Null,
                                                 _ => Expr::Path(vec![Name::new(text)]),
                                             };
                                             guard = Some(self.alloc_expr(e, range));
@@ -711,7 +711,7 @@ impl LoweringContext {
                         let e = match text {
                             "true" => Expr::Literal(Literal::Bool(true)),
                             "false" => Expr::Literal(Literal::Bool(false)),
-                            "null" => Expr::Literal(Literal::Null),
+                            "null" => Expr::Null,
                             _ => Expr::Path(vec![Name::new(text)]),
                         };
                         body = Some(self.alloc_expr(e, range));
@@ -796,10 +796,9 @@ impl LoweringContext {
                                     if let Some(el) = current_element.take() {
                                         elements.push(self.finalize_pattern_element(el));
                                     }
-                                    elements.push(self.alloc_pattern(
-                                        Pattern::Literal(Literal::Null),
-                                        token.text_range(),
-                                    ));
+                                    elements.push(
+                                        self.alloc_pattern(Pattern::Null, token.text_range()),
+                                    );
                                 }
                                 _ => {
                                     if let Some(el) = current_element.take() {
@@ -1025,7 +1024,7 @@ impl LoweringContext {
                                     let e = match text {
                                         "true" => Expr::Literal(Literal::Bool(true)),
                                         "false" => Expr::Literal(Literal::Bool(false)),
-                                        "null" => Expr::Literal(Literal::Null),
+                                        "null" => Expr::Null,
                                         _ => Expr::Path(vec![Name::new(text)]),
                                     };
                                     args.push(self.alloc_expr(e, span));
@@ -1067,7 +1066,7 @@ impl LoweringContext {
                 "false" => {
                     return self.alloc_expr(Expr::Literal(Literal::Bool(false)), node.text_range());
                 }
-                "null" => return self.alloc_expr(Expr::Literal(Literal::Null), node.text_range()),
+                "null" => return self.alloc_expr(Expr::Null, node.text_range()),
                 _ => {}
             }
         }
@@ -1359,7 +1358,7 @@ impl LoweringContext {
                         let e = match text {
                             "true" => Expr::Literal(Literal::Bool(true)),
                             "false" => Expr::Literal(Literal::Bool(false)),
-                            "null" => Expr::Literal(Literal::Null),
+                            "null" => Expr::Null,
                             _ => Expr::Path(vec![Name::new(text)]),
                         };
                         return Some(self.alloc_expr(e, span));
@@ -1412,7 +1411,7 @@ impl LoweringContext {
                 let e = match text {
                     "true" => Expr::Literal(Literal::Bool(true)),
                     "false" => Expr::Literal(Literal::Bool(false)),
-                    "null" => Expr::Literal(Literal::Null),
+                    "null" => Expr::Null,
                     _ => Expr::Path(vec![Name::new(text)]),
                 };
                 Some(self.alloc_expr(e, span))
@@ -1468,7 +1467,7 @@ impl LoweringContext {
                                 let e = match text {
                                     "true" => Expr::Literal(Literal::Bool(true)),
                                     "false" => Expr::Literal(Literal::Bool(false)),
-                                    "null" => Expr::Literal(Literal::Null),
+                                    "null" => Expr::Null,
                                     _ => Expr::Path(vec![Name::new(text)]),
                                 };
                                 initializer = Some(self.alloc_expr(e, span));
@@ -1598,7 +1597,7 @@ impl LoweringContext {
                             let e = match text {
                                 "true" => Expr::Literal(Literal::Bool(true)),
                                 "false" => Expr::Literal(Literal::Bool(false)),
-                                "null" => Expr::Literal(Literal::Null),
+                                "null" => Expr::Null,
                                 _ => Expr::Path(vec![Name::new(text)]),
                             };
                             result = Some(self.alloc_expr(e, span));

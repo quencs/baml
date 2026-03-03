@@ -51,10 +51,7 @@ fn hir2_type_expr_to_string(ty: &baml_compiler2_ast::TypeExpr) -> String {
             .map(hir2_type_expr_to_string)
             .collect::<Vec<_>>()
             .join(" | "),
-        TypeExpr::StringLiteral(s) => format!("\"{s}\""),
-        TypeExpr::IntLiteral(i) => i.to_string(),
-        TypeExpr::FloatLiteral(s) => s.clone(),
-        TypeExpr::BoolLiteral(b) => b.to_string(),
+        TypeExpr::Literal(lit) => lit.to_string(),
         TypeExpr::Function { params, ret } => {
             let ps: Vec<String> = params
                 .iter()
@@ -494,9 +491,11 @@ fn expr_desc_spans<'db>(
                 Literal::Int(i) => i.to_string(),
                 Literal::Float(f) => f.clone(),
                 Literal::Bool(b) => b.to_string(),
-                Literal::Null => "null".into(),
             };
             spans.push(DetailSpan::Code(s));
+        }
+        Expr::Null => {
+            spans.push(DetailSpan::Code("null".into()));
         }
         Expr::Path(segments) => {
             spans.push(DetailSpan::Code(
@@ -607,20 +606,15 @@ fn expr_desc_spans<'db>(
 }
 
 fn pat_desc(pat_id: baml_compiler2_ast::PatId, body: &baml_compiler2_ast::ExprBody) -> String {
-    use baml_compiler2_ast::{Literal, Pattern};
+    use baml_compiler2_ast::Pattern;
     let pat = &body.patterns[pat_id];
     match pat {
         Pattern::Binding(n) => n.to_string(),
         Pattern::TypedBinding { name, ty } => {
             format!("{name}: {}", hir2_type_expr_to_string(ty))
         }
-        Pattern::Literal(lit) => match lit {
-            Literal::String(s) => format!("\"{s}\""),
-            Literal::Int(i) => i.to_string(),
-            Literal::Float(f) => f.clone(),
-            Literal::Bool(b) => b.to_string(),
-            Literal::Null => "null".into(),
-        },
+        Pattern::Literal(lit) => lit.to_string(),
+        Pattern::Null => "null".into(),
         Pattern::EnumVariant { enum_name, variant } => format!("{enum_name}.{variant}"),
         Pattern::Union(pats) => pats
             .iter()
@@ -1885,13 +1879,8 @@ impl CompilerRunner {
                 Pattern::TypedBinding { name, ty } => {
                     format!("{name}: {}", hir2_type_expr_to_string(ty))
                 }
-                Pattern::Literal(lit) => match lit {
-                    Literal::String(s) => format!("\"{s}\""),
-                    Literal::Int(i) => i.to_string(),
-                    Literal::Float(f) => f.clone(),
-                    Literal::Bool(b) => b.to_string(),
-                    Literal::Null => "null".into(),
-                },
+                Pattern::Literal(lit) => lit.to_string(),
+                Pattern::Null => "null".into(),
                 Pattern::EnumVariant { enum_name, variant } => format!("{enum_name}.{variant}"),
                 Pattern::Union(pats) => pats
                     .iter()
@@ -1917,8 +1906,8 @@ impl CompilerRunner {
                     Literal::Int(i) => i.to_string(),
                     Literal::Float(f) => f.clone(),
                     Literal::Bool(b) => b.to_string(),
-                    Literal::Null => "null".into(),
                 },
+                Expr::Null => "null".into(),
                 Expr::Path(segments) => segments
                     .iter()
                     .map(|n| n.as_str())
@@ -3351,11 +3340,8 @@ impl CompilerRunner {
 
             for (local_id, func_data) in functions {
                 let func_name = func_data.name.to_string();
-                let func_loc = baml_compiler2_hir::loc::FunctionLoc::new(
-                    &self.db,
-                    *source_file,
-                    *local_id,
-                );
+                let func_loc =
+                    baml_compiler2_hir::loc::FunctionLoc::new(&self.db, *source_file, *local_id);
                 let body = baml_compiler2_hir::body::function_body(&self.db, func_loc);
 
                 let status = if file_recomputed {

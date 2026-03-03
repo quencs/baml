@@ -102,11 +102,7 @@ impl<'a> GraphBuilder<'a> {
                 if needs_scope {
                     let pat_name = self.format_pattern(*pattern);
                     let label = format!("let {pat_name} = ...");
-                    self.emit_other_scope(
-                        *value,
-                        Some(label),
-                        Some(id.into_raw().into_u32()),
-                    );
+                    self.emit_other_scope(*value, Some(label), Some(id.into_raw().into_u32()));
                 } else {
                     self.visit_expr(*value);
                 }
@@ -224,21 +220,13 @@ impl<'a> GraphBuilder<'a> {
 
         // Synthetic "else" arm if no else branch
         if else_branch.is_none() {
-            self.emit_synthetic_branch_arm(
-                "else".to_string(),
-                Some(expr_id.into_raw().into_u32()),
-            );
+            self.emit_synthetic_branch_arm("else".to_string(), Some(expr_id.into_raw().into_u32()));
         }
 
         self.pop_frames_to(parent_depth);
     }
 
-    fn visit_branch_arm(
-        &mut self,
-        label: String,
-        body_expr: ExprId,
-        source_expr: Option<u32>,
-    ) {
+    fn visit_branch_arm(&mut self, label: String, body_expr: ExprId, source_expr: Option<u32>) {
         let parent_depth = self.frames.len();
         let ordinal = {
             let frame = self
@@ -347,11 +335,7 @@ impl<'a> GraphBuilder<'a> {
 
         for arm in arms {
             let arm_label = self.format_pattern(arm.pattern);
-            self.visit_branch_arm(
-                arm_label,
-                arm.body,
-                Some(arm.body.into_raw().into_u32()),
-            );
+            self.visit_branch_arm(arm_label, arm.body, Some(arm.body.into_raw().into_u32()));
         }
 
         self.pop_frames_to(parent_depth);

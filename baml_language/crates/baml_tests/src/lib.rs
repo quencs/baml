@@ -14,6 +14,9 @@ pub mod vm;
 pub mod compiler2_hir;
 
 #[cfg(test)]
+pub mod compiler2_tir;
+
+#[cfg(test)]
 pub mod incremental;
 
 #[cfg(test)]

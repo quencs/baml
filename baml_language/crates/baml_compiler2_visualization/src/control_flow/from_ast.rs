@@ -359,10 +359,7 @@ impl<'a> AstGraphBuilder<'a> {
                 .expect("frame stack should not be empty");
             frame.next_ordinal(&CounterKind::BranchGroup)
         };
-        let label = format!(
-            "match ({})",
-            render_expr_compact_ast(self.body, scrutinee)
-        );
+        let label = format!("match ({})", render_expr_compact_ast(self.body, scrutinee));
         let slug = {
             let slug_base = slugify(&label);
             if slug_base.is_empty() {
@@ -400,12 +397,7 @@ impl<'a> AstGraphBuilder<'a> {
 
     // -- While / for loops --
 
-    fn visit_loop(
-        &mut self,
-        condition: ast::ExprId,
-        body: ast::ExprId,
-        origin: ast::LoopOrigin,
-    ) {
+    fn visit_loop(&mut self, condition: ast::ExprId, body: ast::ExprId, origin: ast::LoopOrigin) {
         let parent_depth = self.frames.len();
         let ordinal = {
             let frame = self
@@ -540,6 +532,7 @@ impl<'a> AstGraphBuilder<'a> {
             ast::Pattern::Binding(name) => name.to_string(),
             ast::Pattern::TypedBinding { name, .. } => name.to_string(),
             ast::Pattern::Literal(lit) => format_literal_ast(lit),
+            ast::Pattern::Null => "null".to_string(),
             ast::Pattern::EnumVariant { enum_name, variant } => {
                 format!("{enum_name}.{variant}")
             }
@@ -559,6 +552,7 @@ fn render_expr_compact_ast(body: &ast::ExprBody, id: ast::ExprId) -> String {
     let expr = &body.exprs[id];
     match expr {
         ast::Expr::Literal(lit) => format_literal_ast(lit),
+        ast::Expr::Null => "null".to_string(),
         ast::Expr::Path(segments) => {
             let parts: Vec<_> = segments.iter().map(ToString::to_string).collect();
             parts.join(".")
@@ -627,7 +621,6 @@ fn format_literal_ast(lit: &ast::Literal) -> String {
         ast::Literal::Float(s) => s.clone(),
         ast::Literal::String(s) => format!("{s:?}"),
         ast::Literal::Bool(b) => b.to_string(),
-        ast::Literal::Null => "null".to_string(),
     }
 }
 
@@ -666,9 +659,7 @@ mod tests {
 
     #[test]
     fn empty_function_has_root_only() {
-        let body = make_ast_body(|exprs, _, _, _| {
-            Some(exprs.alloc(ast::Expr::Literal(ast::Literal::Null)))
-        });
+        let body = make_ast_body(|exprs, _, _, _| Some(exprs.alloc(ast::Expr::Null)));
         let graph = build_control_flow_graph_from_ast("MyFunc", &body);
         assert_eq!(graph.nodes.len(), 1);
         assert!(matches!(
@@ -718,8 +709,8 @@ mod tests {
     fn if_else_creates_branch_group_and_arms() {
         let body = make_ast_body(|exprs, _, _, _| {
             let cond = exprs.alloc(ast::Expr::Literal(ast::Literal::Bool(true)));
-            let then_b = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
-            let else_b = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let then_b = exprs.alloc(ast::Expr::Null);
+            let else_b = exprs.alloc(ast::Expr::Null);
             Some(exprs.alloc(ast::Expr::If {
                 condition: cond,
                 then_branch: then_b,
@@ -735,7 +726,7 @@ mod tests {
     fn while_loop_creates_loop_node() {
         let body = make_ast_body(|exprs, stmts, _, _| {
             let cond = exprs.alloc(ast::Expr::Literal(ast::Literal::Bool(true)));
-            let body_expr = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let body_expr = exprs.alloc(ast::Expr::Null);
             let while_stmt = stmts.alloc(ast::Stmt::While {
                 condition: cond,
                 body: body_expr,
@@ -757,7 +748,7 @@ mod tests {
     fn for_loop_uses_for_keyword() {
         let body = make_ast_body(|exprs, stmts, _, _| {
             let cond = exprs.alloc(ast::Expr::Literal(ast::Literal::Bool(true)));
-            let body_expr = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let body_expr = exprs.alloc(ast::Expr::Null);
             let for_stmt = stmts.alloc(ast::Stmt::While {
                 condition: cond,
                 body: body_expr,
@@ -778,7 +769,7 @@ mod tests {
     fn if_without_else_gets_synthetic_else() {
         let body = make_ast_body(|exprs, _, _, _| {
             let cond = exprs.alloc(ast::Expr::Literal(ast::Literal::Bool(true)));
-            let then_b = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let then_b = exprs.alloc(ast::Expr::Null);
             Some(exprs.alloc(ast::Expr::If {
                 condition: cond,
                 then_branch: then_b,
@@ -800,10 +791,10 @@ mod tests {
     fn else_if_chain_flattened_into_single_branch_group() {
         let body = make_ast_body(|exprs, _, _, _| {
             let cond1 = exprs.alloc(ast::Expr::Literal(ast::Literal::Bool(true)));
-            let then1 = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let then1 = exprs.alloc(ast::Expr::Null);
             let cond2 = exprs.alloc(ast::Expr::Literal(ast::Literal::Bool(false)));
-            let then2 = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
-            let else_final = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let then2 = exprs.alloc(ast::Expr::Null);
+            let else_final = exprs.alloc(ast::Expr::Null);
 
             let inner_if = exprs.alloc(ast::Expr::If {
                 condition: cond2,
@@ -834,8 +825,8 @@ mod tests {
             let scrutinee = exprs.alloc(ast::Expr::Path(vec!["x".into()]));
             let pat1 = patterns.alloc(ast::Pattern::Literal(ast::Literal::Int(1)));
             let pat2 = patterns.alloc(ast::Pattern::Literal(ast::Literal::Int(2)));
-            let body1 = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
-            let body2 = exprs.alloc(ast::Expr::Literal(ast::Literal::Null));
+            let body1 = exprs.alloc(ast::Expr::Null);
+            let body2 = exprs.alloc(ast::Expr::Null);
             let arm1 = match_arms.alloc(ast::MatchArm {
                 pattern: pat1,
                 guard: None,

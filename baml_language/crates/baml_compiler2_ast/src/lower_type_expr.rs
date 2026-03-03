@@ -112,20 +112,20 @@ fn lower_base(type_expr: &CstTypeExpr) -> TypeExpr {
 }
 
 /// Parse a base type (no modifiers, not a union).
+///
+/// Only string, int, and bool literal types are supported in the grammar.
+/// Float literal types (e.g. `3.14` as a type) are intentionally not parsed.
 fn lower_base_type(type_expr: &CstTypeExpr) -> TypeExpr {
-    // Check for string literal types like `"user"`
     if let Some(s) = type_expr.string_literal() {
-        return TypeExpr::StringLiteral(s);
+        return TypeExpr::Literal(baml_base::Literal::String(s));
     }
 
-    // Check for integer literal types like `200`
     if let Some(i) = type_expr.integer_literal() {
-        return TypeExpr::IntLiteral(i);
+        return TypeExpr::Literal(baml_base::Literal::Int(i));
     }
 
-    // Check for boolean literal types
     if let Some(b) = type_expr.bool_literal() {
-        return TypeExpr::BoolLiteral(b);
+        return TypeExpr::Literal(baml_base::Literal::Bool(b));
     }
 
     // Check for map type with type args
@@ -170,15 +170,13 @@ fn lower_union_member(parts: &baml_compiler_syntax::ast::UnionMemberParts) -> Ty
         }
     }
 
-    // Check for string literal (e.g., `"user"` in `"user" | "admin"`)
     if let Some(s) = parts.string_literal() {
-        let base = TypeExpr::StringLiteral(s);
+        let base = TypeExpr::Literal(baml_base::Literal::String(s));
         return apply_modifiers_from_parts(base, parts);
     }
 
-    // Check for integer literal (e.g., `200` in `200 | 201`)
     if let Some(i) = parts.integer_literal() {
-        let base = TypeExpr::IntLiteral(i);
+        let base = TypeExpr::Literal(baml_base::Literal::Int(i));
         return apply_modifiers_from_parts(base, parts);
     }
 
@@ -204,10 +202,9 @@ fn lower_union_member(parts: &baml_compiler_syntax::ast::UnionMemberParts) -> Ty
             }
         }
 
-        // Check for boolean literals
         let base = match name.as_str() {
-            "true" => TypeExpr::BoolLiteral(true),
-            "false" => TypeExpr::BoolLiteral(false),
+            "true" => TypeExpr::Literal(baml_base::Literal::Bool(true)),
+            "false" => TypeExpr::Literal(baml_base::Literal::Bool(false)),
             _ => lower_from_type_name(&name),
         };
         return apply_modifiers_from_parts(base, parts);

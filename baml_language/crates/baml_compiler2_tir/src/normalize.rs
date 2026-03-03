@@ -8,14 +8,14 @@ use std::collections::{HashMap, HashSet};
 
 use baml_base::Name;
 
-use crate::ty::{LiteralValue, PrimitiveType, Ty};
+use crate::ty::{LiteralValue, PrimitiveType, QualifiedTypeName, Ty};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PUBLIC API
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Check if `sub` is a subtype of `sup`, resolving type aliases.
-pub(crate) fn is_subtype_of(sub: &Ty, sup: &Ty, aliases: &HashMap<Name, Ty>) -> bool {
+pub(crate) fn is_subtype_of(sub: &Ty, sup: &Ty, aliases: &HashMap<QualifiedTypeName, Ty>) -> bool {
     let recursive = find_recursive_aliases(aliases);
     let sub_norm = normalize(sub, aliases, &recursive);
     let sup_norm = normalize(sup, aliases, &recursive);
@@ -23,7 +23,9 @@ pub(crate) fn is_subtype_of(sub: &Ty, sup: &Ty, aliases: &HashMap<Name, Ty>) -> 
 }
 
 /// Find all recursive type aliases via DFS.
-pub fn find_recursive_aliases(aliases: &HashMap<Name, Ty>) -> HashSet<Name> {
+pub fn find_recursive_aliases(
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+) -> HashSet<QualifiedTypeName> {
     let mut recursive = HashSet::new();
     for name in aliases.keys() {
         let mut visited = HashSet::new();
@@ -53,11 +55,11 @@ enum StructuralTy {
     Video,
     Pdf,
     // Literal
-    Literal(LiteralValue),
-    // User-defined (resolved by name)
-    Class(Name),
-    Enum(Name),
-    EnumVariant(Name, Name),
+    Literal(baml_base::Literal),
+    // User-defined (resolved by qualified name)
+    Class(QualifiedTypeName),
+    Enum(QualifiedTypeName),
+    EnumVariant(QualifiedTypeName, Name),
     // Constructors
     Optional(Box<StructuralTy>),
     List(Box<StructuralTy>),
@@ -72,13 +74,15 @@ enum StructuralTy {
     },
     // Recursion
     Mu {
-        var: Name,
+        var: QualifiedTypeName,
         body: Box<StructuralTy>,
     },
-    TyVar(Name),
+    TyVar(QualifiedTypeName),
     // Special
     Never,
     Void,
+    /// The explicit `unknown` keyword — top type (supertype of everything).
+    BuiltinUnknown,
     Unknown,
     Error,
 }
@@ -104,6 +108,18 @@ impl StructuralTy {
         // Never is the bottom type — subtype of everything
         if matches!(self, StructuralTy::Never) {
             return true;
+        }
+
+        // BuiltinUnknown is the top type — everything is a subtype of it.
+        // But BuiltinUnknown itself is NOT a subtype of specific types
+        // (unlike the error-recovery Unknown which is bidirectionally compatible).
+        if matches!(other, StructuralTy::BuiltinUnknown) {
+            return true;
+        }
+        // If self is BuiltinUnknown and other is not BuiltinUnknown (reflexivity
+        // already handled equal case above), it's not a subtype.
+        if matches!(self, StructuralTy::BuiltinUnknown) {
+            return false;
         }
 
         // Void is only compatible with itself (handled by reflexivity above)
@@ -221,7 +237,11 @@ impl StructuralTy {
 }
 
 /// Substitute `TyVar` with replacement in type.
-fn substitute(ty: &StructuralTy, var: &Name, replacement: &StructuralTy) -> StructuralTy {
+fn substitute(
+    ty: &StructuralTy,
+    var: &QualifiedTypeName,
+    replacement: &StructuralTy,
+) -> StructuralTy {
     match ty {
         StructuralTy::TyVar(v) if v == var => replacement.clone(),
         StructuralTy::Optional(inner) => {
@@ -259,16 +279,20 @@ fn substitute(ty: &StructuralTy, var: &Name, replacement: &StructuralTy) -> Stru
 // NORMALIZATION (private)
 // ═══════════════════════════════════════════════════════════════════════════
 
-fn normalize(ty: &Ty, aliases: &HashMap<Name, Ty>, recursive: &HashSet<Name>) -> StructuralTy {
+fn normalize(
+    ty: &Ty,
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+    recursive: &HashSet<QualifiedTypeName>,
+) -> StructuralTy {
     let mut expanding = HashSet::new();
     normalize_impl(ty, aliases, recursive, &mut expanding)
 }
 
 fn normalize_impl(
     ty: &Ty,
-    aliases: &HashMap<Name, Ty>,
-    recursive: &HashSet<Name>,
-    expanding: &mut HashSet<Name>,
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+    recursive: &HashSet<QualifiedTypeName>,
+    expanding: &mut HashSet<QualifiedTypeName>,
 ) -> StructuralTy {
     match ty {
         Ty::Primitive(p) => match p {
@@ -284,25 +308,26 @@ fn normalize_impl(
         },
         Ty::Never => StructuralTy::Never,
         Ty::Void => StructuralTy::Void,
+        Ty::BuiltinUnknown => StructuralTy::BuiltinUnknown,
         Ty::Unknown => StructuralTy::Unknown,
         Ty::Error => StructuralTy::Error,
         Ty::Literal(lit, _freshness) => StructuralTy::Literal(lit.clone()),
-        Ty::Class(name) => StructuralTy::Class(name.clone()),
-        Ty::Enum(name) => StructuralTy::Enum(name.clone()),
-        Ty::EnumVariant(e, v) => StructuralTy::EnumVariant(e.clone(), v.clone()),
+        Ty::Class(qn) => StructuralTy::Class(qn.clone()),
+        Ty::Enum(qn) => StructuralTy::Enum(qn.clone()),
+        Ty::EnumVariant(qn, v) => StructuralTy::EnumVariant(qn.clone(), v.clone()),
 
-        Ty::TypeAlias(name) => {
-            if expanding.contains(name) {
-                return StructuralTy::TyVar(name.clone());
+        Ty::TypeAlias(qn) => {
+            if expanding.contains(qn) {
+                return StructuralTy::TyVar(qn.clone());
             }
 
-            if let Some(alias_ty) = aliases.get(name) {
-                if recursive.contains(name) {
-                    expanding.insert(name.clone());
+            if let Some(alias_ty) = aliases.get(qn) {
+                if recursive.contains(qn) {
+                    expanding.insert(qn.clone());
                     let body = normalize_impl(alias_ty, aliases, recursive, expanding);
-                    expanding.remove(name);
+                    expanding.remove(qn);
                     StructuralTy::Mu {
-                        var: name.clone(),
+                        var: qn.clone(),
                         body: Box::new(body),
                     }
                 } else {
@@ -344,10 +369,10 @@ fn normalize_impl(
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn has_cycle(
-    name: &Name,
-    aliases: &HashMap<Name, Ty>,
-    visited: &mut HashSet<Name>,
-    stack: &mut HashSet<Name>,
+    name: &QualifiedTypeName,
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+    visited: &mut HashSet<QualifiedTypeName>,
+    stack: &mut HashSet<QualifiedTypeName>,
 ) -> bool {
     if stack.contains(name) {
         return true;
@@ -366,14 +391,12 @@ fn has_cycle(
 
 fn ty_has_cycle(
     ty: &Ty,
-    aliases: &HashMap<Name, Ty>,
-    visited: &mut HashSet<Name>,
-    stack: &mut HashSet<Name>,
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+    visited: &mut HashSet<QualifiedTypeName>,
+    stack: &mut HashSet<QualifiedTypeName>,
 ) -> bool {
     match ty {
-        Ty::TypeAlias(name) if aliases.contains_key(name) => {
-            has_cycle(name, aliases, visited, stack)
-        }
+        Ty::TypeAlias(qn) if aliases.contains_key(qn) => has_cycle(qn, aliases, visited, stack),
         Ty::Optional(inner) | Ty::List(inner) | Ty::EvolvingList(inner) => {
             ty_has_cycle(inner, aliases, visited, stack)
         }
@@ -399,14 +422,18 @@ mod tests {
     use super::*;
     use crate::ty::Freshness;
 
+    fn qn(name: &str) -> QualifiedTypeName {
+        QualifiedTypeName::new(Name::new("test"), Name::new(name))
+    }
+
     fn type_alias(name: &str) -> Ty {
-        Ty::TypeAlias(Name::new(name))
+        Ty::TypeAlias(qn(name))
     }
 
     #[test]
     fn test_simple_alias() {
         let mut aliases = HashMap::new();
-        aliases.insert(Name::new("MyInt"), Ty::Primitive(PrimitiveType::Int));
+        aliases.insert(qn("MyInt"), Ty::Primitive(PrimitiveType::Int));
 
         assert!(is_subtype_of(
             &type_alias("MyInt"),
@@ -423,8 +450,8 @@ mod tests {
     #[test]
     fn test_transitive_alias() {
         let mut aliases = HashMap::new();
-        aliases.insert(Name::new("MyInt"), Ty::Primitive(PrimitiveType::Int));
-        aliases.insert(Name::new("AnotherInt"), type_alias("MyInt"));
+        aliases.insert(qn("MyInt"), Ty::Primitive(PrimitiveType::Int));
+        aliases.insert(qn("AnotherInt"), type_alias("MyInt"));
 
         assert!(is_subtype_of(
             &type_alias("AnotherInt"),
@@ -442,7 +469,7 @@ mod tests {
     fn test_union_alias() {
         let mut aliases = HashMap::new();
         aliases.insert(
-            Name::new("IntOrString"),
+            qn("IntOrString"),
             Ty::Union(vec![
                 Ty::Primitive(PrimitiveType::Int),
                 Ty::Primitive(PrimitiveType::String),
@@ -470,21 +497,21 @@ mod tests {
     fn test_recursive_alias_detection() {
         let mut aliases = HashMap::new();
         aliases.insert(
-            Name::new("List"),
+            qn("List"),
             Ty::Union(vec![Ty::Primitive(PrimitiveType::Null), type_alias("List")]),
         );
 
         let recursive = find_recursive_aliases(&aliases);
-        assert!(recursive.contains(&Name::new("List")));
+        assert!(recursive.contains(&qn("List")));
     }
 
     #[test]
     fn test_non_recursive_not_marked() {
         let mut aliases = HashMap::new();
-        aliases.insert(Name::new("MyInt"), Ty::Primitive(PrimitiveType::Int));
+        aliases.insert(qn("MyInt"), Ty::Primitive(PrimitiveType::Int));
 
         let recursive = find_recursive_aliases(&aliases);
-        assert!(!recursive.contains(&Name::new("MyInt")));
+        assert!(!recursive.contains(&qn("MyInt")));
     }
 
     #[test]
@@ -501,11 +528,7 @@ mod tests {
             &Ty::Primitive(PrimitiveType::String),
             &aliases
         ));
-        assert!(is_subtype_of(
-            &Ty::Never,
-            &Ty::Class(Name::new("Foo")),
-            &aliases
-        ));
+        assert!(is_subtype_of(&Ty::Never, &Ty::Class(qn("Foo")), &aliases));
         assert!(is_subtype_of(
             &Ty::Never,
             &Ty::Optional(Box::new(Ty::Primitive(PrimitiveType::Int))),
@@ -564,13 +587,13 @@ mod tests {
     fn test_enum_variant_subtype_of_enum() {
         let aliases = HashMap::new();
         assert!(is_subtype_of(
-            &Ty::EnumVariant(Name::new("Color"), Name::new("Red")),
-            &Ty::Enum(Name::new("Color")),
+            &Ty::EnumVariant(qn("Color"), Name::new("Red")),
+            &Ty::Enum(qn("Color")),
             &aliases
         ));
         assert!(!is_subtype_of(
-            &Ty::EnumVariant(Name::new("Color"), Name::new("Red")),
-            &Ty::Enum(Name::new("Shape")),
+            &Ty::EnumVariant(qn("Color"), Name::new("Red")),
+            &Ty::Enum(qn("Shape")),
             &aliases
         ));
     }

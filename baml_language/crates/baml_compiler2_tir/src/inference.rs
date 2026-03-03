@@ -155,11 +155,29 @@ pub fn infer_scope_types<'db>(
 
                     if let FunctionBody::Expr(expr_body) = body.as_ref() {
                         // Get declared return type
+                        let mut diags = Vec::new();
                         let return_ty = sig
                             .return_type
                             .as_ref()
-                            .map(|te| crate::lower_type_expr::lower_type_expr(te, pkg_items))
+                            .map(|te| {
+                                crate::lower_type_expr::lower_type_expr(
+                                    db, te, pkg_items, &mut diags,
+                                )
+                            })
                             .unwrap_or(Ty::Unknown);
+
+                        // Report unresolved type diagnostics for return type
+                        if !diags.is_empty() {
+                            let sig_sm =
+                                baml_compiler2_hir::signature::function_signature_source_map(
+                                    db, func_loc,
+                                );
+                            if let Some(ret_span) = sig_sm.return_type_span {
+                                for diag in diags.drain(..) {
+                                    builder.report_at_span(diag, ret_span);
+                                }
+                            }
+                        }
 
                         // Set declared return type for return statement checking
                         builder.set_return_type(return_ty.clone());
@@ -176,17 +194,41 @@ pub fn infer_scope_types<'db>(
                             });
 
                         // Add parameter bindings as locals
-                        for (param_name, param_te) in &sig.params {
+                        let sig_sm = baml_compiler2_hir::signature::function_signature_source_map(
+                            db, func_loc,
+                        );
+                        for (i, (param_name, param_te)) in sig.params.iter().enumerate() {
                             let param_ty = if param_name.as_str() == "self"
                                 && matches!(param_te, baml_compiler2_ast::TypeExpr::Unknown)
                             {
                                 // `self` parameter with no type annotation — infer from enclosing class
                                 enclosing_class_name
                                     .as_ref()
-                                    .map(|cn| Ty::Class(cn.clone()))
+                                    .and_then(|cn| {
+                                        // Look up the class to get its definition's package
+                                        pkg_items.lookup_type(&[cn.clone()]).map(|def| {
+                                            Ty::Class(crate::lower_type_expr::qualify_def(
+                                                db, def, cn,
+                                            ))
+                                        })
+                                    })
                                     .unwrap_or(Ty::Unknown)
                             } else {
-                                crate::lower_type_expr::lower_type_expr(param_te, pkg_items)
+                                let mut param_diags = Vec::new();
+                                let ty = crate::lower_type_expr::lower_type_expr(
+                                    db,
+                                    param_te,
+                                    pkg_items,
+                                    &mut param_diags,
+                                );
+                                if !param_diags.is_empty() {
+                                    let span =
+                                        sig_sm.param_spans.get(i).copied().unwrap_or_default();
+                                    for diag in param_diags {
+                                        builder.report_at_span(diag, span);
+                                    }
+                                }
+                                ty
                             };
                             builder.add_local(param_name.clone(), param_ty);
                         }
@@ -240,13 +282,15 @@ pub fn infer_scope_types<'db>(
 fn collect_type_aliases<'db>(
     db: &'db dyn crate::Db,
     pkg_items: &PackageItems<'db>,
-) -> HashMap<Name, Ty> {
+) -> HashMap<crate::ty::QualifiedTypeName, Ty> {
     let mut aliases = HashMap::new();
     for ns in pkg_items.namespaces.values() {
         for (name, def) in &ns.types {
             if let Definition::TypeAlias(loc) = def {
                 let resolved = resolve_type_alias(db, *loc);
-                aliases.insert(name.clone(), resolved.ty.clone());
+                let qualified =
+                    crate::lower_type_expr::qualify_def(db, Definition::TypeAlias(*loc), name);
+                aliases.insert(qualified, resolved.ty.clone());
             }
         }
     }
@@ -259,6 +303,8 @@ fn collect_type_aliases<'db>(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedClassFields {
     pub fields: Vec<(Name, Ty)>,
+    /// Type lowering diagnostics: (error, span of the type annotation).
+    pub diagnostics: Vec<(crate::infer_context::TirTypeError, text_size::TextRange)>,
 }
 
 // Safety: `ResolvedClassFields` contains `Ty` (which has `Name`, a Salsa
@@ -285,6 +331,8 @@ unsafe impl salsa::Update for ResolvedClassFields {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedTypeAlias {
     pub ty: Ty,
+    /// Type lowering diagnostics: (error, span of the type annotation).
+    pub diagnostics: Vec<(crate::infer_context::TirTypeError, text_size::TextRange)>,
 }
 
 #[allow(unsafe_code)]
@@ -320,6 +368,7 @@ pub fn resolve_class_fields<'db>(
     let pkg_items = package_items(db, pkg_id);
 
     let class_data = &item_tree[class_loc.id(db)];
+    let mut all_diags = Vec::new();
     let fields = class_data
         .fields
         .iter()
@@ -327,13 +376,25 @@ pub fn resolve_class_fields<'db>(
             let ty = f
                 .type_expr
                 .as_ref()
-                .map(|te| crate::lower_type_expr::lower_type_expr(&te.expr, pkg_items))
+                .map(|te| {
+                    let mut diags = Vec::new();
+                    let ty = crate::lower_type_expr::lower_type_expr(
+                        db, &te.expr, pkg_items, &mut diags,
+                    );
+                    for d in diags {
+                        all_diags.push((d, te.span));
+                    }
+                    ty
+                })
                 .unwrap_or(Ty::Unknown);
             (f.name.clone(), ty)
         })
         .collect();
 
-    Arc::new(ResolvedClassFields { fields })
+    Arc::new(ResolvedClassFields {
+        fields,
+        diagnostics: all_diags,
+    })
 }
 
 /// Salsa query: resolved type alias body.
@@ -351,13 +412,24 @@ pub fn resolve_type_alias<'db>(
     let pkg_items = package_items(db, pkg_id);
 
     let alias_data = &item_tree[alias_loc.id(db)];
+    let mut all_diags = Vec::new();
     let ty = alias_data
         .type_expr
         .as_ref()
-        .map(|te| crate::lower_type_expr::lower_type_expr(&te.expr, pkg_items))
+        .map(|te| {
+            let mut diags = Vec::new();
+            let ty = crate::lower_type_expr::lower_type_expr(db, &te.expr, pkg_items, &mut diags);
+            for d in diags {
+                all_diags.push((d, te.span));
+            }
+            ty
+        })
         .unwrap_or(Ty::Unknown);
 
-    Arc::new(ResolvedTypeAlias { ty })
+    Arc::new(ResolvedTypeAlias {
+        ty,
+        diagnostics: all_diags,
+    })
 }
 
 // ── Rendered Diagnostics ─────────────────────────────────────────────────────
@@ -416,6 +488,37 @@ pub fn collect_file_diagnostics<'db>(
     for scope_id in &index.scope_ids {
         let scope_result = infer_scope_types(db, *scope_id);
         all_diagnostics.extend(scope_result.diagnostics());
+    }
+
+    // Collect diagnostics from structural items (class fields, type aliases)
+    for (_name, contrib) in &index.symbol_contributions.types {
+        match contrib.definition {
+            Definition::Class(class_loc) => {
+                let resolved = resolve_class_fields(db, class_loc);
+                for (error, span) in &resolved.diagnostics {
+                    all_diagnostics
+                        .diagnostics
+                        .push(crate::infer_context::TirDiagnostic {
+                            error: error.clone(),
+                            primary: crate::infer_context::DiagnosticLocation::Span(*span),
+                            related: Vec::new(),
+                        });
+                }
+            }
+            Definition::TypeAlias(alias_loc) => {
+                let resolved = resolve_type_alias(db, alias_loc);
+                for (error, span) in &resolved.diagnostics {
+                    all_diagnostics
+                        .diagnostics
+                        .push(crate::infer_context::TirDiagnostic {
+                            error: error.clone(),
+                            primary: crate::infer_context::DiagnosticLocation::Span(*span),
+                            related: Vec::new(),
+                        });
+                }
+            }
+            _ => {}
+        }
     }
 
     all_diagnostics
