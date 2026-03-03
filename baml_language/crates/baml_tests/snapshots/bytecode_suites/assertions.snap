@@ -9,6 +9,8 @@ assert_statement_ok:
             3
         }
 
+    entry: assert_ok
+
     bytecode: |
         function assert_ok() -> int {
             load_const 2
@@ -21,13 +23,7 @@ assert_statement_ok:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'assert_statement_ok': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'assert_statement_ok'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(3)
 
 assert_statement_not_ok:
     baml: |
@@ -36,6 +32,8 @@ assert_statement_not_ok:
             assert 3 == 1;
             2
         }
+
+    entry: assert_not_ok
 
     bytecode: |
         function assert_not_ok() -> int {
@@ -48,12 +46,14 @@ assert_statement_not_ok:
         }
 
     result: |
-        ERROR: execution failed for case 'assert_statement_not_ok': engine call_function failed for 'main': Function not found: main
+        ERROR: execution failed for case 'assert_statement_not_ok': engine call_function failed for 'assert_not_ok': VM error: assertion failed: assertion failed: assertion failed
         RUST_ERR_DEBUG: Err(execution failed for case 'assert_statement_not_ok'
 
         Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+            0: engine call_function failed for 'assert_not_ok'
+            1: VM error: assertion failed
+            2: assertion failed
+            3: assertion failed)
 
 assert_ok:
     baml: |

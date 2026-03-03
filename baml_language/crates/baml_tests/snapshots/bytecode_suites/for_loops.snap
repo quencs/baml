@@ -14,6 +14,11 @@ for_loop_sum:
             result
         }
 
+    entry: sum
+
+    args:
+      xs: []
+
     bytecode: |
         function sum(xs: int[]) -> int {
             load_const 0
@@ -51,13 +56,7 @@ for_loop_sum:
             jump L0
         }
 
-    result: |
-        ERROR: execution failed for case 'for_loop_sum': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'for_loop_sum'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 for_with_break:
     baml: |
@@ -74,6 +73,11 @@ for_with_break:
 
             result
         }
+
+    entry: for_with_break
+
+    args:
+      xs: []
 
     bytecode: |
         function for_with_break(xs: int[]) -> int {
@@ -116,13 +120,7 @@ for_with_break:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'for_with_break': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'for_with_break'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 for_with_continue:
     baml: |
@@ -139,6 +137,11 @@ for_with_continue:
 
             result
         }
+
+    entry: for_with_continue
+
+    args:
+      xs: []
 
     bytecode: |
         function for_with_continue(xs: int[]) -> int {
@@ -184,13 +187,7 @@ for_with_continue:
             jump L0
         }
 
-    result: |
-        ERROR: execution failed for case 'for_with_continue': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'for_with_continue'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 for_nested:
     baml: |
@@ -207,6 +204,12 @@ for_nested:
 
             result
         }
+
+    entry: nested_for
+
+    args:
+      as: []
+      bs: []
 
     bytecode: |
         function nested_for(as: int[], bs: int[]) -> int {
@@ -266,13 +269,7 @@ for_nested:
             jump L3
         }
 
-    result: |
-        ERROR: execution failed for case 'for_nested': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'for_nested'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 for_loop_sum_vm:
     baml: |

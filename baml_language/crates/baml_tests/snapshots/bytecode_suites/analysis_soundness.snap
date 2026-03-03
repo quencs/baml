@@ -13,6 +13,9 @@ virtual_cross_block_soundness_codegen:
             b
         }
 
+    args:
+      c: false
+
     bytecode: |
         function main(c: bool) -> int {
             load_const 1
@@ -29,9 +32,7 @@ virtual_cross_block_soundness_codegen:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 2 but the index is 2
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 2 but the index is 2")
+    result: BexExternalValue::Int(1)
 
 virtual_cross_block_param_mutation_soundness_codegen:
     baml: |
@@ -43,6 +44,10 @@ virtual_cross_block_param_mutation_soundness_codegen:
             }
             x
         }
+
+    args:
+      c: false
+      p: 0
 
     bytecode: |
         function main(c: bool, p: int) -> int {
@@ -58,9 +63,7 @@ virtual_cross_block_param_mutation_soundness_codegen:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 1 but the index is 1
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 1 but the index is 1")
+    result: BexExternalValue::Int(0)
 
 copy_of_mutable_param_soundness_codegen:
     baml: |
@@ -70,6 +73,9 @@ copy_of_mutable_param_soundness_codegen:
             x = 2;
             y
         }
+
+    args:
+      x: 0
 
     bytecode: |
         function main(x: int) -> int {
@@ -81,9 +87,7 @@ copy_of_mutable_param_soundness_codegen:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 1 but the index is 1
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 1 but the index is 1")
+    result: BexExternalValue::Int(0)
 
 virtual_cross_block_transitive_param_mutation_soundness_codegen:
     baml: |
@@ -97,6 +101,10 @@ virtual_cross_block_transitive_param_mutation_soundness_codegen:
             x
         }
 
+    args:
+      c: false
+      p: 0
+
     bytecode: |
         function main(c: bool, p: int) -> int {
             load_var p
@@ -111,9 +119,7 @@ virtual_cross_block_transitive_param_mutation_soundness_codegen:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 1 but the index is 1
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 1 but the index is 1")
+    result: BexExternalValue::Int(0)
 
 virtual_multiple_defs_preserve_side_effects_codegen:
     baml: |

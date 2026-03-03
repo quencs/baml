@@ -13,6 +13,8 @@ create_and_access:
             map["hello"]
         }
 
+    entry: use_map
+
     bytecode: |
         function create_map() -> map<string, string> {
             load_const "world"
@@ -28,13 +30,7 @@ create_and_access:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'create_and_access': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'create_and_access'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("world")
 
 access_no_key:
     baml: |
@@ -47,6 +43,8 @@ access_no_key:
             let map = create_map();
             map["world"]
         }
+
+    entry: use_map_no_key
 
     bytecode: |
         function create_map() -> map<string, string> {
@@ -64,12 +62,14 @@ access_no_key:
         }
 
     result: |
-        ERROR: execution failed for case 'access_no_key': engine call_function failed for 'main': Function not found: main
+        ERROR: execution failed for case 'access_no_key': engine call_function failed for 'use_map_no_key': VM error: key not found in map: key not found in map: key not found in map
         RUST_ERR_DEBUG: Err(execution failed for case 'access_no_key'
 
         Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+            0: engine call_function failed for 'use_map_no_key'
+            1: VM error: key not found in map
+            2: key not found in map
+            3: key not found in map)
 
 contains:
     baml: |
@@ -85,6 +85,8 @@ contains:
                 "hi"
             }
         }
+
+    entry: use_map_contains
 
     bytecode: |
         function create_map_json() -> map<string, string> {
@@ -116,13 +118,7 @@ contains:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'contains': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'contains'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("world")
 
 modify:
     baml: |
@@ -136,6 +132,8 @@ modify:
             map["hi"]
 
         }
+
+    entry: edit_map_key
 
     bytecode: |
         function edit_map_key() -> int {
@@ -163,13 +161,7 @@ modify:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'modify': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'modify'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(42)
 
 len:
     baml: |
@@ -182,6 +174,8 @@ len:
             map.length()
         }
 
+    entry: len
+
     bytecode: |
         function len() -> int {
             load_const 123
@@ -193,13 +187,7 @@ len:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'len': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'len'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(2)
 
 create_and_access_vm:
     baml: |

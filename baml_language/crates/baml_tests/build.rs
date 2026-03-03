@@ -229,8 +229,7 @@ fn generate_bytecode_suite_tests(suite_dir: &Path, manifest_dir: &str) -> TokenS
                 .and_then(|s| s.to_str())
                 .unwrap()
                 .to_string();
-            let test_name =
-                format_ident!("test_00_bytecode_suite_{}", suite_name.replace('-', "_"));
+            let test_name = format_ident!("test_bytecode_suite_{}", suite_name.replace('-', "_"));
             let suite_include = make_include_str(&suite_path.display().to_string());
 
             quote! {

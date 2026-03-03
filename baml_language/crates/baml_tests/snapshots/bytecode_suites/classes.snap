@@ -232,6 +232,12 @@ field_assignment_simple:
             d.value
         }
 
+    entry: set_data_value
+
+    args:
+      d:
+        value: 0
+
     bytecode: |
         function set_data_value(d: Data) -> int {
             load_var d
@@ -242,13 +248,7 @@ field_assignment_simple:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'field_assignment_simple': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'field_assignment_simple'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(42)
 
 class_constructor_with_spread_before_named_fields:
     baml: |
@@ -400,6 +400,8 @@ class_constructor_with_multiple_spread_operators:
             p
         }
 
+    entry: x_one
+
     bytecode: |
         function x_one() -> Point {
             alloc_instance Point
@@ -485,13 +487,7 @@ class_constructor_with_multiple_spread_operators:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'class_constructor_with_multiple_spread_operators': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'class_constructor_with_multiple_spread_operators'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: 'BexExternalValue::Instance { class_name: "Point", fields: {"x": Int(0), "y": Int(0), "z": Int(0), "w": Int(0)} }'
 
 class_constructor_with_spread_operator_does_not_break_locals:
     baml: |
@@ -570,6 +566,12 @@ field_assignment_compound_add:
             c.value
         }
 
+    entry: increment_counter
+
+    args:
+      c:
+        value: 0
+
     bytecode: |
         function increment_counter(c: Counter) -> int {
             load_var c
@@ -583,13 +585,7 @@ field_assignment_compound_add:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'field_assignment_compound_add': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'field_assignment_compound_add'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(10)
 
 nested_object_construction:
     baml: |
@@ -647,6 +643,15 @@ nested_field_assignment:
             o.Inner.value
         }
 
+    entry: set_nested_value
+
+    args:
+      i:
+        value: 0
+      o:
+        Inner:
+          value: 0
+
     bytecode: |
         function set_nested_value(i: Inner, o: Outer) -> int {
             load_var o
@@ -659,13 +664,7 @@ nested_field_assignment:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'nested_field_assignment': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'nested_field_assignment'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(99)
 
 nested_field_assignment_compound:
     baml: |
@@ -681,6 +680,13 @@ nested_field_assignment_compound:
             o.Inner.value += 10;
             o.Inner.value
         }
+
+    entry: increment_nested_value
+
+    args:
+      o:
+        Inner:
+          value: 0
 
     bytecode: |
         function increment_nested_value(o: Outer) -> int {
@@ -698,13 +704,7 @@ nested_field_assignment_compound:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'nested_field_assignment_compound': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'nested_field_assignment_compound'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(10)
 
 class_constructor_with_multiple_spread_operators_vm:
     baml: |

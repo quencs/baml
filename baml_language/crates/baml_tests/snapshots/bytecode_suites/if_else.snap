@@ -742,6 +742,9 @@ if_else_assignment_with_locals:
             i
         }
 
+    args:
+      b: false
+
     bytecode: |
         function main(b: bool) -> int {
             load_var b
@@ -759,9 +762,7 @@ if_else_assignment_with_locals:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+    result: BexExternalValue::Int(2)
 
 if_else_normal_statement:
     baml: |
@@ -785,6 +786,9 @@ if_else_normal_statement:
 
             a
         }
+
+    args:
+      b: false
 
     bytecode: |
         function identity(i: int) -> int {
@@ -817,16 +821,7 @@ if_else_normal_statement:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'if_else_normal_statement': engine call_function failed for 'main': VM error: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any
-        RUST_ERR_DEBUG: Err(execution failed for case 'if_else_normal_statement'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: VM error: type error: expected bool, got any
-            2: type error: expected bool, got any
-            3: type error: expected bool, got any
-            4: type error: expected bool, got any)
+    result: BexExternalValue::Int(1)
 
 else_if_return_expr_with_locals:
     baml: |
@@ -843,6 +838,10 @@ else_if_return_expr_with_locals:
                 z
             }
         }
+
+    args:
+      a: false
+      b: false
 
     bytecode: |
         function main(a: bool, b: bool) -> int {
@@ -870,9 +869,7 @@ else_if_return_expr_with_locals:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+    result: BexExternalValue::Int(3)
 
 else_if_assignment:
     baml: |
@@ -888,6 +885,10 @@ else_if_assignment:
 
             result
         }
+
+    args:
+      a: false
+      b: false
 
     bytecode: |
         function main(a: bool, b: bool) -> int {
@@ -919,16 +920,7 @@ else_if_assignment:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'else_if_assignment': engine call_function failed for 'main': VM error: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any
-        RUST_ERR_DEBUG: Err(execution failed for case 'else_if_assignment'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: VM error: type error: expected bool, got any
-            2: type error: expected bool, got any
-            3: type error: expected bool, got any
-            4: type error: expected bool, got any)
+    result: BexExternalValue::Int(3)
 
 else_if_assignment_with_locals:
     baml: |
@@ -948,6 +940,10 @@ else_if_assignment_with_locals:
             result
         }
 
+    args:
+      a: false
+      b: false
+
     bytecode: |
         function main(a: bool, b: bool) -> int {
             load_var a
@@ -978,16 +974,7 @@ else_if_assignment_with_locals:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'else_if_assignment_with_locals': engine call_function failed for 'main': VM error: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any: type error: expected bool, got any
-        RUST_ERR_DEBUG: Err(execution failed for case 'else_if_assignment_with_locals'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: VM error: type error: expected bool, got any
-            2: type error: expected bool, got any
-            3: type error: expected bool, got any
-            4: type error: expected bool, got any)
+    result: BexExternalValue::Int(3)
 
 nested_block_expr_with_ending_normal_if:
     baml: |
@@ -1060,6 +1047,11 @@ return_with_stack:
            7
         }
 
+    entry: with_stack
+
+    args:
+      x: 0
+
     bytecode: |
         function with_stack(x: int) -> int {
             load_const 1
@@ -1101,13 +1093,7 @@ return_with_stack:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'return_with_stack': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'return_with_stack'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 if_else_return_expr:
     baml: |
@@ -1115,6 +1101,9 @@ if_else_return_expr:
         function main(b: bool) -> int {
             if (b) { 1 } else { 2 }
         }
+
+    args:
+      b: false
 
     bytecode: |
         function main(b: bool) -> int {
@@ -1133,9 +1122,7 @@ if_else_return_expr:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+    result: BexExternalValue::Int(2)
 
 if_else_return_expr_with_locals:
     baml: |
@@ -1150,6 +1137,9 @@ if_else_return_expr_with_locals:
             }
         }
 
+    args:
+      b: false
+
     bytecode: |
         function main(b: bool) -> int {
             load_var b
@@ -1167,9 +1157,7 @@ if_else_return_expr_with_locals:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+    result: BexExternalValue::Int(2)
 
 if_else_assignment:
     baml: |
@@ -1179,6 +1167,9 @@ if_else_assignment:
             i
         }
 
+    args:
+      b: false
+
     bytecode: |
         function main(b: bool) -> int {
             load_var b
@@ -1196,9 +1187,7 @@ if_else_assignment:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+    result: BexExternalValue::Int(2)
 
 else_if_return_expr:
     baml: |
@@ -1212,6 +1201,10 @@ else_if_return_expr:
                 3
             }
         }
+
+    args:
+      a: false
+      b: false
 
     bytecode: |
         function main(a: bool, b: bool) -> int {
@@ -1239,9 +1232,7 @@ else_if_return_expr:
             return
         }
 
-    result: |
-        ERROR: panic during execution: index out of bounds: the len is 0 but the index is 0
-        RUST_ERR_DEBUG: Panic("index out of bounds: the len is 0 but the index is 0")
+    result: BexExternalValue::Int(3)
 
 early_return:
     baml: |
@@ -1251,6 +1242,11 @@ early_return:
 
           x + 5
         }
+
+    entry: early_return
+
+    args:
+      x: 0
 
     bytecode: |
         function early_return(x: int) -> int {
@@ -1271,13 +1267,7 @@ early_return:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'early_return': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'early_return'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(5)
 
 exec_if_branch:
     baml: |

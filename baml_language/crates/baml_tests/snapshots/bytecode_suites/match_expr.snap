@@ -218,6 +218,11 @@ match_jump_table_dense_four_arms:
             }
         }
 
+    entry: classify
+
+    args:
+      x: 0
+
     bytecode: |
         function classify(x: int) -> int {
             load_var x
@@ -246,13 +251,7 @@ match_jump_table_dense_four_arms:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_jump_table_dense_four_arms': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_jump_table_dense_four_arms'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(100)
 
 match_binary_search_sparse_four_arms:
     baml: |
@@ -266,6 +265,11 @@ match_binary_search_sparse_four_arms:
                 _ => 999
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -329,13 +333,7 @@ match_binary_search_sparse_four_arms:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_binary_search_sparse_four_arms': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_sparse_four_arms'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(100)
 
 match_if_else_chain_three_arms:
     baml: |
@@ -347,6 +345,11 @@ match_if_else_chain_three_arms:
                 _ => 999
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -382,13 +385,7 @@ match_if_else_chain_three_arms:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_if_else_chain_three_arms': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_if_else_chain_three_arms'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(100)
 
 match_string_literal:
     baml: |
@@ -400,6 +397,11 @@ match_string_literal:
                 _ => 0
             }
         }
+
+    entry: classify
+
+    args:
+      s: ''
 
     bytecode: |
         function classify(s: string) -> int {
@@ -431,13 +433,7 @@ match_string_literal:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_string_literal': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_string_literal'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_guarded_int_literal:
     baml: |
@@ -449,6 +445,12 @@ match_guarded_int_literal:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
+      flag: false
 
     bytecode: |
         function classify(x: int, flag: bool) -> string {
@@ -482,13 +484,7 @@ match_guarded_int_literal:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_guarded_int_literal': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_guarded_int_literal'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("other")
 
 match_mixed_literal_typed_guard:
     baml: |
@@ -500,6 +496,12 @@ match_mixed_literal_typed_guard:
                 n: int => "other int"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
+      flag: false
 
     bytecode: |
         function classify(x: int, flag: bool) -> string {
@@ -533,13 +535,7 @@ match_mixed_literal_typed_guard:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_mixed_literal_typed_guard': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_mixed_literal_typed_guard'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("zero")
 
 match_guard_on_typed_pattern:
     baml: |
@@ -554,6 +550,12 @@ match_guard_on_typed_pattern:
                 f: Failure => "failure"
             }
         }
+
+    entry: classify
+
+    args:
+      result:
+        data: ok
 
     bytecode: |
         function classify(result: Success | Failure) -> string {
@@ -590,13 +592,7 @@ match_guard_on_typed_pattern:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_guard_on_typed_pattern': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_guard_on_typed_pattern'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("success with data")
 
 match_multiple_typed_patterns_with_guards:
     baml: |
@@ -612,6 +608,13 @@ match_multiple_typed_patterns_with_guards:
                 f: Failure => "failure"
             }
         }
+
+    entry: classify
+
+    args:
+      result:
+        code: 201
+      strict: false
 
     bytecode: |
         function classify(result: Success | Failure, strict: bool) -> string {
@@ -661,13 +664,7 @@ match_multiple_typed_patterns_with_guards:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_multiple_typed_patterns_with_guards': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_multiple_typed_patterns_with_guards'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("redirect")
 
 match_string_literal_with_typed_pattern:
     baml: |
@@ -679,6 +676,11 @@ match_string_literal_with_typed_pattern:
                 _: string => 0
             }
         }
+
+    entry: classify
+
+    args:
+      s: ''
 
     bytecode: |
         function classify(s: string) -> int {
@@ -710,13 +712,7 @@ match_string_literal_with_typed_pattern:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_string_literal_with_typed_pattern': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_string_literal_with_typed_pattern'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_all_arms_guarded:
     baml: |
@@ -729,6 +725,14 @@ match_all_arms_guarded:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
+      a: false
+      b: false
+      c: false
 
     bytecode: |
         function classify(x: int, a: bool, b: bool, c: bool) -> string {
@@ -777,13 +781,7 @@ match_all_arms_guarded:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_all_arms_guarded': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_all_arms_guarded'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("other")
 
 match_density_50_percent_uses_jump_table:
     baml: |
@@ -797,6 +795,11 @@ match_density_50_percent_uses_jump_table:
                 _ => 999
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -826,13 +829,7 @@ match_density_50_percent_uses_jump_table:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_density_50_percent_uses_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_density_50_percent_uses_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(100)
 
 match_density_40_percent_uses_binary_search:
     baml: |
@@ -846,6 +843,11 @@ match_density_40_percent_uses_binary_search:
                 _ => 999
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -909,13 +911,7 @@ match_density_40_percent_uses_binary_search:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_density_40_percent_uses_binary_search': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_density_40_percent_uses_binary_search'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(100)
 
 match_binary_search_negative_sparse:
     baml: |
@@ -929,6 +925,11 @@ match_binary_search_negative_sparse:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -992,13 +993,7 @@ match_binary_search_negative_sparse:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_binary_search_negative_sparse': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_negative_sparse'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("other")
 
 match_binary_search_spanning_zero_sparse:
     baml: |
@@ -1012,6 +1007,11 @@ match_binary_search_spanning_zero_sparse:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -1075,13 +1075,7 @@ match_binary_search_spanning_zero_sparse:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_binary_search_spanning_zero_sparse': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_spanning_zero_sparse'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("other")
 
 match_binary_search_eight_arms:
     baml: |
@@ -1099,6 +1093,11 @@ match_binary_search_eight_arms:
                 _ => 99
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -1218,13 +1217,7 @@ match_binary_search_eight_arms:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_binary_search_eight_arms': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_binary_search_eight_arms'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_large_offset_values_dense:
     baml: |
@@ -1238,6 +1231,11 @@ match_large_offset_values_dense:
                 _ => 9999
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -1267,13 +1265,7 @@ match_large_offset_values_dense:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_large_offset_values_dense': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_large_offset_values_dense'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(9999)
 
 match_catch_all_binding_with_int_patterns:
     baml: |
@@ -1287,6 +1279,11 @@ match_catch_all_binding_with_int_patterns:
                 other => other * 10
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -1318,13 +1315,7 @@ match_catch_all_binding_with_int_patterns:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_catch_all_binding_with_int_patterns': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_catch_all_binding_with_int_patterns'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_negative_int_pattern:
     baml: |
@@ -1337,6 +1328,11 @@ match_negative_int_pattern:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -1384,13 +1380,7 @@ match_negative_int_pattern:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_negative_int_pattern': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_negative_int_pattern'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("zero")
 
 match_multiple_negative_patterns:
     baml: |
@@ -1402,6 +1392,11 @@ match_multiple_negative_patterns:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -1437,13 +1432,7 @@ match_multiple_negative_patterns:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_multiple_negative_patterns': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_multiple_negative_patterns'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("other")
 
 match_negative_jump_table:
     baml: |
@@ -1457,6 +1446,11 @@ match_negative_jump_table:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -1486,13 +1480,7 @@ match_negative_jump_table:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_negative_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_negative_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("zero")
 
 match_spanning_zero_jump_table:
     baml: |
@@ -1507,6 +1495,11 @@ match_spanning_zero_jump_table:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -1540,13 +1533,7 @@ match_spanning_zero_jump_table:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_spanning_zero_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_spanning_zero_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("zero")
 
 match_enum_variant_switch:
     baml: |
@@ -1564,6 +1551,13 @@ match_enum_variant_switch:
                 status.pending => "pending"
             }
         }
+
+    entry: classify
+
+    args:
+      s:
+        __enum__: status
+        __variant__: active
 
     bytecode: |
         function classify(s: status) -> string {
@@ -1600,13 +1594,7 @@ match_enum_variant_switch:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_enum_variant_switch': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_enum_variant_switch'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("active")
 
 match_enum_variant_with_wildcard_not_exhaustive:
     baml: |
@@ -1624,6 +1612,13 @@ match_enum_variant_with_wildcard_not_exhaustive:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      s:
+        __enum__: status
+        __variant__: active
 
     bytecode: |
         function classify(s: status) -> string {
@@ -1660,13 +1655,7 @@ match_enum_variant_with_wildcard_not_exhaustive:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_enum_variant_with_wildcard_not_exhaustive': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_enum_variant_with_wildcard_not_exhaustive'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("active")
 
 match_enum_four_variants_jump_table:
     baml: |
@@ -1686,6 +1675,13 @@ match_enum_four_variants_jump_table:
                 direction.west => "W"
             }
         }
+
+    entry: compass
+
+    args:
+      d:
+        __enum__: direction
+        __variant__: north
 
     bytecode: |
         function compass(d: direction) -> string {
@@ -1715,13 +1711,7 @@ match_enum_four_variants_jump_table:
             unreachable
         }
 
-    result: |
-        ERROR: execution failed for case 'match_enum_four_variants_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_enum_four_variants_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("N")
 
 match_class_types_exhaustive:
     baml: |
@@ -1737,6 +1727,12 @@ match_class_types_exhaustive:
                 b: Bird => "bird: " + b.name
             }
         }
+
+    entry: classify
+
+    args:
+      animal:
+        name: milo
 
     bytecode: |
         function classify(animal: Cat | Dog | Bird) -> string {
@@ -1777,13 +1773,7 @@ match_class_types_exhaustive:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_class_types_exhaustive': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_class_types_exhaustive'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: 'BexExternalValue::String("cat: milo")'
 
 match_class_types_non_exhaustive:
     baml: |
@@ -1799,6 +1789,12 @@ match_class_types_non_exhaustive:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      animal:
+        name: milo
 
     bytecode: |
         function classify(animal: Cat | Dog | Bird) -> string {
@@ -1836,13 +1832,7 @@ match_class_types_non_exhaustive:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_class_types_non_exhaustive': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_class_types_non_exhaustive'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: 'BexExternalValue::String("cat: milo")'
 
 match_union_type_four_patterns_type_tag:
     baml: |
@@ -1855,6 +1845,11 @@ match_union_type_four_patterns_type_tag:
                 f: float => "decimal"
             }
         }
+
+    entry: identify
+
+    args:
+      x: 0
 
     bytecode: |
         function identify(x: int | string | bool | float) -> string {
@@ -1884,13 +1879,7 @@ match_union_type_four_patterns_type_tag:
             unreachable
         }
 
-    result: |
-        ERROR: execution failed for case 'match_union_type_four_patterns_type_tag': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_union_type_four_patterns_type_tag'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("integer")
 
 match_union_aggregated_jump_table:
     baml: |
@@ -1904,6 +1893,11 @@ match_union_aggregated_jump_table:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> string {
@@ -1933,13 +1927,7 @@ match_union_aggregated_jump_table:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_union_aggregated_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_union_aggregated_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("a")
 
 match_bool_variable_exhaustive:
     baml: |
@@ -1950,6 +1938,11 @@ match_bool_variable_exhaustive:
                 false => "no"
             }
         }
+
+    entry: check
+
+    args:
+      flag: false
 
     bytecode: |
         function check(flag: bool) -> string {
@@ -1970,13 +1963,7 @@ match_bool_variable_exhaustive:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_bool_variable_exhaustive': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_bool_variable_exhaustive'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("no")
 
 match_optional_with_null:
     baml: |
@@ -1987,6 +1974,11 @@ match_optional_with_null:
                 n: int => "some"
             }
         }
+
+    entry: process
+
+    args:
+      x: null
 
     bytecode: |
         function process(x: int?) -> string {
@@ -2007,13 +1999,7 @@ match_optional_with_null:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_optional_with_null': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_optional_with_null'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("none")
 
 match_optional_with_null_and_literal:
     baml: |
@@ -2025,6 +2011,11 @@ match_optional_with_null_and_literal:
                 n: int => "other"
             }
         }
+
+    entry: process
+
+    args:
+      x: null
 
     bytecode: |
         function process(x: int?) -> string {
@@ -2056,13 +2047,7 @@ match_optional_with_null_and_literal:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_optional_with_null_and_literal': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_optional_with_null_and_literal'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("none")
 
 match_large_jump_table:
     baml: |
@@ -2082,6 +2067,11 @@ match_large_jump_table:
                 _ => 999
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -2135,13 +2125,7 @@ match_large_jump_table:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_large_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_large_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(100)
 
 match_string_many_arms:
     baml: |
@@ -2155,6 +2139,11 @@ match_string_many_arms:
                 _ => 0
             }
         }
+
+    entry: classify
+
+    args:
+      s: ''
 
     bytecode: |
         function classify(s: string) -> int {
@@ -2208,13 +2197,7 @@ match_string_many_arms:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_string_many_arms': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_string_many_arms'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_arithmetic_scrutinee:
     baml: |
@@ -2226,6 +2209,12 @@ match_arithmetic_scrutinee:
                 _ => "other"
             }
         }
+
+    entry: classify
+
+    args:
+      a: 0
+      b: 0
 
     bytecode: |
         function classify(a: int, b: int) -> string {
@@ -2263,13 +2252,7 @@ match_arithmetic_scrutinee:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_arithmetic_scrutinee': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_arithmetic_scrutinee'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("zero")
 
 match_function_call_scrutinee:
     baml: |
@@ -2284,6 +2267,8 @@ match_function_call_scrutinee:
                 _ => "other"
             }
         }
+
+    entry: classify
 
     bytecode: |
         function classify() -> string {
@@ -2312,13 +2297,7 @@ match_function_call_scrutinee:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_function_call_scrutinee': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_function_call_scrutinee'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::String("answer")
 
 match_range_at_limit_uses_jump_table:
     baml: |
@@ -2332,6 +2311,11 @@ match_range_at_limit_uses_jump_table:
                 _ => 0
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -2361,13 +2345,7 @@ match_range_at_limit_uses_jump_table:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_range_at_limit_uses_jump_table': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_range_at_limit_uses_jump_table'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_range_exceeds_limit_uses_binary_search:
     baml: |
@@ -2381,6 +2359,11 @@ match_range_exceeds_limit_uses_binary_search:
                 _ => 0
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
 
     bytecode: |
         function classify(x: int) -> int {
@@ -2444,13 +2427,7 @@ match_range_exceeds_limit_uses_binary_search:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_range_exceeds_limit_uses_binary_search': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_range_exceeds_limit_uses_binary_search'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(1)
 
 match_three_levels_nested:
     baml: |
@@ -2467,6 +2444,13 @@ match_three_levels_nested:
                 _ => 3
             }
         }
+
+    entry: classify
+
+    args:
+      x: 0
+      y: 0
+      z: 0
 
     bytecode: |
         function classify(x: int, y: int, z: int) -> int {
@@ -2518,13 +2502,7 @@ match_three_levels_nested:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'match_three_levels_nested': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'match_three_levels_nested'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(0)
 
 match_simple_catch_all:
     baml: |

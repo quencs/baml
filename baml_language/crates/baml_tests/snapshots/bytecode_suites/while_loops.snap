@@ -16,6 +16,12 @@ while_loop_gcd:
             a
         }
 
+    entry: gcd
+
+    args:
+      a: 21
+      b: 15
+
     bytecode: |
         function gcd(a: int, b: int) -> int {
           L0:
@@ -51,13 +57,7 @@ while_loop_gcd:
             jump L0
         }
 
-    result: |
-        ERROR: execution failed for case 'while_loop_gcd': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'while_loop_gcd'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(3)
 
 while_loop_with_ending_if:
     baml: |
@@ -162,6 +162,11 @@ break_factorial:
             result
         }
 
+    entry: factorial
+
+    args:
+      limit: 5
+
     bytecode: |
         function factorial(limit: int) -> int {
             load_const 1
@@ -192,13 +197,7 @@ break_factorial:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'break_factorial': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'break_factorial'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(120)
 
 continue_factorial:
     baml: |
@@ -220,6 +219,11 @@ continue_factorial:
 
             result
         }
+
+    entry: factorial
+
+    args:
+      limit: 5
 
     bytecode: |
         function factorial(limit: int) -> int {
@@ -258,13 +262,7 @@ continue_factorial:
             jump L0
         }
 
-    result: |
-        ERROR: execution failed for case 'continue_factorial': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'continue_factorial'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(120)
 
 continue_nested:
     baml: |
@@ -327,6 +325,8 @@ break_nested:
             a
         }
 
+    entry: nested
+
     bytecode: |
         function nested() -> int {
             load_const 5
@@ -351,13 +351,7 @@ break_nested:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'break_nested': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'break_nested'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(7)
 
 break_nested_with_variable_conditions:
     baml: |
@@ -374,6 +368,12 @@ break_nested_with_variable_conditions:
             }
             a
         }
+
+    entry: nested
+
+    args:
+      x: true
+      y: true
 
     bytecode: |
         function nested(x: bool, y: bool) -> int {
@@ -399,13 +399,7 @@ break_nested_with_variable_conditions:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'break_nested_with_variable_conditions': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'break_nested_with_variable_conditions'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(7)
 
 while_loop_with_conditional_break:
     baml: |
@@ -421,6 +415,11 @@ while_loop_with_conditional_break:
             }
             result
         }
+
+    entry: count_down
+
+    args:
+      n: 3
 
     bytecode: |
         function count_down(n: int) -> int {
@@ -448,13 +447,7 @@ while_loop_with_conditional_break:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'while_loop_with_conditional_break': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'while_loop_with_conditional_break'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(6)
 
 while_loop:
     baml: |

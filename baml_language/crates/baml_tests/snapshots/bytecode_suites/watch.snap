@@ -12,6 +12,8 @@ watch_primitive:
             value
         }
 
+    entry: primitive
+
     bytecode: |
         function primitive() -> int {
             load_const 0
@@ -26,13 +28,11 @@ watch_primitive:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'watch_primitive': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'watch_primitive'
+    notifications: [
+        "Variables([LocalVar(StackKind(0))])",
+    ]
 
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: Complete(Int(1))
 
 viz_header_before_if_emits_viz_enter_exit:
     baml: |
@@ -45,6 +45,8 @@ viz_header_before_if_emits_viz_enter_exit:
                 2
             }
         }
+
+    entry: header_before_if
 
     bytecode: |
         function header_before_if() -> int {
@@ -66,13 +68,13 @@ viz_header_before_if_emits_viz_enter_exit:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'viz_header_before_if_emits_viz_enter_exit': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'viz_header_before_if_emits_viz_enter_exit'
+    notifications: [
+        "Block(BlockNotification { function_name: \"header_before_if\", block_name: \"MyHeader\", level: 1, block_type: Statement, is_enter: true })",
+        "Viz { function_name: \"header_before_if\", event: VizExecEvent { delta: Enter, node_id: 0, node_type: BranchGroup, label: \"MyHeader\", header_level: None } }",
+        "Viz { function_name: \"header_before_if\", event: VizExecEvent { delta: Exit, node_id: 0, node_type: BranchGroup, label: \"MyHeader\", header_level: None } }",
+    ]
 
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: Complete(Int(1))
 
 viz_header_before_while_emits_viz_enter_exit:
     baml: |
@@ -85,6 +87,8 @@ viz_header_before_while_emits_viz_enter_exit:
             }
             x
         }
+
+    entry: header_before_while
 
     bytecode: |
         function header_before_while() -> int {
@@ -113,13 +117,13 @@ viz_header_before_while_emits_viz_enter_exit:
             jump L0
         }
 
-    result: |
-        ERROR: execution failed for case 'viz_header_before_while_emits_viz_enter_exit': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'viz_header_before_while_emits_viz_enter_exit'
+    notifications: [
+        "Block(BlockNotification { function_name: \"header_before_while\", block_name: \"LoopHeader\", level: 1, block_type: Statement, is_enter: true })",
+        "Viz { function_name: \"header_before_while\", event: VizExecEvent { delta: Enter, node_id: 0, node_type: Loop, label: \"LoopHeader\", header_level: None } }",
+        "Viz { function_name: \"header_before_while\", event: VizExecEvent { delta: Exit, node_id: 0, node_type: Loop, label: \"LoopHeader\", header_level: None } }",
+    ]
 
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: Complete(Int(5))
 
 viz_standalone_header_no_viz_enter_exit:
     baml: |
@@ -130,6 +134,8 @@ viz_standalone_header_no_viz_enter_exit:
             x
         }
 
+    entry: standalone_header
+
     bytecode: |
         function standalone_header() -> int {
             notify_block JustAHeader
@@ -137,13 +143,11 @@ viz_standalone_header_no_viz_enter_exit:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'viz_standalone_header_no_viz_enter_exit': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'viz_standalone_header_no_viz_enter_exit'
+    notifications: [
+        "Block(BlockNotification { function_name: \"standalone_header\", block_name: \"JustAHeader\", level: 1, block_type: Statement, is_enter: true })",
+    ]
 
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: Complete(Int(5))
 
 viz_multiple_headers_only_one_before_if:
     baml: |
@@ -158,6 +162,8 @@ viz_multiple_headers_only_one_before_if:
                 3
             }
         }
+
+    entry: multiple_headers
 
     bytecode: |
         function multiple_headers() -> int {
@@ -182,13 +188,14 @@ viz_multiple_headers_only_one_before_if:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'viz_multiple_headers_only_one_before_if': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'viz_multiple_headers_only_one_before_if'
+    notifications: [
+        "Block(BlockNotification { function_name: \"multiple_headers\", block_name: \"FirstHeader\", level: 1, block_type: Statement, is_enter: true })",
+        "Block(BlockNotification { function_name: \"multiple_headers\", block_name: \"SecondHeader\", level: 1, block_type: Statement, is_enter: true })",
+        "Viz { function_name: \"multiple_headers\", event: VizExecEvent { delta: Enter, node_id: 0, node_type: BranchGroup, label: \"SecondHeader\", header_level: None } }",
+        "Viz { function_name: \"multiple_headers\", event: VizExecEvent { delta: Exit, node_id: 0, node_type: BranchGroup, label: \"SecondHeader\", header_level: None } }",
+    ]
 
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: Complete(Int(2))
 
 viz_if_without_header_no_viz:
     baml: |
@@ -200,6 +207,8 @@ viz_if_without_header_no_viz:
                 2
             }
         }
+
+    entry: if_no_header
 
     bytecode: |
         function if_no_header() -> int {
@@ -218,13 +227,7 @@ viz_if_without_header_no_viz:
             return
         }
 
-    result: |
-        ERROR: execution failed for case 'viz_if_without_header_no_viz': engine call_function failed for 'main': Function not found: main
-        RUST_ERR_DEBUG: Err(execution failed for case 'viz_if_without_header_no_viz'
-
-        Caused by:
-            0: engine call_function failed for 'main'
-            1: Function not found: main)
+    result: BexExternalValue::Int(1)
 
 notify_primitive_on_change:
     baml: |
