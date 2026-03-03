@@ -417,6 +417,282 @@ fn ty_has_cycle(
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// INVALID CYCLE DETECTION (Tarjan's SCC + structural edges)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Mirrors the approach in `baml_compiler_tir/src/cycles.rs`:
+// 1. Build a dependency graph tracking structural vs non-structural edges.
+//    "Structural" means the reference goes through List or Map, which provide
+//    a termination point (empty container). Optional and Union are pass-through.
+// 2. Find SCCs via Tarjan's algorithm (deterministic ordering).
+// 3. A cycle is valid if it has at least one structural edge within the SCC.
+//    Otherwise every member gets an AliasCycle diagnostic.
+
+/// Find all type aliases that participate in **invalid** (unguarded) cycles.
+///
+/// An edge is "structural" if it passes through a `List` or `Map` constructor,
+/// which provides a base case for termination (empty list/map). `Optional` and
+/// `Union` are pass-through — they do NOT create structural context.
+///
+/// A cycle is valid if at least one edge within the SCC is structural.
+/// Otherwise all members are flagged as invalid.
+///
+/// Returns a set of qualified type names that should receive cycle diagnostics.
+pub fn find_invalid_alias_cycles(
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+) -> HashSet<QualifiedTypeName> {
+    // 1. Build the graph + structural edge set
+    let GraphResult {
+        graph,
+        structural_edges,
+    } = build_alias_graph(aliases);
+
+    // 2. Find SCCs via Tarjan's (deterministic, only real cycles)
+    let sccs = Tarjan::components(&graph);
+
+    // 3. For each SCC, check if it has at least one structural edge
+    let mut invalid = HashSet::new();
+    for scc in &sccs {
+        let scc_set: HashSet<&QualifiedTypeName> = scc.iter().collect();
+        let has_structural = structural_edges
+            .iter()
+            .any(|(from, to)| scc_set.contains(from) && scc_set.contains(to));
+
+        if !has_structural {
+            for name in scc {
+                invalid.insert(name.clone());
+            }
+        }
+    }
+
+    invalid
+}
+
+/// Result of building a type alias dependency graph.
+struct GraphResult {
+    /// The full dependency graph (all edges, structural + non-structural).
+    graph: HashMap<QualifiedTypeName, HashSet<QualifiedTypeName>>,
+    /// Edges that go through structural types (List/Map).
+    structural_edges: HashSet<(QualifiedTypeName, QualifiedTypeName)>,
+}
+
+/// Build a graph of type alias dependencies, tracking which edges are structural.
+fn build_alias_graph(aliases: &HashMap<QualifiedTypeName, Ty>) -> GraphResult {
+    let mut graph: HashMap<QualifiedTypeName, HashSet<QualifiedTypeName>> = HashMap::new();
+    let mut structural_edges: HashSet<(QualifiedTypeName, QualifiedTypeName)> = HashSet::new();
+
+    for (alias_name, ty) in aliases {
+        let (mut non_structural, structural) = extract_type_alias_deps(ty, aliases);
+
+        for dep in &structural {
+            structural_edges.insert((alias_name.clone(), dep.clone()));
+        }
+
+        // Graph has ALL edges (structural + non-structural combined)
+        non_structural.extend(structural);
+        graph.insert(alias_name.clone(), non_structural);
+    }
+
+    GraphResult {
+        graph,
+        structural_edges,
+    }
+}
+
+/// Extract type alias dependencies from a resolved type.
+///
+/// Returns `(non_structural_deps, structural_deps)` where structural means
+/// the reference goes through `List` or `Map` (which provide a termination
+/// point via empty container). `Optional` and `Union` are pass-through —
+/// they do NOT create structural context.
+fn extract_type_alias_deps(
+    ty: &Ty,
+    aliases: &HashMap<QualifiedTypeName, Ty>,
+) -> (HashSet<QualifiedTypeName>, HashSet<QualifiedTypeName>) {
+    fn visit(
+        ty: &Ty,
+        aliases: &HashMap<QualifiedTypeName, Ty>,
+        non_structural: &mut HashSet<QualifiedTypeName>,
+        structural: &mut HashSet<QualifiedTypeName>,
+        in_structural: bool,
+    ) {
+        match ty {
+            Ty::TypeAlias(qn) if aliases.contains_key(qn) => {
+                if in_structural {
+                    structural.insert(qn.clone());
+                } else {
+                    non_structural.insert(qn.clone());
+                }
+            }
+            Ty::Optional(inner) => {
+                // Optional does NOT create structural context
+                visit(inner, aliases, non_structural, structural, in_structural);
+            }
+            Ty::List(inner) | Ty::EvolvingList(inner) => {
+                // List provides structural guard (can be empty)
+                visit(inner, aliases, non_structural, structural, true);
+            }
+            Ty::Map(key, value) | Ty::EvolvingMap(key, value) => {
+                // Map provides structural guard (can be empty)
+                visit(key, aliases, non_structural, structural, true);
+                visit(value, aliases, non_structural, structural, true);
+            }
+            Ty::Union(members) => {
+                // Union passes through the structural context
+                for m in members {
+                    visit(m, aliases, non_structural, structural, in_structural);
+                }
+            }
+            Ty::Function { params, ret } => {
+                for (_, t) in params {
+                    visit(t, aliases, non_structural, structural, in_structural);
+                }
+                visit(ret, aliases, non_structural, structural, in_structural);
+            }
+            _ => {}
+        }
+    }
+
+    let mut non_structural = HashSet::new();
+    let mut structural = HashSet::new();
+    visit(ty, aliases, &mut non_structural, &mut structural, false);
+    (non_structural, structural)
+}
+
+// ── Tarjan's SCC ─────────────────────────────────────────────────────────────
+//
+// Adapted from `baml_compiler_tir/src/cycles.rs` — deterministic ordering
+// via sorted traversal, component reversal, and rotation to minimum element.
+
+/// State of each node for Tarjan's algorithm.
+#[derive(Clone, Copy)]
+struct NodeState {
+    index: usize,
+    low_link: usize,
+    on_stack: bool,
+}
+
+/// Tarjan's strongly connected components algorithm.
+///
+/// Only returns real cycles (multi-node SCCs or single nodes with self-loops).
+/// Components are sorted deterministically.
+struct Tarjan<'g> {
+    graph: &'g HashMap<QualifiedTypeName, HashSet<QualifiedTypeName>>,
+    index: usize,
+    stack: Vec<QualifiedTypeName>,
+    state: HashMap<QualifiedTypeName, NodeState>,
+    components: Vec<Vec<QualifiedTypeName>>,
+}
+
+impl<'g> Tarjan<'g> {
+    const UNVISITED: usize = usize::MAX;
+
+    fn components(
+        graph: &'g HashMap<QualifiedTypeName, HashSet<QualifiedTypeName>>,
+    ) -> Vec<Vec<QualifiedTypeName>> {
+        let mut tarjan = Self {
+            graph,
+            index: 0,
+            stack: Vec::new(),
+            state: graph
+                .keys()
+                .map(|node| {
+                    (
+                        node.clone(),
+                        NodeState {
+                            index: Self::UNVISITED,
+                            low_link: Self::UNVISITED,
+                            on_stack: false,
+                        },
+                    )
+                })
+                .collect(),
+            components: Vec::new(),
+        };
+
+        // Sort nodes for deterministic traversal order.
+        let mut nodes: Vec<_> = graph.keys().cloned().collect();
+        nodes.sort_by(|a, b| (&a.pkg, &a.name).cmp(&(&b.pkg, &b.name)));
+
+        for node in &nodes {
+            if tarjan.state[node].index == Self::UNVISITED {
+                tarjan.strong_connect(node);
+            }
+        }
+
+        // Sort components by first element for deterministic output.
+        tarjan
+            .components
+            .sort_by(|a, b| (&a[0].pkg, &a[0].name).cmp(&(&b[0].pkg, &b[0].name)));
+
+        tarjan.components
+    }
+
+    fn strong_connect(&mut self, node_id: &QualifiedTypeName) {
+        let mut node = NodeState {
+            index: self.index,
+            low_link: self.index,
+            on_stack: true,
+        };
+        self.index += 1;
+        self.state.insert(node_id.clone(), node);
+        self.stack.push(node_id.clone());
+
+        // Sort successors for deterministic DFS order.
+        let mut successors: Vec<_> = self.graph[node_id].iter().collect();
+        successors.sort_by(|a, b| (&a.pkg, &a.name).cmp(&(&b.pkg, &b.name)));
+
+        for successor_id in successors {
+            let mut successor = self.state[successor_id];
+            if successor.index == Self::UNVISITED {
+                self.strong_connect(successor_id);
+                successor = self.state[successor_id];
+                node.low_link = std::cmp::min(node.low_link, successor.low_link);
+            } else if successor.on_stack {
+                node.low_link = std::cmp::min(node.low_link, successor.index);
+            }
+        }
+
+        self.state.insert(node_id.clone(), node);
+
+        if node.low_link == node.index {
+            let mut component = Vec::new();
+            while let Some(top) = self.stack.pop() {
+                if let Some(st) = self.state.get_mut(&top) {
+                    st.on_stack = false;
+                }
+                let is_root = &top == node_id;
+                component.push(top);
+                if is_root {
+                    break;
+                }
+            }
+
+            // Reverse: stack pop order → DFS visitation order
+            component.reverse();
+
+            // Only keep real cycles: multi-node or single node with self-loop.
+            let is_cycle = component.len() > 1
+                || (component.len() == 1 && self.graph[node_id].contains(node_id));
+
+            if is_cycle {
+                // Rotate to start at the lexicographically smallest element
+                // for deterministic cycle paths.
+                if let Some(min_idx) = component
+                    .iter()
+                    .enumerate()
+                    .min_by(|(_, a), (_, b)| (&a.pkg, &a.name).cmp(&(&b.pkg, &b.name)))
+                    .map(|(i, _)| i)
+                {
+                    component.rotate_left(min_idx);
+                }
+                self.components.push(component);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

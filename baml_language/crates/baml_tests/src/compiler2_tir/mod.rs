@@ -8,6 +8,7 @@
 mod inference;
 #[cfg(test)]
 mod phase3a;
+mod phase3a_recursion;
 
 #[cfg(test)]
 pub(crate) mod support {
@@ -391,6 +392,7 @@ pub(crate) mod support {
     /// Render a file's TIR output in the same format as the onion skin tool.
     pub fn render_tir(db: &ProjectDatabase, file: baml_base::SourceFile) -> String {
         use baml_compiler2_hir::package::{PackageId, package_items};
+        use baml_compiler2_tir::inference::detect_invalid_alias_cycles;
 
         let mut output = String::new();
         let index = file_semantic_index(db, file);
@@ -399,6 +401,9 @@ pub(crate) mod support {
         let pkg_info = baml_compiler2_hir::file_package::file_package(db, file);
         let pkg_id = PackageId::new(db, pkg_info.package.clone());
         let pkg_items = package_items(db, pkg_id);
+
+        // Pre-compute invalid alias cycles for the package
+        let invalid_cycles = detect_invalid_alias_cycles(db, pkg_id);
         for (i, scope) in index.scopes.iter().enumerate() {
             let scope_id = index.scope_ids[i];
             let kind_str = match &scope.kind {
@@ -440,6 +445,26 @@ pub(crate) mod support {
                                 if let Definition::TypeAlias(alias_loc) = c.definition {
                                     let resolved = resolve_type_alias(db, alias_loc);
                                     writeln!(output, "{kind_str} {fqn} = {}", resolved.ty).ok();
+                                    // Render type-lowering diagnostics
+                                    for (diag, span) in &resolved.diagnostics {
+                                        let start = u32::from(span.start());
+                                        let end = u32::from(span.end());
+                                        writeln!(output, "  !! {start}..{end}: {diag}").ok();
+                                    }
+                                    // Render cycle diagnostic if this alias is in an invalid cycle
+                                    let qn = baml_compiler2_tir::lower_type_expr::qualify(
+                                        pkg_info.package.as_str(),
+                                        name,
+                                    );
+                                    if invalid_cycles.contains(&qn) {
+                                        let start = u32::from(scope.range.start());
+                                        let end = u32::from(scope.range.end());
+                                        writeln!(
+                                            output,
+                                            "  !! {start}..{end}: recursive type alias cycle: {name}"
+                                        )
+                                        .ok();
+                                    }
                                     break;
                                 }
                             }

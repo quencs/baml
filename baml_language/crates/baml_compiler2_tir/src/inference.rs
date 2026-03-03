@@ -297,6 +297,20 @@ fn collect_type_aliases<'db>(
     aliases
 }
 
+/// Detect invalid (unguarded) type alias cycles in a package.
+///
+/// Returns the set of `QualifiedTypeName`s that participate in invalid cycles.
+/// Valid recursion through containers (e.g. `type JSON = string | JSON[]`) is
+/// NOT flagged.
+pub fn detect_invalid_alias_cycles<'db>(
+    db: &'db dyn crate::Db,
+    pkg_id: PackageId<'db>,
+) -> std::collections::HashSet<crate::ty::QualifiedTypeName> {
+    let pkg_items = package_items(db, pkg_id);
+    let aliases = collect_type_aliases(db, pkg_items);
+    crate::normalize::find_invalid_alias_cycles(&aliases)
+}
+
 // ── Per-Item Queries ────────────────────────────────────────────────────────
 
 /// Resolved class fields — `TypeExpr` resolved to `Ty` for each field.

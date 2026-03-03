@@ -68,6 +68,12 @@ pub enum TirTypeError {
     ArgumentCountMismatch { expected: usize, got: usize },
     /// Function body ends without returning a value.
     MissingReturn { expected: Ty },
+    /// Type alias participates in an invalid (unguarded) cycle.
+    ///
+    /// Examples: `type A = A`, `type A = B; type B = A`.
+    /// Valid recursion through containers (`type JSON = string | JSON[]`) does NOT
+    /// trigger this — only cycles with no base case.
+    AliasCycle { name: Name },
 }
 
 impl fmt::Display for TirTypeError {
@@ -119,6 +125,9 @@ impl fmt::Display for TirTypeError {
             }
             TirTypeError::MissingReturn { expected } => {
                 write!(f, "missing return: expected `{expected}`")
+            }
+            TirTypeError::AliasCycle { name } => {
+                write!(f, "recursive type alias cycle: {name}")
             }
         }
     }
