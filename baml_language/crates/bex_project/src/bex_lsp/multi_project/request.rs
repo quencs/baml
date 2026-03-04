@@ -1,9 +1,10 @@
 use lsp_types::{
     CodeLens, CodeLensOptions, CompletionOptions, DiagnosticOptions, DiagnosticServerCapabilities,
     HoverProviderCapability, InlayHintOptions, InlayHintServerCapabilities, SaveOptions,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
-    TextDocumentSyncSaveOptions, WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities,
-    WorkspaceServerCapabilities,
+    SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions,
+    SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions,
+    WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
 };
 
 use super::{BexMulitProject, LspError, WithDiagnostics, commands, wasm_helpers};
@@ -38,6 +39,48 @@ pub(super) fn server_capabilities() -> ServerCapabilities {
         definition_provider: Some(lsp_types::OneOf::Left(true)),
         references_provider: Some(lsp_types::OneOf::Left(true)),
         hover_provider: Some(HoverProviderCapability::Simple(true)),
+        semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
+            SemanticTokensOptions {
+                legend: SemanticTokensLegend {
+                    token_types: baml_lsp_actions::TOKEN_TYPES
+                        .iter()
+                        .map(|t| {
+                            lsp_types::SemanticTokenType::new(match t {
+                                baml_lsp_actions::SemanticTokenType::Namespace => "namespace",
+                                baml_lsp_actions::SemanticTokenType::Type => "type",
+                                baml_lsp_actions::SemanticTokenType::Class => "class",
+                                baml_lsp_actions::SemanticTokenType::Enum => "enum",
+                                baml_lsp_actions::SemanticTokenType::Interface => "interface",
+                                baml_lsp_actions::SemanticTokenType::Struct => "struct",
+                                baml_lsp_actions::SemanticTokenType::TypeParameter => {
+                                    "typeParameter"
+                                }
+                                baml_lsp_actions::SemanticTokenType::Parameter => "parameter",
+                                baml_lsp_actions::SemanticTokenType::Variable => "variable",
+                                baml_lsp_actions::SemanticTokenType::Property => "property",
+                                baml_lsp_actions::SemanticTokenType::EnumMember => "enumMember",
+                                baml_lsp_actions::SemanticTokenType::Event => "event",
+                                baml_lsp_actions::SemanticTokenType::Function => "function",
+                                baml_lsp_actions::SemanticTokenType::Method => "method",
+                                baml_lsp_actions::SemanticTokenType::Macro => "macro",
+                                baml_lsp_actions::SemanticTokenType::Keyword => "keyword",
+                                baml_lsp_actions::SemanticTokenType::Modifier => "modifier",
+                                baml_lsp_actions::SemanticTokenType::Comment => "comment",
+                                baml_lsp_actions::SemanticTokenType::String => "string",
+                                baml_lsp_actions::SemanticTokenType::Number => "number",
+                                baml_lsp_actions::SemanticTokenType::Regexp => "regexp",
+                                baml_lsp_actions::SemanticTokenType::Operator => "operator",
+                                baml_lsp_actions::SemanticTokenType::Decorator => "decorator",
+                            })
+                        })
+                        .collect(),
+                    token_modifiers: vec![],
+                },
+                full: Some(SemanticTokensFullOptions::Bool(true)),
+                range: None,
+                ..Default::default()
+            },
+        )),
         text_document_sync: Some(TextDocumentSyncCapability::Options(
             TextDocumentSyncOptions {
                 open_close: Some(true),
@@ -275,6 +318,66 @@ impl BexLspRequest for BexMulitProject {
             .collect();
 
         Ok(Some(lsp_hints))
+    }
+
+    fn on_request_text_document_semantic_tokens_full(
+        &self,
+        params: lsp_request_params!("textDocument/semanticTokens/full"),
+    ) -> Result<lsp_request_result!("textDocument/semanticTokens/full"), LspError> {
+        let path = self.get_path_from_uri(&params.text_document.uri)?;
+        let root_path = Self::get_baml_project_root(&path)?;
+        let project_handle = self.get_or_create_project(root_path)?;
+
+        let project = project_handle.project.try_lock_db()?;
+        let lsp_db = project.db();
+        let Some(source_file) = lsp_db.get_file(std::path::Path::new(path.as_str())) else {
+            return Ok(None);
+        };
+        let text = source_file.text(lsp_db);
+
+        // Get the semantic tokens, this function always returns tokens in document order.
+        let tokens = baml_lsp_actions::semantic_tokens(lsp_db, source_file);
+
+        // Convert to LSP delta-encoded format
+        let line_index = baml_project::position::LineIndex::new(text);
+        let mut lsp_tokens = Vec::with_capacity(tokens.len());
+        let mut prev_line = 0u32;
+        let mut prev_start = 0u32;
+
+        for token in &tokens {
+            let start_offset: u32 = token.range.start().into();
+            let end_offset: u32 = token.range.end().into();
+            let length = end_offset - start_offset;
+
+            let Some(pos) = line_index.offset_to_position(start_offset) else {
+                continue;
+            };
+
+            let delta_line = pos.line - prev_line;
+            let delta_start = if delta_line == 0 {
+                pos.character - prev_start
+            } else {
+                pos.character
+            };
+
+            lsp_tokens.push(lsp_types::SemanticToken {
+                delta_line,
+                delta_start,
+                length,
+                token_type: token.token_type.legend_index(),
+                token_modifiers_bitset: 0,
+            });
+
+            prev_line = pos.line;
+            prev_start = pos.character;
+        }
+
+        Ok(Some(lsp_types::SemanticTokensResult::Tokens(
+            lsp_types::SemanticTokens {
+                result_id: None,
+                data: lsp_tokens,
+            },
+        )))
     }
 
     fn on_request_text_document_code_action(

@@ -2248,9 +2248,20 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                                 },
                             );
                             let enum_name = enum_fqn.display_name();
-                            ctx.enum_variant_exprs.insert(expr_id, (enum_name, variant));
-                            let ty = Ty::Enum(enum_fqn, d());
+                            ctx.enum_variant_exprs
+                                .insert(expr_id, (enum_name, variant.clone()));
+                            let ty = Ty::Enum(enum_fqn.clone(), d());
                             ctx.set_expr_type(expr_id, ty.clone());
+
+                            // Populate per-segment resolutions as well
+                            ctx.path_segment_resolutions.insert(
+                                expr_id,
+                                vec![
+                                    ResolvedValue::Enum(enum_fqn.clone()),
+                                    ResolvedValue::EnumVariant { enum_fqn, variant },
+                                ],
+                            );
+
                             return ty;
                         }
                     }
@@ -2307,7 +2318,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         ResolvedValue::BuiltinFunction(baml_base::QualifiedName::from_builtin_path(
                             def.path,
                         ))
-                    } else if let Ty::Class(class_fqn, _) = &ty {
+                    } else if let Ty::Class(class_fqn, _) | Ty::TypeAlias(class_fqn, _) = &ty {
                         // Check if this is a method (function type) or a data field
                         if matches!(field_ty, Ty::Function { .. }) {
                             // Method reference - use qualified name
@@ -4672,6 +4683,19 @@ fn infer_field_access(
     };
 
     if let Some(ty) = found_field {
+        if let Some(expr_id) = expr_id {
+            let class_fqn = match base {
+                Ty::Class(fqn, _) | Ty::TypeAlias(fqn, _) => fqn.clone(),
+                _ => return ty, // Short circuit if not a class or type alias, not sure how this could happen
+            };
+            ctx.set_expr_resolution(
+                expr_id,
+                ResolvedValue::Field {
+                    class_fqn,
+                    field: field.clone(),
+                },
+            );
+        }
         return ty;
     }
 
