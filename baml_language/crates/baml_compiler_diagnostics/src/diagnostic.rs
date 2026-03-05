@@ -172,6 +172,9 @@ pub enum DiagnosticId {
 
     // VIR lowering errors (E0089)
     LoweringError,
+
+    // Removed feature errors (E0098)
+    InstanceofRemoved,
 }
 
 impl DiagnosticId {
@@ -300,6 +303,9 @@ impl DiagnosticId {
 
             // VIR lowering errors
             DiagnosticId::LoweringError => "E0089",
+
+            // Removed feature errors
+            DiagnosticId::InstanceofRemoved => "E0098",
         }
     }
 }
@@ -562,6 +568,7 @@ mod tests {
             DiagnosticId::UnexpectedToken,
             DiagnosticId::DuplicateName,
             DiagnosticId::LoweringError,
+            DiagnosticId::InstanceofRemoved,
         ];
 
         for id in ids {

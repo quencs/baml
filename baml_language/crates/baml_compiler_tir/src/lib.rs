@@ -2248,9 +2248,20 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                                 },
                             );
                             let enum_name = enum_fqn.display_name();
-                            ctx.enum_variant_exprs.insert(expr_id, (enum_name, variant));
-                            let ty = Ty::Enum(enum_fqn, d());
+                            ctx.enum_variant_exprs
+                                .insert(expr_id, (enum_name, variant.clone()));
+                            let ty = Ty::Enum(enum_fqn.clone(), d());
                             ctx.set_expr_type(expr_id, ty.clone());
+
+                            // Populate per-segment resolutions as well
+                            ctx.path_segment_resolutions.insert(
+                                expr_id,
+                                vec![
+                                    ResolvedValue::Enum(enum_fqn.clone()),
+                                    ResolvedValue::EnumVariant { enum_fqn, variant },
+                                ],
+                            );
+
                             return ty;
                         }
                     }
@@ -2307,7 +2318,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         ResolvedValue::BuiltinFunction(baml_base::QualifiedName::from_builtin_path(
                             def.path,
                         ))
-                    } else if let Ty::Class(class_fqn, _) = &ty {
+                    } else if let Ty::Class(class_fqn, _) | Ty::TypeAlias(class_fqn, _) = &ty {
                         // Check if this is a method (function type) or a data field
                         if matches!(field_ty, Ty::Function { .. }) {
                             // Method reference - use qualified name
@@ -2360,12 +2371,9 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
         }
 
         Expr::Binary { lhs, op, rhs } => {
-            // Special case: instanceof operator - RHS is a type reference, not an expression
             if *op == baml_compiler_hir::BinaryOp::Instanceof {
-                let _lhs_ty = infer_expr(ctx, *lhs, body);
-                // For instanceof, don't try to resolve RHS as a variable.
-                // The RHS is a type name and will be resolved at runtime.
-                // Just return bool since instanceof always returns a boolean.
+                ctx.push_error(TypeError::InstanceofRemoved { location });
+                // Return bool to avoid cascading errors
                 Ty::Bool { attr: d() }
             } else {
                 let lhs_ty = infer_expr(ctx, *lhs, body);
@@ -2497,7 +2505,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                             })
                             .collect();
 
-                        // Phase 3: Re-check arguments with expected types (bidirectional checking)
+                        // Re-check arguments with expected types (bidirectional checking)
                         // This allows empty maps/arrays to pick up their expected types
                         let arg_types_with_spans: Vec<(Ty, Option<ErrorLocation>)> = args
                             .iter()
@@ -2845,7 +2853,7 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
             // Condition: accept any type (truthiness check), not just bool
             infer_expr(ctx, *condition, body);
 
-            // Apply true-branch narrowing (instanceof + null checks + truthiness)
+            // Apply true-branch narrowing (null checks + truthiness)
             let true_narrowings = extract_condition_narrowing(ctx, *condition, body, true);
             let then_ty = if !true_narrowings.is_empty() {
                 ctx.push_scope();
@@ -3185,7 +3193,7 @@ fn check_expr_with_info_location(
             // Condition: accept any type (truthiness check), not just bool
             infer_expr(ctx, *condition, body);
 
-            // Apply true-branch narrowing (instanceof + null checks + truthiness)
+            // Apply true-branch narrowing (null checks + truthiness)
             let true_narrowings = extract_condition_narrowing(ctx, *condition, body, true);
             let then_ty = if !true_narrowings.is_empty() {
                 ctx.push_scope();
@@ -3504,24 +3512,24 @@ fn lower_throws_to_facts(
 
     let mut facts = BTreeSet::new();
     match type_ref {
-        TypeRef::Int => {
+        TypeRef::Int { .. } => {
             facts.insert("int".into());
         }
-        TypeRef::Float => {
+        TypeRef::Float { .. } => {
             facts.insert("float".into());
         }
-        TypeRef::String => {
+        TypeRef::String { .. } => {
             facts.insert("string".into());
         }
-        TypeRef::Bool => {
+        TypeRef::Bool { .. } => {
             facts.insert("bool".into());
         }
-        TypeRef::Null => {
+        TypeRef::Null { .. } => {
             facts.insert("null".into());
         }
-        TypeRef::Never => {}
+        TypeRef::Never { .. } => {}
 
-        TypeRef::Path(path) => match path.segments.len() {
+        TypeRef::Path(path, _) => match path.segments.len() {
             1 => {
                 let name = &path.segments[0];
                 if enum_names.contains_key(name) {
@@ -3559,7 +3567,7 @@ fn lower_throws_to_facts(
             }
         },
 
-        TypeRef::Union(members) => {
+        TypeRef::Union(members, _) => {
             for m in members {
                 facts.extend(lower_throws_to_facts(
                     m,
@@ -3570,7 +3578,7 @@ fn lower_throws_to_facts(
             }
         }
 
-        TypeRef::Optional(inner) => {
+        TypeRef::Optional(inner, _) => {
             facts.insert("null".into());
             facts.extend(lower_throws_to_facts(
                 inner,
@@ -3580,16 +3588,16 @@ fn lower_throws_to_facts(
             ));
         }
 
-        TypeRef::StringLiteral(_) => {
+        TypeRef::StringLiteral(..) => {
             facts.insert("string".into());
         }
-        TypeRef::IntLiteral(_) => {
+        TypeRef::IntLiteral(..) => {
             facts.insert("int".into());
         }
-        TypeRef::FloatLiteral(_) => {
+        TypeRef::FloatLiteral(..) => {
             facts.insert("float".into());
         }
-        TypeRef::BoolLiteral(_) => {
+        TypeRef::BoolLiteral(..) => {
             facts.insert("bool".into());
         }
 
@@ -4229,8 +4237,8 @@ fn validate_catch_binding_type(
     if let Pattern::TypedBinding { ty, .. } = pattern {
         use baml_compiler_hir::TypeRef;
         let banned_name = match ty {
-            TypeRef::BuiltinUnknown => Some("unknown"),
-            TypeRef::Path(path)
+            TypeRef::BuiltinUnknown { .. } => Some("unknown"),
+            TypeRef::Path(path, _)
                 if path.is_simple()
                     && path.first_segment().map(baml_base::Name::as_str) == Some("any") =>
             {
@@ -4384,8 +4392,7 @@ fn infer_binary_op(
     location: ErrorLocation,
 ) -> Ty {
     use baml_compiler_hir::BinaryOp::{
-        Add, And, BitAnd, BitOr, BitXor, Div, Eq, Ge, Gt, Instanceof, Le, Lt, Mod, Mul, Ne, Or,
-        Shl, Shr, Sub,
+        Add, And, BitAnd, BitOr, BitXor, Div, Eq, Ge, Gt, Le, Lt, Mod, Mul, Ne, Or, Shl, Shr, Sub,
     };
 
     use crate::types::LiteralValue;
@@ -4520,8 +4527,10 @@ fn infer_binary_op(
             }
         }
 
-        // Type checking operations
-        Instanceof => Ty::Bool { attr: d() },
+        // deprecated instanceof is rejected before reaching infer_binary_op
+        baml_compiler_hir::BinaryOp::Instanceof => {
+            unreachable!("instanceof rejected by type checker")
+        }
     }
 }
 
@@ -4674,6 +4683,19 @@ fn infer_field_access(
     };
 
     if let Some(ty) = found_field {
+        if let Some(expr_id) = expr_id {
+            let class_fqn = match base {
+                Ty::Class(fqn, _) | Ty::TypeAlias(fqn, _) => fqn.clone(),
+                _ => return ty, // Short circuit if not a class or type alias, not sure how this could happen
+            };
+            ctx.set_expr_resolution(
+                expr_id,
+                ResolvedValue::Field {
+                    class_fqn,
+                    field: field.clone(),
+                },
+            );
+        }
         return ty;
     }
 

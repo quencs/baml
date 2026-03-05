@@ -6,7 +6,7 @@
 
 use std::ops::Index;
 
-use baml_base::Name;
+use baml_base::{FieldAttr, Name, TyAttr};
 use indexmap::IndexMap;
 use rowan::TextRange;
 use rustc_hash::FxHashMap;
@@ -238,6 +238,8 @@ pub struct Class {
     pub alias: Attribute<String>,
     /// @@description("text") - documentation for the class
     pub description: Attribute<String>,
+    /// Class-level type attribute (e.g., from @@stream.done).
+    pub ty_attr: TyAttr,
     // Note: Generic parameters are queried separately via generic_params()
     // for incrementality - changes to generics don't invalidate ItemTree
 }
@@ -255,6 +257,8 @@ pub struct Field {
     pub description: Attribute<String>,
     /// @skip - exclude field from serialization
     pub skip: Attribute<()>,
+    /// Field attributes for streaming (e.g., from @sap.*)
+    pub field_attr: FieldAttr,
 }
 
 /// An enum definition.
@@ -266,6 +270,8 @@ pub struct Enum {
     // Block attributes (@@alias)
     /// @@alias("name") - alternative name for serialization
     pub alias: Attribute<String>,
+    /// Enum-level type attribute.
+    pub ty_attr: TyAttr,
     // Note: Generic parameters are queried separately via generic_params()
 }
 
