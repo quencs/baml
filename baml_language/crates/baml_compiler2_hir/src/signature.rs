@@ -24,6 +24,8 @@ pub struct FunctionSignature {
     pub params: Vec<(baml_base::Name, TypeExpr)>,
     /// Return type (None if omitted).
     pub return_type: Option<TypeExpr>,
+    /// Declared throws contract type (None if omitted).
+    pub throws: Option<TypeExpr>,
 }
 
 /// Parallel span storage for a signature.
@@ -37,6 +39,8 @@ pub struct SignatureSourceMap {
     pub param_spans: Vec<TextRange>,
     /// Span of the return type annotation, if present.
     pub return_type_span: Option<TextRange>,
+    /// Span of the throws type annotation, if present.
+    pub throws_type_span: Option<TextRange>,
 }
 
 /// Shared implementation — reads from the `ItemTree` (full AST data),
@@ -69,12 +73,14 @@ fn function_signature_with_source_map<'db>(
         name: func_data.name.clone(),
         params,
         return_type,
+        throws: func_data.throws.as_ref().map(|te| te.expr.clone()),
     });
 
     // Build source map — spans only (separate for early-cutoff)
     let source_map = SignatureSourceMap {
         param_spans: func_data.params.iter().map(|p| p.span).collect(),
         return_type_span: func_data.return_type.as_ref().map(|te| te.span),
+        throws_type_span: func_data.throws.as_ref().map(|te| te.span),
     };
 
     (sig, source_map)

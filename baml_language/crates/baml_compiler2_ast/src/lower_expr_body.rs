@@ -11,9 +11,9 @@ use rowan::ast::AstNode;
 use text_size::{TextRange, TextSize};
 
 use crate::ast::{
-    AssignOp, AstSourceMap, BinaryOp, Expr, ExprBody, ExprId, LetOrigin, Literal, LoopOrigin,
-    MatchArm, MatchArmId, PatId, Pattern, SpreadField, Stmt, StmtId, TypeAnnotId, TypeExpr,
-    UnaryOp,
+    AssignOp, AstSourceMap, BinaryOp, CatchArm, CatchArmId, CatchClause, CatchClauseKind, Expr,
+    ExprBody, ExprId, LetOrigin, Literal, LoopOrigin, MatchArm, MatchArmId, PatId, Pattern,
+    SpreadField, Stmt, StmtId, TypeAnnotId, TypeExpr, UnaryOp,
 };
 
 /// Lower a CST `ExprFunctionBody` to an owned `ExprBody` + parallel `AstSourceMap`.
@@ -53,6 +53,7 @@ struct LoweringContext {
     stmts: Arena<Stmt>,
     patterns: Arena<Pattern>,
     match_arms: Arena<MatchArm>,
+    catch_arms: Arena<CatchArm>,
     type_annotations: Arena<TypeExpr>,
     /// Parallel span storage
     source_map: AstSourceMap,
@@ -67,6 +68,7 @@ impl LoweringContext {
             stmts: Arena::new(),
             patterns: Arena::new(),
             match_arms: Arena::new(),
+            catch_arms: Arena::new(),
             type_annotations: Arena::new(),
             source_map: AstSourceMap::new(),
             names_in_scope: std::collections::HashSet::new(),
@@ -94,6 +96,12 @@ impl LoweringContext {
     fn alloc_match_arm(&mut self, arm: MatchArm, range: TextRange) -> MatchArmId {
         let id = self.match_arms.alloc(arm);
         self.source_map.match_arm_spans.alloc(range);
+        id
+    }
+
+    fn alloc_catch_arm(&mut self, arm: CatchArm, range: TextRange) -> CatchArmId {
+        let id = self.catch_arms.alloc(arm);
+        self.source_map.catch_arm_spans.alloc(range);
         id
     }
 
@@ -141,6 +149,7 @@ impl LoweringContext {
             stmts: self.stmts,
             patterns: self.patterns,
             match_arms: self.match_arms,
+            catch_arms: self.catch_arms,
             type_annotations: self.type_annotations,
             root_expr,
         };
@@ -163,6 +172,7 @@ impl LoweringContext {
                         SyntaxKind::LET_STMT => self.lower_let_stmt(node, false),
                         SyntaxKind::WATCH_LET => self.lower_let_stmt(node, true),
                         SyntaxKind::RETURN_STMT => self.lower_return_stmt(node),
+                        SyntaxKind::THROW_STMT => self.lower_throw_stmt(node),
                         SyntaxKind::WHILE_STMT => self.lower_while_stmt(node),
                         SyntaxKind::FOR_EXPR => self.lower_for_stmt(node),
                         SyntaxKind::BREAK_STMT => self.alloc_stmt(Stmt::Break, node.text_range()),
@@ -246,6 +256,8 @@ impl LoweringContext {
             SyntaxKind::CALL_EXPR => self.lower_call_expr(node),
             SyntaxKind::IF_EXPR => self.lower_if_expr(node),
             SyntaxKind::MATCH_EXPR => self.lower_match_expr(node),
+            SyntaxKind::CATCH_EXPR => self.lower_catch_expr(node),
+            SyntaxKind::THROW_EXPR => self.lower_throw_expr(node),
             SyntaxKind::BLOCK_EXPR => {
                 if let Some(block) = baml_compiler_syntax::ast::BlockExpr::cast(node.clone()) {
                     self.lower_block_expr(&block)
@@ -895,6 +907,16 @@ impl LoweringContext {
                                 child.text_range(),
                             ));
                         }
+                        SyntaxKind::MATCH_PATTERN | SyntaxKind::CATCH_PATTERN => {
+                            if let Some(el) = current_element.take() {
+                                elements.push(self.finalize_pattern_element(el));
+                            }
+                            let nested_pat = self.lower_match_pattern(&child);
+                            match &self.patterns[nested_pat] {
+                                Pattern::Union(sub) => elements.extend(sub.iter().copied()),
+                                _ => elements.push(nested_pat),
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -956,6 +978,244 @@ impl LoweringContext {
                 self.alloc_pattern(Pattern::Binding(name), range)
             }
         }
+    }
+
+    fn lower_catch_expr(&mut self, node: &SyntaxNode) -> ExprId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let mut base = None;
+        let mut clauses = Vec::new();
+
+        for child in node.children() {
+            match child.kind() {
+                SyntaxKind::CATCH_CLAUSE => clauses.push(self.lower_catch_clause(&child)),
+                _ if base.is_none() => {
+                    base = Some(self.lower_expr(&child));
+                }
+                _ => {}
+            }
+        }
+
+        let base = base.unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
+        self.alloc_expr(Expr::Catch { base, clauses }, node.text_range())
+    }
+
+    fn lower_catch_clause(&mut self, node: &SyntaxNode) -> CatchClause {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let mut kind = CatchClauseKind::Catch;
+        let mut binding = None;
+        let mut arms = Vec::new();
+
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Token(token) => match token.kind() {
+                    SyntaxKind::KW_CATCH => kind = CatchClauseKind::Catch,
+                    SyntaxKind::KW_CATCH_ALL => kind = CatchClauseKind::CatchAll,
+                    SyntaxKind::WORD if token.text() == "catch_all_panics" => {
+                        kind = CatchClauseKind::CatchAllPanics;
+                    }
+                    _ => {}
+                },
+                rowan::NodeOrToken::Node(child) => match child.kind() {
+                    SyntaxKind::CATCH_PATTERN => {
+                        binding = Some(self.lower_catch_pattern(&child));
+                    }
+                    SyntaxKind::CATCH_ARM => {
+                        let arm = self.lower_catch_arm(&child);
+                        arms.push(arm);
+                    }
+                    _ => {}
+                },
+            }
+        }
+
+        CatchClause {
+            kind,
+            binding: binding.unwrap_or_else(|| {
+                self.alloc_pattern(Pattern::Binding(Name::new("_")), node.text_range())
+            }),
+            arms,
+        }
+    }
+
+    fn lower_catch_arm(&mut self, node: &SyntaxNode) -> CatchArmId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let mut pattern = None;
+        let mut body = None;
+        let mut seen_fat_arrow = false;
+
+        for elem in node.children_with_tokens() {
+            match elem {
+                rowan::NodeOrToken::Node(child) => match child.kind() {
+                    SyntaxKind::CATCH_PATTERN => {
+                        pattern = Some(self.lower_catch_pattern(&child));
+                    }
+                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL
+                        if seen_fat_arrow && body.is_none() =>
+                    {
+                        body = Some(self.lower_string_literal(&child));
+                    }
+                    _ if seen_fat_arrow && body.is_none() => {
+                        body = Some(self.lower_expr(&child));
+                    }
+                    _ => {}
+                },
+                rowan::NodeOrToken::Token(token) => match token.kind() {
+                    SyntaxKind::FAT_ARROW => seen_fat_arrow = true,
+                    SyntaxKind::INTEGER_LITERAL if seen_fat_arrow && body.is_none() => {
+                        let value = token.text().parse::<i64>().unwrap_or(0);
+                        body = Some(
+                            self.alloc_expr(Expr::Literal(Literal::Int(value)), token.text_range()),
+                        );
+                    }
+                    SyntaxKind::FLOAT_LITERAL if seen_fat_arrow && body.is_none() => {
+                        body = Some(self.alloc_expr(
+                            Expr::Literal(Literal::Float(token.text().to_string())),
+                            token.text_range(),
+                        ));
+                    }
+                    SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL
+                        if seen_fat_arrow && body.is_none() =>
+                    {
+                        body = Some(self.alloc_expr(
+                            Expr::Literal(Literal::String(strip_string_delimiters(token.text()))),
+                            token.text_range(),
+                        ));
+                    }
+                    SyntaxKind::WORD if seen_fat_arrow && body.is_none() => {
+                        let expr = match token.text() {
+                            "true" => Expr::Literal(Literal::Bool(true)),
+                            "false" => Expr::Literal(Literal::Bool(false)),
+                            "null" => Expr::Null,
+                            _ => Expr::Path(vec![Name::new(token.text())]),
+                        };
+                        body = Some(self.alloc_expr(expr, token.text_range()));
+                    }
+                    _ => {}
+                },
+            }
+        }
+
+        let pattern = match pattern {
+            Some(pattern) => pattern,
+            None => self.alloc_pattern(Pattern::Binding(Name::new("_")), node.text_range()),
+        };
+        let body = match body {
+            Some(body) => body,
+            None => self.alloc_expr(Expr::Missing, node.text_range()),
+        };
+
+        self.alloc_catch_arm(CatchArm { pattern, body }, node.text_range())
+    }
+
+    fn lower_catch_pattern(&mut self, node: &SyntaxNode) -> PatId {
+        self.lower_match_pattern(node)
+    }
+
+    fn lower_throw_expr(&mut self, node: &SyntaxNode) -> ExprId {
+        let value = if let Some(child) = node.children().next() {
+            self.lower_expr(&child)
+        } else {
+            self.lower_throw_value_token(node)
+                .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()))
+        };
+        self.alloc_expr(Expr::Throw { value }, node.text_range())
+    }
+
+    fn lower_throw_stmt(&mut self, node: &SyntaxNode) -> StmtId {
+        use baml_compiler_syntax::SyntaxKind;
+
+        let expr_child = node.children().find(|c| {
+            matches!(
+                c.kind(),
+                SyntaxKind::THROW_EXPR
+                    | SyntaxKind::CATCH_EXPR
+                    | SyntaxKind::EXPR
+                    | SyntaxKind::BINARY_EXPR
+                    | SyntaxKind::UNARY_EXPR
+                    | SyntaxKind::CALL_EXPR
+                    | SyntaxKind::PATH_EXPR
+                    | SyntaxKind::FIELD_ACCESS_EXPR
+                    | SyntaxKind::ENV_ACCESS_EXPR
+                    | SyntaxKind::INDEX_EXPR
+                    | SyntaxKind::IF_EXPR
+                    | SyntaxKind::MATCH_EXPR
+                    | SyntaxKind::BLOCK_EXPR
+                    | SyntaxKind::PAREN_EXPR
+                    | SyntaxKind::STRING_LITERAL
+                    | SyntaxKind::RAW_STRING_LITERAL
+                    | SyntaxKind::OBJECT_LITERAL
+                    | SyntaxKind::ARRAY_LITERAL
+                    | SyntaxKind::MAP_LITERAL
+            )
+        });
+
+        if let Some(child) = expr_child.clone() {
+            if child.kind() != SyntaxKind::THROW_EXPR {
+                let expr_id = self.lower_expr(&child);
+                return self.alloc_stmt(Stmt::Expr(expr_id), node.text_range());
+            }
+        }
+
+        let value = expr_child
+            .filter(|c| c.kind() == SyntaxKind::THROW_EXPR)
+            .map(|throw_expr_node| {
+                if let Some(child) = throw_expr_node.children().next() {
+                    self.lower_expr(&child)
+                } else {
+                    self.lower_throw_value_token(&throw_expr_node)
+                        .unwrap_or_else(|| {
+                            self.alloc_expr(Expr::Missing, throw_expr_node.text_range())
+                        })
+                }
+            })
+            .unwrap_or_else(|| self.alloc_expr(Expr::Missing, node.text_range()));
+
+        self.alloc_stmt(Stmt::Throw { value }, node.text_range())
+    }
+
+    fn lower_throw_value_token(&mut self, node: &SyntaxNode) -> Option<ExprId> {
+        use baml_compiler_syntax::SyntaxKind;
+
+        for token in node
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+        {
+            match token.kind() {
+                SyntaxKind::KW_THROW => continue,
+                SyntaxKind::INTEGER_LITERAL => {
+                    let value = token.text().parse::<i64>().unwrap_or(0);
+                    return Some(
+                        self.alloc_expr(Expr::Literal(Literal::Int(value)), token.text_range()),
+                    );
+                }
+                SyntaxKind::FLOAT_LITERAL => {
+                    return Some(self.alloc_expr(
+                        Expr::Literal(Literal::Float(token.text().to_string())),
+                        token.text_range(),
+                    ));
+                }
+                SyntaxKind::STRING_LITERAL | SyntaxKind::RAW_STRING_LITERAL => {
+                    return Some(self.alloc_expr(
+                        Expr::Literal(Literal::String(strip_string_delimiters(token.text()))),
+                        token.text_range(),
+                    ));
+                }
+                SyntaxKind::WORD => {
+                    let expr = match token.text() {
+                        "true" => Expr::Literal(Literal::Bool(true)),
+                        "false" => Expr::Literal(Literal::Bool(false)),
+                        "null" => Expr::Null,
+                        _ => Expr::Path(vec![Name::new(token.text())]),
+                    };
+                    return Some(self.alloc_expr(expr, token.text_range()));
+                }
+                _ => {}
+            }
+        }
+        None
     }
 
     fn lower_call_expr(&mut self, node: &SyntaxNode) -> ExprId {
@@ -1750,6 +2010,8 @@ fn is_expr_node_kind(kind: SyntaxKind) -> bool {
             | SyntaxKind::INDEX_EXPR
             | SyntaxKind::IF_EXPR
             | SyntaxKind::MATCH_EXPR
+            | SyntaxKind::CATCH_EXPR
+            | SyntaxKind::THROW_EXPR
             | SyntaxKind::BLOCK_EXPR
             | SyntaxKind::PAREN_EXPR
             | SyntaxKind::ARRAY_LITERAL

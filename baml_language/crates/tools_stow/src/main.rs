@@ -933,8 +933,7 @@ fn check_crate_naming_convention(
                     crate_name: crate_name.to_string(),
                     file_path: cargo_path.to_path_buf(),
                     message: format!(
-                        "Crate suffix '{}' should be a simple lowercase word or an approved prefix",
-                        word
+                        "Crate suffix '{word}' should be a simple lowercase word or an approved prefix",
                     ),
                 });
             }

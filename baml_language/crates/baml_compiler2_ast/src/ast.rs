@@ -44,6 +44,7 @@ pub enum TypeExpr {
     String,
     Bool,
     Null,
+    Never,
     /// Media types
     Media(baml_base::MediaKind),
     /// T?
@@ -101,6 +102,7 @@ pub type ExprId = Idx<Expr>;
 pub type StmtId = Idx<Stmt>;
 pub type PatId = Idx<Pattern>;
 pub type MatchArmId = Idx<MatchArm>;
+pub type CatchArmId = Idx<CatchArm>;
 pub type TypeAnnotId = Idx<TypeExpr>;
 
 /// Full expression body — owned arena of expressions, statements,
@@ -111,6 +113,7 @@ pub struct ExprBody {
     pub stmts: Arena<Stmt>,
     pub patterns: Arena<Pattern>,
     pub match_arms: Arena<MatchArm>,
+    pub catch_arms: Arena<CatchArm>,
     /// Type annotations on let bindings etc.
     pub type_annotations: Arena<TypeExpr>,
     /// Root expression of the function body.
@@ -126,6 +129,7 @@ pub struct AstSourceMap {
     pub stmt_spans: Arena<TextRange>,
     pub pattern_spans: Arena<TextRange>,
     pub match_arm_spans: Arena<TextRange>,
+    pub catch_arm_spans: Arena<TextRange>,
 }
 
 impl AstSourceMap {
@@ -135,6 +139,7 @@ impl AstSourceMap {
             stmt_spans: Arena::new(),
             pattern_spans: Arena::new(),
             match_arm_spans: Arena::new(),
+            catch_arm_spans: Arena::new(),
         }
     }
 
@@ -170,6 +175,16 @@ impl AstSourceMap {
             .map(|(_, &span)| span)
             .unwrap_or_default()
     }
+
+    /// Look up the source span of a catch arm by its `CatchArmId`.
+    pub fn catch_arm_span(&self, id: CatchArmId) -> TextRange {
+        let raw: u32 = id.into_raw().into_u32();
+        self.catch_arm_spans
+            .iter()
+            .nth(raw as usize)
+            .map(|(_, &span)| span)
+            .unwrap_or_default()
+    }
 }
 
 impl Default for AstSourceMap {
@@ -194,6 +209,13 @@ pub enum Expr {
         scrutinee: ExprId,
         scrutinee_type: Option<TypeAnnotId>,
         arms: Vec<MatchArmId>,
+    },
+    Catch {
+        base: ExprId,
+        clauses: Vec<CatchClause>,
+    },
+    Throw {
+        value: ExprId,
     },
     Binary {
         op: BinaryOp,
@@ -252,6 +274,9 @@ pub enum Stmt {
         origin: LoopOrigin,
     },
     Return(Option<ExprId>),
+    Throw {
+        value: ExprId,
+    },
     Break,
     Continue,
     Assign {
@@ -288,6 +313,26 @@ pub enum Pattern {
 pub struct MatchArm {
     pub pattern: PatId,
     pub guard: Option<ExprId>,
+    pub body: ExprId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CatchClauseKind {
+    Catch,
+    CatchAll,
+    CatchAllPanics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CatchClause {
+    pub kind: CatchClauseKind,
+    pub binding: PatId,
+    pub arms: Vec<CatchArmId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CatchArm {
+    pub pattern: PatId,
     pub body: ExprId,
 }
 
@@ -381,6 +426,7 @@ pub struct FunctionDef {
     pub generic_params: Vec<Name>,
     pub params: Vec<Param>,
     pub return_type: Option<SpannedTypeExpr>,
+    pub throws: Option<SpannedTypeExpr>,
     pub body: Option<FunctionBodyDef>,
     pub attributes: Vec<RawAttribute>,
     pub span: TextRange,

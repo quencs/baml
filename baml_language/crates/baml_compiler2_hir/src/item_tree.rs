@@ -31,6 +31,8 @@ pub struct Function {
     pub params: Vec<FunctionParam>,
     /// Return type with its source span.
     pub return_type: Option<ast::SpannedTypeExpr>,
+    /// Throws contract type with its source span.
+    pub throws: Option<ast::SpannedTypeExpr>,
     /// Function body — either LLM or expression.
     pub body: Option<ast::FunctionBodyDef>,
     /// Full source span of the function.
@@ -183,6 +185,7 @@ impl ItemTree {
                 generic_params: f.generic_params.clone(),
                 params,
                 return_type: f.return_type.clone(),
+                throws: f.throws.clone(),
                 body: f.body.clone(),
                 span: f.span,
             },

@@ -107,6 +107,14 @@ fn lower_function(node: &SyntaxNode) -> Option<FunctionDef> {
         span: te.syntax().text_range(),
     });
 
+    let throws = func
+        .throws_clause()
+        .and_then(|tc| tc.type_expr())
+        .map(|te| SpannedTypeExpr {
+            expr: lower_type_expr::lower_type_expr_node(&te),
+            span: te.syntax().text_range(),
+        });
+
     let body = if let Some(llm) = func.llm_body() {
         Some(FunctionBodyDef::Llm(lower_llm_body(&llm)))
     } else if let Some(expr) = func.expr_body() {
@@ -129,6 +137,7 @@ fn lower_function(node: &SyntaxNode) -> Option<FunctionDef> {
         generic_params,
         params,
         return_type,
+        throws,
         body,
         attributes,
         span: node.text_range(),
@@ -147,9 +156,9 @@ fn check_builtin_body(expr_body_node: &SyntaxNode) -> Option<BuiltinKind> {
     // Collect all non-trivia tokens from the body
     let meaningful_tokens: Vec<_> = expr_body_node
         .descendants_with_tokens()
-        .filter_map(|elem| elem.into_token())
+        .filter_map(baml_compiler_syntax::NodeOrToken::into_token)
         .filter(|t| {
-            let kind: SyntaxKind = t.kind().into();
+            let kind: SyntaxKind = t.kind();
             !kind.is_trivia() && kind != SyntaxKind::L_BRACE && kind != SyntaxKind::R_BRACE
         })
         .collect();
@@ -296,14 +305,14 @@ fn extract_generic_params(node: &SyntaxNode) -> Vec<Name> {
 
     let mut params = Vec::new();
     for child in node.children() {
-        let child_kind: SyntaxKind = child.kind().into();
+        let child_kind: SyntaxKind = child.kind();
         if child_kind == SyntaxKind::GENERIC_PARAM_LIST {
             for param_node in child.children() {
-                let param_kind: SyntaxKind = param_node.kind().into();
+                let param_kind: SyntaxKind = param_node.kind();
                 if param_kind == SyntaxKind::GENERIC_PARAM {
                     for elem in param_node.children_with_tokens() {
                         if let Some(token) = elem.as_token() {
-                            let token_kind: SyntaxKind = token.kind().into();
+                            let token_kind: SyntaxKind = token.kind();
                             if token_kind == SyntaxKind::WORD {
                                 params.push(Name::new(token.text()));
                             }

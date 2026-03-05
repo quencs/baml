@@ -224,16 +224,16 @@ fn apply_modifiers_from_parts(
     base: TypeExpr,
     parts: &baml_compiler_syntax::ast::UnionMemberParts,
 ) -> TypeExpr {
-    let array_depth = parts.array_depth();
-    let is_optional = parts.is_optional();
-
     let mut result = base;
-    for _ in 0..array_depth {
-        result = TypeExpr::List(Box::new(result));
-    }
-
-    if is_optional {
-        result = TypeExpr::Optional(Box::new(result));
+    for modifier in parts.postfix_modifiers() {
+        match modifier {
+            baml_compiler_syntax::ast::TypePostFixModifier::Optional => {
+                result = TypeExpr::Optional(Box::new(result));
+            }
+            baml_compiler_syntax::ast::TypePostFixModifier::Array => {
+                result = TypeExpr::List(Box::new(result));
+            }
+        }
     }
 
     result
@@ -247,6 +247,7 @@ fn lower_from_type_name(name: &str) -> TypeExpr {
         "string" => TypeExpr::String,
         "bool" => TypeExpr::Bool,
         "null" => TypeExpr::Null,
+        "never" => TypeExpr::Never,
         "unknown" => TypeExpr::BuiltinUnknown,
         "type" => TypeExpr::Type,
         "$rust_type" => TypeExpr::Rust,

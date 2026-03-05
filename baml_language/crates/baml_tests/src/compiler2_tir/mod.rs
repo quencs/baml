@@ -15,13 +15,15 @@ mod phase5;
 mod phase6;
 #[cfg(test)]
 mod phase7;
+#[cfg(test)]
+mod phase8_exceptions;
 
 #[cfg(test)]
 pub(crate) mod support {
     use std::fmt::Write;
 
     use baml_compiler2_ast::{
-        Expr, ExprBody, ExprId, Literal, PatId, Pattern, Stmt, StmtId, TypeExpr,
+        CatchClauseKind, Expr, ExprBody, ExprId, Literal, PatId, Pattern, Stmt, StmtId, TypeExpr,
     };
     use baml_compiler2_hir::{
         body::{FunctionBody, function_body},
@@ -54,6 +56,7 @@ pub(crate) mod support {
             TypeExpr::String => "string".into(),
             TypeExpr::Bool => "bool".into(),
             TypeExpr::Null => "null".into(),
+            TypeExpr::Never => "never".into(),
             TypeExpr::Media(k) => format!("{:?}", k).to_lowercase(),
             TypeExpr::Optional(inner) => format!("{}?", type_expr_to_string(inner)),
             TypeExpr::List(inner) => format!("{}[]", type_expr_to_string(inner)),
@@ -155,6 +158,36 @@ pub(crate) mod support {
                     .collect();
                 format!("match ({scrut}) {{ {} }}", arm_strs.join(", "))
             }
+            Expr::Catch { base, clauses } => {
+                let base_desc = expr_desc(*base, body);
+                let clause_descs: Vec<String> = clauses
+                    .iter()
+                    .map(|clause| {
+                        let kind = match clause.kind {
+                            CatchClauseKind::Catch => "catch",
+                            CatchClauseKind::CatchAll => "catch_all",
+                            CatchClauseKind::CatchAllPanics => "catch_all_panics",
+                        };
+                        let binding = pat_desc(clause.binding, body);
+                        let arms_desc = clause
+                            .arms
+                            .iter()
+                            .map(|arm_id| {
+                                let arm = &body.catch_arms[*arm_id];
+                                format!(
+                                    "{} => {}",
+                                    pat_desc(arm.pattern, body),
+                                    expr_desc(arm.body, body)
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        format!("{kind} ({binding}) {{ {arms_desc} }}")
+                    })
+                    .collect();
+                format!("{base_desc} {}", clause_descs.join(" "))
+            }
+            Expr::Throw { value } => format!("throw {}", expr_desc(*value, body)),
             Expr::Binary { op, lhs, rhs } => {
                 format!("{} {op:?} {}", expr_desc(*lhs, body), expr_desc(*rhs, body))
             }
@@ -204,7 +237,7 @@ pub(crate) mod support {
     fn is_compound(expr: &Expr) -> bool {
         matches!(
             expr,
-            Expr::Block { .. } | Expr::If { .. } | Expr::Match { .. }
+            Expr::Block { .. } | Expr::If { .. } | Expr::Match { .. } | Expr::Catch { .. }
         )
     }
 
@@ -269,6 +302,26 @@ pub(crate) mod support {
                     render_expr(arm.body, body, inference, indent + 4, output);
                 }
             }
+            Expr::Catch { base, clauses } => {
+                let base_desc = expr_desc(*base, body);
+                let base_ty = expr_ty(inference, *base);
+                writeln!(output, "{pad}catch ({base_desc} : {base_ty}) : {ty}").ok();
+                for clause in clauses {
+                    let kind = match clause.kind {
+                        CatchClauseKind::Catch => "catch",
+                        CatchClauseKind::CatchAll => "catch_all",
+                        CatchClauseKind::CatchAllPanics => "catch_all_panics",
+                    };
+                    let binding = pat_desc(clause.binding, body);
+                    writeln!(output, "{pad}  {kind} ({binding})").ok();
+                    for arm_id in &clause.arms {
+                        let arm = &body.catch_arms[*arm_id];
+                        let pat = pat_desc(arm.pattern, body);
+                        writeln!(output, "{pad}    {pat} =>").ok();
+                        render_expr(arm.body, body, inference, indent + 6, output);
+                    }
+                }
+            }
             _ => {
                 let desc = expr_desc(expr_id, body);
                 writeln!(output, "{pad}{desc} : {ty}").ok();
@@ -328,6 +381,16 @@ pub(crate) mod support {
             }
             Stmt::Return(None) => {
                 writeln!(output, "{pad}return").ok();
+            }
+            Stmt::Throw { value } => {
+                let ty = expr_ty(inference, *value);
+                if is_compound(&body.exprs[*value]) {
+                    writeln!(output, "{pad}throw : {ty}").ok();
+                    render_expr(*value, body, inference, indent + 2, output);
+                } else {
+                    let desc = expr_desc(*value, body);
+                    writeln!(output, "{pad}throw {desc} : {ty}").ok();
+                }
             }
             Stmt::Expr(expr_id) => {
                 render_expr(*expr_id, body, inference, indent, output);
@@ -539,7 +602,16 @@ pub(crate) mod support {
                                 lower_type_expr(db, t, &pkg_items, &mut diags).to_string()
                             })
                             .unwrap_or_else(|| "?".into());
-                        sig_display = format!("({}) -> {ret}", params.join(", "));
+                        let throws = sig
+                            .throws
+                            .as_ref()
+                            .map(|t| {
+                                let mut diags = Vec::new();
+                                lower_type_expr(db, t, &pkg_items, &mut diags).to_string()
+                            })
+                            .map(|t| format!(" throws {t}"))
+                            .unwrap_or_default();
+                        sig_display = format!("({}) -> {ret}{throws}", params.join(", "));
                         break;
                     }
                 }
@@ -576,7 +648,11 @@ pub(crate) mod support {
             // Per-scope diagnostics
             let rendered = render_scope_diagnostics(db, scope_id);
             for rd in &rendered {
-                writeln!(output, "  !! {rd}").ok();
+                let marker = match rd.severity {
+                    baml_compiler2_tir::infer_context::DiagnosticSeverity::Error => "!!",
+                    baml_compiler2_tir::infer_context::DiagnosticSeverity::Warning => "??",
+                };
+                writeln!(output, "  {marker} {rd}").ok();
             }
 
             writeln!(output, "}}").ok();

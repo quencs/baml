@@ -138,7 +138,7 @@ pub fn infer_scope_types<'db>(
 
     let aliases = collect_type_aliases(db, pkg_items);
     let context = InferContext::new(db, scope_id);
-    let mut builder = TypeInferenceBuilder::new(context, pkg_items, scope_id, aliases);
+    let mut builder = TypeInferenceBuilder::new(context, pkg_items, pkg_id, scope_id, aliases);
 
     // Dispatch based on scope kind
     match &scope.kind {
@@ -237,6 +237,14 @@ pub fn infer_scope_types<'db>(
                         if let Some(root_expr) = expr_body.root_expr {
                             builder.check_expr(root_expr, expr_body, &return_ty);
                         }
+
+                        // Validate declared `throws` against effective escaping throws.
+                        builder.check_throws_contract(
+                            expr_body,
+                            sig.throws.as_ref(),
+                            sig_sm.throws_type_span,
+                            func_data.span,
+                        );
                     }
                     found = true;
                     break;
@@ -547,6 +555,7 @@ pub fn collect_file_diagnostics<'db>(
                         .diagnostics
                         .push(crate::infer_context::TirDiagnostic {
                             error: error.clone(),
+                            severity: crate::infer_context::DiagnosticSeverity::Error,
                             primary: crate::infer_context::DiagnosticLocation::Span(*span),
                             related: Vec::new(),
                         });
@@ -559,6 +568,7 @@ pub fn collect_file_diagnostics<'db>(
                         .diagnostics
                         .push(crate::infer_context::TirDiagnostic {
                             error: error.clone(),
+                            severity: crate::infer_context::DiagnosticSeverity::Error,
                             primary: crate::infer_context::DiagnosticLocation::Span(*span),
                             related: Vec::new(),
                         });

@@ -50,6 +50,7 @@ pub fn lower_type_expr(
         TypeExpr::String => Ty::Primitive(PrimitiveType::String),
         TypeExpr::Bool => Ty::Primitive(PrimitiveType::Bool),
         TypeExpr::Null => Ty::Primitive(PrimitiveType::Null),
+        TypeExpr::Never => Ty::Never,
         TypeExpr::Media(kind) => Ty::Primitive(match kind {
             baml_base::MediaKind::Image => PrimitiveType::Image,
             baml_base::MediaKind::Audio => PrimitiveType::Audio,

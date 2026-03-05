@@ -152,6 +152,17 @@ impl<'a> AstGraphBuilder<'a> {
             } => {
                 self.visit_match(*scrutinee, arms);
             }
+            ast::Expr::Catch { base, clauses } => {
+                self.visit_expr(*base);
+                for clause in clauses {
+                    for arm_id in &clause.arms {
+                        self.visit_expr(self.body.catch_arms[*arm_id].body);
+                    }
+                }
+            }
+            ast::Expr::Throw { value } => {
+                self.visit_expr(*value);
+            }
 
             // All other expressions don't create graph nodes.
             _ => {}
@@ -195,6 +206,9 @@ impl<'a> AstGraphBuilder<'a> {
 
             ast::Stmt::Expr(expr_id) => {
                 self.visit_expr(*expr_id);
+            }
+            ast::Stmt::Throw { value } => {
+                self.visit_expr(*value);
             }
 
             // Return, Break, Continue, Assign, AssignOp, Assert, Missing — no graph nodes.
@@ -611,6 +625,19 @@ fn render_expr_compact_ast(body: &ast::ExprBody, id: ast::ExprId) -> String {
                 .collect();
             format!("{}({})", callee_str, args_str.join(", "))
         }
+        ast::Expr::Throw { value } => format!("throw {}", render_expr_compact_ast(body, *value)),
+        ast::Expr::Catch { base, clauses } => {
+            let mut out = render_expr_compact_ast(body, *base);
+            for clause in clauses {
+                let kind = match clause.kind {
+                    ast::CatchClauseKind::Catch => "catch",
+                    ast::CatchClauseKind::CatchAll => "catch_all",
+                    ast::CatchClauseKind::CatchAllPanics => "catch_all_panics",
+                };
+                out.push_str(&format!(" {kind}(...)"));
+            }
+            out
+        }
         _ => "...".to_string(),
     }
 }
@@ -646,12 +673,14 @@ mod tests {
         let mut stmts = Arena::new();
         let mut patterns = Arena::new();
         let mut match_arms = Arena::new();
+        let catch_arms = Arena::new();
         let root_expr = build(&mut exprs, &mut stmts, &mut patterns, &mut match_arms);
         ast::ExprBody {
             exprs,
             stmts,
             patterns,
             match_arms,
+            catch_arms,
             type_annotations: Arena::new(),
             root_expr,
         }
@@ -675,6 +704,7 @@ mod tests {
             stmts: Arena::new(),
             patterns: Arena::new(),
             match_arms: Arena::new(),
+            catch_arms: Arena::new(),
             type_annotations: Arena::new(),
             root_expr: None,
         };

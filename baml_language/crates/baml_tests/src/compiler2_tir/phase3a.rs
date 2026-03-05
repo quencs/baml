@@ -414,12 +414,11 @@ fn match_catch_all() {
     insta::assert_snapshot!(render_tir(&db, file), @r"
     function user.f(x: int) -> int {
       { : never
-        return : unknown
-          match (x : int) : unknown
+        return : int
+          match (x : int) : int
             y =>
-              y Add 1 : unknown
+              y Add 1 : int
       }
-      !! 58..59: unresolved name: y
     }
     ");
 }

@@ -23,7 +23,7 @@ mod tests {
     use baml_compiler_syntax::{SyntaxKind, SyntaxNode};
 
     use crate::{
-        ast::{BuiltinKind, FunctionBodyDef, Item, TypeExpr},
+        ast::{BuiltinKind, Expr, FunctionBodyDef, Item, Stmt, TypeExpr},
         lower_cst::lower_file,
     };
 
@@ -47,6 +47,19 @@ mod tests {
             "expected no lower diagnostics, got: {diags:#?}"
         );
         items
+    }
+
+    fn first_function(items: Vec<Item>) -> crate::ast::FunctionDef {
+        items
+            .into_iter()
+            .find_map(|item| {
+                if let Item::Function(f) = item {
+                    Some(f)
+                } else {
+                    None
+                }
+            })
+            .expect("expected a FunctionDef")
     }
 
     // ── 4.1/4.2: Parser produces GENERIC_PARAM_LIST / GENERIC_PARAM CST nodes ──
@@ -440,6 +453,141 @@ class Media {
             );
         } else {
             panic!("expected Item::Class");
+        }
+    }
+
+    #[test]
+    fn function_throws_clause_lowers_to_never_type() {
+        let source = r#"
+function f() -> int throws never {
+  return 1
+}
+"#;
+        let func = first_function(parse_and_lower(source));
+        let throws = func
+            .throws
+            .expect("expected throws clause to be lowered into FunctionDef.throws");
+        assert!(
+            matches!(throws.expr, TypeExpr::Never),
+            "expected throws type to lower as TypeExpr::Never, got {:?}",
+            throws.expr
+        );
+    }
+
+    #[test]
+    fn throw_statement_and_expression_are_lowered() {
+        let source = r#"
+function f() -> int {
+  throw "boom"
+}
+
+function g() -> int {
+  return throw 1
+}
+"#;
+        let items = parse_and_lower(source);
+        let mut funcs = items.into_iter().filter_map(|item| {
+            if let Item::Function(f) = item {
+                Some(f)
+            } else {
+                None
+            }
+        });
+
+        let f = funcs.next().expect("expected first function");
+        if let Some(FunctionBodyDef::Expr(body, _)) = &f.body {
+            let root = body.root_expr.expect("expected root expr");
+            let Expr::Block { stmts, .. } = &body.exprs[root] else {
+                panic!("expected block root expression");
+            };
+            let first_stmt = &body.stmts[stmts[0]];
+            assert!(
+                matches!(first_stmt, Stmt::Throw { .. }),
+                "expected first statement to be Stmt::Throw, got {first_stmt:?}"
+            );
+        } else {
+            panic!("expected expression body for f");
+        }
+
+        let g = funcs.next().expect("expected second function");
+        if let Some(FunctionBodyDef::Expr(body, _)) = &g.body {
+            let root = body.root_expr.expect("expected root expr");
+            let Expr::Block { stmts, .. } = &body.exprs[root] else {
+                panic!("expected block root expression");
+            };
+            let first_stmt = &body.stmts[stmts[0]];
+            let Stmt::Return(Some(ret_expr)) = first_stmt else {
+                panic!("expected `return throw ...` statement");
+            };
+            assert!(
+                matches!(&body.exprs[*ret_expr], Expr::Throw { .. }),
+                "expected return expression to be Expr::Throw, got {:?}",
+                body.exprs[*ret_expr]
+            );
+        } else {
+            panic!("expected expression body for g");
+        }
+    }
+
+    #[test]
+    fn throw_call_catch_binds_catch_to_payload_expression() {
+        let source = r#"
+function make_err() -> int {
+  return 1
+}
+
+function f() -> int {
+  return throw make_err() catch (e) {
+    _ => 0
+  }
+}
+"#;
+        let items = parse_and_lower(source);
+        let f = items
+            .into_iter()
+            .filter_map(|item| {
+                if let Item::Function(func) = item {
+                    Some(func)
+                } else {
+                    None
+                }
+            })
+            .find(|func| func.name.as_str() == "f")
+            .expect("expected function f");
+
+        if let Some(FunctionBodyDef::Expr(body, sm)) = &f.body {
+            let root = body.root_expr.expect("expected root expr");
+            let Expr::Block { stmts, .. } = &body.exprs[root] else {
+                panic!("expected block root expression");
+            };
+            let ret_expr = match &body.stmts[stmts[0]] {
+                Stmt::Return(Some(expr_id)) => *expr_id,
+                other => panic!("expected return statement, got {other:?}"),
+            };
+
+            let (catch_base, catch_clauses) = match &body.exprs[ret_expr] {
+                Expr::Catch { base, clauses } => (*base, clauses),
+                other => panic!("expected return expression to be Expr::Catch, got {other:?}"),
+            };
+
+            let thrown_value = match &body.exprs[catch_base] {
+                Expr::Throw { value } => *value,
+                other => panic!("expected catch base to be Expr::Throw, got {other:?}"),
+            };
+            assert!(
+                matches!(&body.exprs[thrown_value], Expr::Call { .. }),
+                "expected throw payload to be call expression"
+            );
+
+            assert_eq!(catch_clauses.len(), 1);
+            let first_arm = catch_clauses[0].arms[0];
+            let arm_span = sm.catch_arm_span(first_arm);
+            assert!(
+                !arm_span.is_empty(),
+                "expected non-empty catch arm span in source map"
+            );
+        } else {
+            panic!("expected expression body for f");
         }
     }
 }

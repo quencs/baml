@@ -13,12 +13,17 @@
 //! NOT recurse into it — lambda bodies are separate scopes with their own
 //! `infer_scope_types` Salsa query.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use baml_base::Name;
-use baml_compiler2_ast::{Expr, ExprBody, ExprId, PatId, Stmt, StmtId};
-use baml_compiler2_hir::{contributions::Definition, package::PackageItems, scope::ScopeId};
+use baml_compiler2_ast::{Expr, ExprBody, ExprId, PatId, Stmt, StmtId, TypeExpr};
+use baml_compiler2_hir::{
+    contributions::Definition,
+    package::{PackageId, PackageItems},
+    scope::ScopeId,
+};
 use rustc_hash::FxHashMap;
+use text_size::TextRange;
 
 use crate::{
     infer_context::{InferContext, RelatedLocation, TirTypeError, TypeCheckDiagnostics},
@@ -40,6 +45,19 @@ fn format_float(v: f64) -> Option<String> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PatternMatchStrength {
+    NoMatch,
+    MayMatch,
+    DefiniteMatch,
+}
+
+#[derive(Debug, Default, Clone)]
+struct ThrowPatternMatches {
+    may_match: BTreeSet<String>,
+    definitely_handled: BTreeSet<String>,
+}
+
 /// Per-scope inference builder.
 ///
 /// Created at the start of `infer_scope_types`, discarded when done.
@@ -54,6 +72,8 @@ pub struct TypeInferenceBuilder<'db> {
     bindings: FxHashMap<PatId, Ty>,
     /// Package items for cross-file name resolution.
     package_items: &'db PackageItems<'db>,
+    /// Current package ID (for throw-set queries).
+    package_id: PackageId<'db>,
     /// The scope being analyzed (kept for future use).
     #[allow(dead_code)]
     scope: ScopeId<'db>,
@@ -75,12 +95,15 @@ pub struct TypeInferenceBuilder<'db> {
     /// Resolved type alias map: alias qualified name → expanded Ty.
     /// Used by the normalizer for structural subtype checking.
     aliases: HashMap<crate::ty::QualifiedTypeName, Ty>,
+    /// Residual throw facts for each catch expression after applying all clauses.
+    catch_residual_throws: FxHashMap<ExprId, BTreeSet<String>>,
 }
 
 impl<'db> TypeInferenceBuilder<'db> {
     pub fn new(
         context: InferContext<'db>,
         package_items: &'db PackageItems<'db>,
+        package_id: PackageId<'db>,
         scope: ScopeId<'db>,
         aliases: HashMap<crate::ty::QualifiedTypeName, Ty>,
     ) -> Self {
@@ -89,11 +112,13 @@ impl<'db> TypeInferenceBuilder<'db> {
             expressions: FxHashMap::default(),
             bindings: FxHashMap::default(),
             package_items,
+            package_id,
             scope,
             declared_return_ty: None,
             locals: FxHashMap::default(),
             declared_types: FxHashMap::default(),
             aliases,
+            catch_residual_throws: FxHashMap::default(),
         }
     }
 
@@ -293,16 +318,11 @@ impl<'db> TypeInferenceBuilder<'db> {
             }
             Expr::Match {
                 scrutinee, arms, ..
-            } => {
-                self.infer_expr(*scrutinee, body);
-                let arm_types: Vec<Ty> = arms
-                    .iter()
-                    .map(|arm_id| {
-                        let arm = &body.match_arms[*arm_id];
-                        self.infer_expr(arm.body, body)
-                    })
-                    .collect();
-                self.join_all(&arm_types)
+            } => self.infer_match_expr(expr_id, *scrutinee, arms, body),
+            Expr::Catch { base, clauses } => self.infer_catch_expr(expr_id, *base, clauses, body),
+            Expr::Throw { value } => {
+                self.infer_expr(*value, body);
+                Ty::Never
             }
             Expr::Object {
                 type_name, fields, ..
@@ -575,6 +595,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                     None
                 };
                 // Track local variable binding for name resolution
+                let diverges = matches!(init_ty, Some(Ty::Never));
                 if let Some(ty) = init_ty {
                     self.bindings.insert(*pattern, ty.clone());
                     let pat = &body.patterns[*pattern];
@@ -591,7 +612,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                         }
                     }
                 }
-                false
+                diverges
             }
             Stmt::Return(expr) => {
                 if let Some(e) = expr {
@@ -603,6 +624,10 @@ impl<'db> TypeInferenceBuilder<'db> {
                     }
                 }
                 true // return always diverges
+            }
+            Stmt::Throw { value } => {
+                self.infer_expr(*value, body);
+                true
             }
             Stmt::While {
                 condition,
@@ -772,6 +797,987 @@ impl<'db> TypeInferenceBuilder<'db> {
             }
         }
         None
+    }
+
+    fn infer_match_expr(
+        &mut self,
+        match_expr_id: ExprId,
+        scrutinee_expr_id: ExprId,
+        arms: &[baml_compiler2_ast::MatchArmId],
+        body: &ExprBody,
+    ) -> Ty {
+        let scrutinee_ty = self.infer_expr(scrutinee_expr_id, body);
+        let scrutinee_name = match &body.exprs[scrutinee_expr_id] {
+            Expr::Path(segments) if segments.len() == 1 => Some(segments[0].clone()),
+            _ => None,
+        };
+
+        let required_cases = self.required_match_cases(&scrutinee_ty);
+        let mut covered_cases = BTreeSet::new();
+        let mut catch_all_seen = false;
+        let mut arm_types = Vec::new();
+
+        for arm_id in arms {
+            let arm = &body.match_arms[*arm_id];
+            let pattern_id = arm.pattern;
+
+            let arm_cases = self.pattern_match_cases(pattern_id, &scrutinee_ty, body, arm.body);
+            let mut unreachable = catch_all_seen;
+            if !unreachable && arm.guard.is_none() {
+                if let Some(required) = &required_cases {
+                    if !arm_cases.is_empty()
+                        && arm_cases
+                            .iter()
+                            .all(|c| covered_cases.contains(c) || !required.contains(c))
+                    {
+                        unreachable = true;
+                    }
+                }
+            }
+            if unreachable {
+                self.context
+                    .report_simple(TirTypeError::UnreachableArm, arm.body);
+            }
+
+            let narrowed_scrutinee_ty =
+                self.pattern_narrowed_type(pattern_id, &scrutinee_ty, body, arm.body);
+            let mut saved = Vec::new();
+
+            if let Some(name) = &scrutinee_name {
+                saved.push((name.clone(), self.locals.get(name).cloned()));
+                self.locals
+                    .insert(name.clone(), narrowed_scrutinee_ty.clone());
+            }
+
+            if let Some((bind_name, bind_ty)) = self.pattern_binding_for_arm(
+                pattern_id,
+                &scrutinee_ty,
+                &narrowed_scrutinee_ty,
+                body,
+            ) {
+                saved.push((bind_name.clone(), self.locals.get(&bind_name).cloned()));
+                self.locals.insert(bind_name, bind_ty);
+            }
+
+            if let Some(guard_expr) = arm.guard {
+                self.infer_expr(guard_expr, body);
+            }
+
+            let arm_ty = self.infer_expr(arm.body, body);
+            arm_types.push(arm_ty);
+
+            for (name, previous) in saved {
+                if let Some(prev_ty) = previous {
+                    self.locals.insert(name, prev_ty);
+                } else {
+                    self.locals.remove(&name);
+                }
+            }
+
+            if arm.guard.is_none() {
+                if self.pattern_covers_all_match(pattern_id, &scrutinee_ty, body, arm.body) {
+                    catch_all_seen = true;
+                    if let Some(required) = &required_cases {
+                        covered_cases = required.clone();
+                    }
+                } else if let Some(required) = &required_cases {
+                    covered_cases.extend(arm_cases.into_iter().filter(|c| required.contains(c)));
+                }
+            }
+        }
+
+        if let Some(required) = required_cases {
+            if !catch_all_seen {
+                let missing: Vec<String> = required
+                    .difference(&covered_cases)
+                    .map(std::string::ToString::to_string)
+                    .collect();
+                if !missing.is_empty() {
+                    self.context.report_simple(
+                        TirTypeError::NonExhaustiveMatch {
+                            scrutinee_type: scrutinee_ty.clone(),
+                            missing_cases: missing,
+                        },
+                        match_expr_id,
+                    );
+                }
+            }
+        }
+
+        self.join_all(&arm_types)
+    }
+
+    fn infer_catch_expr(
+        &mut self,
+        catch_expr_id: ExprId,
+        base_expr_id: ExprId,
+        clauses: &[baml_compiler2_ast::CatchClause],
+        body: &ExprBody,
+    ) -> Ty {
+        let base_ty = self.infer_expr(base_expr_id, body);
+        let mut result_members = vec![base_ty.clone()];
+        let mut residual = self.catch_base_throw_types(base_expr_id, body);
+
+        for clause in clauses {
+            let binding_name = match &body.patterns[clause.binding] {
+                baml_compiler2_ast::Pattern::Binding(name) => Some(name.clone()),
+                baml_compiler2_ast::Pattern::TypedBinding { name, ty } => {
+                    if let Some(banned) = crate::throw_inference::is_banned_catch_binding_type(ty) {
+                        self.context.report_simple(
+                            TirTypeError::InvalidCatchBindingType {
+                                type_name: banned.to_string(),
+                            },
+                            base_expr_id,
+                        );
+                    }
+                    Some(name.clone())
+                }
+                _ => None,
+            };
+
+            for &arm_id in &clause.arms {
+                let arm = &body.catch_arms[arm_id];
+                let matches =
+                    self.match_throw_types_for_pattern(arm.pattern, &residual, body, arm.body);
+                if matches.may_match.is_empty() {
+                    self.context
+                        .report_warning_simple(TirTypeError::UnreachableArm, arm.body);
+                }
+
+                let narrowed_binding_ty = self.throw_facts_to_ty(&matches.may_match);
+                let mut saved = Vec::new();
+                if let Some(name) = &binding_name {
+                    saved.push((name.clone(), self.locals.get(name).cloned()));
+                    self.locals
+                        .insert(name.clone(), narrowed_binding_ty.clone());
+                }
+                if let Some((arm_bind_name, arm_bind_ty)) = self.pattern_binding_for_arm(
+                    arm.pattern,
+                    &narrowed_binding_ty,
+                    &narrowed_binding_ty,
+                    body,
+                ) {
+                    saved.push((
+                        arm_bind_name.clone(),
+                        self.locals.get(&arm_bind_name).cloned(),
+                    ));
+                    self.locals.insert(arm_bind_name, arm_bind_ty);
+                }
+
+                let arm_ty = self.infer_expr(arm.body, body);
+                result_members.push(arm_ty);
+
+                for (name, previous) in saved {
+                    if let Some(prev_ty) = previous {
+                        self.locals.insert(name, prev_ty);
+                    } else {
+                        self.locals.remove(&name);
+                    }
+                }
+
+                for handled in &matches.definitely_handled {
+                    residual.remove(handled);
+                }
+            }
+
+            if matches!(
+                clause.kind,
+                baml_compiler2_ast::CatchClauseKind::CatchAll
+                    | baml_compiler2_ast::CatchClauseKind::CatchAllPanics
+            ) {
+                residual.clear();
+            }
+        }
+
+        self.catch_residual_throws
+            .insert(catch_expr_id, residual.clone());
+        self.join_all(&result_members)
+    }
+
+    /// Validate declared `throws` against effective escaping throws from the body.
+    pub fn check_throws_contract(
+        &mut self,
+        body: &ExprBody,
+        declared_throws: Option<&TypeExpr>,
+        throws_span: Option<TextRange>,
+        fallback_span: TextRange,
+    ) {
+        let Some(declared_expr) = declared_throws else {
+            return;
+        };
+
+        let mut diags = Vec::new();
+        let declared_ty = crate::lower_type_expr::lower_type_expr(
+            self.context.db(),
+            declared_expr,
+            self.package_items,
+            &mut diags,
+        );
+        let span = throws_span.unwrap_or(fallback_span);
+        for diag in diags {
+            self.context.report_at_span(diag, span);
+        }
+
+        let declared = crate::throw_inference::throw_facts_from_ty(&declared_ty);
+        let effective = self.collect_effective_throws(body);
+
+        let mut extra: Vec<String> = effective.difference(&declared).cloned().collect();
+        let mut extraneous: Vec<String> = declared.difference(&effective).cloned().collect();
+        extra.sort();
+        extraneous.sort();
+
+        if !extra.is_empty() {
+            self.context.report_at_span(
+                TirTypeError::ThrowsContractViolation {
+                    declared: declared_ty.clone(),
+                    extra_types: extra,
+                },
+                span,
+            );
+        }
+        if !extraneous.is_empty() {
+            self.context.report_warning_at_span(
+                TirTypeError::ExtraneousThrowsDeclaration {
+                    extra_types: extraneous,
+                },
+                span,
+            );
+        }
+    }
+
+    fn required_match_cases(&self, ty: &Ty) -> Option<BTreeSet<String>> {
+        match ty {
+            Ty::Primitive(PrimitiveType::Bool) => {
+                Some(BTreeSet::from(["true".to_string(), "false".to_string()]))
+            }
+            Ty::Primitive(PrimitiveType::Null) => Some(BTreeSet::from(["null".to_string()])),
+            Ty::Literal(lit, _) => Some(BTreeSet::from([self.literal_case_name(lit)])),
+            Ty::Enum(enum_name) => Some(
+                self.lookup_enum_variants(enum_name)
+                    .into_iter()
+                    .map(|variant| format!("{}.{}", enum_name.name, variant))
+                    .collect(),
+            ),
+            Ty::Optional(inner) => {
+                let mut cases = self.required_match_cases(inner)?;
+                cases.insert("null".to_string());
+                Some(cases)
+            }
+            Ty::Union(members) => {
+                let mut out = BTreeSet::new();
+                for member in members {
+                    let Some(member_cases) = self.required_match_cases(member) else {
+                        return None;
+                    };
+                    out.extend(member_cases);
+                }
+                Some(out)
+            }
+            Ty::Never => Some(BTreeSet::new()),
+            _ => None,
+        }
+    }
+
+    fn pattern_match_cases(
+        &mut self,
+        pattern_id: PatId,
+        scrutinee_ty: &Ty,
+        body: &ExprBody,
+        at_expr: ExprId,
+    ) -> BTreeSet<String> {
+        let pattern = &body.patterns[pattern_id];
+        match pattern {
+            baml_compiler2_ast::Pattern::Binding(name) => {
+                if name.as_str() == "_" {
+                    self.required_match_cases(scrutinee_ty).unwrap_or_default()
+                } else if self.is_bare_type_sugar_binding(name) {
+                    let narrowed =
+                        self.pattern_narrowed_type(pattern_id, scrutinee_ty, body, at_expr);
+                    self.required_match_cases(&narrowed).unwrap_or_default()
+                } else {
+                    self.required_match_cases(scrutinee_ty).unwrap_or_default()
+                }
+            }
+            baml_compiler2_ast::Pattern::TypedBinding { .. } => {
+                let narrowed = self.pattern_narrowed_type(pattern_id, scrutinee_ty, body, at_expr);
+                if self.is_subtype(scrutinee_ty, &narrowed) {
+                    self.required_match_cases(scrutinee_ty).unwrap_or_default()
+                } else {
+                    self.required_match_cases(&narrowed).unwrap_or_default()
+                }
+            }
+            baml_compiler2_ast::Pattern::Literal(lit) => {
+                BTreeSet::from([self.literal_case_name(lit)])
+            }
+            baml_compiler2_ast::Pattern::Null => BTreeSet::from(["null".to_string()]),
+            baml_compiler2_ast::Pattern::EnumVariant { enum_name, variant } => {
+                BTreeSet::from([format!("{}.{}", enum_name, variant)])
+            }
+            baml_compiler2_ast::Pattern::Union(parts) => {
+                let mut out = BTreeSet::new();
+                for part in parts {
+                    out.extend(self.pattern_match_cases(*part, scrutinee_ty, body, at_expr));
+                }
+                out
+            }
+        }
+    }
+
+    fn pattern_covers_all_match(
+        &mut self,
+        pattern_id: PatId,
+        scrutinee_ty: &Ty,
+        body: &ExprBody,
+        at_expr: ExprId,
+    ) -> bool {
+        match &body.patterns[pattern_id] {
+            baml_compiler2_ast::Pattern::Binding(name) => {
+                !self.is_bare_type_sugar_binding(name) || name.as_str() == "_"
+            }
+            baml_compiler2_ast::Pattern::TypedBinding { .. } => {
+                let narrowed = self.pattern_narrowed_type(pattern_id, scrutinee_ty, body, at_expr);
+                self.is_subtype(scrutinee_ty, &narrowed)
+            }
+            baml_compiler2_ast::Pattern::Union(parts) => {
+                if let Some(required) = self.required_match_cases(scrutinee_ty) {
+                    let mut covered = BTreeSet::new();
+                    for part in parts {
+                        covered.extend(self.pattern_match_cases(
+                            *part,
+                            scrutinee_ty,
+                            body,
+                            at_expr,
+                        ));
+                    }
+                    required.iter().all(|c| covered.contains(c))
+                } else {
+                    false
+                }
+            }
+            _ => {
+                if let Some(required) = self.required_match_cases(scrutinee_ty) {
+                    let covered = self.pattern_match_cases(pattern_id, scrutinee_ty, body, at_expr);
+                    required.iter().all(|c| covered.contains(c))
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn pattern_binding_for_arm(
+        &self,
+        pattern_id: PatId,
+        scrutinee_ty: &Ty,
+        narrowed_ty: &Ty,
+        body: &ExprBody,
+    ) -> Option<(Name, Ty)> {
+        match &body.patterns[pattern_id] {
+            baml_compiler2_ast::Pattern::Binding(name) => {
+                if name.as_str() == "_" || self.is_bare_type_sugar_binding(name) {
+                    None
+                } else {
+                    Some((name.clone(), scrutinee_ty.clone()))
+                }
+            }
+            baml_compiler2_ast::Pattern::TypedBinding { name, .. } => {
+                Some((name.clone(), narrowed_ty.clone()))
+            }
+            _ => None,
+        }
+    }
+
+    fn pattern_narrowed_type(
+        &mut self,
+        pattern_id: PatId,
+        scrutinee_ty: &Ty,
+        body: &ExprBody,
+        at_expr: ExprId,
+    ) -> Ty {
+        match &body.patterns[pattern_id] {
+            baml_compiler2_ast::Pattern::Binding(name) => {
+                if self.is_bare_type_sugar_binding(name) {
+                    self.lower_pattern_type_expr(&TypeExpr::Path(vec![name.clone()]), at_expr)
+                } else {
+                    scrutinee_ty.clone()
+                }
+            }
+            baml_compiler2_ast::Pattern::TypedBinding { ty, .. } => {
+                self.lower_pattern_type_expr(ty, at_expr)
+            }
+            baml_compiler2_ast::Pattern::Literal(lit) => {
+                Ty::Literal(lit.clone(), crate::ty::Freshness::Regular)
+            }
+            baml_compiler2_ast::Pattern::Null => Ty::Primitive(PrimitiveType::Null),
+            baml_compiler2_ast::Pattern::EnumVariant { enum_name, variant } => {
+                if let Ty::Enum(qn) = scrutinee_ty {
+                    if qn.name == *enum_name {
+                        return Ty::EnumVariant(qn.clone(), variant.clone());
+                    }
+                }
+                if let Some(def) = self.package_items.lookup_type(&[enum_name.clone()]) {
+                    if matches!(def, Definition::Enum(_)) {
+                        return Ty::EnumVariant(
+                            crate::lower_type_expr::qualify_def(self.context.db(), def, enum_name),
+                            variant.clone(),
+                        );
+                    }
+                }
+                Ty::Unknown
+            }
+            baml_compiler2_ast::Pattern::Union(parts) => {
+                let mut tys = Vec::new();
+                for part in parts {
+                    tys.push(self.pattern_narrowed_type(*part, scrutinee_ty, body, at_expr));
+                }
+                self.join_all(&tys)
+            }
+        }
+    }
+
+    fn lower_pattern_type_expr(&mut self, expr: &TypeExpr, at_expr: ExprId) -> Ty {
+        let mut diags = Vec::new();
+        let ty = crate::lower_type_expr::lower_type_expr(
+            self.context.db(),
+            expr,
+            self.package_items,
+            &mut diags,
+        );
+        for diag in diags {
+            self.context.report_simple(diag, at_expr);
+        }
+        ty
+    }
+
+    fn literal_case_name(&self, lit: &baml_base::Literal) -> String {
+        match lit {
+            baml_base::Literal::Int(v) => v.to_string(),
+            baml_base::Literal::Float(v) => v.clone(),
+            baml_base::Literal::String(v) => format!("{v:?}"),
+            baml_base::Literal::Bool(v) => v.to_string(),
+        }
+    }
+
+    fn is_bare_type_sugar_binding(&self, name: &Name) -> bool {
+        matches!(
+            name.as_str(),
+            "int" | "float" | "string" | "bool" | "null" | "image" | "audio" | "video" | "pdf"
+        ) || self.package_items.lookup_type(&[name.clone()]).is_some()
+    }
+
+    fn catch_base_throw_types(&self, base_expr_id: ExprId, body: &ExprBody) -> BTreeSet<String> {
+        let mut out = BTreeSet::new();
+        self.collect_throw_facts_from_expr(base_expr_id, body, &mut out);
+        out
+    }
+
+    fn throw_facts_to_ty(&self, facts: &BTreeSet<String>) -> Ty {
+        if facts.is_empty() {
+            return Ty::Never;
+        }
+        let tys: Vec<Ty> = facts.iter().map(|f| self.throw_fact_to_ty(f)).collect();
+        self.join_all(&tys)
+    }
+
+    fn throw_fact_to_ty(&self, fact: &str) -> Ty {
+        match fact {
+            "int" => Ty::Primitive(PrimitiveType::Int),
+            "float" => Ty::Primitive(PrimitiveType::Float),
+            "string" => Ty::Primitive(PrimitiveType::String),
+            "bool" => Ty::Primitive(PrimitiveType::Bool),
+            "null" => Ty::Primitive(PrimitiveType::Null),
+            "unknown" => Ty::Unknown,
+            _ => {
+                let name = Name::new(fact);
+                if let Some(def) = self.package_items.lookup_type(&[name.clone()]) {
+                    match def {
+                        Definition::Class(_) => Ty::Class(crate::lower_type_expr::qualify_def(
+                            self.context.db(),
+                            def,
+                            &name,
+                        )),
+                        Definition::Enum(_) => Ty::Enum(crate::lower_type_expr::qualify_def(
+                            self.context.db(),
+                            def,
+                            &name,
+                        )),
+                        Definition::TypeAlias(_) => Ty::TypeAlias(
+                            crate::lower_type_expr::qualify_def(self.context.db(), def, &name),
+                        ),
+                        _ => Ty::Unknown,
+                    }
+                } else {
+                    Ty::Unknown
+                }
+            }
+        }
+    }
+
+    fn match_throw_types_for_pattern(
+        &mut self,
+        pattern_id: PatId,
+        throw_types: &BTreeSet<String>,
+        body: &ExprBody,
+        at_expr: ExprId,
+    ) -> ThrowPatternMatches {
+        let mut out = ThrowPatternMatches::default();
+        for throw_fact in throw_types {
+            match self.pattern_match_strength(pattern_id, throw_fact, body, at_expr) {
+                PatternMatchStrength::NoMatch => {}
+                PatternMatchStrength::MayMatch => {
+                    out.may_match.insert(throw_fact.clone());
+                }
+                PatternMatchStrength::DefiniteMatch => {
+                    out.may_match.insert(throw_fact.clone());
+                    out.definitely_handled.insert(throw_fact.clone());
+                }
+            }
+        }
+        out
+    }
+
+    fn pattern_match_strength(
+        &mut self,
+        pattern_id: PatId,
+        throw_fact: &str,
+        body: &ExprBody,
+        at_expr: ExprId,
+    ) -> PatternMatchStrength {
+        let pattern = &body.patterns[pattern_id];
+        match pattern {
+            baml_compiler2_ast::Pattern::Binding(name) => {
+                if self.is_bare_type_sugar_binding(name) {
+                    let lowered =
+                        self.lower_pattern_type_expr(&TypeExpr::Path(vec![name.clone()]), at_expr);
+                    if self.ty_matches_throw_fact(&lowered, throw_fact) {
+                        PatternMatchStrength::DefiniteMatch
+                    } else if throw_fact == "unknown" {
+                        PatternMatchStrength::MayMatch
+                    } else {
+                        PatternMatchStrength::NoMatch
+                    }
+                } else {
+                    PatternMatchStrength::DefiniteMatch
+                }
+            }
+            baml_compiler2_ast::Pattern::TypedBinding { ty, .. } => {
+                let lowered = self.lower_pattern_type_expr(ty, at_expr);
+                if self.ty_matches_throw_fact(&lowered, throw_fact) {
+                    PatternMatchStrength::DefiniteMatch
+                } else if throw_fact == "unknown" {
+                    PatternMatchStrength::MayMatch
+                } else {
+                    PatternMatchStrength::NoMatch
+                }
+            }
+            baml_compiler2_ast::Pattern::Literal(lit) => {
+                if self.literal_throw_fact(lit) == throw_fact || throw_fact == "unknown" {
+                    PatternMatchStrength::DefiniteMatch
+                } else {
+                    PatternMatchStrength::NoMatch
+                }
+            }
+            baml_compiler2_ast::Pattern::Null => {
+                if throw_fact == "null" || throw_fact == "unknown" {
+                    PatternMatchStrength::DefiniteMatch
+                } else {
+                    PatternMatchStrength::NoMatch
+                }
+            }
+            baml_compiler2_ast::Pattern::EnumVariant { enum_name, variant } => {
+                let exact = format!("{enum_name}.{variant}");
+                if throw_fact == exact || throw_fact == enum_name.as_str() {
+                    PatternMatchStrength::DefiniteMatch
+                } else if throw_fact == "unknown" {
+                    PatternMatchStrength::MayMatch
+                } else {
+                    PatternMatchStrength::NoMatch
+                }
+            }
+            baml_compiler2_ast::Pattern::Union(parts) => {
+                let mut saw_may = false;
+                for part in parts {
+                    match self.pattern_match_strength(*part, throw_fact, body, at_expr) {
+                        PatternMatchStrength::DefiniteMatch => {
+                            return PatternMatchStrength::DefiniteMatch;
+                        }
+                        PatternMatchStrength::MayMatch => saw_may = true,
+                        PatternMatchStrength::NoMatch => {}
+                    }
+                }
+                if saw_may {
+                    PatternMatchStrength::MayMatch
+                } else {
+                    PatternMatchStrength::NoMatch
+                }
+            }
+        }
+    }
+
+    fn ty_matches_throw_fact(&self, ty: &Ty, throw_fact: &str) -> bool {
+        match ty {
+            Ty::Primitive(p) => p.to_string() == throw_fact,
+            Ty::Literal(lit, _) => self.literal_throw_fact(lit) == throw_fact,
+            Ty::Optional(inner) => {
+                throw_fact == "null" || self.ty_matches_throw_fact(inner, throw_fact)
+            }
+            Ty::Union(parts) => parts
+                .iter()
+                .any(|part| self.ty_matches_throw_fact(part, throw_fact)),
+            Ty::Class(qn) | Ty::Enum(qn) | Ty::TypeAlias(qn) => {
+                throw_fact == qn.name.as_str() || throw_fact == qn.to_string()
+            }
+            Ty::EnumVariant(qn, variant) => {
+                throw_fact == format!("{}.{}", qn.name, variant) || throw_fact == qn.name.as_str()
+            }
+            Ty::BuiltinUnknown | Ty::Unknown | Ty::Error => true,
+            Ty::Never | Ty::Void => false,
+            Ty::List(_)
+            | Ty::Map(_, _)
+            | Ty::EvolvingList(_)
+            | Ty::EvolvingMap(_, _)
+            | Ty::Function { .. }
+            | Ty::RustType => false,
+        }
+    }
+
+    fn literal_throw_fact(&self, lit: &baml_base::Literal) -> &'static str {
+        match lit {
+            baml_base::Literal::Int(_) => "int",
+            baml_base::Literal::Float(_) => "float",
+            baml_base::Literal::String(_) => "string",
+            baml_base::Literal::Bool(_) => "bool",
+        }
+    }
+
+    fn collect_effective_throws(&self, body: &ExprBody) -> BTreeSet<String> {
+        let mut out = BTreeSet::new();
+        if let Some(root) = body.root_expr {
+            self.collect_effective_throws_from_expr(root, body, &mut out);
+        }
+        out
+    }
+
+    fn collect_effective_throws_from_expr(
+        &self,
+        expr_id: ExprId,
+        body: &ExprBody,
+        out: &mut BTreeSet<String>,
+    ) {
+        match &body.exprs[expr_id] {
+            Expr::Throw { value } => {
+                self.collect_effective_throws_from_expr(*value, body, out);
+                self.collect_throw_facts_from_value(*value, out);
+            }
+            Expr::Call { callee, args } => {
+                self.collect_effective_throws_from_expr(*callee, body, out);
+                for arg in args {
+                    self.collect_effective_throws_from_expr(*arg, body, out);
+                }
+                if let Some(target) = self.call_target_name(*callee, body) {
+                    let throws = crate::throw_inference::function_throw_sets(
+                        self.context.db(),
+                        self.package_id,
+                    );
+                    if let Some(transitive) = throws.transitive_for(&target) {
+                        out.extend(transitive.iter().cloned());
+                    }
+                }
+            }
+            Expr::Catch { clauses, .. } => {
+                if let Some(residual) = self.catch_residual_throws.get(&expr_id) {
+                    out.extend(residual.iter().cloned());
+                }
+                for clause in clauses {
+                    for arm_id in &clause.arms {
+                        let arm = &body.catch_arms[*arm_id];
+                        self.collect_effective_throws_from_expr(arm.body, body, out);
+                    }
+                }
+            }
+            Expr::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.collect_effective_throws_from_expr(*condition, body, out);
+                self.collect_effective_throws_from_expr(*then_branch, body, out);
+                if let Some(else_expr) = else_branch {
+                    self.collect_effective_throws_from_expr(*else_expr, body, out);
+                }
+            }
+            Expr::Match {
+                scrutinee, arms, ..
+            } => {
+                self.collect_effective_throws_from_expr(*scrutinee, body, out);
+                for arm_id in arms {
+                    let arm = &body.match_arms[*arm_id];
+                    if let Some(guard) = arm.guard {
+                        self.collect_effective_throws_from_expr(guard, body, out);
+                    }
+                    self.collect_effective_throws_from_expr(arm.body, body, out);
+                }
+            }
+            Expr::Binary { lhs, rhs, .. } => {
+                self.collect_effective_throws_from_expr(*lhs, body, out);
+                self.collect_effective_throws_from_expr(*rhs, body, out);
+            }
+            Expr::Unary { expr, .. } => {
+                self.collect_effective_throws_from_expr(*expr, body, out);
+            }
+            Expr::Object {
+                fields, spreads, ..
+            } => {
+                for (_, value) in fields {
+                    self.collect_effective_throws_from_expr(*value, body, out);
+                }
+                for spread in spreads {
+                    self.collect_effective_throws_from_expr(spread.expr, body, out);
+                }
+            }
+            Expr::Array { elements } => {
+                for elem in elements {
+                    self.collect_effective_throws_from_expr(*elem, body, out);
+                }
+            }
+            Expr::Map { entries } => {
+                for (key, value) in entries {
+                    self.collect_effective_throws_from_expr(*key, body, out);
+                    self.collect_effective_throws_from_expr(*value, body, out);
+                }
+            }
+            Expr::Block { stmts, tail_expr } => {
+                for stmt_id in stmts {
+                    self.collect_effective_throws_from_stmt(*stmt_id, body, out);
+                }
+                if let Some(tail) = tail_expr {
+                    self.collect_effective_throws_from_expr(*tail, body, out);
+                }
+            }
+            Expr::FieldAccess { base, .. } => {
+                self.collect_effective_throws_from_expr(*base, body, out);
+            }
+            Expr::Index { base, index } => {
+                self.collect_effective_throws_from_expr(*base, body, out);
+                self.collect_effective_throws_from_expr(*index, body, out);
+            }
+            Expr::Literal(_) | Expr::Null | Expr::Path(_) | Expr::Missing => {}
+        }
+    }
+
+    fn collect_effective_throws_from_stmt(
+        &self,
+        stmt_id: StmtId,
+        body: &ExprBody,
+        out: &mut BTreeSet<String>,
+    ) {
+        match &body.stmts[stmt_id] {
+            Stmt::Expr(expr) => self.collect_effective_throws_from_expr(*expr, body, out),
+            Stmt::Let { initializer, .. } => {
+                if let Some(init) = initializer {
+                    self.collect_effective_throws_from_expr(*init, body, out);
+                }
+            }
+            Stmt::While {
+                condition,
+                body: while_body,
+                after,
+                ..
+            } => {
+                self.collect_effective_throws_from_expr(*condition, body, out);
+                self.collect_effective_throws_from_expr(*while_body, body, out);
+                if let Some(after_stmt) = after {
+                    self.collect_effective_throws_from_stmt(*after_stmt, body, out);
+                }
+            }
+            Stmt::Return(expr) => {
+                if let Some(expr) = expr {
+                    self.collect_effective_throws_from_expr(*expr, body, out);
+                }
+            }
+            Stmt::Assign { target, value } | Stmt::AssignOp { target, value, .. } => {
+                self.collect_effective_throws_from_expr(*target, body, out);
+                self.collect_effective_throws_from_expr(*value, body, out);
+            }
+            Stmt::Assert { condition } => {
+                self.collect_effective_throws_from_expr(*condition, body, out);
+            }
+            Stmt::Throw { value } => {
+                self.collect_effective_throws_from_expr(*value, body, out);
+                self.collect_throw_facts_from_value(*value, out);
+            }
+            Stmt::Break | Stmt::Continue | Stmt::Missing | Stmt::HeaderComment { .. } => {}
+        }
+    }
+
+    fn collect_throw_facts_from_expr(
+        &self,
+        expr_id: ExprId,
+        body: &ExprBody,
+        out: &mut BTreeSet<String>,
+    ) {
+        match &body.exprs[expr_id] {
+            Expr::Throw { value } => {
+                self.collect_throw_facts_from_expr(*value, body, out);
+                self.collect_throw_facts_from_value(*value, out);
+            }
+            Expr::Call { callee, args } => {
+                self.collect_throw_facts_from_expr(*callee, body, out);
+                for arg in args {
+                    self.collect_throw_facts_from_expr(*arg, body, out);
+                }
+                if let Some(target) = self.call_target_name(*callee, body) {
+                    let throws = crate::throw_inference::function_throw_sets(
+                        self.context.db(),
+                        self.package_id,
+                    );
+                    if let Some(transitive) = throws.transitive_for(&target) {
+                        out.extend(transitive.iter().cloned());
+                    }
+                }
+            }
+            Expr::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.collect_throw_facts_from_expr(*condition, body, out);
+                self.collect_throw_facts_from_expr(*then_branch, body, out);
+                if let Some(else_expr) = else_branch {
+                    self.collect_throw_facts_from_expr(*else_expr, body, out);
+                }
+            }
+            Expr::Match {
+                scrutinee, arms, ..
+            } => {
+                self.collect_throw_facts_from_expr(*scrutinee, body, out);
+                for arm_id in arms {
+                    let arm = &body.match_arms[*arm_id];
+                    if let Some(guard) = arm.guard {
+                        self.collect_throw_facts_from_expr(guard, body, out);
+                    }
+                    self.collect_throw_facts_from_expr(arm.body, body, out);
+                }
+            }
+            Expr::Binary { lhs, rhs, .. } => {
+                self.collect_throw_facts_from_expr(*lhs, body, out);
+                self.collect_throw_facts_from_expr(*rhs, body, out);
+            }
+            Expr::Unary { expr, .. } => self.collect_throw_facts_from_expr(*expr, body, out),
+            Expr::Object {
+                fields, spreads, ..
+            } => {
+                for (_, value) in fields {
+                    self.collect_throw_facts_from_expr(*value, body, out);
+                }
+                for spread in spreads {
+                    self.collect_throw_facts_from_expr(spread.expr, body, out);
+                }
+            }
+            Expr::Array { elements } => {
+                for elem in elements {
+                    self.collect_throw_facts_from_expr(*elem, body, out);
+                }
+            }
+            Expr::Map { entries } => {
+                for (key, value) in entries {
+                    self.collect_throw_facts_from_expr(*key, body, out);
+                    self.collect_throw_facts_from_expr(*value, body, out);
+                }
+            }
+            Expr::Block { stmts, tail_expr } => {
+                for stmt in stmts {
+                    self.collect_throw_facts_from_stmt(*stmt, body, out);
+                }
+                if let Some(tail) = tail_expr {
+                    self.collect_throw_facts_from_expr(*tail, body, out);
+                }
+            }
+            Expr::FieldAccess { base, .. } => self.collect_throw_facts_from_expr(*base, body, out),
+            Expr::Index { base, index } => {
+                self.collect_throw_facts_from_expr(*base, body, out);
+                self.collect_throw_facts_from_expr(*index, body, out);
+            }
+            Expr::Catch { base, .. } => {
+                self.collect_throw_facts_from_expr(*base, body, out);
+            }
+            Expr::Literal(_) | Expr::Null | Expr::Path(_) | Expr::Missing => {}
+        }
+    }
+
+    fn collect_throw_facts_from_stmt(
+        &self,
+        stmt_id: StmtId,
+        body: &ExprBody,
+        out: &mut BTreeSet<String>,
+    ) {
+        match &body.stmts[stmt_id] {
+            Stmt::Expr(expr_id) => self.collect_throw_facts_from_expr(*expr_id, body, out),
+            Stmt::Let { initializer, .. } => {
+                if let Some(init) = initializer {
+                    self.collect_throw_facts_from_expr(*init, body, out);
+                }
+            }
+            Stmt::While {
+                condition,
+                body: while_body,
+                after,
+                ..
+            } => {
+                self.collect_throw_facts_from_expr(*condition, body, out);
+                self.collect_throw_facts_from_expr(*while_body, body, out);
+                if let Some(after_stmt) = after {
+                    self.collect_throw_facts_from_stmt(*after_stmt, body, out);
+                }
+            }
+            Stmt::Return(expr) => {
+                if let Some(expr) = expr {
+                    self.collect_throw_facts_from_expr(*expr, body, out);
+                }
+            }
+            Stmt::Assign { target, value } | Stmt::AssignOp { target, value, .. } => {
+                self.collect_throw_facts_from_expr(*target, body, out);
+                self.collect_throw_facts_from_expr(*value, body, out);
+            }
+            Stmt::Assert { condition } => self.collect_throw_facts_from_expr(*condition, body, out),
+            Stmt::Throw { value } => {
+                self.collect_throw_facts_from_expr(*value, body, out);
+                self.collect_throw_facts_from_value(*value, out);
+            }
+            Stmt::Break | Stmt::Continue | Stmt::Missing | Stmt::HeaderComment { .. } => {}
+        }
+    }
+
+    fn collect_throw_facts_from_value(&self, value_expr_id: ExprId, out: &mut BTreeSet<String>) {
+        let unknown_ty = Ty::Unknown;
+        let thrown_ty = self.expressions.get(&value_expr_id).unwrap_or(&unknown_ty);
+        out.extend(crate::throw_inference::throw_facts_from_ty(thrown_ty));
+    }
+
+    fn call_target_name(&self, callee_expr_id: ExprId, body: &ExprBody) -> Option<Name> {
+        let segments = self.expr_to_path_segments(callee_expr_id, body)?;
+        if segments.is_empty() {
+            return None;
+        }
+        Some(Name::new(
+            segments
+                .iter()
+                .map(Name::as_str)
+                .collect::<Vec<_>>()
+                .join("."),
+        ))
+    }
+
+    fn expr_to_path_segments(&self, expr_id: ExprId, body: &ExprBody) -> Option<Vec<Name>> {
+        match &body.exprs[expr_id] {
+            Expr::Path(segments) if !segments.is_empty() => Some(segments.clone()),
+            Expr::FieldAccess { base, field } => {
+                let mut base_segments = self.expr_to_path_segments(*base, body)?;
+                base_segments.push(field.clone());
+                Some(base_segments)
+            }
+            _ => None,
+        }
     }
 
     /// Extract the short name from a qualified type name for package item lookups.

@@ -80,6 +80,22 @@ pub enum TirTypeError {
     /// Cycles through optional, list, or map fields are valid since those can
     /// be null/empty, breaking the construction dependency.
     ClassCycle { name: Name, cycle_path: String },
+    /// `match` is missing arms for one or more values.
+    NonExhaustiveMatch {
+        scrutinee_type: Ty,
+        missing_cases: Vec<String>,
+    },
+    /// A `match`/`catch` arm can never execute because previous arms are exhaustive.
+    UnreachableArm,
+    /// Catch binding cannot be typed as `any` or `unknown`.
+    InvalidCatchBindingType { type_name: String },
+    /// Inferred escaping throws are not covered by the declared throws contract.
+    ThrowsContractViolation {
+        declared: Ty,
+        extra_types: Vec<String>,
+    },
+    /// Declared throws contains extra types that never escape.
+    ExtraneousThrowsDeclaration { extra_types: Vec<String> },
 }
 
 impl fmt::Display for TirTypeError {
@@ -138,8 +154,43 @@ impl fmt::Display for TirTypeError {
             TirTypeError::ClassCycle { cycle_path, .. } => {
                 write!(f, "class cycle: {cycle_path}")
             }
+            TirTypeError::NonExhaustiveMatch {
+                scrutinee_type,
+                missing_cases,
+            } => {
+                write!(
+                    f,
+                    "non-exhaustive match on `{scrutinee_type}`; missing: {}",
+                    missing_cases.join(", ")
+                )
+            }
+            TirTypeError::UnreachableArm => write!(f, "unreachable arm"),
+            TirTypeError::InvalidCatchBindingType { type_name } => write!(
+                f,
+                "invalid catch binding type `{type_name}`; use a concrete type instead"
+            ),
+            TirTypeError::ThrowsContractViolation {
+                declared,
+                extra_types,
+            } => write!(
+                f,
+                "throws contract violation: `{declared}` is missing {}",
+                extra_types.join(", ")
+            ),
+            TirTypeError::ExtraneousThrowsDeclaration { extra_types } => write!(
+                f,
+                "extraneous throws declaration: {}",
+                extra_types.join(", ")
+            ),
         }
     }
+}
+
+/// Diagnostic severity used by compiler2 TIR diagnostics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagnosticSeverity {
+    Error,
+    Warning,
 }
 
 // ── Multi-span diagnostic structure ─────────────────────────────────────────
@@ -176,6 +227,8 @@ pub enum DiagnosticLocation {
 pub struct TirDiagnostic<'db> {
     /// What went wrong.
     pub error: TirTypeError,
+    /// Severity level.
+    pub severity: DiagnosticSeverity,
     /// Primary location — where the error was detected.
     pub primary: DiagnosticLocation,
     /// Related locations — secondary spans with explanatory messages.
@@ -202,6 +255,7 @@ impl<'db> TirDiagnostic<'db> {
         RenderedTirDiagnostic {
             message: self.error.to_string(),
             range: primary_range,
+            severity: self.severity,
         }
     }
 }
@@ -215,6 +269,8 @@ pub struct RenderedTirDiagnostic {
     pub message: String,
     /// Source range within the file (resolved from `ExprId`/`StmtId`).
     pub range: TextRange,
+    /// Severity level for rendering.
+    pub severity: DiagnosticSeverity,
 }
 
 impl fmt::Display for RenderedTirDiagnostic {
@@ -282,6 +338,7 @@ impl<'db> InferContext<'db> {
             .diagnostics
             .push(TirDiagnostic {
                 error,
+                severity: DiagnosticSeverity::Error,
                 primary: DiagnosticLocation::Expr(at),
                 related,
             });
@@ -299,6 +356,7 @@ impl<'db> InferContext<'db> {
             .diagnostics
             .push(TirDiagnostic {
                 error,
+                severity: DiagnosticSeverity::Error,
                 primary: DiagnosticLocation::Span(span),
                 related: Vec::new(),
             });
@@ -311,7 +369,34 @@ impl<'db> InferContext<'db> {
             .diagnostics
             .push(TirDiagnostic {
                 error,
+                severity: DiagnosticSeverity::Error,
                 primary: DiagnosticLocation::Stmt(at),
+                related: Vec::new(),
+            });
+    }
+
+    /// Report a warning-level diagnostic at an expression.
+    pub fn report_warning_simple(&self, error: TirTypeError, at: ExprId) {
+        self.diagnostics
+            .borrow_mut()
+            .diagnostics
+            .push(TirDiagnostic {
+                error,
+                severity: DiagnosticSeverity::Warning,
+                primary: DiagnosticLocation::Expr(at),
+                related: Vec::new(),
+            });
+    }
+
+    /// Report a warning-level diagnostic at a raw source span.
+    pub fn report_warning_at_span(&self, error: TirTypeError, span: TextRange) {
+        self.diagnostics
+            .borrow_mut()
+            .diagnostics
+            .push(TirDiagnostic {
+                error,
+                severity: DiagnosticSeverity::Warning,
+                primary: DiagnosticLocation::Span(span),
                 related: Vec::new(),
             });
     }
