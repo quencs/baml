@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use baml_compiler2_ast::{AstSourceMap, ExprBody, FunctionBodyDef};
+use baml_compiler2_ast::{AstSourceMap, BuiltinKind, ExprBody, FunctionBodyDef};
 
 use crate::loc::FunctionLoc;
 
@@ -27,6 +27,8 @@ pub enum FunctionBody {
     Llm(LlmBody),
     /// Expression body (semantic arena, no spans).
     Expr(ExprBody),
+    /// Rust-bound builtin implementation (`$rust_function` or `$rust_io_function`).
+    Builtin(BuiltinKind),
     /// Body was omitted or could not be parsed.
     Missing,
 }
@@ -49,6 +51,7 @@ pub fn function_body<'db>(db: &'db dyn crate::Db, function: FunctionLoc<'db>) ->
             client: llm.client.clone(),
             prompt: llm.prompt.clone(),
         }),
+        Some(FunctionBodyDef::Builtin(kind)) => FunctionBody::Builtin(*kind),
         None => FunctionBody::Missing,
     };
 

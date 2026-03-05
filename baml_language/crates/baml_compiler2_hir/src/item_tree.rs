@@ -24,6 +24,9 @@ use crate::ids::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
     pub name: Name,
+    /// Generic type parameters (e.g., `["T", "U"]`).
+    /// Empty for non-generic functions.
+    pub generic_params: Vec<Name>,
     /// Function parameters with optional type annotations and spans.
     pub params: Vec<FunctionParam>,
     /// Return type with its source span.
@@ -52,6 +55,9 @@ pub struct ClassField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Class {
     pub name: Name,
+    /// Generic type parameters (e.g., `["T"]` for `Array<T>`).
+    /// Empty for non-generic classes.
+    pub generic_params: Vec<Name>,
     /// Fields of the class, in declaration order.
     pub fields: Vec<ClassField>,
     /// Methods defined inside this class, referencing their `Function` entries
@@ -174,6 +180,7 @@ impl ItemTree {
             id,
             Function {
                 name: f.name.clone(),
+                generic_params: f.generic_params.clone(),
                 params,
                 return_type: f.return_type.clone(),
                 body: f.body.clone(),
@@ -197,6 +204,7 @@ impl ItemTree {
             id,
             Class {
                 name: c.name.clone(),
+                generic_params: c.generic_params.clone(),
                 fields,
                 methods: Vec::new(),
             },

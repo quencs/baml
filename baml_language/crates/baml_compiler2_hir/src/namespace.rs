@@ -156,15 +156,15 @@ pub fn namespace_items<'db>(
     db: &'db dyn crate::Db,
     namespace_id: NamespaceId<'db>,
 ) -> NamespaceItems<'db> {
-    let project = db.project();
     let package = namespace_id.package(db);
     let ns_path = namespace_id.path(db);
 
     // Collect matching files, then sort alphabetically by path.
-    let mut matching_files: Vec<SourceFile> = project
-        .files(db)
-        .iter()
-        .copied()
+    // Use compiler2_all_files() so that compiler2-only builtin stubs (e.g.
+    // Array<T>, Map<K,V>) are visible here without being added to the v1
+    // compiler's project.files() list.
+    let mut matching_files: Vec<SourceFile> = crate::compiler2_all_files(db)
+        .into_iter()
         .filter(|file| {
             let pkg_info = crate::file_package::file_package(db, *file);
             pkg_info.package == *package && pkg_info.namespace_path == *ns_path

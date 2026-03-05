@@ -42,8 +42,41 @@ use crate::{
 /// Database trait for compiler2_hir queries.
 ///
 /// Extends `baml_workspace::Db`. Use `file_semantic_index` for HIR queries.
+///
+/// The `compiler2_extra_files()` method provides access to compiler2-only
+/// builtin stub files that must NOT be in the shared `project.files()` list
+/// (because the v1 parser cannot handle compiler2-specific syntax like generic
+/// type parameters or `$rust_type` fields). Implementors that have such files
+/// should override this to return the appropriate `Compiler2ExtraFiles` handle.
 #[salsa::db]
-pub trait Db: baml_workspace::Db {}
+pub trait Db: baml_workspace::Db {
+    /// Returns the compiler2-only extra files, or `None` if not configured.
+    ///
+    /// The default implementation returns `None`, meaning no extra files.
+    /// `ProjectDatabase` overrides this to return the v2 builtin stubs.
+    fn compiler2_extra_files(&self) -> Option<baml_workspace::Compiler2ExtraFiles> {
+        None
+    }
+}
+
+// ── compiler2_all_files ───────────────────────────────────────────────────────
+
+/// Returns all files visible to compiler2 HIR queries.
+///
+/// This is the union of:
+/// - `db.project().files()` — user files and v1 builtin stubs
+/// - `db.compiler2_extra_files().files()` — compiler2-only builtin stubs
+///   (e.g., `Array<T>`, `Map<K,V>`, `String`, `Media` from `baml_builtins2`)
+///
+/// The v1 compiler only sees `project.files()`, while compiler2 HIR queries
+/// (`namespace_items`, `package_items`) use this combined view.
+pub fn compiler2_all_files(db: &dyn Db) -> Vec<baml_base::SourceFile> {
+    let mut files: Vec<baml_base::SourceFile> = db.project().files(db).to_vec();
+    if let Some(extra) = db.compiler2_extra_files() {
+        files.extend_from_slice(extra.files(db));
+    }
+    files
+}
 
 // ── file_semantic_index ───────────────────────────────────────────────────────
 

@@ -59,8 +59,19 @@ pub struct TypeInferenceBuilder<'db> {
     scope: ScopeId<'db>,
     /// Declared return type for the function (used to check return statements).
     declared_return_ty: Option<Ty>,
-    /// Local variable bindings: name → inferred type.
+    /// Local variable bindings: name → inferred type (flow-sensitive, updated
+    /// by narrowing and assignments).
     locals: FxHashMap<Name, Ty>,
+    /// Declared types: name → the type from the parameter annotation or
+    /// explicit `let` type annotation. Written once per variable, never
+    /// modified by narrowing or assignment. Used to validate assignments
+    /// (the declared type is the upper bound for what can be assigned).
+    ///
+    /// Only populated for variables with explicit type annotations (params
+    /// always have annotations; `let` bindings only when annotated).
+    /// Unannotated `let` bindings (including evolving containers) are NOT
+    /// tracked here — there's no user-stated contract to enforce.
+    declared_types: FxHashMap<Name, Ty>,
     /// Resolved type alias map: alias qualified name → expanded Ty.
     /// Used by the normalizer for structural subtype checking.
     aliases: HashMap<crate::ty::QualifiedTypeName, Ty>,
@@ -81,6 +92,7 @@ impl<'db> TypeInferenceBuilder<'db> {
             scope,
             declared_return_ty: None,
             locals: FxHashMap::default(),
+            declared_types: FxHashMap::default(),
             aliases,
         }
     }
@@ -108,7 +120,14 @@ impl<'db> TypeInferenceBuilder<'db> {
     }
 
     /// Add a local variable binding (e.g. function parameters).
+    ///
+    /// Also records the declared type (parameters always have annotations).
+    /// Uses `entry().or_insert()` so repeated calls (e.g. from narrowing
+    /// save/restore) don't overwrite the original declared type.
     pub fn add_local(&mut self, name: Name, ty: Ty) {
+        self.declared_types
+            .entry(name.clone())
+            .or_insert_with(|| ty.clone());
         self.locals.insert(name, ty);
     }
 
@@ -131,14 +150,32 @@ impl<'db> TypeInferenceBuilder<'db> {
                 then_branch,
                 else_branch,
             } => {
+                // Infer the condition first so its type is in `self.expressions`.
                 self.infer_expr(*condition, body);
+
+                // Extract narrowings from the condition expression.
+                let narrowings =
+                    crate::narrowing::extract_narrowings(*condition, body, &self.expressions);
+
+                // Apply then-branch narrowings, saving originals.
+                let saved = crate::narrowing::apply_then_narrowings(&narrowings, &mut self.locals);
+
                 let then_ty = self.infer_expr(*then_branch, body);
-                if let Some(else_id) = else_branch {
+
+                // Restore originals and apply else-branch narrowings.
+                crate::narrowing::restore_and_apply_else(&narrowings, &saved, &mut self.locals);
+
+                let result_ty = if let Some(else_id) = else_branch {
                     let else_ty = self.infer_expr(*else_id, body);
                     self.join_types(&then_ty, &else_ty)
                 } else {
                     Ty::Void
-                }
+                };
+
+                // Restore original types after the if expression.
+                crate::narrowing::restore_narrowings(saved, &mut self.locals);
+
+                result_ty
             }
             Expr::Call { callee, args } => {
                 // Check for container mutation method (e.g. x.push(val))
@@ -149,16 +186,28 @@ impl<'db> TypeInferenceBuilder<'db> {
                 {
                     result_ty
                 } else {
+                    // Determine whether this is a method call (callee is a FieldAccess).
+                    // Method calls have a `self` parameter in the resolved function type
+                    // that must be skipped when checking the explicit argument count.
+                    let is_method_call = matches!(&body.exprs[*callee], Expr::FieldAccess { .. });
+
                     let callee_ty = self.infer_expr(*callee, body);
                     for arg in args {
                         self.infer_expr(*arg, body);
                     }
                     match &callee_ty {
                         Ty::Function { params, ret } => {
-                            if params.len() != args.len() {
+                            // For method calls, skip the `self` parameter when
+                            // comparing against the number of explicit arguments.
+                            let effective_params = if is_method_call {
+                                crate::generics::skip_self_param(params)
+                            } else {
+                                params.as_slice()
+                            };
+                            if effective_params.len() != args.len() {
                                 self.context.report_simple(
                                     TirTypeError::ArgumentCountMismatch {
-                                        expected: params.len(),
+                                        expected: effective_params.len(),
                                         got: args.len(),
                                     },
                                     expr_id,
@@ -182,7 +231,7 @@ impl<'db> TypeInferenceBuilder<'db> {
             Expr::Block { stmts, tail_expr } => {
                 let mut diverged_at: Option<(usize, StmtId)> = None;
                 for (i, stmt_id) in stmts.iter().enumerate() {
-                    if self.check_stmt(*stmt_id, body) {
+                    if self.check_stmt_with_early_return_narrowing(*stmt_id, body) {
                         diverged_at = Some((i, *stmt_id));
                         break;
                     }
@@ -207,8 +256,14 @@ impl<'db> TypeInferenceBuilder<'db> {
                 }
             }
             Expr::FieldAccess { base, field } => {
-                let base_ty = self.infer_expr(*base, body);
-                self.resolve_member(&base_ty, field, expr_id)
+                // Check for primitive-type static method access first:
+                // `image.from_url(...)` where `image` is a type name, not a value.
+                if let Some(ty) = self.try_primitive_static_access(*base, field, body) {
+                    ty
+                } else {
+                    let base_ty = self.infer_expr(*base, body);
+                    self.resolve_member(&base_ty, field, expr_id)
+                }
             }
             Expr::Array { elements } => {
                 let elem_types: Vec<Ty> =
@@ -300,7 +355,7 @@ impl<'db> TypeInferenceBuilder<'db> {
             Expr::Block { stmts, tail_expr } => {
                 let mut diverged_at: Option<(usize, StmtId)> = None;
                 for (i, stmt_id) in stmts.iter().enumerate() {
-                    if self.check_stmt(*stmt_id, body) {
+                    if self.check_stmt_with_early_return_narrowing(*stmt_id, body) {
                         diverged_at = Some((i, *stmt_id));
                         break;
                     }
@@ -342,8 +397,21 @@ impl<'db> TypeInferenceBuilder<'db> {
                 then_branch,
                 else_branch,
             } => {
+                // Infer the condition first so its type is in `self.expressions`.
                 self.infer_expr(*condition, body);
+
+                // Extract narrowings from the condition expression.
+                let narrowings =
+                    crate::narrowing::extract_narrowings(*condition, body, &self.expressions);
+
+                // Apply then-branch narrowings, saving originals.
+                let saved = crate::narrowing::apply_then_narrowings(&narrowings, &mut self.locals);
+
                 let then_ty = self.check_expr(*then_branch, body, expected);
+
+                // Restore originals and apply else-branch narrowings.
+                crate::narrowing::restore_and_apply_else(&narrowings, &saved, &mut self.locals);
+
                 let ty = if let Some(else_id) = else_branch {
                     let else_ty = self.check_expr(*else_id, body, expected);
                     self.join_types(&then_ty, &else_ty)
@@ -354,6 +422,10 @@ impl<'db> TypeInferenceBuilder<'db> {
                     }
                     Ty::Void
                 };
+
+                // Restore original types after the if expression.
+                crate::narrowing::restore_narrowings(saved, &mut self.locals);
+
                 self.record_expr_type(expr_id, ty.clone());
                 ty
             }
@@ -469,6 +541,8 @@ impl<'db> TypeInferenceBuilder<'db> {
                 type_annotation,
                 ..
             } => {
+                // Track whether this let has an explicit annotation (for declared_types).
+                let mut ann_ty_for_decl: Option<Ty> = None;
                 let init_ty = if let Some(init) = initializer {
                     if let Some(ann_idx) = type_annotation {
                         let mut diags = Vec::new();
@@ -486,6 +560,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                             self.context
                                 .report_simple(TirTypeError::VoidUsedAsValue, *init);
                         }
+                        ann_ty_for_decl = Some(ann_ty);
                         Some(ty)
                     } else {
                         let ty = self.infer_expr(*init, body);
@@ -493,6 +568,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                             self.context
                                 .report_simple(TirTypeError::VoidUsedAsValue, *init);
                         }
+                        // No annotation → no declared type (evolving containers etc.)
                         Some(ty.widen_fresh().make_evolving())
                     }
                 } else {
@@ -502,14 +578,17 @@ impl<'db> TypeInferenceBuilder<'db> {
                 if let Some(ty) = init_ty {
                     self.bindings.insert(*pattern, ty.clone());
                     let pat = &body.patterns[*pattern];
-                    match pat {
-                        baml_compiler2_ast::Pattern::Binding(name) => {
-                            self.locals.insert(name.clone(), ty);
+                    let name = match pat {
+                        baml_compiler2_ast::Pattern::Binding(name) => Some(name),
+                        baml_compiler2_ast::Pattern::TypedBinding { name, .. } => Some(name),
+                        _ => None,
+                    };
+                    if let Some(name) = name {
+                        self.locals.insert(name.clone(), ty);
+                        // Record declared type only for annotated let-bindings.
+                        if let Some(decl_ty) = ann_ty_for_decl {
+                            self.declared_types.insert(name.clone(), decl_ty);
                         }
-                        baml_compiler2_ast::Pattern::TypedBinding { name, .. } => {
-                            self.locals.insert(name.clone(), ty);
-                        }
-                        _ => {}
                     }
                 }
                 false
@@ -539,8 +618,36 @@ impl<'db> TypeInferenceBuilder<'db> {
                 if self.try_index_assign_mutation(*target, *value, body) {
                     return false;
                 }
-                self.infer_expr(*target, body);
-                self.infer_expr(*value, body);
+                // For simple variable assignment (x = val), check against the
+                // variable's *declared* type, not its potentially-narrowed type.
+                // Narrowing may have refined x: int? → null inside an if-branch,
+                // but assignment should still accept any value assignable to int?.
+                let declared_ty = self.get_declared_type(*target, body);
+                let value_ty = self.infer_expr(*value, body);
+                if let Some(ref decl_ty) = declared_ty {
+                    if !matches!(decl_ty, Ty::Unknown | Ty::Error)
+                        && !matches!(value_ty, Ty::Unknown | Ty::Error)
+                        && !self.is_subtype(&value_ty, decl_ty)
+                    {
+                        self.context.report(
+                            TirTypeError::TypeMismatch {
+                                expected: decl_ty.clone(),
+                                got: value_ty.clone(),
+                            },
+                            *value,
+                            Vec::new(),
+                        );
+                    }
+                    // Update the local to the assigned value's type (invalidates narrowing)
+                    if let Expr::Path(segments) = &body.exprs[*target] {
+                        if segments.len() == 1 {
+                            self.locals.insert(segments[0].clone(), value_ty);
+                        }
+                    }
+                } else {
+                    self.infer_expr(*target, body);
+                    self.infer_expr(*value, body);
+                }
                 false
             }
             Stmt::AssignOp { target, op, value } => {
@@ -562,7 +669,110 @@ impl<'db> TypeInferenceBuilder<'db> {
         }
     }
 
+    // ── Early-return narrowing ────────────────────────────────────────────────
+
+    /// Type-check a statement, applying early-return narrowing when applicable.
+    ///
+    /// This wraps `check_stmt` and adds special handling for the pattern:
+    ///
+    /// ```baml
+    /// if (x == null) { return ...; }
+    /// // x is non-null here
+    /// ```
+    ///
+    /// When a `Stmt::Expr(Expr::If { ... })` is processed:
+    /// - If the then-branch always diverges (return/break/continue)
+    /// - And the overall statement does NOT diverge (no else, or else does not diverge)
+    ///
+    /// Then the else-branch narrowings are applied to the locals map, narrowing
+    /// the variable types for the remainder of the enclosing block.
+    ///
+    /// For all other statements, delegates to `check_stmt`.
+    fn check_stmt_with_early_return_narrowing(&mut self, stmt_id: StmtId, body: &ExprBody) -> bool {
+        let stmt = &body.stmts[stmt_id];
+
+        // Only special-case `Stmt::Expr(Expr::If { ... })`
+        if let baml_compiler2_ast::Stmt::Expr(if_expr_id) = stmt {
+            let if_expr = &body.exprs[*if_expr_id];
+            if let Expr::If {
+                condition,
+                then_branch,
+                else_branch,
+            } = if_expr
+            {
+                let condition = *condition;
+                let then_branch = *then_branch;
+                let else_branch = *else_branch;
+
+                // Infer the condition to populate its type in self.expressions.
+                // (infer_expr for the full Expr::If will also do this, but we
+                // need narrowings before calling check_stmt.)
+                //
+                // We call check_stmt normally — it calls infer_expr(Expr::If),
+                // which already applies and restores narrowings for the branches.
+                // After check_stmt returns, we check if the then-branch diverged
+                // and, if so, apply the else-narrowings permanently.
+
+                // Extract narrowings from the condition. We need the condition
+                // type to be recorded first, so we infer it here. Note that
+                // infer_expr for the Expr::If will re-infer it (idempotent: the
+                // type is recorded and cached in self.expressions).
+                self.infer_expr(condition, body);
+                let narrowings =
+                    crate::narrowing::extract_narrowings(condition, body, &self.expressions);
+
+                // Run the normal check_stmt (which handles the full Expr::If
+                // including inner narrowing for the branches).
+                let stmt_diverges = self.check_stmt(stmt_id, body);
+
+                // After check_stmt, inspect whether the then-branch diverged.
+                // If it did diverge AND the overall if didn't (either no else
+                // branch, or else also diverged but then the whole stmt would
+                // have diverged too), apply the else-narrowings to locals.
+                if !narrowings.is_empty() {
+                    let then_ty = self.expressions.get(&then_branch);
+                    let then_diverged = matches!(then_ty, Some(Ty::Never));
+
+                    if then_diverged && !stmt_diverges {
+                        // The then-branch always diverges but execution can
+                        // continue after this statement — so the else-narrowings
+                        // now hold for the rest of the block.
+                        crate::narrowing::apply_post_diverge_narrowings(
+                            &narrowings,
+                            &mut self.locals,
+                        );
+                    }
+
+                    // If there's no else and the then-branch diverges, we also
+                    // want to apply the else-narrowing even when the overall if
+                    // might not diverge (it diverges only if then always diverges
+                    // and there's no else, which is covered above).
+                    let _ = else_branch; // already handled via stmt_diverges check
+                }
+
+                return stmt_diverges;
+            }
+        }
+
+        // Default: delegate to check_stmt
+        self.check_stmt(stmt_id, body)
+    }
+
     // ── Helper methods ────────────────────────────────────────────────────────
+
+    /// Look up the *declared* type of an assignment target.
+    ///
+    /// Returns the original type from the parameter annotation or `let` type
+    /// annotation — unaffected by narrowing. Returns `None` for unannotated
+    /// let-bindings (including evolving containers) or non-simple targets.
+    fn get_declared_type(&self, target: ExprId, body: &ExprBody) -> Option<Ty> {
+        if let Expr::Path(segments) = &body.exprs[target] {
+            if segments.len() == 1 {
+                return self.declared_types.get(&segments[0]).cloned();
+            }
+        }
+        None
+    }
 
     /// Extract the short name from a qualified type name for package item lookups.
     fn unqualify(qn: &crate::ty::QualifiedTypeName) -> Name {
@@ -674,6 +884,8 @@ impl<'db> TypeInferenceBuilder<'db> {
     /// Resolve a member access on a known base type.
     ///
     /// For class types, checks data fields. For enum types, validates variants.
+    /// For builtin container types (`Ty::List`, `Ty::Map`) and `Ty::Primitive(String)`,
+    /// bridges to the `.baml`-declared builtin classes via `resolve_builtin_method`.
     /// Emits `UnresolvedMember` diagnostics when the base type is known but
     /// the member doesn't exist.
     pub fn resolve_member(&mut self, base_ty: &Ty, member: &Name, at: ExprId) -> Ty {
@@ -732,6 +944,72 @@ impl<'db> TypeInferenceBuilder<'db> {
                 );
                 Ty::Unknown
             }
+            Ty::List(element_ty) => {
+                // Bridge: int[] → Array<int> — resolve via builtin Array class.
+                self.resolve_builtin_method(&["Array"], &[element_ty.as_ref().clone()], member)
+                    .unwrap_or_else(|| {
+                        self.context.report_simple(
+                            TirTypeError::UnresolvedMember {
+                                base_type: base_ty.clone(),
+                                member: member.clone(),
+                            },
+                            at,
+                        );
+                        Ty::Unknown
+                    })
+            }
+            Ty::Map(key_ty, val_ty) => {
+                // Bridge: map<string, int> → Map<string, int>
+                self.resolve_builtin_method(
+                    &["Map"],
+                    &[key_ty.as_ref().clone(), val_ty.as_ref().clone()],
+                    member,
+                )
+                .unwrap_or_else(|| {
+                    self.context.report_simple(
+                        TirTypeError::UnresolvedMember {
+                            base_type: base_ty.clone(),
+                            member: member.clone(),
+                        },
+                        at,
+                    );
+                    Ty::Unknown
+                })
+            }
+            Ty::Primitive(PrimitiveType::String)
+            | Ty::Literal(baml_base::Literal::String(_), _) => {
+                // Bridge: string / "literal" → String class
+                self.resolve_builtin_method(&["String"], &[], member)
+                    .unwrap_or_else(|| {
+                        self.context.report_simple(
+                            TirTypeError::UnresolvedMember {
+                                base_type: base_ty.clone(),
+                                member: member.clone(),
+                            },
+                            at,
+                        );
+                        Ty::Unknown
+                    })
+            }
+            Ty::Primitive(
+                p @ (PrimitiveType::Image
+                | PrimitiveType::Audio
+                | PrimitiveType::Video
+                | PrimitiveType::Pdf),
+            ) => {
+                // Bridge: each media primitive → its own builtin class in baml.media
+                self.resolve_builtin_method(p.builtin_class_path(), &[], member)
+                    .unwrap_or_else(|| {
+                        self.context.report_simple(
+                            TirTypeError::UnresolvedMember {
+                                base_type: base_ty.clone(),
+                                member: member.clone(),
+                            },
+                            at,
+                        );
+                        Ty::Unknown
+                    })
+            }
             Ty::Union(members) => {
                 // For union types, try to resolve the field on each member.
                 // If ALL members have the field, return Union(resolved_types).
@@ -769,7 +1047,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                 Ty::Unknown
             }
             _ => {
-                // Other types (primitives, lists, maps, etc.) — no members
+                // Other types (other primitives, etc.) — no members
                 self.context.report_simple(
                     TirTypeError::UnresolvedMember {
                         base_type: base_ty.clone(),
@@ -798,6 +1076,24 @@ impl<'db> TypeInferenceBuilder<'db> {
                 }
                 None
             }
+            Ty::List(element_ty) => {
+                self.resolve_builtin_method(&["Array"], &[element_ty.as_ref().clone()], member)
+            }
+            Ty::Map(key_ty, val_ty) => self.resolve_builtin_method(
+                &["Map"],
+                &[key_ty.as_ref().clone(), val_ty.as_ref().clone()],
+                member,
+            ),
+            Ty::Primitive(PrimitiveType::String)
+            | Ty::Literal(baml_base::Literal::String(_), _) => {
+                self.resolve_builtin_method(&["String"], &[], member)
+            }
+            Ty::Primitive(
+                p @ (PrimitiveType::Image
+                | PrimitiveType::Audio
+                | PrimitiveType::Video
+                | PrimitiveType::Pdf),
+            ) => self.resolve_builtin_method(p.builtin_class_path(), &[], member),
             Ty::Optional(inner) => {
                 // Drill through Optional to resolve the member on the inner type
                 self.try_resolve_member_on_ty(inner, member)
@@ -912,6 +1208,145 @@ impl<'db> TypeInferenceBuilder<'db> {
         None
     }
 
+    /// Check if a FieldAccess base is a primitive type name used for static
+    /// method access (e.g. `image.from_url(...)`, `pdf.from_base64(...)`).
+    ///
+    /// Returns `Some(method_ty)` if the base is a recognized primitive type name
+    /// and the field is a valid static method on the corresponding builtin class.
+    /// Returns `None` to fall through to normal FieldAccess resolution.
+    fn try_primitive_static_access(
+        &self,
+        base_id: ExprId,
+        field: &Name,
+        body: &ExprBody,
+    ) -> Option<Ty> {
+        let base_expr = &body.exprs[base_id];
+        let Expr::Path(segments) = base_expr else {
+            return None;
+        };
+        if segments.len() != 1 {
+            return None;
+        }
+        let name = segments[0].as_str();
+
+        // Map lowercase primitive type names to their builtin class paths.
+        let class_path: &[&str] = match name {
+            "image" => &["media", "Image"],
+            "audio" => &["media", "Audio"],
+            "video" => &["media", "Video"],
+            "pdf" => &["media", "Pdf"],
+            "string" => &["String"],
+            _ => return None,
+        };
+
+        self.resolve_builtin_method(class_path, &[], field)
+    }
+
+    /// Resolve a method or field on a builtin class declared in the `"baml"` package.
+    ///
+    /// 1. Fetches `package_items(db, "baml")`.
+    /// 2. Looks up `class_name` in the root namespace.
+    /// 3. Binds the class's `generic_params` to `type_args` (e.g. `{T → int}`).
+    /// 4. Searches the class methods for `member_name`, lowering the method's
+    ///    parameter and return types with type variable substitution applied.
+    /// 5. Falls back to checking class fields.
+    ///
+    /// Returns `None` if the class or member is not found.
+    fn resolve_builtin_method(
+        &self,
+        class_path: &[&str],
+        type_args: &[Ty],
+        member_name: &Name,
+    ) -> Option<Ty> {
+        let db = self.context.db();
+        let baml_pkg_id =
+            baml_compiler2_hir::package::PackageId::new(db, baml_base::Name::new("baml"));
+        let baml_items = baml_compiler2_hir::package::package_items(db, baml_pkg_id);
+
+        // Look up the class by path (e.g. &["Array"] or &["media", "Image"]).
+        let path: Vec<Name> = class_path.iter().map(|s| baml_base::Name::new(s)).collect();
+        let def = baml_items.lookup_type(&path)?;
+        let baml_compiler2_hir::contributions::Definition::Class(class_loc) = def else {
+            return None;
+        };
+
+        let file = class_loc.file(db);
+        let item_tree = baml_compiler2_hir::file_item_tree(db, file);
+        let class_data = &item_tree[class_loc.id(db)];
+
+        // Bind generic type variables: e.g. {T → int} for Array<int>.
+        let bindings = crate::generics::bind_type_vars(&class_data.generic_params, type_args);
+
+        // Search methods first.
+        for &method_id in &class_data.methods {
+            let method_data = &item_tree[method_id];
+            if method_data.name == *member_name {
+                let func_loc = baml_compiler2_hir::loc::FunctionLoc::new(db, file, method_id);
+                let sig = baml_compiler2_hir::signature::function_signature(db, func_loc);
+                let mut diags = Vec::new();
+                let params: Vec<(Option<Name>, Ty)> = sig
+                    .params
+                    .iter()
+                    .map(|(n, te)| {
+                        let ty = crate::generics::lower_type_expr_with_generics(
+                            db,
+                            te,
+                            self.package_items,
+                            &bindings,
+                            &mut diags,
+                        );
+                        (Some(n.clone()), ty)
+                    })
+                    .collect();
+                let ret = sig
+                    .return_type
+                    .as_ref()
+                    .map(|te| {
+                        crate::generics::lower_type_expr_with_generics(
+                            db,
+                            te,
+                            self.package_items,
+                            &bindings,
+                            &mut diags,
+                        )
+                    })
+                    .unwrap_or(Ty::Void);
+                // Discard diags — they will be reported at the definition site
+                // (the builtin .baml stub). We don't want to spam user code
+                // with unresolved-type errors from builtin signatures.
+                drop(diags);
+                return Some(Ty::Function {
+                    params,
+                    ret: Box::new(ret),
+                });
+            }
+        }
+
+        // Fall back to fields (e.g. Request.method, Request.url).
+        for field in &class_data.fields {
+            if field.name == *member_name {
+                let mut diags = Vec::new();
+                let field_ty = field
+                    .type_expr
+                    .as_ref()
+                    .map(|te| {
+                        crate::generics::lower_type_expr_with_generics(
+                            db,
+                            &te.expr,
+                            self.package_items,
+                            &bindings,
+                            &mut diags,
+                        )
+                    })
+                    .unwrap_or(Ty::Unknown);
+                drop(diags);
+                return Some(field_ty);
+            }
+        }
+
+        None
+    }
+
     /// Look up enum variants from the package items (via item tree).
     fn lookup_enum_variants(&self, enum_name: &crate::ty::QualifiedTypeName) -> Vec<Name> {
         let short = Self::unqualify(enum_name);
@@ -946,13 +1381,19 @@ impl<'db> TypeInferenceBuilder<'db> {
 
     /// Try to handle a container mutation method call: x.push(val) / x.append(val).
     ///
+    /// This is the "evolving path" for container mutations — it intercepts
+    /// `.push()` / `.append()` and index assignment *before* normal method
+    /// resolution via `resolve_builtin_method`. See the doc comment on
+    /// `Ty::EvolvingList` for why two paths exist.
+    ///
     /// If the callee is `base.push(arg)` or `base.append(arg)` where base is a
-    /// local with type `List(T)`:
-    /// - If `T == Never`: first establishment → update local to `List(arg_ty)`
+    /// local with type `List(T)` or `EvolvingList(T)`:
+    /// - If `T == Never`: first establishment → update local to `[Evolving]List(arg_ty)`
     /// - If `arg_ty <: T`: ok
     /// - Otherwise: type error
     ///
-    /// Returns `Some(return_ty)` if handled, `None` to fall through to general case.
+    /// Returns `Some(return_ty)` if handled, `None` to fall through to the
+    /// builtin method resolution path.
     fn try_container_method_call(
         &mut self,
         call_expr_id: ExprId,

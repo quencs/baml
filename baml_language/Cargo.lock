@@ -343,6 +343,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "baml_builtins2"
+version = "0.0.0-beta"
+
+[[package]]
 name = "baml_builtins_macros"
 version = "0.0.0-beta"
 dependencies = [
@@ -406,6 +410,8 @@ version = "0.1.0"
 dependencies = [
  "baml_base",
  "baml_compiler_diagnostics",
+ "baml_compiler_lexer",
+ "baml_compiler_parser",
  "baml_compiler_syntax",
  "la-arena",
  "rowan 0.16.1",
@@ -716,6 +722,7 @@ name = "baml_project"
 version = "0.0.0-beta"
 dependencies = [
  "baml_builtins",
+ "baml_builtins2",
  "baml_compiler2_hir",
  "baml_compiler2_tir",
  "baml_compiler_diagnostics",

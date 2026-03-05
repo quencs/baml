@@ -15,9 +15,10 @@ use rowan::ast::AstNode;
 
 use crate::{
     ast::{
-        ClientDef, ConfigItemDef, EnumDef, FieldDef, FunctionBodyDef, FunctionDef, GeneratorDef,
-        Interpolation, Item, LlmBodyDef, Param, RawAttribute, RawAttributeArg, RawPrompt,
-        RetryPolicyDef, SpannedTypeExpr, TemplateStringDef, TestDef, TypeAliasDef, VariantDef,
+        BuiltinKind, ClientDef, ConfigItemDef, EnumDef, FieldDef, FunctionBodyDef, FunctionDef,
+        GeneratorDef, Interpolation, Item, LlmBodyDef, Param, RawAttribute, RawAttributeArg,
+        RawPrompt, RetryPolicyDef, SpannedTypeExpr, TemplateStringDef, TestDef, TypeAliasDef,
+        VariantDef,
     },
     lower_expr_body, lower_type_expr,
 };
@@ -94,6 +95,8 @@ fn lower_function(node: &SyntaxNode) -> Option<FunctionDef> {
     let name = Name::new(name_token.text());
     let name_span = name_token.text_range();
 
+    let generic_params = extract_generic_params(node);
+
     let params = func
         .param_list()
         .map(|pl| lower_params(&pl))
@@ -107,9 +110,14 @@ fn lower_function(node: &SyntaxNode) -> Option<FunctionDef> {
     let body = if let Some(llm) = func.llm_body() {
         Some(FunctionBodyDef::Llm(lower_llm_body(&llm)))
     } else if let Some(expr) = func.expr_body() {
-        let param_names: Vec<Name> = params.iter().map(|p| p.name.clone()).collect();
-        let (expr_body, source_map) = lower_expr_body::lower(&expr, &param_names);
-        Some(FunctionBodyDef::Expr(expr_body, source_map))
+        // Check if the body is `$rust_function` or `$rust_io_function` before lowering
+        if let Some(builtin_kind) = check_builtin_body(expr.syntax()) {
+            Some(FunctionBodyDef::Builtin(builtin_kind))
+        } else {
+            let param_names: Vec<Name> = params.iter().map(|p| p.name.clone()).collect();
+            let (expr_body, source_map) = lower_expr_body::lower(&expr, &param_names);
+            Some(FunctionBodyDef::Expr(expr_body, source_map))
+        }
     } else {
         None
     };
@@ -118,6 +126,7 @@ fn lower_function(node: &SyntaxNode) -> Option<FunctionDef> {
 
     Some(FunctionDef {
         name,
+        generic_params,
         params,
         return_type,
         body,
@@ -125,6 +134,35 @@ fn lower_function(node: &SyntaxNode) -> Option<FunctionDef> {
         span: node.text_range(),
         name_span,
     })
+}
+
+/// Check if an `EXPR_FUNCTION_BODY` node's content is a single `$rust_function`
+/// or `$rust_io_function` word. Returns the `BuiltinKind` if so.
+///
+/// The expected CST structure is:
+/// `EXPR_FUNCTION_BODY { BLOCK_EXPR { L_BRACE PATH_EXPR { WORD("$rust_function") } R_BRACE } }`
+fn check_builtin_body(expr_body_node: &SyntaxNode) -> Option<BuiltinKind> {
+    use baml_compiler_syntax::SyntaxKind;
+
+    // Collect all non-trivia tokens from the body
+    let meaningful_tokens: Vec<_> = expr_body_node
+        .descendants_with_tokens()
+        .filter_map(|elem| elem.into_token())
+        .filter(|t| {
+            let kind: SyntaxKind = t.kind().into();
+            !kind.is_trivia() && kind != SyntaxKind::L_BRACE && kind != SyntaxKind::R_BRACE
+        })
+        .collect();
+
+    if meaningful_tokens.len() == 1 {
+        let text = meaningful_tokens[0].text();
+        match text {
+            "$rust_function" => return Some(BuiltinKind::Vm),
+            "$rust_io_function" => return Some(BuiltinKind::Io),
+            _ => {}
+        }
+    }
+    None
 }
 
 fn lower_params(pl: &ast::ParameterList) -> Vec<Param> {
@@ -213,6 +251,8 @@ fn lower_class(node: &SyntaxNode) -> Option<crate::ast::ClassDef> {
     let class = ast::ClassDef::cast(node.clone())?;
     let name_token = class.name()?;
 
+    let generic_params = extract_generic_params(node);
+
     let fields = class
         .fields()
         .filter_map(|f| {
@@ -238,12 +278,42 @@ fn lower_class(node: &SyntaxNode) -> Option<crate::ast::ClassDef> {
 
     Some(crate::ast::ClassDef {
         name: Name::new(name_token.text()),
+        generic_params,
         fields,
         methods,
         attributes: lower_attributes_from_node(node),
         span: node.text_range(),
         name_span: name_token.text_range(),
     })
+}
+
+/// Extract generic type parameter names from a `GENERIC_PARAM_LIST` CST child.
+///
+/// Walks the direct children of `node` to find a `GENERIC_PARAM_LIST`, then
+/// extracts each `GENERIC_PARAM` child's `WORD` token as a `Name`.
+fn extract_generic_params(node: &SyntaxNode) -> Vec<Name> {
+    use baml_compiler_syntax::SyntaxKind;
+
+    let mut params = Vec::new();
+    for child in node.children() {
+        let child_kind: SyntaxKind = child.kind().into();
+        if child_kind == SyntaxKind::GENERIC_PARAM_LIST {
+            for param_node in child.children() {
+                let param_kind: SyntaxKind = param_node.kind().into();
+                if param_kind == SyntaxKind::GENERIC_PARAM {
+                    for elem in param_node.children_with_tokens() {
+                        if let Some(token) = elem.as_token() {
+                            let token_kind: SyntaxKind = token.kind().into();
+                            if token_kind == SyntaxKind::WORD {
+                                params.push(Name::new(token.text()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    params
 }
 
 fn lower_enum(node: &SyntaxNode) -> Option<EnumDef> {

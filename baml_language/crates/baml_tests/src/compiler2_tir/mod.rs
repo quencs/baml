@@ -9,6 +9,12 @@ mod inference;
 #[cfg(test)]
 mod phase3a;
 mod phase3a_recursion;
+#[cfg(test)]
+mod phase5;
+#[cfg(test)]
+mod phase6;
+#[cfg(test)]
+mod phase7;
 
 #[cfg(test)]
 pub(crate) mod support {
@@ -76,6 +82,7 @@ pub(crate) mod support {
             }
             TypeExpr::BuiltinUnknown => "unknown".into(),
             TypeExpr::Type => "type".into(),
+            TypeExpr::Rust => "$rust_type".into(),
             TypeExpr::Error => "error".into(),
             TypeExpr::Unknown => "?".into(),
         }

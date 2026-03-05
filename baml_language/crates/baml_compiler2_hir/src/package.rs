@@ -118,13 +118,15 @@ impl<'db> PackageItems<'db> {
 /// each namespace's contribution independently.
 #[salsa::tracked(returns(ref))]
 pub fn package_items<'db>(db: &'db dyn crate::Db, package_id: PackageId<'db>) -> PackageItems<'db> {
-    let project = db.project();
     let package_name = package_id.name(db);
 
     // Discover all unique namespace paths for this package.
+    // Use compiler2_all_files() so that compiler2-only builtin stubs (e.g.
+    // Array<T>, Map<K,V>) are visible here without being added to the v1
+    // compiler's project.files() list.
     let mut ns_paths: std::collections::HashSet<Vec<Name>> = std::collections::HashSet::new();
-    for file in project.files(db).iter() {
-        let pkg_info = crate::file_package::file_package(db, *file);
+    for file in crate::compiler2_all_files(db) {
+        let pkg_info = crate::file_package::file_package(db, file);
         if pkg_info.package == *package_name {
             ns_paths.insert(pkg_info.namespace_path.clone());
         }

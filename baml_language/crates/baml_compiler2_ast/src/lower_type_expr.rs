@@ -249,6 +249,7 @@ fn lower_from_type_name(name: &str) -> TypeExpr {
         "null" => TypeExpr::Null,
         "unknown" => TypeExpr::BuiltinUnknown,
         "type" => TypeExpr::Type,
+        "$rust_type" => TypeExpr::Rust,
         "image" => TypeExpr::Media(baml_base::MediaKind::Image),
         "audio" => TypeExpr::Media(baml_base::MediaKind::Audio),
         "video" => TypeExpr::Media(baml_base::MediaKind::Video),

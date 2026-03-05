@@ -69,9 +69,30 @@ pub enum Ty {
     /// Parallel to `Freshness` on literals: `make_evolving()` is the mirror
     /// of `widen_fresh()` — both called at `let` binding sites without
     /// type annotations.
+    ///
+    /// # Two parallel paths for container mutations
+    ///
+    /// There are two ways container method calls (e.g. `.push()`) are resolved:
+    ///
+    /// 1. **Evolving path** (`try_container_method_call` in `builder.rs`): For
+    ///    mutable locals, `.push(x)` is intercepted *before* normal method
+    ///    resolution. It widens the element type in-place (e.g. `EvolvingList(Never)`
+    ///    → `EvolvingList(int)`) and returns `Void`. This path takes priority.
+    ///
+    /// 2. **Builtin method path** (`resolve_builtin_method` in `builder.rs`): For
+    ///    typed arrays (e.g. `let arr: int[] = ...`), `.push(x)` is resolved via
+    ///    the `Array<T>` class declared in `baml_builtins2/baml/containers.baml`.
+    ///    The type checker bridges `Ty::List(int)` → `Array<int>`, binds `T = int`,
+    ///    and type-checks the call against the method signature. This path does NOT
+    ///    widen — the element type is already known.
+    ///
+    /// The evolving path exists because empty containers (`[]`, `{}`) need
+    /// flow-sensitive type refinement that the static builtin signatures can't
+    /// express. Once an evolving container is read, it freezes to a normal
+    /// `List`/`Map` and subsequent method calls go through the builtin path.
     EvolvingList(Box<Ty>),
     /// Evolving map — created from empty map literal at mutable binding sites.
-    /// Same semantics as `EvolvingList` but for maps.
+    /// Same semantics as `EvolvingList` but for maps (see doc on `EvolvingList`).
     EvolvingMap(Box<Ty>, Box<Ty>),
     /// Function type: (params) -> return.
     Function {
@@ -107,6 +128,15 @@ pub enum Ty {
     /// sentinel meaning "type inference failed". `BuiltinUnknown` is a well-formed
     /// type that appears in valid programs; `Unknown` signals a compiler error.
     BuiltinUnknown,
+    /// Opaque Rust-managed state.
+    ///
+    /// Used for `$rust_type` fields in builtin class stubs (e.g., `Media._data`,
+    /// `Response._body`). The containing class is non-constructable from user code.
+    /// Fields of this type cannot be accessed directly from BAML code.
+    ///
+    /// This is distinct from `Ty::Unknown` (which means "type inference failed") —
+    /// `RustType` is intentional and well-formed in the builtin stubs.
+    RustType,
     /// Error recovery — the type is structurally unknown (e.g., name unresolved).
     Unknown,
     /// Error sentinel — a hard error was emitted for this expression.
@@ -127,6 +157,23 @@ pub enum PrimitiveType {
 }
 
 impl PrimitiveType {
+    /// Map media primitives to their builtin class path in the `baml` package.
+    ///
+    /// Each media primitive (`image`, `audio`, `video`, `pdf`) has a
+    /// corresponding class declared in `baml_builtins2/baml_std/baml/media.baml`
+    /// (e.g. `class Image { ... }`). The file is at `<builtin>/baml/media.baml`
+    /// which routes to the `baml.media` namespace, so the lookup path is
+    /// `&["media", "Image"]` etc.
+    pub fn builtin_class_path(&self) -> &'static [&'static str] {
+        match self {
+            Self::Image => &["media", "Image"],
+            Self::Audio => &["media", "Audio"],
+            Self::Video => &["media", "Video"],
+            Self::Pdf => &["media", "Pdf"],
+            other => panic!("{other:?} is not a media primitive with a builtin class"),
+        }
+    }
+
     pub fn from_literal(lit: &baml_base::Literal) -> Self {
         match lit {
             baml_base::Literal::Int(_) => Self::Int,
@@ -235,6 +282,7 @@ impl fmt::Display for Ty {
             Ty::Never => write!(f, "never"),
             Ty::Void => write!(f, "void"),
             Ty::BuiltinUnknown => write!(f, "unknown"),
+            Ty::RustType => write!(f, "$rust_type"),
             Ty::Unknown => write!(f, "unknown"),
             Ty::Error => write!(f, "!error"),
         }

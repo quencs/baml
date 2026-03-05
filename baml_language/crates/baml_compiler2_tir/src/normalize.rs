@@ -361,6 +361,10 @@ fn normalize_impl(
                 .collect(),
             ret: Box::new(normalize_impl(ret, aliases, recursive, expanding)),
         },
+        // `$rust_type` — opaque Rust-managed state. Treated as Unknown
+        // in the structural type system (cannot be constructed or destructured
+        // by user code).
+        Ty::RustType => StructuralTy::Unknown,
     }
 }
 

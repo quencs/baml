@@ -68,6 +68,8 @@ pub enum TypeExpr {
     BuiltinUnknown,
     /// The `type` meta-type keyword
     Type,
+    /// `$rust_type` — opaque Rust-managed state field type.
+    Rust,
     /// Error recovery sentinel
     Error,
     /// Unknown/missing type
@@ -375,6 +377,8 @@ pub enum Item {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDef {
     pub name: Name,
+    /// Generic type parameters (e.g., `["T", "U"]`). Empty for non-generic functions.
+    pub generic_params: Vec<Name>,
     pub params: Vec<Param>,
     pub return_type: Option<SpannedTypeExpr>,
     pub body: Option<FunctionBodyDef>,
@@ -387,6 +391,17 @@ pub struct FunctionDef {
 pub enum FunctionBodyDef {
     Llm(LlmBodyDef),
     Expr(ExprBody, AstSourceMap),
+    /// Body is `$rust_function` or `$rust_io_function` — Rust-bound implementation.
+    Builtin(BuiltinKind),
+}
+
+/// What kind of builtin a function is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BuiltinKind {
+    /// VM instruction — fast, synchronous, no I/O.
+    Vm,
+    /// I/O operation — may be async, may fail with I/O errors.
+    Io,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -421,6 +436,8 @@ pub struct Param {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClassDef {
     pub name: Name,
+    /// Generic type parameters (e.g., `["T"]` for `Array<T>`). Empty for non-generic classes.
+    pub generic_params: Vec<Name>,
     pub fields: Vec<FieldDef>,
     pub methods: Vec<FunctionDef>,
     pub attributes: Vec<RawAttribute>,

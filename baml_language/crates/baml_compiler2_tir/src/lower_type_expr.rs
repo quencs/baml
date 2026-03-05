@@ -96,6 +96,8 @@ pub fn lower_type_expr(
         TypeExpr::BuiltinUnknown => Ty::BuiltinUnknown,
         TypeExpr::Error | TypeExpr::Unknown => Ty::Unknown,
         TypeExpr::Type => Ty::Unknown,
+        // `$rust_type` — opaque Rust-managed state field type.
+        TypeExpr::Rust => Ty::RustType,
     }
 }
 

@@ -66,6 +66,7 @@ fn hir2_type_expr_to_string(ty: &baml_compiler2_ast::TypeExpr) -> String {
         }
         TypeExpr::BuiltinUnknown => "unknown".into(),
         TypeExpr::Type => "type".into(),
+        TypeExpr::Rust => "$rust_type".into(),
         TypeExpr::Error => "error".into(),
         TypeExpr::Unknown => "?".into(),
     }
@@ -1560,6 +1561,7 @@ impl CompilerRunner {
                         let body_kind = match &f.body {
                             Some(FunctionBodyDef::Expr(_, _)) => "expr",
                             Some(FunctionBodyDef::Llm(_)) => "llm",
+                            Some(FunctionBodyDef::Builtin(_)) => "builtin",
                             None => "-",
                         };
                         let sig = format!("({}) -> {}", params_str.join(", "), ret_str);
