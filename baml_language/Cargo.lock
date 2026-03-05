@@ -717,6 +717,7 @@ version = "0.0.0-beta"
 dependencies = [
  "baml_base",
  "baml_compiler_tir",
+ "baml_project",
 ]
 
 [[package]]

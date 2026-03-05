@@ -16,10 +16,12 @@ pub use baml_base::{Literal, MediaKind, Name, Span};
 mod attr;
 mod convert;
 mod defs;
+mod simplify;
 pub mod typetag;
 pub use attr::*;
 pub use convert::{convert_tir_ty, fqn_to_type_name, sanitize_for_runtime};
 pub use defs::*;
+pub use simplify::simplify;
 
 /// A lightweight name type for class/enum/type-alias references.
 ///

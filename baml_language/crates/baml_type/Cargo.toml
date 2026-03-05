@@ -7,3 +7,6 @@ rust-version.workspace = true
 [dependencies]
 baml_base = { workspace = true }
 baml_compiler_tir = { workspace = true }
+
+[dev-dependencies]
+baml_project = { workspace = true }
