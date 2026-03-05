@@ -129,6 +129,7 @@ pub struct AstSourceMap {
     pub stmt_spans: Arena<TextRange>,
     pub pattern_spans: Arena<TextRange>,
     pub match_arm_spans: Arena<TextRange>,
+    pub type_annotation_spans: Arena<TextRange>,
     pub catch_arm_spans: Arena<TextRange>,
 }
 
@@ -139,6 +140,7 @@ impl AstSourceMap {
             stmt_spans: Arena::new(),
             pattern_spans: Arena::new(),
             match_arm_spans: Arena::new(),
+            type_annotation_spans: Arena::new(),
             catch_arm_spans: Arena::new(),
         }
     }
@@ -170,6 +172,16 @@ impl AstSourceMap {
     pub fn pattern_span(&self, id: PatId) -> TextRange {
         let raw: u32 = id.into_raw().into_u32();
         self.pattern_spans
+            .iter()
+            .nth(raw as usize)
+            .map(|(_, &span)| span)
+            .unwrap_or_default()
+    }
+
+    /// Look up the source span of a type annotation by its `TypeAnnotId`.
+    pub fn type_annotation_span(&self, id: TypeAnnotId) -> TextRange {
+        let raw: u32 = id.into_raw().into_u32();
+        self.type_annotation_spans
             .iter()
             .nth(raw as usize)
             .map(|(_, &span)| span)

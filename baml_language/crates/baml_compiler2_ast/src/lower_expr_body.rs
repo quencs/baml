@@ -105,8 +105,16 @@ impl LoweringContext {
         id
     }
 
-    fn alloc_type_annot(&mut self, ty: TypeExpr) -> TypeAnnotId {
-        self.type_annotations.alloc(ty)
+    fn alloc_catch_arm(&mut self, arm: CatchArm, range: TextRange) -> CatchArmId {
+        let id = self.catch_arms.alloc(arm);
+        self.source_map.catch_arm_spans.alloc(range);
+        id
+    }
+
+    fn alloc_type_annot(&mut self, ty: TypeExpr, range: TextRange) -> TypeAnnotId {
+        let id = self.type_annotations.alloc(ty);
+        self.source_map.type_annotation_spans.alloc(range);
+        id
     }
 
     /// Try to lower a bare token (not wrapped in a node) into an expression.
@@ -583,8 +591,9 @@ impl LoweringContext {
                         if let Some(type_expr) =
                             baml_compiler_syntax::ast::TypeExpr::cast(child.clone())
                         {
+                            let span = child.text_range();
                             let ty = crate::lower_type_expr::lower_type_expr_node(&type_expr);
-                            scrutinee_type = Some(self.alloc_type_annot(ty));
+                            scrutinee_type = Some(self.alloc_type_annot(ty, span));
                         }
                     }
                     _ => {
@@ -1744,8 +1753,9 @@ impl LoweringContext {
                             if let Some(type_expr) =
                                 baml_compiler_syntax::ast::TypeExpr::cast(child.clone())
                             {
+                                let span = child.text_range();
                                 let ty = crate::lower_type_expr::lower_type_expr_node(&type_expr);
-                                type_annotation = Some(self.alloc_type_annot(ty));
+                                type_annotation = Some(self.alloc_type_annot(ty, span));
                                 seen_colon = false;
                             }
                         } else if pattern_id.is_none() {
