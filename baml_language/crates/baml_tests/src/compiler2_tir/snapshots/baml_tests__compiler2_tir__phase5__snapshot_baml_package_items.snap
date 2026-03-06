@@ -1,6 +1,5 @@
 ---
 source: crates/baml_tests/src/compiler2_tir/phase5.rs
-assertion_line: 391
 expression: output
 ---
 namespace baml:
@@ -19,8 +18,12 @@ namespace baml:
   function call_llm_function
   function execute_client
   function execute_client_once
+  function execute_client_once_stream
+  function execute_client_stream
   function render_prompt
   function resolve_primitive
+  function stream_llm_function
+  function stream_primitive
 namespace baml.env:
   function get
 namespace baml.http:
