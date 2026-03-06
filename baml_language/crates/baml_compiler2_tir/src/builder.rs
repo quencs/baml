@@ -79,6 +79,8 @@ pub struct TypeInferenceBuilder<'db> {
     scope: ScopeId<'db>,
     /// Declared return type for the function (used to check return statements).
     declared_return_ty: Option<Ty>,
+    /// Source span of the return type annotation (for precise diagnostics).
+    return_type_span: Option<TextRange>,
     /// Local variable bindings: name → inferred type (flow-sensitive, updated
     /// by narrowing and assignments).
     locals: FxHashMap<Name, Ty>,
@@ -115,6 +117,7 @@ impl<'db> TypeInferenceBuilder<'db> {
             package_id,
             scope,
             declared_return_ty: None,
+            return_type_span: None,
             locals: FxHashMap::default(),
             declared_types: FxHashMap::default(),
             aliases,
@@ -137,6 +140,11 @@ impl<'db> TypeInferenceBuilder<'db> {
     /// Set the declared return type (for return statement checking).
     pub fn set_return_type(&mut self, ty: Ty) {
         self.declared_return_ty = Some(ty);
+    }
+
+    /// Set the source span of the return type annotation.
+    pub fn set_return_type_span(&mut self, span: TextRange) {
+        self.return_type_span = Some(span);
     }
 
     /// Report a type error at a raw source span (for type annotations).
@@ -396,14 +404,14 @@ impl<'db> TypeInferenceBuilder<'db> {
                 } else if let Some(tail) = tail_expr {
                     self.check_expr(*tail, body, expected)
                 } else if !matches!(expected, Ty::Unknown | Ty::Void) {
-                    // No tail expression, no divergence — block falls through
-                    // without producing a value. Report missing return.
-                    self.context.report_simple(
-                        TirTypeError::MissingReturn {
-                            expected: expected.clone(),
-                        },
-                        expr_id,
-                    );
+                    let error = TirTypeError::MissingReturn {
+                        expected: expected.clone(),
+                    };
+                    if let Some(span) = self.return_type_span {
+                        self.context.report_at_span(error, span);
+                    } else {
+                        self.context.report_simple(error, expr_id);
+                    }
                     expected.clone()
                 } else {
                     Ty::Void
@@ -2127,19 +2135,19 @@ impl<'db> TypeInferenceBuilder<'db> {
                 let item_tree = baml_compiler2_hir::file_item_tree(self.context.db(), file);
                 let class_data = &item_tree[class_loc.id(self.context.db())];
                 for field in &class_data.fields {
-                    let mut diags = Vec::new();
                     let field_ty = field
                         .type_expr
                         .as_ref()
                         .map(|te| {
-                            let ty = crate::lower_type_expr::lower_type_expr(
+                            let mut spanned_diags = Vec::new();
+                            let ty = crate::lower_type_expr::lower_spanned_type_expr(
                                 self.context.db(),
-                                &te.expr,
+                                te,
                                 self.package_items,
-                                &mut diags,
+                                &mut spanned_diags,
                             );
-                            for diag in diags.drain(..) {
-                                self.context.report_at_span(diag, te.span);
+                            for (diag, span) in spanned_diags {
+                                self.context.report_at_span(diag, span);
                             }
                             ty
                         })
@@ -2338,7 +2346,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                     .map(|te| {
                         crate::generics::lower_type_expr_with_generics(
                             db,
-                            &te.expr,
+                            &te.to_type_expr(),
                             self.package_items,
                             &bindings,
                             &mut diags,

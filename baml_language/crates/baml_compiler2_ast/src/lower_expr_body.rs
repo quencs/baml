@@ -586,8 +586,9 @@ impl LoweringContext {
                             baml_compiler_syntax::ast::TypeExpr::cast(child.clone())
                         {
                             let span = child.text_range();
-                            let ty = crate::lower_type_expr::lower_type_expr_node(&type_expr);
-                            scrutinee_type = Some(self.alloc_type_annot(ty, span));
+                            let spanned = crate::lower_type_expr::lower_type_expr_node(&type_expr);
+                            scrutinee_type =
+                                Some(self.alloc_type_annot(spanned.to_type_expr(), span));
                         }
                     }
                     _ => {
@@ -892,9 +893,12 @@ impl LoweringContext {
                                 if let Some(type_expr) =
                                     baml_compiler_syntax::ast::TypeExpr::cast(child.clone())
                                 {
-                                    let ty =
+                                    let spanned =
                                         crate::lower_type_expr::lower_type_expr_node(&type_expr);
-                                    let pat = Pattern::TypedBinding { name, ty };
+                                    let pat = Pattern::TypedBinding {
+                                        name,
+                                        ty: spanned.to_type_expr(),
+                                    };
                                     elements.push(self.alloc_pattern(pat, child.text_range()));
                                 }
                             }
@@ -1748,8 +1752,10 @@ impl LoweringContext {
                                 baml_compiler_syntax::ast::TypeExpr::cast(child.clone())
                             {
                                 let span = child.text_range();
-                                let ty = crate::lower_type_expr::lower_type_expr_node(&type_expr);
-                                type_annotation = Some(self.alloc_type_annot(ty, span));
+                                let spanned =
+                                    crate::lower_type_expr::lower_type_expr_node(&type_expr);
+                                type_annotation =
+                                    Some(self.alloc_type_annot(spanned.to_type_expr(), span));
                                 seen_colon = false;
                             }
                         } else if pattern_id.is_none() {

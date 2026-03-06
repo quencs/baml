@@ -336,7 +336,7 @@ class Media {
             .expect("expected _data field");
 
         match &field.type_expr {
-            Some(spanned) => match &spanned.expr {
+            Some(spanned) => match spanned.to_type_expr() {
                 TypeExpr::Rust => {}
                 other => panic!("expected TypeExpr::Rust, got {other:?}"),
             },
@@ -446,7 +446,11 @@ class Media {
             assert!(data_field.is_some(), "expected _data field");
             assert!(
                 matches!(
-                    data_field.unwrap().type_expr.as_ref().map(|te| &te.expr),
+                    data_field
+                        .unwrap()
+                        .type_expr
+                        .as_ref()
+                        .map(super::ast::SpannedTypeExpr::to_type_expr),
                     Some(TypeExpr::Rust)
                 ),
                 "_data field should have TypeExpr::Rust"
@@ -467,10 +471,10 @@ function f() -> int throws never {
         let throws = func
             .throws
             .expect("expected throws clause to be lowered into FunctionDef.throws");
+        let throws_te = throws.to_type_expr();
         assert!(
-            matches!(throws.expr, TypeExpr::Never),
-            "expected throws type to lower as TypeExpr::Never, got {:?}",
-            throws.expr
+            matches!(throws_te, TypeExpr::Never),
+            "expected throws type to lower as TypeExpr::Never, got {throws_te:?}"
         );
     }
 

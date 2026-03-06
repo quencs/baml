@@ -53,7 +53,7 @@ fn unknown_type_in_param() {
       { : never
         return 0 : 0
       }
-      !! 11..25: unresolved type: Nonexistent
+      !! 14..25: unresolved type: `Nonexistent`
     }
     ");
 }
@@ -67,7 +67,7 @@ fn unknown_type_in_return() {
       { : never
         return 0 : 0
       }
-      !! 15..28: unresolved type: DoesNotExist
+      !! 16..28: unresolved type: `DoesNotExist`
     }
     ");
 }
@@ -206,7 +206,7 @@ fn missing_return() {
       { : int
         let x = 1 : 1 -> int
       }
-      !! 19..34: missing return: expected `int`
+      !! 16..19: missing return: expected `int`
     }
     ");
 }
@@ -220,7 +220,7 @@ fn block_ending_in_stmt() {
       { : string
         let x = "hello" : "hello" -> string
       }
-      !! 22..43: missing return: expected `string`
+      !! 16..22: missing return: expected `string`
     }
     "#);
 }

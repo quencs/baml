@@ -1569,7 +1569,7 @@ impl CompilerRunner {
                                         format!(
                                             "{}: {}",
                                             p.name.as_str(),
-                                            hir2_type_expr_to_string(&te.expr)
+                                            hir2_type_expr_to_string(&te.to_type_expr())
                                         )
                                     })
                                     .unwrap_or_else(|| p.name.as_str().to_string())
@@ -1578,7 +1578,7 @@ impl CompilerRunner {
                         let ret_str = f
                             .return_type
                             .as_ref()
-                            .map(|te| hir2_type_expr_to_string(&te.expr))
+                            .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
                             .unwrap_or_else(|| "?".to_string());
                         let body_kind = match &f.body {
                             Some(FunctionBodyDef::Expr(_, _)) => "expr",
@@ -1597,7 +1597,7 @@ impl CompilerRunner {
                                 detail.push(format!(
                                     "  param {}: {}",
                                     p.name,
-                                    hir2_type_expr_to_string(&te.expr)
+                                    hir2_type_expr_to_string(&te.to_type_expr())
                                 ));
                             }
                         }
@@ -1698,7 +1698,7 @@ impl CompilerRunner {
                             let ty_str = field
                                 .type_expr
                                 .as_ref()
-                                .map(|te| hir2_type_expr_to_string(&te.expr))
+                                .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
                                 .unwrap_or_else(|| "?".to_string());
                             detail.push(format!("    {}: {}", field.name, ty_str));
                         }
@@ -1755,7 +1755,7 @@ impl CompilerRunner {
                     let ty_str = ta
                         .type_expr
                         .as_ref()
-                        .map(|te| hir2_type_expr_to_string(&te.expr))
+                        .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
                         .unwrap_or_else(|| "?".to_string());
                     let mut detail = vec![format!("type {}", ta.name), format!("  = {}", ty_str)];
                     let errors = item_errors(ta.name.as_str());
@@ -2849,7 +2849,7 @@ impl CompilerRunner {
                         let raw = ta
                             .type_expr
                             .as_ref()
-                            .map(|te| hir2_type_expr_to_string(&te.expr))
+                            .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
                             .unwrap_or_else(|| "?".to_string());
                         detail.push(plain(format!("  = {raw} (unresolved)")));
                         format!("= {raw}")
