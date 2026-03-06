@@ -182,8 +182,7 @@ impl UnionMemberParts {
     /// Check if this union member has a trailing `?` (optional modifier).
     pub fn is_optional(&self) -> bool {
         self.postfix_modifiers()
-            .iter()
-            .any(|m| *m == TypePostFixModifier::Optional)
+            .contains(&TypePostFixModifier::Optional)
     }
 
     /// Check if this member contains a `STRING_LITERAL` child node.

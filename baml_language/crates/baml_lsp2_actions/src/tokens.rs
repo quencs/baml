@@ -20,15 +20,12 @@
 use std::collections::HashMap;
 
 use baml_base::SourceFile;
+use baml_compiler_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
 use baml_compiler2_ast::{Expr, ExprBody, Pattern};
 use baml_compiler2_hir::{
-    body::FunctionBody,
-    contributions::Definition,
-    loc::FunctionLoc,
-    scope::ScopeKind,
+    body::FunctionBody, contributions::Definition, loc::FunctionLoc, scope::ScopeKind,
 };
 use baml_compiler2_tir::ty::Ty;
-use baml_compiler_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
 use rowan::NodeOrToken;
 use text_size::TextRange;
 
@@ -187,12 +184,7 @@ fn emit_node(node: &SyntaxNode, token_type: SemanticTokenType, out: &mut Vec<Sem
 }
 
 /// Dispatch a node to its visitor.
-fn visit_node(
-    db: &dyn Db,
-    file: SourceFile,
-    node: &SyntaxNode,
-    out: &mut Vec<SemanticToken>,
-) {
+fn visit_node(db: &dyn Db, file: SourceFile, node: &SyntaxNode, out: &mut Vec<SemanticToken>) {
     match node.kind() {
         // Comment nodes (headers are nodes, not just tokens)
         ref n if n.is_comment() => emit_node(node, SemanticTokenType::Comment, out),
@@ -253,12 +245,7 @@ fn visit_token(token: &SyntaxToken, out: &mut Vec<SemanticToken>) {
 }
 
 /// Walk all children, dispatching nodes and tokens.
-fn visit_children(
-    db: &dyn Db,
-    file: SourceFile,
-    node: &SyntaxNode,
-    out: &mut Vec<SemanticToken>,
-) {
+fn visit_children(db: &dyn Db, file: SourceFile, node: &SyntaxNode, out: &mut Vec<SemanticToken>) {
     for child in node.children_with_tokens() {
         match child {
             NodeOrToken::Node(n) => visit_node(db, file, &n, out),
@@ -348,12 +335,7 @@ fn visit_client_field(
 }
 
 /// Visit an `ATTRIBUTE` or `BLOCK_ATTRIBUTE` node — all content as Decorator.
-fn visit_attribute(
-    db: &dyn Db,
-    file: SourceFile,
-    node: &SyntaxNode,
-    out: &mut Vec<SemanticToken>,
-) {
+fn visit_attribute(db: &dyn Db, file: SourceFile, node: &SyntaxNode, out: &mut Vec<SemanticToken>) {
     for child in node.children_with_tokens() {
         match child {
             NodeOrToken::Node(n) => visit_node(db, file, &n, out),
@@ -402,8 +384,18 @@ fn visit_type_alias_def(
 fn resolve_type_name(db: &dyn Db, file: SourceFile, name: &str) -> SemanticTokenType {
     if matches!(
         name,
-        "int" | "float" | "string" | "bool" | "map" | "unknown" | "never"
-            | "image" | "audio" | "video" | "pdf" | "null"
+        "int"
+            | "float"
+            | "string"
+            | "bool"
+            | "map"
+            | "unknown"
+            | "never"
+            | "image"
+            | "audio"
+            | "video"
+            | "pdf"
+            | "null"
     ) {
         return SemanticTokenType::Type;
     }
@@ -423,12 +415,7 @@ fn resolve_type_name(db: &dyn Db, file: SourceFile, name: &str) -> SemanticToken
 }
 
 /// Visit a `TYPE_EXPR` node — resolve WORD tokens to their definition kind.
-fn visit_type_expr(
-    db: &dyn Db,
-    file: SourceFile,
-    node: &SyntaxNode,
-    out: &mut Vec<SemanticToken>,
-) {
+fn visit_type_expr(db: &dyn Db, file: SourceFile, node: &SyntaxNode, out: &mut Vec<SemanticToken>) {
     for child in node.children_with_tokens() {
         match child {
             NodeOrToken::Node(n) => visit_node(db, file, &n, out),
@@ -542,8 +529,7 @@ impl<'db> ExprBodyVisitor<'db> {
         let inference = baml_compiler2_tir::inference::infer_scope_types(db, func_scope_id);
 
         let file_text = file.text(db);
-        let resolution_map =
-            build_resolution_map(expr_body, &source_map, inference, file_text);
+        let resolution_map = build_resolution_map(expr_body, &source_map, inference, file_text);
 
         Some(Self {
             db,

@@ -23,8 +23,8 @@
 //! - `ResolvedName::Unknown` or missing `definition_site` — return `None`.
 
 use baml_base::{Name, SourceFile};
-use baml_compiler2_hir::semantic_index::DefinitionSite;
 use baml_compiler_syntax::SyntaxKind;
+use baml_compiler2_hir::semantic_index::DefinitionSite;
 use text_size::{TextRange, TextSize};
 
 use crate::{Db, utils};

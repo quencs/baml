@@ -250,11 +250,9 @@ impl<'db> TirDiagnostic<'db> {
             DiagnosticLocation::Stmt(id) => {
                 source_map.map(|sm| sm.stmt_span(*id)).unwrap_or_default()
             }
-            DiagnosticLocation::TypeAnnot(id) => {
-                source_map
-                    .map(|sm| sm.type_annotation_span(*id))
-                    .unwrap_or_default()
-            }
+            DiagnosticLocation::TypeAnnot(id) => source_map
+                .map(|sm| sm.type_annotation_span(*id))
+                .unwrap_or_default(),
             DiagnosticLocation::Span(range) => *range,
         };
 
@@ -362,6 +360,7 @@ impl<'db> InferContext<'db> {
             .diagnostics
             .push(TirDiagnostic {
                 error,
+                severity: DiagnosticSeverity::Error,
                 primary: DiagnosticLocation::TypeAnnot(at),
                 related: Vec::new(),
             });

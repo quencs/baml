@@ -105,12 +105,6 @@ impl LoweringContext {
         id
     }
 
-    fn alloc_catch_arm(&mut self, arm: CatchArm, range: TextRange) -> CatchArmId {
-        let id = self.catch_arms.alloc(arm);
-        self.source_map.catch_arm_spans.alloc(range);
-        id
-    }
-
     fn alloc_type_annot(&mut self, ty: TypeExpr, range: TextRange) -> TypeAnnotId {
         let id = self.type_annotations.alloc(ty);
         self.source_map.type_annotation_spans.alloc(range);

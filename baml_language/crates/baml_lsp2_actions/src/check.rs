@@ -21,8 +21,7 @@
 
 use baml_base::{FileId, SourceFile, Span};
 use baml_compiler_diagnostics::{Diagnostic, DiagnosticId, DiagnosticPhase, ToDiagnostic};
-use baml_compiler2_hir::body::FunctionBody;
-use baml_compiler2_hir::file_semantic_index;
+use baml_compiler2_hir::{body::FunctionBody, file_semantic_index};
 use baml_compiler2_tir::inference::render_scope_diagnostics;
 
 use crate::Db;
@@ -143,7 +142,10 @@ pub fn check_file(db: &dyn Db, file: SourceFile) -> Vec<Diagnostic> {
         // Check return type — use the span from the item tree's SpannedTypeExpr.
         if let Some(ret_te) = &sig.return_type {
             baml_compiler2_tir::lower_type_expr::lower_type_expr(
-                db, ret_te, &pkg_items, &mut type_errors,
+                db,
+                ret_te,
+                &pkg_items,
+                &mut type_errors,
             );
             if !type_errors.is_empty() {
                 if let Some(ret_spanned) = &func_data.return_type {
@@ -153,7 +155,10 @@ pub fn check_file(db: &dyn Db, file: SourceFile) -> Vec<Diagnostic> {
                                 tir_type_error_to_diagnostic_id(&error),
                                 error.to_string(),
                             )
-                            .with_primary_span(Span { file_id, range: ret_spanned.span })
+                            .with_primary_span(Span {
+                                file_id,
+                                range: ret_spanned.span,
+                            })
                             .with_phase(DiagnosticPhase::Type),
                         );
                     }
@@ -165,7 +170,10 @@ pub fn check_file(db: &dyn Db, file: SourceFile) -> Vec<Diagnostic> {
         for (i, (_name, te)) in sig.params.iter().enumerate() {
             type_errors.clear();
             baml_compiler2_tir::lower_type_expr::lower_type_expr(
-                db, te, &pkg_items, &mut type_errors,
+                db,
+                te,
+                &pkg_items,
+                &mut type_errors,
             );
             if !type_errors.is_empty() {
                 if let Some(param) = func_data.params.get(i) {
@@ -176,7 +184,10 @@ pub fn check_file(db: &dyn Db, file: SourceFile) -> Vec<Diagnostic> {
                                     tir_type_error_to_diagnostic_id(&error),
                                     error.to_string(),
                                 )
-                                .with_primary_span(Span { file_id, range: type_spanned.span })
+                                .with_primary_span(Span {
+                                    file_id,
+                                    range: type_spanned.span,
+                                })
                                 .with_phase(DiagnosticPhase::Type),
                             );
                         }
@@ -239,5 +250,10 @@ fn tir_type_error_to_diagnostic_id(
         TirTypeError::MissingReturn { .. } => DiagnosticId::MissingReturnExpression,
         TirTypeError::AliasCycle { .. } => DiagnosticId::AliasCycle,
         TirTypeError::ClassCycle { .. } => DiagnosticId::ClassCycle,
+        TirTypeError::NonExhaustiveMatch { .. } => DiagnosticId::NonExhaustiveMatch,
+        TirTypeError::UnreachableArm => DiagnosticId::UnreachableArm,
+        TirTypeError::InvalidCatchBindingType { .. } => DiagnosticId::InvalidCatchBindingType,
+        TirTypeError::ThrowsContractViolation { .. } => DiagnosticId::ThrowsContractViolation,
+        TirTypeError::ExtraneousThrowsDeclaration { .. } => DiagnosticId::ThrowsContractExtraneous,
     }
 }

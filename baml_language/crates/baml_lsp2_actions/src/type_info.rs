@@ -35,12 +35,10 @@
 //! - `ResolvedName::Unknown` or cursor not on a WORD token — returns `None`.
 
 use baml_base::{Name, SourceFile};
-use baml_compiler2_hir::{
-    contributions::Definition,
-    semantic_index::DefinitionSite,
-    scope::ScopeKind,
-};
 use baml_compiler_syntax::SyntaxKind;
+use baml_compiler2_hir::{
+    contributions::Definition, scope::ScopeKind, semantic_index::DefinitionSite,
+};
 use text_size::TextSize;
 
 use crate::{Db, utils};
@@ -66,27 +64,15 @@ pub enum TypeInfo {
         fields: Vec<(String, String)>,
     },
     /// An enum definition: name, variants.
-    Enum {
-        name: String,
-        variants: Vec<String>,
-    },
+    Enum { name: String, variants: Vec<String> },
     /// A type alias: name + the expansion type string.
-    TypeAlias {
-        name: String,
-        expansion: String,
-    },
+    TypeAlias { name: String, expansion: String },
     /// A template string: name only (no further type info).
     TemplateString { name: String },
     /// A local variable (let binding or parameter): name + inferred/declared type.
-    LocalVar {
-        name: String,
-        ty: String,
-    },
+    LocalVar { name: String, ty: String },
     /// A non-structural top-level item (client, generator, test, retry_policy).
-    OtherItem {
-        name: String,
-        kind: &'static str,
-    },
+    OtherItem { name: String, kind: &'static str },
 }
 
 impl TypeInfo {
@@ -100,10 +86,8 @@ impl TypeInfo {
                 params,
                 return_type,
             } => {
-                let param_strs: Vec<String> = params
-                    .iter()
-                    .map(|(n, t)| format!("{n}: {t}"))
-                    .collect();
+                let param_strs: Vec<String> =
+                    params.iter().map(|(n, t)| format!("{n}: {t}")).collect();
                 let ret = return_type
                     .as_deref()
                     .map(|r| format!(" -> {r}"))
@@ -130,10 +114,8 @@ impl TypeInfo {
                 }
             }
             TypeInfo::Enum { name, variants } => {
-                let variant_strs: Vec<String> = variants
-                    .iter()
-                    .map(|v| format!("    {v}"))
-                    .collect();
+                let variant_strs: Vec<String> =
+                    variants.iter().map(|v| format!("    {v}")).collect();
                 if variant_strs.is_empty() {
                     format!("```baml\nenum {name} {{}}\n```")
                 } else {
@@ -242,12 +224,7 @@ fn type_info_for_definition(db: &dyn Db, def: Definition<'_>) -> Option<TypeInfo
             let fields = resolved
                 .fields
                 .iter()
-                .map(|(field_name, ty)| {
-                    (
-                        field_name.as_str().to_string(),
-                        utils::display_ty(ty),
-                    )
-                })
+                .map(|(field_name, ty)| (field_name.as_str().to_string(), utils::display_ty(ty)))
                 .collect();
 
             Some(TypeInfo::Class {

@@ -445,6 +445,7 @@ pub struct FunctionDef {
     pub name_span: TextRange,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FunctionBodyDef {
     Llm(LlmBodyDef),

@@ -1,15 +1,14 @@
 use lsp_types::{
-    CodeLens, CodeLensOptions, CompletionOptions,
-    HoverProviderCapability, InlayHintOptions, InlayHintServerCapabilities, SaveOptions,
-    SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions,
-    SemanticTokensServerCapabilities, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions,
-    WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
+    CodeLens, CodeLensOptions, CompletionOptions, HoverProviderCapability, InlayHintOptions,
+    InlayHintServerCapabilities, SaveOptions, SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensOptions, SemanticTokensServerCapabilities, ServerCapabilities,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+    TextDocumentSyncSaveOptions, WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities,
+    WorkspaceServerCapabilities,
 };
 
 use super::{BexMulitProject, LspError, WithDiagnostics, commands, wasm_helpers};
 use crate::bex_lsp::{multi_project::commands::BexLspCommand, request::BexLspRequest};
-
 
 /// Server capabilities advertised during the LSP `initialize` handshake.
 ///
@@ -516,9 +515,7 @@ impl BexLspRequest for BexMulitProject {
     ) -> Result<lsp_request_result!("textDocument/hover"), LspError> {
         let type_info = self.compute_on_position(
             &params.text_document_position_params,
-            |db, source_file, _project, offset| {
-                baml_lsp2_actions::type_at(db, source_file, offset)
-            },
+            |db, source_file, _project, offset| baml_lsp2_actions::type_at(db, source_file, offset),
         )?;
 
         match type_info {
@@ -653,8 +650,7 @@ impl BexLspRequest for BexMulitProject {
             // filters by the query string. file_outline is Salsa-cached per file,
             // so repeat calls for unchanged files are free.
             let source_files = lsp_db.get_source_files();
-            let results =
-                baml_lsp2_actions::search_symbols(lsp_db, &source_files, query);
+            let results = baml_lsp2_actions::search_symbols(lsp_db, &source_files, query);
 
             for sym in results {
                 let file_id = sym.file.file_id(lsp_db);
@@ -700,12 +696,8 @@ impl BexLspRequest for BexMulitProject {
             line_starts: &[u32],
             encoding: super::diagnostics::PositionEncoding,
         ) -> lsp_types::DocumentSymbol {
-            let range = super::diagnostics::span_to_lsp_range(
-                item.name_span,
-                text,
-                line_starts,
-                encoding,
-            );
+            let range =
+                super::diagnostics::span_to_lsp_range(item.name_span, text, line_starts, encoding);
 
             let children = if item.children.is_empty() {
                 None

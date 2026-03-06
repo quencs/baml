@@ -21,10 +21,10 @@
 //!   in hover output.
 
 use baml_base::SourceFile;
+use baml_compiler_syntax::{SyntaxToken, TokenAtOffset};
 use baml_compiler2_ast::TypeExpr;
 use baml_compiler2_hir::contributions::Definition;
 use baml_compiler2_tir::ty::Ty;
-use baml_compiler_syntax::{SyntaxToken, TokenAtOffset};
 use text_size::{TextRange, TextSize};
 
 use crate::Db;
@@ -41,7 +41,11 @@ use crate::Db;
 ///
 /// For go-to-definition we want identifiers (`WORD` tokens), so the caller
 /// should filter on `token.kind() == SyntaxKind::WORD`.
-pub fn find_token_at_offset(db: &dyn Db, file: SourceFile, offset: TextSize) -> Option<SyntaxToken> {
+pub fn find_token_at_offset(
+    db: &dyn Db,
+    file: SourceFile,
+    offset: TextSize,
+) -> Option<SyntaxToken> {
     let tree = baml_compiler_parser::syntax_tree(db, file);
     match tree.token_at_offset(offset) {
         TokenAtOffset::Single(tok) => Some(tok),
@@ -189,7 +193,11 @@ pub fn display_type_expr(te: &TypeExpr) -> String {
         TypeExpr::Optional(inner) => format!("{}?", display_type_expr(inner)),
         TypeExpr::List(inner) => format!("{}[]", display_type_expr(inner)),
         TypeExpr::Map { key, value } => {
-            format!("map<{}, {}>", display_type_expr(key), display_type_expr(value))
+            format!(
+                "map<{}, {}>",
+                display_type_expr(key),
+                display_type_expr(value)
+            )
         }
         TypeExpr::Union(members) => {
             let parts: Vec<_> = members.iter().map(display_type_expr).collect();
@@ -209,6 +217,7 @@ pub fn display_type_expr(te: &TypeExpr) -> String {
             format!("({}) -> {}", ps.join(", "), display_type_expr(ret))
         }
         TypeExpr::BuiltinUnknown => "unknown".to_string(),
+        TypeExpr::Never => "never".to_string(),
         TypeExpr::Type => "type".to_string(),
         TypeExpr::Rust => "$rust_type".to_string(),
         TypeExpr::Error | TypeExpr::Unknown => "unknown".to_string(),

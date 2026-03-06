@@ -31,6 +31,7 @@
 //! - `file_item_tree(file)[enum_loc.id]` — variants for field-access on enums.
 
 use baml_base::{Name, SourceFile};
+use baml_compiler_syntax::{SyntaxKind, SyntaxNode};
 use baml_compiler2_hir::{
     contributions::Definition,
     loc::FunctionLoc,
@@ -39,7 +40,6 @@ use baml_compiler2_hir::{
     semantic_index::ScopeBindings,
 };
 use baml_compiler2_tir::ty::Ty;
-use baml_compiler_syntax::{SyntaxKind, SyntaxNode};
 use rowan::NodeOrToken;
 use text_size::TextSize;
 
@@ -178,7 +178,10 @@ pub fn completions_at(db: &dyn Db, file: SourceFile, offset: TextSize) -> Vec<Co
 /// 2. If the preceding non-trivia sibling token is `.` → field access.
 /// 3. If inside `EXPR_FUNCTION_BODY` → value position.
 /// 4. If ancestor is `SOURCE_FILE` with no enclosing item → top level.
-fn detect_context(token: &baml_compiler_syntax::SyntaxToken, _offset: TextSize) -> CompletionContext {
+fn detect_context(
+    token: &baml_compiler_syntax::SyntaxToken,
+    _offset: TextSize,
+) -> CompletionContext {
     // Check for field access: immediately after a DOT token.
     // Walk prev_sibling_or_token to find the token just before the cursor's token.
     if is_field_access_position(token) {
@@ -291,7 +294,11 @@ fn is_field_access_position(token: &baml_compiler_syntax::SyntaxToken) -> bool {
             .children_with_tokens()
             .filter_map(|c| {
                 if let NodeOrToken::Token(t) = c {
-                    if t.kind() == SyntaxKind::WORD { Some(t) } else { None }
+                    if t.kind() == SyntaxKind::WORD {
+                        Some(t)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -344,15 +351,19 @@ fn is_in_type_annotation(node: &SyntaxNode) -> bool {
 ///
 /// Suggests: builtin primitives + all user-defined types (classes, enums,
 /// type aliases) from `package_items` (user + builtin packages).
-fn completions_for_type_position(db: &dyn Db, file: SourceFile, _offset: TextSize) -> Vec<Completion> {
+fn completions_for_type_position(
+    db: &dyn Db,
+    file: SourceFile,
+    _offset: TextSize,
+) -> Vec<Completion> {
     let mut items: Vec<Completion> = Vec::new();
 
     // ── Builtin primitives ────────────────────────────────────────────────────
     for prim in &[
-        "int", "float", "string", "bool", "null",
-        "image", "audio", "video", "pdf",
+        "int", "float", "string", "bool", "null", "image", "audio", "video", "pdf",
     ] {
-        items.push(Completion::new(*prim, CompletionKind::Primitive).with_sort(format!("0_{prim}")));
+        items
+            .push(Completion::new(*prim, CompletionKind::Primitive).with_sort(format!("0_{prim}")));
     }
 
     // ── User package types ────────────────────────────────────────────────────
@@ -539,7 +550,8 @@ fn builtin_list_completions() -> Vec<Completion> {
         Completion::new("length", CompletionKind::Method).with_detail("int"),
         Completion::new("map", CompletionKind::Method).with_detail("(f: (T) -> U) -> U[]"),
         Completion::new("filter", CompletionKind::Method).with_detail("(f: (T) -> bool) -> T[]"),
-        Completion::new("reduce", CompletionKind::Method).with_detail("(f: (U, T) -> U, init: U) -> U"),
+        Completion::new("reduce", CompletionKind::Method)
+            .with_detail("(f: (U, T) -> U, init: U) -> U"),
         Completion::new("find", CompletionKind::Method).with_detail("(f: (T) -> bool) -> T?"),
         Completion::new("any", CompletionKind::Method).with_detail("(f: (T) -> bool) -> bool"),
         Completion::new("all", CompletionKind::Method).with_detail("(f: (T) -> bool) -> bool"),
@@ -564,8 +576,10 @@ fn builtin_string_completions() -> Vec<Completion> {
         Completion::new("trim", CompletionKind::Method).with_detail("string"),
         Completion::new("split", CompletionKind::Method).with_detail("(sep: string) -> string[]"),
         Completion::new("contains", CompletionKind::Method).with_detail("(sub: string) -> bool"),
-        Completion::new("starts_with", CompletionKind::Method).with_detail("(prefix: string) -> bool"),
-        Completion::new("ends_with", CompletionKind::Method).with_detail("(suffix: string) -> bool"),
+        Completion::new("starts_with", CompletionKind::Method)
+            .with_detail("(prefix: string) -> bool"),
+        Completion::new("ends_with", CompletionKind::Method)
+            .with_detail("(suffix: string) -> bool"),
     ]
 }
 
@@ -606,13 +620,20 @@ fn find_base_for_field_access(token: &baml_compiler_syntax::SyntaxToken) -> Opti
             if let NodeOrToken::Node(n) = &child {
                 if n.text_range().end() <= dot_pos {
                     // Take the last WORD token inside this sub-node.
-                    let last_word = n.descendants_with_tokens().filter_map(|d| {
-                        if let NodeOrToken::Token(t) = d {
-                            if t.kind() == SyntaxKind::WORD { Some(t) } else { None }
-                        } else {
-                            None
-                        }
-                    }).last();
+                    let last_word = n
+                        .descendants_with_tokens()
+                        .filter_map(|d| {
+                            if let NodeOrToken::Token(t) = d {
+                                if t.kind() == SyntaxKind::WORD {
+                                    Some(t)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                        .last();
                     if let Some(w) = last_word {
                         base = Some(w.text().to_string());
                     }
@@ -731,7 +752,11 @@ fn local_variable_ty(
 ///
 /// Suggests: local variables in scope (innermost first), then all package-level
 /// functions and template strings.
-fn completions_for_value_position(db: &dyn Db, file: SourceFile, offset: TextSize) -> Vec<Completion> {
+fn completions_for_value_position(
+    db: &dyn Db,
+    file: SourceFile,
+    offset: TextSize,
+) -> Vec<Completion> {
     let mut items: Vec<Completion> = Vec::new();
 
     // ── Locals (innermost scope first) ───────────────────────────────────────
@@ -747,8 +772,11 @@ fn completions_for_value_position(db: &dyn Db, file: SourceFile, offset: TextSiz
             // Only show bindings that are visible at the cursor position.
             if binding_range.start() <= offset {
                 items.push(
-                    Completion::new(name.as_str(), CompletionKind::Variable)
-                        .with_sort(format!("{:03}_{}", sort_prefix, name.as_str())),
+                    Completion::new(name.as_str(), CompletionKind::Variable).with_sort(format!(
+                        "{:03}_{}",
+                        sort_prefix,
+                        name.as_str()
+                    )),
                 );
                 sort_prefix += 1;
             }
@@ -776,7 +804,9 @@ fn completions_for_value_position(db: &dyn Db, file: SourceFile, offset: TextSiz
         for (name, def) in &ns_items.values {
             let (kind, detail) = match def {
                 Definition::Function(_) => (CompletionKind::Function, "function"),
-                Definition::TemplateString(_) => (CompletionKind::TemplateString, "template_string"),
+                Definition::TemplateString(_) => {
+                    (CompletionKind::TemplateString, "template_string")
+                }
                 Definition::Client(_) => (CompletionKind::Client, "client"),
                 _ => continue,
             };

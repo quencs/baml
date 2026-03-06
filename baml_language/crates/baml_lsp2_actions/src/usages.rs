@@ -19,10 +19,10 @@
 //! CST work for files that cannot possibly contain a reference.
 
 use baml_base::{Name, SourceFile};
+use baml_compiler_syntax::SyntaxKind;
 use baml_compiler2_ast::{Expr, ExprBody};
 use baml_compiler2_hir::{body::FunctionBody, loc::FunctionLoc, scope::ScopeKind};
 use baml_compiler2_tir::resolve::{ResolvedName, resolve_name_at};
-use baml_compiler_syntax::SyntaxKind;
 use rowan::NodeOrToken;
 use text_size::TextSize;
 
@@ -62,11 +62,18 @@ pub fn usages_at(db: &dyn Db, file: SourceFile, offset: TextSize) -> Vec<Locatio
             // Top-level item — scan all source files.
             find_top_level_usages(db, file, &name_text, &resolved)
         }
-        ResolvedName::Local { definition_site: Some(_), .. } => {
+        ResolvedName::Local {
+            definition_site: Some(_),
+            ..
+        } => {
             // Local variable — only search in the enclosing function body.
             find_local_usages(db, file, offset, &name_text, &resolved)
         }
-        ResolvedName::Local { definition_site: None, .. } | ResolvedName::Unknown => Vec::new(),
+        ResolvedName::Local {
+            definition_site: None,
+            ..
+        }
+        | ResolvedName::Unknown => Vec::new(),
     }
 }
 
@@ -191,8 +198,7 @@ fn find_local_usages(
         return Vec::new();
     };
 
-    let Some(source_map) = baml_compiler2_hir::body::function_body_source_map(db, func_loc)
-    else {
+    let Some(source_map) = baml_compiler2_hir::body::function_body_source_map(db, func_loc) else {
         return Vec::new();
     };
 
@@ -254,8 +260,14 @@ fn collect_local_path_usages(
 fn same_local_definition(a: &ResolvedName<'_>, b: &ResolvedName<'_>) -> bool {
     match (a, b) {
         (
-            ResolvedName::Local { definition_site: Some(site_a), .. },
-            ResolvedName::Local { definition_site: Some(site_b), .. },
+            ResolvedName::Local {
+                definition_site: Some(site_a),
+                ..
+            },
+            ResolvedName::Local {
+                definition_site: Some(site_b),
+                ..
+            },
         ) => site_a == site_b,
         _ => false,
     }
@@ -275,8 +287,10 @@ fn same_local_definition(a: &ResolvedName<'_>, b: &ResolvedName<'_>) -> bool {
 /// We also always include `reference_file` itself, in case it contributes no
 /// top-level items (e.g. a file that is only a consumer, not a definer).
 fn collect_source_files(db: &dyn Db, reference_file: SourceFile) -> Vec<SourceFile> {
-    use baml_compiler2_hir::file_package::file_package;
-    use baml_compiler2_hir::package::{PackageId, package_items};
+    use baml_compiler2_hir::{
+        file_package::file_package,
+        package::{PackageId, package_items},
+    };
 
     let pkg_info = file_package(db, reference_file);
     let pkg_id = PackageId::new(db, pkg_info.package.clone());
