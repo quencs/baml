@@ -157,6 +157,27 @@ pub fn execute_final_parse(
     }
 }
 
+/// Validate a finish reason against the client's allow/deny policy.
+pub fn execute_validate_finish_reason_from_owned(
+    client: &builtin_types::owned::LlmPrimitiveClient,
+    finish_reason: &str,
+) -> Result<(), LlmOpError> {
+    let finish_reason = if finish_reason.is_empty() {
+        None
+    } else {
+        Some(finish_reason)
+    };
+
+    if is_finish_reason_allowed(&client.options, finish_reason) {
+        return Ok(());
+    }
+
+    Err(LlmOpError::ParseResponseError(format!(
+        "Finish reason not allowed: {}",
+        finish_reason.unwrap_or("unknown")
+    )))
+}
+
 /// Parse an LLM response and extract the return value given already-extracted owned types.
 pub fn execute_parse_response_from_owned(
     client: &builtin_types::owned::LlmPrimitiveClient,
@@ -170,12 +191,10 @@ pub fn execute_parse_response_from_owned(
     )
     .map_err(|e| LlmOpError::ParseResponseError(e.to_string()))?;
 
-    if !is_finish_reason_allowed(&client.options, response.finish_reason_raw.as_deref()) {
-        return Err(LlmOpError::ParseResponseError(format!(
-            "Finish reason not allowed: {}",
-            response.finish_reason_raw.as_deref().unwrap_or("unknown")
-        )));
-    }
+    execute_validate_finish_reason_from_owned(
+        client,
+        response.finish_reason_raw.as_deref().unwrap_or(""),
+    )?;
 
     match return_type {
         baml_type::Ty::String { .. } => Ok(bex_external_types::BexExternalValue::String(

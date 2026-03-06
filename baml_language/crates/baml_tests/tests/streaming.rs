@@ -1,7 +1,14 @@
 //! Tests for BEP-009 streaming primitives and full streaming orchestration.
 
+use std::time::Duration;
+
 use baml_tests::engine::{self, IndexMap, OptLevel};
 use bex_engine::BexExternalValue;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpListener,
+    sync::oneshot,
+};
 use wiremock::{
     Mock, MockServer, ResponseTemplate,
     matchers::{method, path},
@@ -11,25 +18,33 @@ use wiremock::{
 // Helpers
 // ============================================================================
 
-/// Build an OpenAI-style SSE body for streaming chat completions.
-fn openai_sse_body(chunks: &[&str]) -> String {
+/// Build an OpenAI-style SSE body with a configurable finish reason.
+fn openai_sse_body_with_finish_reason(chunks: &[&str], finish_reason: &str) -> String {
     let mut body = String::new();
     for chunk in chunks {
         body.push_str(&format!(
             "event: message\ndata: {{\"choices\":[{{\"delta\":{{\"content\":\"{chunk}\"}}}}]}}\n\n"
         ));
     }
-    body.push_str(
-        "event: message\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
-    );
+    body.push_str(&format!(
+        "event: message\ndata: {{\"choices\":[{{\"delta\":{{}},\"finish_reason\":\"{finish_reason}\"}}]}}\n\n"
+    ));
     body.push_str("event: message\ndata: [DONE]\n\n");
     body
 }
 
 /// Start a mock server that serves an SSE endpoint at /v1/chat/completions.
 async fn mock_openai_streaming(chunks: &[&str]) -> (MockServer, String) {
+    mock_openai_streaming_with_finish_reason(chunks, "stop").await
+}
+
+/// Start a mock server that serves an OpenAI-style SSE response with a custom finish reason.
+async fn mock_openai_streaming_with_finish_reason(
+    chunks: &[&str],
+    finish_reason: &str,
+) -> (MockServer, String) {
     let server = MockServer::start().await;
-    let body = openai_sse_body(chunks);
+    let body = openai_sse_body_with_finish_reason(chunks, finish_reason);
     Mock::given(method("POST"))
         .and(path("/v1/chat/completions"))
         .respond_with(
@@ -63,8 +78,120 @@ async fn mock_sse_server(events: &[(&str, &str)]) -> (MockServer, String) {
     (server, uri)
 }
 
+/// Read a full HTTP request, including the request body if Content-Length is set.
+async fn read_http_request(socket: &mut tokio::net::TcpStream) {
+    let mut request = Vec::new();
+    let mut buf = [0_u8; 1024];
+    let mut headers_end = None;
+    let mut content_length = 0_usize;
+
+    loop {
+        let read = socket.read(&mut buf).await.unwrap();
+        if read == 0 {
+            return;
+        }
+        request.extend_from_slice(&buf[..read]);
+
+        if headers_end.is_none() {
+            headers_end = request
+                .windows(4)
+                .position(|window| window == b"\r\n\r\n")
+                .map(|idx| idx + 4);
+
+            if let Some(end) = headers_end {
+                let headers = String::from_utf8_lossy(&request[..end]);
+                content_length = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        if name.eq_ignore_ascii_case("content-length") {
+                            value.trim().parse().ok()
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(0);
+            }
+        }
+
+        if let Some(end) = headers_end
+            && request.len() >= end + content_length
+        {
+            return;
+        }
+    }
+}
+
+/// Start a TCP SSE server that sends chunks with delays between writes.
+async fn delayed_sse_server(writes: Vec<(u64, String)>) -> (tokio::task::JoinHandle<()>, String) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        read_http_request(&mut socket).await;
+        socket
+            .write_all(
+                b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncache-control: no-cache\r\n\r\n",
+            )
+            .await
+            .unwrap();
+        socket.flush().await.unwrap();
+
+        for (delay_ms, chunk) in writes {
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+            socket.write_all(chunk.as_bytes()).await.unwrap();
+            socket.flush().await.unwrap();
+        }
+
+        socket.shutdown().await.unwrap();
+    });
+
+    (server, format!("http://{addr}"))
+}
+
+/// Start a TCP SSE server and report when the client disconnects after close().
+async fn close_observing_sse_server() -> (tokio::task::JoinHandle<()>, String, oneshot::Receiver<()>)
+{
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let (closed_tx, closed_rx) = oneshot::channel();
+
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        read_http_request(&mut socket).await;
+        socket
+            .write_all(
+                b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncache-control: no-cache\r\n\r\n",
+            )
+            .await
+            .unwrap();
+        socket
+            .write_all(b"event: message\ndata: hello\n\n")
+            .await
+            .unwrap();
+        socket.flush().await.unwrap();
+
+        let mut buf = [0_u8; 32];
+        loop {
+            let read = socket.read(&mut buf).await.unwrap();
+            if read == 0 {
+                let _ = closed_tx.send(());
+                break;
+            }
+        }
+    });
+
+    (server, format!("http://{addr}"), closed_rx)
+}
+
 /// Build BAML source for a streaming LLM test with a mock server URL.
 fn streaming_llm_source(base_url: &str) -> String {
+    streaming_llm_source_with_options(base_url, "")
+}
+
+/// Build BAML source for a streaming LLM test with extra client options.
+fn streaming_llm_source_with_options(base_url: &str, extra_options: &str) -> String {
     format!(
         r##"
         client<llm> TestClient {{
@@ -73,6 +200,7 @@ fn streaming_llm_source(base_url: &str) -> String {
                 model "gpt-4o"
                 api_key "test-key"
                 base_url "{base_url}"
+                {extra_options}
             }}
         }}
 
@@ -164,6 +292,41 @@ async fn sse_next_returns_null_when_done() {
     .await;
 
     assert_eq!(output.result, Ok(BexExternalValue::Bool(true)));
+}
+
+#[tokio::test]
+async fn sse_close_terminates_the_connection() {
+    let (server, uri, closed_rx) = close_observing_sse_server().await;
+
+    let output = engine::run_test(
+        &format!(
+            r#"
+            function main() -> bool {{
+                let request = baml.http.Request {{
+                    method: "GET",
+                    url: "{uri}/sse",
+                    headers: {{}},
+                    body: "",
+                }};
+                let sse = baml.http.fetch_sse(request);
+                let events = sse.next();
+                sse.close();
+                events != null
+            }}
+        "#
+        ),
+        "main",
+        IndexMap::new(),
+        OptLevel::One,
+    )
+    .await;
+
+    assert_eq!(output.result, Ok(BexExternalValue::Bool(true)));
+    tokio::time::timeout(Duration::from_millis(500), closed_rx)
+        .await
+        .expect("client should close the SSE connection promptly")
+        .expect("close observer should receive disconnect notification");
+    server.await.unwrap();
 }
 
 #[tokio::test]
@@ -344,5 +507,65 @@ async fn stream_llm_function_server_error_returns_failure() {
     assert!(
         output.result.is_err(),
         "Expected error for streaming with 500 response"
+    );
+}
+
+#[tokio::test]
+async fn stream_llm_function_deduplicates_finish_only_batches() {
+    let (server, uri) = delayed_sse_server(vec![
+        (
+            0,
+            "event: message\ndata: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n"
+                .to_string(),
+        ),
+        (
+            50,
+            "event: message\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
+                .to_string(),
+        ),
+        (50, "event: message\ndata: [DONE]\n\n".to_string()),
+    ])
+    .await;
+
+    let output = engine::run_test_streaming(
+        &streaming_llm_source(&uri),
+        "main",
+        IndexMap::new(),
+        OptLevel::One,
+    )
+    .await;
+
+    assert_eq!(
+        output.result,
+        Ok(BexExternalValue::String("Hello".to_string()))
+    );
+    assert_eq!(
+        output.partials,
+        vec!["Hello".to_string()],
+        "finish-only batches should not re-emit the same partial"
+    );
+
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn stream_llm_function_respects_finish_reason_filters() {
+    let (_server, uri) = mock_openai_streaming_with_finish_reason(&["truncated"], "length").await;
+
+    let output = engine::run_test(
+        &streaming_llm_source_with_options(&uri, r#"finish_reason_deny_list ["length"]"#),
+        "main",
+        IndexMap::new(),
+        OptLevel::One,
+    )
+    .await;
+
+    let err = output
+        .result
+        .expect_err("streaming should reject a denied finish reason")
+        .to_string();
+    assert!(
+        err.contains("Finish reason not allowed"),
+        "unexpected error: {err}"
     );
 }

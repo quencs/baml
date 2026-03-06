@@ -1079,9 +1079,34 @@ function baml.llm.stream_primitive(primitive: baml.llm.PrimitiveClient, context:
     load_const false
     cmp_op ==
     pop_jump_if_false L5
-    jump L6
+    jump L9
 
   L5:
+    load_var accumulator
+    dispatch_future baml.llm.StreamAccumulator.finish_reason
+    await
+    store_var finish_reason
+    load_var finish_reason
+    load_const null
+    cmp_op ==
+    pop_jump_if_false L6
+    jump L7
+
+  L6:
+    load_var finish_reason
+    store_var finish_reason_value
+    jump L8
+
+  L7:
+    load_const ""
+    store_var finish_reason_value
+
+  L8:
+    load_var primitive
+    load_var finish_reason_value
+    dispatch_future baml.llm.PrimitiveClient.validate_finish_reason
+    await
+    pop 1
     load_var accumulator
     dispatch_future baml.llm.StreamAccumulator.content
     await
@@ -1101,7 +1126,7 @@ function baml.llm.stream_primitive(primitive: baml.llm.PrimitiveClient, context:
     store_field .value
     return
 
-  L6:
+  L9:
     alloc_instance baml.llm.ExecutionResult
     copy 0
     load_const false

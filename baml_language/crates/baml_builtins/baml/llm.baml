@@ -352,6 +352,12 @@ function stream_primitive(
         return baml.llm.ExecutionResult { ok: false, value: null };
     }
 
+    let finish_reason = accumulator.finish_reason();
+    let finish_reason_value = match (finish_reason) {
+        null => "",
+        reason: string => reason,
+    };
+    primitive.validate_finish_reason(finish_reason_value);
     let final_content = accumulator.content();
     let final_value = primitive.final_parse(final_content, return_type);
     baml.llm.ExecutionResult { ok: true, value: final_value }

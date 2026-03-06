@@ -5,6 +5,7 @@ import atexit
 from .baml_py import (
     AbortController,
     BamlRuntime,
+    CallContext,
     Collector as _RustCollector,
     FunctionLog as _RustFunctionLog,
     FunctionResult,
@@ -85,27 +86,45 @@ class Collector(_RustCollector):
         return _wrap_log(super().id(function_log_id))
 
 
+def _build_call_context(ctx=None, collectors=None, abort_controller=None):
+    """Bridge legacy helper args to the new single CallContext argument."""
+    if isinstance(ctx, CallContext):
+        if collectors is not None or abort_controller is not None:
+            raise TypeError(
+                "collectors/abort_controller cannot be passed when ctx is already a CallContext"
+            )
+        return ctx
+
+    if ctx is None and collectors is None and abort_controller is None:
+        return None
+
+    return CallContext(
+        host_span_manager=ctx,
+        collectors=collectors,
+        abort_controller=abort_controller,
+    )
+
+
 def call_function_sync(rt, function_name, kwargs, ctx=None, collectors=None, abort_controller=None):
     """Call a BAML function synchronously via protobuf serialization."""
     args_proto = encode_call_args(kwargs)
-    result_bytes = rt.call_function_sync(
-        function_name, args_proto, ctx, collectors, abort_controller
-    )
+    call_ctx = _build_call_context(ctx, collectors, abort_controller)
+    result_bytes = rt.call_function_sync(function_name, args_proto, call_ctx)
     return FunctionResult(decode_call_result(result_bytes))
 
 
 async def call_function(rt, function_name, kwargs, ctx=None, collectors=None, abort_controller=None):
     """Call a BAML function asynchronously via protobuf serialization."""
     args_proto = encode_call_args(kwargs)
-    result_bytes = await rt.call_function(
-        function_name, args_proto, ctx, collectors, abort_controller
-    )
+    call_ctx = _build_call_context(ctx, collectors, abort_controller)
+    result_bytes = await rt.call_function(function_name, args_proto, call_ctx)
     return FunctionResult(decode_call_result(result_bytes))
 
 
 __all__ = [
     "AbortController",
     "BamlRuntime",
+    "CallContext",
     "Collector",
     "FunctionLog",
     "FunctionResult",

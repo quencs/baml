@@ -459,10 +459,11 @@ impl SysOpContext {
         mut self,
         stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
         tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+        last_emitted_partial: Arc<std::sync::Mutex<Option<String>>>,
     ) -> Self {
         self.stream_callback = stream_callback;
         self.tick_callback = tick_callback;
-        self.last_emitted_partial = Arc::new(std::sync::Mutex::new(None));
+        self.last_emitted_partial = last_emitted_partial;
         self
     }
 }
@@ -967,6 +968,18 @@ impl<T> SysOpLlm for T {
     ) -> SysOpOutput {
         match sys_llm::execute_final_parse(&content, &type_def) {
             Ok(val) => SysOpOutput::ok(val),
+            Err(e) => SysOpOutput::err(e.into()),
+        }
+    }
+
+    fn baml_llm_primitive_client_validate_finish_reason(
+        &self,
+        _call_id: CallId,
+        client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
+        finish_reason: String,
+    ) -> SysOpOutput<()> {
+        match sys_llm::execute_validate_finish_reason_from_owned(&client, &finish_reason) {
+            Ok(()) => SysOpOutput::ok(()),
             Err(e) => SysOpOutput::err(e.into()),
         }
     }

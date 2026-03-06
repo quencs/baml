@@ -463,6 +463,11 @@ macro_rules! with_builtins {
                         #[sys_op]
                         #[throws(LlmClient)]
                         fn final_parse(self: PrimitiveClient, content: String, type_def: Type) -> Any;
+
+                        /// Validate a streamed finish reason against the client's policy.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn validate_finish_reason(self: PrimitiveClient, finish_reason: String);
                     }
 
                     /// Get the Jinja template for an LLM function.

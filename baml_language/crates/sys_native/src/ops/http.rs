@@ -1,6 +1,11 @@
 //! Shared HTTP helpers used by the `SysOpHttp` trait impl.
 
-use std::{error::Error, fmt::Write, sync::Arc};
+#[cfg(feature = "bundle-http")]
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
+use std::{error::Error, fmt::Write};
 
 use bex_heap::builtin_types;
 #[cfg(feature = "bundle-http")]
@@ -144,6 +149,7 @@ pub(crate) async fn send_sse_async(
         done: false,
         error: None,
     }));
+    let closed = Arc::new(AtomicBool::new(false));
     let notify = Arc::new(Notify::new());
 
     // Spawn background task to consume the byte stream and parse SSE events.
@@ -152,8 +158,9 @@ pub(crate) async fn send_sse_async(
     // `done` is set to true and the notify is fired, so `sse_stream_next` callers
     // never hang waiting on a dead task.
     let buf_clone = buffer.clone();
+    let closed_clone = closed.clone();
     let notify_clone = notify.clone();
-    tokio::spawn(async move {
+    let consumer = tokio::spawn(async move {
         /// Guard that signals SSE stream completion when the task is dropped.
         ///
         /// If the task is aborted (e.g. via cancellation) before setting
@@ -161,6 +168,7 @@ pub(crate) async fn send_sse_async(
         /// fires the notify, preventing consumers from hanging indefinitely.
         struct SseDropGuard {
             buffer: Arc<TokioMutex<SseBuffer>>,
+            closed: Arc<AtomicBool>,
             notify: Arc<Notify>,
             completed: bool,
         }
@@ -170,17 +178,20 @@ pub(crate) async fn send_sse_async(
                 if !self.completed {
                     if let Ok(mut buf) = self.buffer.try_lock() {
                         if !buf.done {
-                            buf.error = Some("SSE stream task was cancelled".into());
+                            if !self.closed.load(Ordering::Acquire) {
+                                buf.error = Some("SSE stream task was cancelled".into());
+                            }
                             buf.done = true;
                         }
                     }
-                    self.notify.notify_one();
+                    self.notify.notify_waiters();
                 }
             }
         }
 
         let mut guard = SseDropGuard {
             buffer: buf_clone.clone(),
+            closed: closed_clone.clone(),
             notify: notify_clone.clone(),
             completed: false,
         };
@@ -195,14 +206,14 @@ pub(crate) async fn send_sse_async(
                     if !events.is_empty() {
                         let mut buf = buf_clone.lock().await;
                         buf.events.extend(events);
-                        notify_clone.notify_one();
+                        notify_clone.notify_waiters();
                     }
                 }
                 Err(e) => {
                     let mut buf = buf_clone.lock().await;
                     buf.error = Some(format!("SSE stream error: {}", format_error_chain(&e)));
                     buf.done = true;
-                    notify_clone.notify_one();
+                    notify_clone.notify_waiters();
                     guard.completed = true;
                     return;
                 }
@@ -212,11 +223,12 @@ pub(crate) async fn send_sse_async(
         // Stream ended normally
         let mut buf = buf_clone.lock().await;
         buf.done = true;
-        notify_clone.notify_one();
+        notify_clone.notify_waiters();
         guard.completed = true;
     });
 
-    let handle = REGISTRY.register_sse_stream(buffer, notify, url.clone());
+    let handle =
+        REGISTRY.register_sse_stream(buffer, closed, notify, consumer.abort_handle(), url.clone());
     Ok(builtin_types::owned::HttpSseStream {
         _handle: handle,
         url,
@@ -232,13 +244,19 @@ pub(crate) async fn send_sse_async(
 pub(crate) async fn sse_stream_next(
     handle: &ResourceHandle,
 ) -> Result<Option<String>, OpErrorKind> {
-    let (buffer, notify) = REGISTRY
+    let (buffer, notify, closed) = REGISTRY
         .get_sse_stream(handle.key())
         .ok_or_else(|| OpErrorKind::Other("SSE stream handle is invalid".into()))?;
 
     loop {
+        let notified = notify.notified();
         {
             let mut buf = buffer.lock().await;
+            if closed.load(Ordering::Acquire) {
+                buf.done = true;
+                buf.error = None;
+                return Ok(None);
+            }
             if !buf.events.is_empty() {
                 let events: Vec<serde_json::Value> = std::mem::take(&mut buf.events)
                     .into_iter()
@@ -261,6 +279,6 @@ pub(crate) async fn sse_stream_next(
                 return Ok(None);
             }
         }
-        notify.notified().await;
+        notified.await;
     }
 }

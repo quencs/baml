@@ -2315,6 +2315,58 @@ SOURCE_FILE
             R_BRACE "}"
         LET_STMT
           KW_LET "let"
+          WORD "finish_reason"
+          EQUALS "="
+          CALL_EXPR
+            PATH_EXPR "accumulator.finish_reason"
+              WORD "accumulator"
+              DOT "."
+              WORD "finish_reason"
+            CALL_ARGS "()"
+              L_PAREN "("
+              R_PAREN ")"
+          SEMICOLON ";"
+        LET_STMT
+          KW_LET "let"
+          WORD "finish_reason_value"
+          EQUALS "="
+          MATCH_EXPR
+            KW_MATCH "match"
+            L_PAREN "("
+            WORD "finish_reason"
+            R_PAREN ")"
+            L_BRACE "{"
+            MATCH_ARM
+              MATCH_PATTERN "null"
+                WORD "null"
+              FAT_ARROW "=>"
+              STRING_LITERAL ""
+                QUOTE """
+                QUOTE """
+              COMMA ","
+            MATCH_ARM
+              MATCH_PATTERN
+                WORD "reason"
+                COLON ":"
+                TYPE_EXPR "string"
+                  WORD "string"
+              FAT_ARROW "=>"
+              WORD "reason"
+              COMMA ","
+            R_BRACE "}"
+          SEMICOLON ";"
+        CALL_EXPR
+          PATH_EXPR "primitive.validate_finish_reason"
+            WORD "primitive"
+            DOT "."
+            WORD "validate_finish_reason"
+          CALL_ARGS "(finish_reason_value)"
+            L_PAREN "("
+            WORD "finish_reason_value"
+            R_PAREN ")"
+        SEMICOLON ";"
+        LET_STMT
+          KW_LET "let"
           WORD "final_content"
           EQUALS "="
           CALL_EXPR

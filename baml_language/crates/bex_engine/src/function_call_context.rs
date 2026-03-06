@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use bex_events::HostSpanContext;
 use sys_types::{CallId, CancellationToken};
@@ -26,6 +26,7 @@ pub(crate) struct PerCallContext {
     pub cancel: CancellationToken,
     pub stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
     pub tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    pub last_emitted_partial: Arc<Mutex<Option<String>>>,
 }
 
 /// Builder for `FunctionCallContext`.

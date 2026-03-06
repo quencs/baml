@@ -900,6 +900,7 @@ impl BexEngine {
             cancel,
             stream_callback,
             tick_callback,
+            last_emitted_partial: Arc::new(Mutex::new(None)),
         };
         let result = self
             .run_event_loop_with_epoch(return_type, &mut vm, my_epoch, &mut span_state, &per_call)
@@ -1423,6 +1424,7 @@ impl BexEngine {
             .with_streaming(
                 per_call.stream_callback.clone(),
                 per_call.tick_callback.clone(),
+                per_call.last_emitted_partial.clone(),
             );
         let result = fn_ptr(&self.heap, args, &sys_ctx, per_call.call_id);
 

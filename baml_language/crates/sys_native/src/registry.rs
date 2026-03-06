@@ -1,5 +1,7 @@
 //! Resource registry for managing native Tokio resources.
 
+#[cfg(feature = "bundle-http")]
+use std::sync::atomic::AtomicBool;
 use std::{
     collections::HashMap,
     sync::{
@@ -9,6 +11,8 @@ use std::{
 };
 
 use bex_resource_types::{ResourceHandle, ResourceRegistryRef, ResourceType};
+#[cfg(feature = "bundle-http")]
+use tokio::task::AbortHandle;
 use tokio::{
     fs::File,
     net::TcpStream,
@@ -64,9 +68,14 @@ pub struct SseBuffer {
 #[cfg(feature = "bundle-http")]
 pub struct SseStreamResource {
     pub buffer: Arc<TokioMutex<SseBuffer>>,
+    pub closed: Arc<AtomicBool>,
     pub notify: Arc<Notify>,
+    pub abort_handle: AbortHandle,
     pub url: String,
 }
+
+#[cfg(feature = "bundle-http")]
+type SseStreamParts = (Arc<TokioMutex<SseBuffer>>, Arc<Notify>, Arc<AtomicBool>);
 
 /// Provider-aware stream accumulator that extracts content from SSE events.
 pub struct StreamAccumulatorResource {
@@ -244,13 +253,17 @@ impl ResourceRegistry {
     pub fn register_sse_stream(
         self: &Arc<Self>,
         buffer: Arc<TokioMutex<SseBuffer>>,
+        closed: Arc<AtomicBool>,
         notify: Arc<Notify>,
+        abort_handle: AbortHandle,
         url: String,
     ) -> ResourceHandle {
         let key = self.next_key.fetch_add(1, Ordering::SeqCst);
         let resource = SseStreamResource {
             buffer,
+            closed,
             notify,
+            abort_handle,
             url: url.clone(),
         };
 
@@ -269,13 +282,15 @@ impl ResourceRegistry {
 
     #[cfg(feature = "bundle-http")]
     /// Get the SSE stream buffer and notify handle.
-    pub fn get_sse_stream(&self, key: usize) -> Option<(Arc<TokioMutex<SseBuffer>>, Arc<Notify>)> {
+    pub fn get_sse_stream(&self, key: usize) -> Option<SseStreamParts> {
         let entries = self
             .entries
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         match entries.get(&key) {
-            Some(RegistryEntry::SseStream(s)) => Some((s.buffer.clone(), s.notify.clone())),
+            Some(RegistryEntry::SseStream(s)) => {
+                Some((s.buffer.clone(), s.notify.clone(), s.closed.clone()))
+            }
             _ => None,
         }
     }
@@ -325,7 +340,25 @@ impl ResourceRegistry {
 
 impl ResourceRegistryRef for ResourceRegistry {
     fn remove(&self, key: usize) {
-        self.entries.write().unwrap().remove(&key);
+        let entry = self
+            .entries
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&key);
+
+        #[cfg(feature = "bundle-http")]
+        if let Some(RegistryEntry::SseStream(sse)) = entry {
+            sse.closed.store(true, Ordering::Release);
+            if let Ok(mut buf) = sse.buffer.try_lock() {
+                buf.done = true;
+                buf.error = None;
+            }
+            sse.abort_handle.abort();
+            sse.notify.notify_waiters();
+        }
+
+        #[cfg(not(feature = "bundle-http"))]
+        let _ = entry;
     }
 }
 
