@@ -347,7 +347,9 @@ function stream_primitive(
     }
 
     let final_content = accumulator.content();
-    let final_value = primitive.parse(final_content, return_type);
+    // Use partial_parse for the final value since the accumulator provides raw
+    // extracted content, not the provider's JSON envelope that `parse` expects.
+    let final_value = primitive.partial_parse(final_content, return_type);
     baml.llm.ExecutionResult { ok: true, value: final_value }
 }
 

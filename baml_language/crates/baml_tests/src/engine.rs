@@ -179,3 +179,68 @@ pub async fn run_test(
 
     TestOutput { bytecode, result }
 }
+
+/// Output of a streaming test: result + collected partials and ticks.
+pub struct StreamingTestOutput {
+    /// VM execution result.
+    pub result: Result<BexExternalValue, bex_engine::EngineError>,
+    /// Partial values collected via `emit_partial` callbacks.
+    pub partials: Vec<String>,
+    /// Raw SSE tick events collected via `emit_tick` callbacks.
+    pub ticks: Vec<String>,
+}
+
+/// Compile BAML source and execute with streaming callbacks.
+///
+/// Like `run_test` but attaches stream_callback and tick_callback to capture
+/// all partial values and tick events emitted during execution.
+pub async fn run_test_streaming(
+    source: &str,
+    entry: &str,
+    args: IndexMap<&str, BexExternalValue>,
+    opt: baml_compiler_emit::OptLevel,
+) -> StreamingTestOutput {
+    let program = compile_source_with_opt(source, opt);
+    let positional_args = resolve_args(&program, entry, args);
+
+    let engine = BexEngine::new(program, Arc::new(sys_types::SysOps::native()), None)
+        .expect("Failed to create BexEngine");
+
+    let partials: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let ticks: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+
+    let partials_clone = partials.clone();
+    let ticks_clone = ticks.clone();
+
+    let ctx = FunctionCallContextBuilder::new(sys_types::CallId::next())
+        .with_stream_callback(Arc::new(move |value: String| {
+            partials_clone
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(value);
+        }))
+        .with_tick_callback(Arc::new(move |events: String| {
+            ticks_clone
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(events);
+        }))
+        .build();
+
+    let result = engine.call_function(entry, positional_args, ctx).await;
+
+    let partials = Arc::try_unwrap(partials)
+        .expect("partials Arc should have single owner after engine completes")
+        .into_inner()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let ticks = Arc::try_unwrap(ticks)
+        .expect("ticks Arc should have single owner after engine completes")
+        .into_inner()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+    StreamingTestOutput {
+        result,
+        partials,
+        ticks,
+    }
+}

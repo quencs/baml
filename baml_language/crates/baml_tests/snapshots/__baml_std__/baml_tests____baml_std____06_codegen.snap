@@ -1072,7 +1072,7 @@ function baml.llm.stream_primitive(primitive: baml.llm.PrimitiveClient, context:
     load_var primitive
     load_var final_content
     load_var return_type
-    dispatch_future baml.llm.PrimitiveClient.parse
+    dispatch_future baml.llm.PrimitiveClient.partial_parse
     await
     store_var final_value
     alloc_instance baml.llm.ExecutionResult

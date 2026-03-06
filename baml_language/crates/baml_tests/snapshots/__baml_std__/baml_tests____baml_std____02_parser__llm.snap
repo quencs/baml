@@ -2305,10 +2305,10 @@ SOURCE_FILE
           WORD "final_value"
           EQUALS "="
           CALL_EXPR
-            PATH_EXPR "primitive.parse"
+            PATH_EXPR "primitive.partial_parse"
               WORD "primitive"
               DOT "."
-              WORD "parse"
+              WORD "partial_parse"
             CALL_ARGS "(final_content, return_type)"
               L_PAREN "("
               WORD "final_content"

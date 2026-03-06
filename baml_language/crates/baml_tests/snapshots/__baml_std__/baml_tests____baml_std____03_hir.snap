@@ -153,7 +153,7 @@ function stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm
         return baml.llm.ExecutionResult { ok: false, value: null };
     };
     let final_content = accumulator.content();
-    let final_value = primitive.parse(final_content, return_type);
+    let final_value = primitive.partial_parse(final_content, return_type);
     baml.llm.ExecutionResult { ok: true, value: final_value }
 }
 

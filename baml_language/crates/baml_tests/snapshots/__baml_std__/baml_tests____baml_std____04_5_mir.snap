@@ -1052,14 +1052,14 @@ fn stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm.Execu
     let _84: baml.llm.StreamAccumulator
     let _85: (baml.llm.StreamAccumulator) -> string
     let _86: null
-    let _87: null // final_value
+    let _87: string // final_value
     let _88: baml.llm.PrimitiveClient
     let _89: string
     let _90: type
-    let _91: (baml.llm.PrimitiveClient, string, type) -> null
+    let _91: (baml.llm.PrimitiveClient, string, type) -> string
     let _92: null
     let _93: true
-    let _94: null
+    let _94: string
 
     bb0: {
         _4 = copy _1;
@@ -1282,7 +1282,7 @@ fn stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm.Execu
         _88 = copy _1;
         _89 = copy _83;
         _90 = copy _29;
-        _91 = const fn baml.llm.PrimitiveClient.parse;
+        _91 = const fn baml.llm.PrimitiveClient.partial_parse;
         _92 = dispatch_future copy _91(copy _88, copy _89, copy _90) -> bb42;
     }
 
