@@ -74,6 +74,7 @@ pub use bex_heap::GcStats;
 use bex_vm::{BexVm, SpanNotification, VmExecState};
 use bex_vm_types::{FunctionMeta, GlobalPool, HeapPtr, Object, SysOp, Value};
 pub use conversion::test_arg_to_external;
+use function_call_context::PerCallContext;
 // Re-export CancellationToken for callers.
 pub use function_call_context::{FunctionCallContext, FunctionCallContextBuilder};
 use sys_types::{CallId, OpError, SysOpResult};
@@ -894,17 +895,14 @@ impl BexEngine {
         });
 
         // Run the event loop with span tracking
+        let per_call = PerCallContext {
+            call_id,
+            cancel,
+            stream_callback,
+            tick_callback,
+        };
         let result = self
-            .run_event_loop_with_epoch(
-                return_type,
-                &mut vm,
-                my_epoch,
-                call_id,
-                &mut span_state,
-                &cancel,
-                stream_callback.as_ref(),
-                tick_callback.as_ref(),
-            )
+            .run_event_loop_with_epoch(return_type, &mut vm, my_epoch, &mut span_state, &per_call)
             .await;
 
         // Unregister from epoch
@@ -1072,17 +1070,13 @@ impl BexEngine {
     ///
     /// The `my_epoch` parameter is used to check if GC has been requested
     /// (epoch advanced). VMs from old epochs will park at yield points.
-    #[allow(clippy::too_many_arguments)]
     async fn run_event_loop_with_epoch(
         &self,
         return_type: Ty,
         vm: &mut BexVm,
         my_epoch: u64,
-        call_id: CallId,
         span_state: &mut Option<SpanState>,
-        cancel: &CancellationToken,
-        stream_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
-        tick_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
+        ctx: &PerCallContext,
     ) -> Result<BexExternalValue, EngineError> {
         let (pending_futures, mut processed_futures) = mpsc::unbounded_channel::<FutureResult>();
         // Abort handles for spawned async tasks.
@@ -1107,7 +1101,7 @@ impl BexEngine {
         let mut abort_handles = AbortHandlesGuard::new();
 
         'vm_exec: loop {
-            Self::cancellation_safepoint(cancel, &abort_handles)?;
+            Self::cancellation_safepoint(&ctx.cancel, &abort_handles)?;
 
             match vm.exec()? {
                 VmExecState::Complete(value) => {
@@ -1117,7 +1111,7 @@ impl BexEngine {
                     //
                     // Still emit FunctionEnd first so tracing consumers see
                     // a paired root FunctionStart/FunctionEnd span.
-                    let cancelled = cancel.is_cancelled();
+                    let cancelled = ctx.cancel.is_cancelled();
                     if cancelled {
                         abort_handles.abort_all();
                     }
@@ -1173,21 +1167,14 @@ impl BexEngine {
                         .map(|v| self.vm_arg_to_bex_value(v))
                         .collect();
 
-                    Self::cancellation_safepoint(cancel, &abort_handles)?;
-                    let sys_op_result = self.execute_sys_op(
-                        pending.operation,
-                        &args,
-                        call_id,
-                        cancel,
-                        stream_callback,
-                        tick_callback,
-                    );
-                    Self::cancellation_safepoint(cancel, &abort_handles)?;
+                    Self::cancellation_safepoint(&ctx.cancel, &abort_handles)?;
+                    let sys_op_result = self.execute_sys_op(pending.operation, &args, ctx);
+                    Self::cancellation_safepoint(&ctx.cancel, &abort_handles)?;
 
                     match sys_op_result {
                         SysOpResult::Ready(result) => {
                             // Guard the "commit to VM state" boundary.
-                            Self::cancellation_safepoint(cancel, &abort_handles)?;
+                            Self::cancellation_safepoint(&ctx.cancel, &abort_handles)?;
 
                             // Sync operation - set future to Ready without touching stack.
                             // The VM will continue to the Await instruction which will
@@ -1205,7 +1192,7 @@ impl BexEngine {
                         }
                         SysOpResult::Async(fut) => {
                             // Guard the "spawn side effect" boundary.
-                            Self::cancellation_safepoint(cancel, &abort_handles)?;
+                            Self::cancellation_safepoint(&ctx.cancel, &abort_handles)?;
 
                             // Async operation — wrap in Abortable and spawn.
                             let pending_futures = pending_futures.clone();
@@ -1235,7 +1222,7 @@ impl BexEngine {
                 }
 
                 VmExecState::Await(future_id) => {
-                    Self::cancellation_safepoint(cancel, &abort_handles)?;
+                    Self::cancellation_safepoint(&ctx.cancel, &abort_handles)?;
 
                     // Check if GC is waiting for our epoch to drain
                     let current = self.current_epoch.load(Ordering::Acquire);
@@ -1302,7 +1289,7 @@ impl BexEngine {
                     loop {
                         tokio::select! {
                             biased;
-                            () = cancel.cancelled() => {
+                            () = ctx.cancel.cancelled() => {
                                 // Abort all in-flight spawned tasks to stop
                                 // HTTP requests, sleeps, etc. immediately.
                                 abort_handles.abort_all();
@@ -1426,18 +1413,18 @@ impl BexEngine {
         &self,
         op: SysOp,
         args: &[BexExternalValue],
-        call_id: CallId,
-        cancel: &CancellationToken,
-        stream_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
-        tick_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
+        per_call: &PerCallContext,
     ) -> SysOpResult {
         let args = args.iter().map(std::convert::Into::into).collect();
         let fn_ptr = self.sys_ops.get(op);
-        let ctx = self
+        let sys_ctx = self
             .sys_op_ctx
-            .with_cancel(cancel.clone())
-            .with_streaming(stream_callback.cloned(), tick_callback.cloned());
-        let result = fn_ptr(&self.heap, args, &ctx, call_id);
+            .with_cancel(per_call.cancel.clone())
+            .with_streaming(
+                per_call.stream_callback.clone(),
+                per_call.tick_callback.clone(),
+            );
+        let result = fn_ptr(&self.heap, args, &sys_ctx, per_call.call_id);
 
         match result {
             SysOpResult::Ready(Ok(v)) => SysOpResult::Ready(Ok(v)),

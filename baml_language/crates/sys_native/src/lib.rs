@@ -334,7 +334,10 @@ impl SysOpStream for NativeSysOps {
         ctx: &SysOpContext,
     ) -> SysOpOutput<()> {
         // Deduplicate: only emit if value changed
-        let mut last = ctx.last_emitted_partial.lock().unwrap();
+        let mut last = ctx
+            .last_emitted_partial
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         if last.as_deref() == Some(value.as_str()) {
             return SysOpOutput::ok(());
         }

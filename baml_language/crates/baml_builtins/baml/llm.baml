@@ -338,9 +338,17 @@ function stream_primitive(
         let content = accumulator.content();
         let parsed = primitive.partial_parse(content, return_type);
         baml.stream.emit_partial(parsed);
+
+        if (accumulator.is_done()) {
+            break;
+        }
     }
 
     sse.close();
+
+    if (accumulator.is_done() == false) {
+        return baml.llm.ExecutionResult { ok: false, value: null };
+    }
 
     let final_content = accumulator.content();
     let final_value = primitive.parse(final_content, return_type);

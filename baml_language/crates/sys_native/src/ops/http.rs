@@ -166,6 +166,7 @@ pub(crate) async fn send_sse_async(
                 Err(e) => {
                     let mut buf = buf_clone.lock().await;
                     buf.error = Some(format!("SSE stream error: {}", format_error_chain(&e)));
+                    buf.done = true;
                     notify_clone.notify_one();
                     return;
                 }

@@ -58,7 +58,6 @@ impl SseParser {
                         id: self.id.take(),
                     });
                     self.data_lines.clear();
-                    self.event_type.clear();
                 }
             } else if line.starts_with(':') {
                 // Comment, ignore

@@ -52,10 +52,32 @@ static ACCUM_REGISTRY: std::sync::LazyLock<Arc<AccumulatorRegistry>> =
     std::sync::LazyLock::new(|| Arc::new(AccumulatorRegistry::new()));
 
 /// Create a new stream accumulator for the given provider.
+///
+/// Panics if the provider doesn't support streaming (e.g. `google-ai`, `aws-bedrock`).
 pub fn new_accumulator(provider_str: &str) -> Result<ResourceHandle, LlmOpError> {
     let provider = provider_str
         .parse::<LlmProvider>()
         .map_err(|_| LlmOpError::Other(format!("Unknown provider: {provider_str}")))?;
+
+    // Reject providers that don't have streaming support in extract_delta.
+    match provider {
+        LlmProvider::OpenAi
+        | LlmProvider::OpenAiGeneric
+        | LlmProvider::AzureOpenAi
+        | LlmProvider::Ollama
+        | LlmProvider::OpenRouter
+        | LlmProvider::OpenAiResponses
+        | LlmProvider::Anthropic => {}
+        _ => {
+            return Err(LlmOpError::NotImplemented {
+                message: format!(
+                    "Streaming is not yet implemented for provider '{provider_str}'. \
+                     Supported providers: openai, openai-generic, azure-openai, ollama, \
+                     openrouter, openai-responses, anthropic."
+                ),
+            });
+        }
+    }
 
     let key = ACCUM_REGISTRY.next_key.fetch_add(1, Ordering::SeqCst);
     let state = AccumulatorState {

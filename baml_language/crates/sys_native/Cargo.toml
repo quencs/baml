@@ -10,16 +10,16 @@ license.workspace = true
 default = [  ]
 native-tls = [ "reqwest/native-tls" ]
 rustls = [ "reqwest/rustls" ]
-bundle-http = [ "dep:reqwest" ]
+bundle-http = [ "dep:reqwest", "dep:futures", "dep:serde_json" ]
 
 [dependencies]
 bex_heap = { workspace = true }
 bex_resource_types = { workspace = true }
 sys_types = { workspace = true }
-futures = { workspace = true }
+futures = { workspace = true, optional = true }
 indexmap = { workspace = true }
 reqwest = { workspace = true, features = [ "rustls", "stream" ], optional = true }
-serde_json = { workspace = true }
+serde_json = { workspace = true, optional = true }
 tokio = { workspace = true, features = [ "sync", "fs", "net", "process", "io-util", "time" ] }
 
 [lints]

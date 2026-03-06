@@ -17,6 +17,17 @@ pub struct FunctionCallContext {
     pub tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
 }
 
+/// Per-call context threaded through the event loop and sys-op dispatch.
+///
+/// Bundles the call-scoped parameters that would otherwise be passed as
+/// separate arguments to `run_event_loop_with_epoch` and `execute_sys_op`.
+pub(crate) struct PerCallContext {
+    pub call_id: CallId,
+    pub cancel: CancellationToken,
+    pub stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    pub tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+}
+
 /// Builder for `FunctionCallContext`.
 pub struct FunctionCallContextBuilder {
     call_id: CallId,
