@@ -456,6 +456,13 @@ macro_rules! with_builtins {
                         #[sys_op]
                         #[throws(LlmClient)]
                         fn partial_parse(self: PrimitiveClient, content: String, type_def: Type) -> String;
+
+                        /// Strictly parse the final accumulated content into a typed value.
+                        /// Unlike `parse` (which expects the provider JSON envelope),
+                        /// this takes raw extracted content but validates strictly.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn final_parse(self: PrimitiveClient, content: String, type_def: Type) -> Any;
                     }
 
                     /// Get the Jinja template for an LLM function.
@@ -530,6 +537,26 @@ macro_rules! with_builtins {
                         #[sys_op]
                         #[throws(LlmClient)]
                         fn is_done(self: StreamAccumulator) -> bool;
+
+                        /// Get the model name from the stream (if available).
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn model(self: StreamAccumulator) -> Option<String>;
+
+                        /// Get the finish reason from the stream (if available).
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn finish_reason(self: StreamAccumulator) -> Option<String>;
+
+                        /// Get the input/prompt token count (if available).
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn input_tokens(self: StreamAccumulator) -> Option<i64>;
+
+                        /// Get the output/completion token count (if available).
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn output_tokens(self: StreamAccumulator) -> Option<i64>;
                     }
 
                 }

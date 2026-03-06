@@ -16,6 +16,8 @@ source: crates/baml_tests/src/generated_tests.rs
     Return: Class(QualifiedName { namespace: BamlStd { path: ["llm"] }, name: "ExecutionResult" }, TyAttr(None))
   Function stream_primitive:
     Return: Class(QualifiedName { namespace: BamlStd { path: ["llm"] }, name: "ExecutionResult" }, TyAttr(None))
+    Errors:
+      - Unreachable catch arm
   Function execute_client_once:
     Return: Class(QualifiedName { namespace: BamlStd { path: ["llm"] }, name: "ExecutionResult" }, TyAttr(None))
   Function build_plan:

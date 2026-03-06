@@ -2,6 +2,16 @@
 source: crates/baml_tests/src/generated_tests.rs
 ---
 === DIAGNOSTICS ===
+  [type] Warning: Unreachable catch arm
+     ╭─[ llm.baml:342:17 ]
+     │
+ 342 │             _ => null
+     │                 ┬  
+     │                 ╰── Unreachable catch arm
+     │ 
+     │ Note: Error code: E0095
+─────╯
+
   [type] Error: Cannot apply operator 'Add' to types `int` and `string`
    ╭─[ simple_type_error.baml:2:3 ]
    │

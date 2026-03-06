@@ -336,8 +336,14 @@ function stream_primitive(
         baml.stream.emit_tick(events);
 
         let content = accumulator.content();
-        let parsed = primitive.partial_parse(content, return_type);
-        baml.stream.emit_partial(parsed);
+        // Silently skip failed parses — early chunks may produce incomplete
+        // content that can't parse yet. This matches legacy behavior.
+        let parsed = primitive.partial_parse(content, return_type) catch (_e) {
+            _ => null
+        };
+        if (parsed != null) {
+            baml.stream.emit_partial(parsed);
+        }
     }
 
     sse.close();
@@ -347,9 +353,7 @@ function stream_primitive(
     }
 
     let final_content = accumulator.content();
-    // Use partial_parse for the final value since the accumulator provides raw
-    // extracted content, not the provider's JSON envelope that `parse` expects.
-    let final_value = primitive.partial_parse(final_content, return_type);
+    let final_value = primitive.final_parse(final_content, return_type);
     baml.llm.ExecutionResult { ok: true, value: final_value }
 }
 

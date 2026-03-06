@@ -270,6 +270,54 @@ pub fn is_done(handle: &ResourceHandle) -> Result<bool, LlmOpError> {
     Ok(state.is_done)
 }
 
+/// Get the model name.
+pub fn get_model(handle: &ResourceHandle) -> Result<Option<String>, LlmOpError> {
+    let entries = ACCUM_REGISTRY
+        .entries
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let state = entries
+        .get(&handle.key())
+        .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
+    Ok(state.model.clone())
+}
+
+/// Get the finish reason.
+pub fn get_finish_reason(handle: &ResourceHandle) -> Result<Option<String>, LlmOpError> {
+    let entries = ACCUM_REGISTRY
+        .entries
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let state = entries
+        .get(&handle.key())
+        .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
+    Ok(state.finish_reason.clone())
+}
+
+/// Get the input/prompt token count.
+pub fn get_input_tokens(handle: &ResourceHandle) -> Result<Option<u64>, LlmOpError> {
+    let entries = ACCUM_REGISTRY
+        .entries
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let state = entries
+        .get(&handle.key())
+        .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
+    Ok(state.input_tokens)
+}
+
+/// Get the output/completion token count.
+pub fn get_output_tokens(handle: &ResourceHandle) -> Result<Option<u64>, LlmOpError> {
+    let entries = ACCUM_REGISTRY
+        .entries
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let state = entries
+        .get(&handle.key())
+        .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
+    Ok(state.output_tokens)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

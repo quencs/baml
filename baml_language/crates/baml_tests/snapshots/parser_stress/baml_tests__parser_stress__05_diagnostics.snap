@@ -7852,6 +7852,16 @@ source: crates/baml_tests/src/generated_tests.rs
     │ Note: Error code: E0002
 ────╯
 
+  [type] Warning: Unreachable catch arm
+     ╭─[ llm.baml:342:17 ]
+     │
+ 342 │             _ => null
+     │                 ┬  
+     │                 ╰── Unreachable catch arm
+     │ 
+     │ Note: Error code: E0095
+─────╯
+
   [hir] Error: Condition in `while` statement must be wrapped in parentheses.
     ╭─[ very_invalid.baml:8:11 ]
     │

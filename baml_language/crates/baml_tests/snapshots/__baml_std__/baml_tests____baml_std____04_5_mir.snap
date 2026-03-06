@@ -1024,42 +1024,47 @@ fn stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm.Execu
     let _56: baml.llm.StreamAccumulator
     let _57: (baml.llm.StreamAccumulator) -> string
     let _58: null
-    let _59: string // parsed
-    let _60: baml.llm.PrimitiveClient
-    let _61: string
-    let _62: type
-    let _63: (baml.llm.PrimitiveClient, string, type) -> string
-    let _64: null
-    let _65: null
-    let _66: (string) -> null
-    let _67: string
-    let _68: null
+    let _59: string | null // parsed
+    let _60: unknown
+    let _61: unknown // _e
+    let _62: baml.llm.PrimitiveClient
+    let _63: string
+    let _64: type
+    let _65: (baml.llm.PrimitiveClient, string, type) -> string
+    let _66: null
+    let _67: bool
+    let _68: string | null
     let _69: null
-    let _70: baml.http.SseStream
-    let _71: (baml.http.SseStream) -> null
-    let _72: null
+    let _70: null
+    let _71: (string) -> null
+    let _72: string
     let _73: null
-    let _74: bool
-    let _75: bool
-    let _76: baml.llm.StreamAccumulator
-    let _77: (baml.llm.StreamAccumulator) -> bool
+    let _74: null
+    let _75: baml.http.SseStream
+    let _76: (baml.http.SseStream) -> null
+    let _77: null
     let _78: null
-    let _79: false
-    let _80: void
-    let _81: false
-    let _82: null
-    let _83: string // final_content
-    let _84: baml.llm.StreamAccumulator
-    let _85: (baml.llm.StreamAccumulator) -> string
-    let _86: null
-    let _87: string // final_value
-    let _88: baml.llm.PrimitiveClient
-    let _89: string
-    let _90: type
-    let _91: (baml.llm.PrimitiveClient, string, type) -> string
-    let _92: null
-    let _93: true
+    let _79: bool
+    let _80: bool
+    let _81: baml.llm.StreamAccumulator
+    let _82: (baml.llm.StreamAccumulator) -> bool
+    let _83: null
+    let _84: false
+    let _85: void
+    let _86: false
+    let _87: null
+    let _88: string // final_content
+    let _89: baml.llm.StreamAccumulator
+    let _90: (baml.llm.StreamAccumulator) -> string
+    let _91: null
+    let _92: null // final_value
+    let _93: baml.llm.PrimitiveClient
     let _94: string
+    let _95: type
+    let _96: (baml.llm.PrimitiveClient, string, type) -> null
+    let _97: null
+    let _98: true
+    let _99: null
 
     bb0: {
         _4 = copy _1;
@@ -1149,9 +1154,9 @@ fn stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm.Execu
 
     bb16: {
         _34 = const null;
-        _70 = copy _21;
-        _71 = const fn baml.http.SseStream.close;
-        _72 = dispatch_future copy _71(copy _70) -> bb32;
+        _75 = copy _21;
+        _76 = const fn baml.http.SseStream.close;
+        _77 = dispatch_future copy _76(copy _75) -> bb39;
     }
 
     bb17: {
@@ -1206,94 +1211,128 @@ fn stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm.Execu
     }
 
     bb27: {
-        _60 = copy _1;
-        _61 = copy _55;
-        _62 = copy _29;
-        _63 = const fn baml.llm.PrimitiveClient.partial_parse;
-        _64 = dispatch_future copy _63(copy _60, copy _61, copy _62) -> bb28;
+        _62 = copy _1;
+        _63 = copy _55;
+        _64 = copy _29;
+        _65 = const fn baml.llm.PrimitiveClient.partial_parse;
+        _66 = dispatch_future copy _65(copy _62, copy _63, copy _64) -> bb32;
     }
 
     bb28: {
-        _59 = await _64 -> [bb29];
+        _68 = copy _59;
+        _69 = const null;
+        _67 = copy _68 != copy _69;
+        branch copy _67 -> [bb34, bb35];
     }
 
     bb29: {
-        _66 = const fn baml.stream.emit_partial;
-        _67 = copy _59;
-        _68 = dispatch_future copy _66(copy _67) -> bb30;
+        _61 = copy _60;
+        goto -> bb31;
     }
 
     bb30: {
-        _65 = await _68 -> [bb31];
+        throw copy _60;
     }
 
     bb31: {
-        _36 = const null;
-        goto -> bb14;
+        _59 = const null;
+        goto -> bb28;
     }
 
     bb32: {
-        _69 = await _72 -> [bb33];
+        _59 = await _66 -> [bb33, unwind: bb29];
     }
 
     bb33: {
-        _76 = copy _25;
-        _77 = const fn baml.llm.StreamAccumulator.is_done;
-        _78 = dispatch_future copy _77(copy _76) -> bb34;
+        goto -> bb28;
     }
 
     bb34: {
-        _75 = await _78 -> [bb35];
+        _71 = const fn baml.stream.emit_partial;
+        _72 = copy _59;
+        _73 = dispatch_future copy _71(copy _72) -> bb37;
     }
 
     bb35: {
-        _79 = const false;
-        _74 = copy _75 == copy _79;
-        branch copy _74 -> [bb36, bb37];
+        _36 = const null;
+        goto -> bb36;
     }
 
     bb36: {
-        _81 = const false;
-        _82 = const null;
-        _0 = baml.llm.ExecutionResult { copy _81, copy _82 };
-        goto -> bb39;
+        goto -> bb14;
     }
 
     bb37: {
-        _73 = const null;
-        goto -> bb38;
+        _70 = await _73 -> [bb38];
     }
 
     bb38: {
-        _84 = copy _25;
-        _85 = const fn baml.llm.StreamAccumulator.content;
-        _86 = dispatch_future copy _85(copy _84) -> bb40;
+        _36 = const null;
+        goto -> bb36;
     }
 
     bb39: {
-        return;
+        _74 = await _77 -> [bb40];
     }
 
     bb40: {
-        _83 = await _86 -> [bb41];
+        _81 = copy _25;
+        _82 = const fn baml.llm.StreamAccumulator.is_done;
+        _83 = dispatch_future copy _82(copy _81) -> bb41;
     }
 
     bb41: {
-        _88 = copy _1;
-        _89 = copy _83;
-        _90 = copy _29;
-        _91 = const fn baml.llm.PrimitiveClient.partial_parse;
-        _92 = dispatch_future copy _91(copy _88, copy _89, copy _90) -> bb42;
+        _80 = await _83 -> [bb42];
     }
 
     bb42: {
-        _87 = await _92 -> [bb43];
+        _84 = const false;
+        _79 = copy _80 == copy _84;
+        branch copy _79 -> [bb43, bb44];
     }
 
     bb43: {
-        _93 = const true;
-        _94 = copy _87;
-        _0 = baml.llm.ExecutionResult { copy _93, copy _94 };
+        _86 = const false;
+        _87 = const null;
+        _0 = baml.llm.ExecutionResult { copy _86, copy _87 };
+        goto -> bb46;
+    }
+
+    bb44: {
+        _78 = const null;
+        goto -> bb45;
+    }
+
+    bb45: {
+        _89 = copy _25;
+        _90 = const fn baml.llm.StreamAccumulator.content;
+        _91 = dispatch_future copy _90(copy _89) -> bb47;
+    }
+
+    bb46: {
+        return;
+    }
+
+    bb47: {
+        _88 = await _91 -> [bb48];
+    }
+
+    bb48: {
+        _93 = copy _1;
+        _94 = copy _88;
+        _95 = copy _29;
+        _96 = const fn baml.llm.PrimitiveClient.final_parse;
+        _97 = dispatch_future copy _96(copy _93, copy _94, copy _95) -> bb49;
+    }
+
+    bb49: {
+        _92 = await _97 -> [bb50];
+    }
+
+    bb50: {
+        _98 = const true;
+        _99 = copy _92;
+        _0 = baml.llm.ExecutionResult { copy _98, copy _99 };
         goto -> bb1;
     }
 }

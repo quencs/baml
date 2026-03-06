@@ -52,6 +52,16 @@ source: crates/baml_tests/src/generated_tests.rs
     │ Note: Error code: E0010
 ────╯
 
+  [type] Warning: Unreachable catch arm
+     ╭─[ llm.baml:342:17 ]
+     │
+ 342 │             _ => null
+     │                 ┬  
+     │                 ╰── Unreachable catch arm
+     │ 
+     │ Note: Error code: E0095
+─────╯
+
   [type] Error: Unknown type `b`
     ╭─[ syntax_errors.baml:18:9 ]
     │

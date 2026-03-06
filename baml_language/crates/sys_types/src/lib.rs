@@ -889,6 +889,50 @@ impl<T> SysOpLlm for T {
         }
     }
 
+    fn baml_llm_stream_accumulator_model(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+    ) -> SysOpOutput<Option<String>> {
+        match sys_llm::stream_accumulator::get_model(&stream_accumulator._handle) {
+            Ok(model) => SysOpOutput::ok(model),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_stream_accumulator_finish_reason(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+    ) -> SysOpOutput<Option<String>> {
+        match sys_llm::stream_accumulator::get_finish_reason(&stream_accumulator._handle) {
+            Ok(reason) => SysOpOutput::ok(reason),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_stream_accumulator_input_tokens(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+    ) -> SysOpOutput<Option<i64>> {
+        match sys_llm::stream_accumulator::get_input_tokens(&stream_accumulator._handle) {
+            Ok(tokens) => SysOpOutput::ok(tokens.map(u64::cast_signed)),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_stream_accumulator_output_tokens(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+    ) -> SysOpOutput<Option<i64>> {
+        match sys_llm::stream_accumulator::get_output_tokens(&stream_accumulator._handle) {
+            Ok(tokens) => SysOpOutput::ok(tokens.map(u64::cast_signed)),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
     fn baml_llm_primitive_client_build_request_stream(
         &self,
         _call_id: CallId,
@@ -909,6 +953,19 @@ impl<T> SysOpLlm for T {
         type_def: baml_type::Ty,
     ) -> SysOpOutput<String> {
         match sys_llm::execute_partial_parse(&content, &type_def) {
+            Ok(val) => SysOpOutput::ok(val),
+            Err(e) => SysOpOutput::err(e.into()),
+        }
+    }
+
+    fn baml_llm_primitive_client_final_parse(
+        &self,
+        _call_id: CallId,
+        _client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
+        content: String,
+        type_def: baml_type::Ty,
+    ) -> SysOpOutput {
+        match sys_llm::execute_final_parse(&content, &type_def) {
             Ok(val) => SysOpOutput::ok(val),
             Err(e) => SysOpOutput::err(e.into()),
         }

@@ -145,15 +145,19 @@ function stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm
         accumulator.add_events(events);
         baml.stream.emit_tick(events);
         let content = accumulator.content();
-        let parsed = primitive.partial_parse(content, return_type);
-        baml.stream.emit_partial(parsed);
+        let parsed = primitive.partial_parse(content, return_type) catch (_e) {
+            _ => null,
+        };
+        if (parsed != null) {
+            baml.stream.emit_partial(parsed);
+        }
     }
     sse.close();
     if (accumulator.is_done() == false) {
         return baml.llm.ExecutionResult { ok: false, value: null };
     };
     let final_content = accumulator.content();
-    let final_value = primitive.partial_parse(final_content, return_type);
+    let final_value = primitive.final_parse(final_content, return_type);
     baml.llm.ExecutionResult { ok: true, value: final_value }
 }
 

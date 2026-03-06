@@ -134,6 +134,29 @@ pub fn execute_partial_parse(
     }
 }
 
+/// Strictly parse the final accumulated content into a typed value.
+///
+/// Unlike `execute_parse_response_from_owned` (which expects the provider JSON envelope),
+/// this takes raw extracted content but validates strictly (no partial/incomplete values).
+/// For string return types, returns the content as-is.
+/// For structured types, requires SAP integration.
+pub fn execute_final_parse(
+    content: &str,
+    return_type: &baml_type::Ty,
+) -> Result<bex_external_types::BexExternalValue, LlmOpError> {
+    match return_type {
+        baml_type::Ty::String { .. } => Ok(bex_external_types::BexExternalValue::String(
+            content.to_string(),
+        )),
+        _ => Err(LlmOpError::NotImplemented {
+            message: format!(
+                "final_parse not yet implemented for non-string return type: {return_type:?}. \
+                 SAP (Schema Aligned Parser) integration is required for structured streaming."
+            ),
+        }),
+    }
+}
+
 /// Parse an LLM response and extract the return value given already-extracted owned types.
 pub fn execute_parse_response_from_owned(
     client: &builtin_types::owned::LlmPrimitiveClient,

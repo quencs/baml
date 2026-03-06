@@ -1,6 +1,5 @@
 ---
-source: target/debug/build/baml_tests-9a8b4d484ca600e9/out/generated_tests.rs
-expression: output
+source: crates/baml_tests/src/generated_tests.rs
 ---
 === DIAGNOSTICS ===
   [parse] Error: Expected '=', found identifier
@@ -32,3 +31,13 @@ expression: output
    │ 
    │ Note: Error code: E0002
 ───╯
+
+  [type] Warning: Unreachable catch arm
+     ╭─[ llm.baml:342:17 ]
+     │
+ 342 │             _ => null
+     │                 ┬  
+     │                 ╰── Unreachable catch arm
+     │ 
+     │ Note: Error code: E0095
+─────╯
