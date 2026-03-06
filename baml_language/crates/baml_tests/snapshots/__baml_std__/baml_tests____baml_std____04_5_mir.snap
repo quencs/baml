@@ -1502,24 +1502,34 @@ fn execute_client_once(llm_client: baml.llm.Client, context: baml.llm.ExecutionC
     let _97: false
     let _98: null
     let _99: bool
-    let _100: int // idx
-    let _101: int
-    let _102: (string) -> int
-    let _103: string
+    let _100: null
+    let _101: bool
+    let _102: int
+    let _103: baml.llm.Client[]
     let _104: baml.llm.Client
-    let _105: null
-    let _106: int
-    let _107: baml.llm.Client[]
-    let _108: baml.llm.Client
-    let _109: (baml.llm.Client[]) -> int
-    let _110: (baml.llm.Client, baml.llm.ExecutionContext, int) -> baml.llm.ExecutionResult
-    let _111: baml.llm.Client
-    let _112: baml.llm.Client[]
-    let _113: baml.llm.Client
-    let _114: int
-    let _115: (baml.llm.Client[], int) -> baml.llm.Client
-    let _116: baml.llm.ExecutionContext
-    let _117: int
+    let _105: (baml.llm.Client[]) -> int
+    let _106: 0
+    let _107: void
+    let _108: false
+    let _109: null
+    let _110: int // idx
+    let _111: int
+    let _112: (string) -> int
+    let _113: string
+    let _114: baml.llm.Client
+    let _115: null
+    let _116: int
+    let _117: baml.llm.Client[]
+    let _118: baml.llm.Client
+    let _119: (baml.llm.Client[]) -> int
+    let _120: (baml.llm.Client, baml.llm.ExecutionContext, int) -> baml.llm.ExecutionResult
+    let _121: baml.llm.Client
+    let _122: baml.llm.Client[]
+    let _123: baml.llm.Client
+    let _124: int
+    let _125: (baml.llm.Client[], int) -> baml.llm.Client
+    let _126: baml.llm.ExecutionContext
+    let _127: int
 
     bb0: {
         _5 = copy _1;
@@ -1779,40 +1789,69 @@ fn execute_client_once(llm_client: baml.llm.Client, context: baml.llm.ExecutionC
     }
 
     bb45: {
-        _102 = const fn baml.llm.round_robin_next;
         _104 = copy _1;
         _103 = copy _104.0;
-        _105 = dispatch_future copy _102(copy _103) -> bb46;
+        _105 = const fn baml.Array.length;
+        _102 = call copy _105(copy _103) -> [bb46];
     }
 
     bb46: {
-        _101 = await _105 -> [bb47];
+        _106 = const 0_i64;
+        _101 = copy _102 == copy _106;
+        branch copy _101 -> [bb47, bb48];
     }
 
     bb47: {
-        _108 = copy _1;
-        _107 = copy _108.0;
-        _109 = const fn baml.Array.length;
-        _106 = call copy _109(copy _107) -> [bb48];
+        _108 = const false;
+        _109 = const null;
+        _0 = baml.llm.ExecutionResult { copy _108, copy _109 };
+        goto -> bb50;
     }
 
     bb48: {
-        _100 = copy _101 % copy _106;
-        _110 = const fn baml.llm.execute_client;
-        _113 = copy _1;
-        _112 = copy _113.0;
-        _114 = copy _100;
-        _115 = const fn baml.Array.at;
-        _111 = call copy _115(copy _112, copy _114) -> [bb49];
+        _100 = const null;
+        goto -> bb49;
     }
 
     bb49: {
-        _116 = copy _2;
-        _117 = copy _3;
-        _0 = call copy _110(copy _111, copy _116, copy _117) -> [bb50];
+        _112 = const fn baml.llm.round_robin_next;
+        _114 = copy _1;
+        _113 = copy _114.0;
+        _115 = dispatch_future copy _112(copy _113) -> bb51;
     }
 
     bb50: {
+        return;
+    }
+
+    bb51: {
+        _111 = await _115 -> [bb52];
+    }
+
+    bb52: {
+        _118 = copy _1;
+        _117 = copy _118.0;
+        _119 = const fn baml.Array.length;
+        _116 = call copy _119(copy _117) -> [bb53];
+    }
+
+    bb53: {
+        _110 = copy _111 % copy _116;
+        _120 = const fn baml.llm.execute_client;
+        _123 = copy _1;
+        _122 = copy _123.0;
+        _124 = copy _110;
+        _125 = const fn baml.Array.at;
+        _121 = call copy _125(copy _122, copy _124) -> [bb54];
+    }
+
+    bb54: {
+        _126 = copy _2;
+        _127 = copy _3;
+        _0 = call copy _120(copy _121, copy _126, copy _127) -> [bb55];
+    }
+
+    bb55: {
         goto -> bb2;
     }
 }
@@ -2065,24 +2104,34 @@ fn execute_client_once_stream(llm_client: baml.llm.Client, context: baml.llm.Exe
     let _61: false
     let _62: null
     let _63: bool
-    let _64: int // idx
-    let _65: int
-    let _66: (string) -> int
-    let _67: string
+    let _64: null
+    let _65: bool
+    let _66: int
+    let _67: baml.llm.Client[]
     let _68: baml.llm.Client
-    let _69: null
-    let _70: int
-    let _71: baml.llm.Client[]
-    let _72: baml.llm.Client
-    let _73: (baml.llm.Client[]) -> int
-    let _74: (baml.llm.Client, baml.llm.ExecutionContext, int) -> baml.llm.ExecutionResult
-    let _75: baml.llm.Client
-    let _76: baml.llm.Client[]
-    let _77: baml.llm.Client
-    let _78: int
-    let _79: (baml.llm.Client[], int) -> baml.llm.Client
-    let _80: baml.llm.ExecutionContext
-    let _81: int
+    let _69: (baml.llm.Client[]) -> int
+    let _70: 0
+    let _71: void
+    let _72: false
+    let _73: null
+    let _74: int // idx
+    let _75: int
+    let _76: (string) -> int
+    let _77: string
+    let _78: baml.llm.Client
+    let _79: null
+    let _80: int
+    let _81: baml.llm.Client[]
+    let _82: baml.llm.Client
+    let _83: (baml.llm.Client[]) -> int
+    let _84: (baml.llm.Client, baml.llm.ExecutionContext, int) -> baml.llm.ExecutionResult
+    let _85: baml.llm.Client
+    let _86: baml.llm.Client[]
+    let _87: baml.llm.Client
+    let _88: int
+    let _89: (baml.llm.Client[], int) -> baml.llm.Client
+    let _90: baml.llm.ExecutionContext
+    let _91: int
 
     bb0: {
         _5 = copy _1;
@@ -2261,40 +2310,69 @@ fn execute_client_once_stream(llm_client: baml.llm.Client, context: baml.llm.Exe
     }
 
     bb30: {
-        _66 = const fn baml.llm.round_robin_next;
         _68 = copy _1;
         _67 = copy _68.0;
-        _69 = dispatch_future copy _66(copy _67) -> bb31;
+        _69 = const fn baml.Array.length;
+        _66 = call copy _69(copy _67) -> [bb31];
     }
 
     bb31: {
-        _65 = await _69 -> [bb32];
+        _70 = const 0_i64;
+        _65 = copy _66 == copy _70;
+        branch copy _65 -> [bb32, bb33];
     }
 
     bb32: {
-        _72 = copy _1;
-        _71 = copy _72.0;
-        _73 = const fn baml.Array.length;
-        _70 = call copy _73(copy _71) -> [bb33];
+        _72 = const false;
+        _73 = const null;
+        _0 = baml.llm.ExecutionResult { copy _72, copy _73 };
+        goto -> bb35;
     }
 
     bb33: {
-        _64 = copy _65 % copy _70;
-        _74 = const fn baml.llm.execute_client_stream;
-        _77 = copy _1;
-        _76 = copy _77.0;
-        _78 = copy _64;
-        _79 = const fn baml.Array.at;
-        _75 = call copy _79(copy _76, copy _78) -> [bb34];
+        _64 = const null;
+        goto -> bb34;
     }
 
     bb34: {
-        _80 = copy _2;
-        _81 = copy _3;
-        _0 = call copy _74(copy _75, copy _80, copy _81) -> [bb35];
+        _76 = const fn baml.llm.round_robin_next;
+        _78 = copy _1;
+        _77 = copy _78.0;
+        _79 = dispatch_future copy _76(copy _77) -> bb36;
     }
 
     bb35: {
+        return;
+    }
+
+    bb36: {
+        _75 = await _79 -> [bb37];
+    }
+
+    bb37: {
+        _82 = copy _1;
+        _81 = copy _82.0;
+        _83 = const fn baml.Array.length;
+        _80 = call copy _83(copy _81) -> [bb38];
+    }
+
+    bb38: {
+        _74 = copy _75 % copy _80;
+        _84 = const fn baml.llm.execute_client_stream;
+        _87 = copy _1;
+        _86 = copy _87.0;
+        _88 = copy _74;
+        _89 = const fn baml.Array.at;
+        _85 = call copy _89(copy _86, copy _88) -> [bb39];
+    }
+
+    bb39: {
+        _90 = copy _2;
+        _91 = copy _3;
+        _0 = call copy _84(copy _85, copy _90, copy _91) -> [bb40];
+    }
+
+    bb40: {
         goto -> bb2;
     }
 }

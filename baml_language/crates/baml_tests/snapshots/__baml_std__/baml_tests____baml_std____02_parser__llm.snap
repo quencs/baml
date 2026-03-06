@@ -1557,6 +1557,48 @@ SOURCE_FILE
             FAT_ARROW "=>"
             BLOCK_EXPR
               L_BRACE "{"
+              IF_EXPR
+                KW_IF "if"
+                PAREN_EXPR
+                  L_PAREN "("
+                  BINARY_EXPR
+                    CALL_EXPR
+                      PATH_EXPR "llm_client.sub_clients.length"
+                        WORD "llm_client"
+                        DOT "."
+                        WORD "sub_clients"
+                        DOT "."
+                        WORD "length"
+                      CALL_ARGS "()"
+                        L_PAREN "("
+                        R_PAREN ")"
+                    EQUALS_EQUALS "=="
+                    INTEGER_LITERAL "0"
+                  R_PAREN ")"
+                BLOCK_EXPR
+                  L_BRACE "{"
+                  RETURN_STMT
+                    KW_RETURN "return"
+                    OBJECT_LITERAL
+                      PATH_EXPR "baml.llm.ExecutionResult"
+                        WORD "baml"
+                        DOT "."
+                        WORD "llm"
+                        DOT "."
+                        WORD "ExecutionResult"
+                      L_BRACE "{"
+                      OBJECT_FIELD "ok: false"
+                        WORD "ok"
+                        COLON ":"
+                        WORD "false"
+                      COMMA ","
+                      OBJECT_FIELD "value: null"
+                        WORD "value"
+                        COLON ":"
+                        WORD "null"
+                      R_BRACE "}"
+                    SEMICOLON ";"
+                  R_BRACE "}"
               LET_STMT
                 KW_LET "let"
                 WORD "idx"
@@ -2969,6 +3011,48 @@ SOURCE_FILE
             FAT_ARROW "=>"
             BLOCK_EXPR
               L_BRACE "{"
+              IF_EXPR
+                KW_IF "if"
+                PAREN_EXPR
+                  L_PAREN "("
+                  BINARY_EXPR
+                    CALL_EXPR
+                      PATH_EXPR "llm_client.sub_clients.length"
+                        WORD "llm_client"
+                        DOT "."
+                        WORD "sub_clients"
+                        DOT "."
+                        WORD "length"
+                      CALL_ARGS "()"
+                        L_PAREN "("
+                        R_PAREN ")"
+                    EQUALS_EQUALS "=="
+                    INTEGER_LITERAL "0"
+                  R_PAREN ")"
+                BLOCK_EXPR
+                  L_BRACE "{"
+                  RETURN_STMT
+                    KW_RETURN "return"
+                    OBJECT_LITERAL
+                      PATH_EXPR "baml.llm.ExecutionResult"
+                        WORD "baml"
+                        DOT "."
+                        WORD "llm"
+                        DOT "."
+                        WORD "ExecutionResult"
+                      L_BRACE "{"
+                      OBJECT_FIELD "ok: false"
+                        WORD "ok"
+                        COLON ":"
+                        WORD "false"
+                      COMMA ","
+                      OBJECT_FIELD "value: null"
+                        WORD "value"
+                        COLON ":"
+                        WORD "null"
+                      R_BRACE "}"
+                    SEMICOLON ";"
+                  R_BRACE "}"
               LET_STMT
                 KW_LET "let"
                 WORD "idx"

@@ -250,6 +250,9 @@ function execute_client_once(
         }
 
         baml.llm.ClientType.RoundRobin => {
+            if (llm_client.sub_clients.length() == 0) {
+                return baml.llm.ExecutionResult { ok: false, value: null };
+            }
             let idx = baml.llm.round_robin_next(llm_client.name) % llm_client.sub_clients.length();
             baml.llm.execute_client(
                 llm_client.sub_clients.at(idx),
@@ -452,6 +455,9 @@ function execute_client_once_stream(
         }
 
         baml.llm.ClientType.RoundRobin => {
+            if (llm_client.sub_clients.length() == 0) {
+                return baml.llm.ExecutionResult { ok: false, value: null };
+            }
             let idx = baml.llm.round_robin_next(llm_client.name) % llm_client.sub_clients.length();
             baml.llm.execute_client_stream(
                 llm_client.sub_clients.at(idx),

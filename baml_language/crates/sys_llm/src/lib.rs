@@ -102,17 +102,20 @@ pub fn execute_build_request_stream_from_owned(
 ) -> Result<builtin_types::owned::HttpRequest, LlmOpError> {
     let mut request = build_request::build_request(client, prompt)
         .map_err(|e| LlmOpError::Other(e.to_string()))?;
-
-    // Parse body JSON, add "stream": true, re-serialize
-    let mut body: serde_json::Value = serde_json::from_str(&request.body)
-        .map_err(|e| LlmOpError::Other(format!("Failed to parse request body: {e}")))?;
-    if let Some(obj) = body.as_object_mut() {
-        obj.insert("stream".to_string(), serde_json::Value::Bool(true));
-    }
-    request.body = serde_json::to_string(&body)
-        .map_err(|e| LlmOpError::Other(format!("Failed to serialize request body: {e}")))?;
+    request.body = add_stream_flag_to_request_body(&request.body)?;
 
     Ok(request)
+}
+
+fn add_stream_flag_to_request_body(body: &str) -> Result<String, LlmOpError> {
+    let mut body: serde_json::Value = serde_json::from_str(body)
+        .map_err(|e| LlmOpError::Other(format!("Failed to parse request body: {e}")))?;
+    let obj = body.as_object_mut().ok_or_else(|| {
+        LlmOpError::Other("Request body must be a JSON object to enable streaming".into())
+    })?;
+    obj.insert("stream".to_string(), serde_json::Value::Bool(true));
+    serde_json::to_string(&body)
+        .map_err(|e| LlmOpError::Other(format!("Failed to serialize request body: {e}")))
 }
 
 /// Parse partial content for streaming (string-only for now).
@@ -249,7 +252,7 @@ mod tests {
     use bex_external_types::BexExternalValue;
     use bex_heap::builtin_types::owned::LlmPrimitiveClient;
 
-    use super::execute_parse_response_from_owned;
+    use super::{add_stream_flag_to_request_body, execute_parse_response_from_owned};
 
     fn make_client_with_options(
         options: indexmap::IndexMap<String, BexExternalValue>,
@@ -334,5 +337,22 @@ mod tests {
             },
         );
         assert!(denied.is_err());
+    }
+
+    #[test]
+    fn add_stream_flag_requires_object_body() {
+        let err = add_stream_flag_to_request_body(r#"["not","an","object"]"#).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Request body must be a JSON object to enable streaming")
+        );
+    }
+
+    #[test]
+    fn add_stream_flag_sets_stream_true() {
+        let body = add_stream_flag_to_request_body(r#"{"model":"gpt-4o"}"#).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(parsed["model"], "gpt-4o");
+        assert_eq!(parsed["stream"], true);
     }
 }

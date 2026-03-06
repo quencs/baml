@@ -10,7 +10,7 @@ use crate::registry::SseEvent;
 /// Incremental SSE parser that buffers incomplete lines.
 pub(crate) struct SseParser {
     /// Buffered bytes from incomplete lines.
-    buffer: String,
+    buffer: Vec<u8>,
     /// Current event being assembled.
     event_type: String,
     data_lines: Vec<String>,
@@ -20,7 +20,7 @@ pub(crate) struct SseParser {
 impl SseParser {
     pub(crate) fn new() -> Self {
         Self {
-            buffer: String::new(),
+            buffer: Vec::new(),
             event_type: String::new(),
             data_lines: Vec::new(),
             id: None,
@@ -29,8 +29,7 @@ impl SseParser {
 
     /// Feed raw bytes into the parser and return any complete events.
     pub(crate) fn feed(&mut self, chunk: &[u8]) -> Vec<SseEvent> {
-        let text = String::from_utf8_lossy(chunk);
-        self.buffer.push_str(&text);
+        self.buffer.extend_from_slice(chunk);
 
         let mut events = Vec::new();
 
@@ -41,8 +40,8 @@ impl SseParser {
                 break;
             };
 
-            let line = self.buffer[..end_pos].to_string();
-            self.buffer = self.buffer[end_pos + skip..].to_string();
+            let line = String::from_utf8_lossy(&self.buffer[..end_pos]).into_owned();
+            self.buffer.drain(..end_pos + skip);
 
             if line.is_empty() {
                 // Blank line = dispatch event if we have data
@@ -59,6 +58,7 @@ impl SseParser {
                     });
                     self.data_lines.clear();
                 }
+                self.event_type.clear();
             } else if line.starts_with(':') {
                 // Comment, ignore
             } else if let Some(colon_pos) = line.find(':') {
@@ -95,12 +95,17 @@ impl SseParser {
     /// Find the end of the next line in the buffer.
     /// Returns `(end_position, bytes_to_skip_for_delimiter)`.
     fn find_line_end(&self) -> Option<(usize, usize)> {
-        let bytes = self.buffer.as_bytes();
+        let bytes = self.buffer.as_slice();
         for (i, &b) in bytes.iter().enumerate() {
             if b == b'\n' {
                 return Some((i, 1));
             }
             if b == b'\r' {
+                // Hold a trailing '\r' so a split CRLF can be recognized correctly.
+                if i + 1 == bytes.len() {
+                    return None;
+                }
+
                 // \r\n or bare \r
                 let skip = if bytes.get(i + 1) == Some(&b'\n') {
                     2
@@ -186,5 +191,39 @@ mod tests {
         let events = parser.feed(b"id: 42\ndata: hello\n\n");
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].id, Some("42".to_string()));
+    }
+
+    #[test]
+    fn test_split_utf8_multibyte() {
+        let mut parser = SseParser::new();
+        let events1 = parser.feed(b"data: \xE2\x82");
+        assert!(events1.is_empty());
+
+        let events2 = parser.feed(b"\xAC\n\n");
+        assert_eq!(events2.len(), 1);
+        assert_eq!(events2[0].data, "€");
+    }
+
+    #[test]
+    fn test_split_crlf_across_chunks() {
+        let mut parser = SseParser::new();
+        let events1 = parser.feed(b"data: hello\r");
+        assert!(events1.is_empty());
+
+        let events2 = parser.feed(b"\n\r\n");
+        assert_eq!(events2.len(), 1);
+        assert_eq!(events2[0].data, "hello");
+    }
+
+    #[test]
+    fn test_empty_named_event_resets_event_type() {
+        let mut parser = SseParser::new();
+        let events1 = parser.feed(b"event: update\n\n");
+        assert!(events1.is_empty());
+
+        let events2 = parser.feed(b"data: hello\n\n");
+        assert_eq!(events2.len(), 1);
+        assert_eq!(events2[0].event, "message");
+        assert_eq!(events2[0].data, "hello");
     }
 }

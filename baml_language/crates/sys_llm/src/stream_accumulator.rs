@@ -58,7 +58,8 @@ static ACCUM_REGISTRY: std::sync::LazyLock<Arc<AccumulatorRegistry>> =
 
 /// Create a new stream accumulator for the given provider.
 ///
-/// Panics if the provider doesn't support streaming (e.g. `google-ai`, `aws-bedrock`).
+/// Returns an error if the provider doesn't support streaming
+/// (e.g. `google-ai`, `aws-bedrock`).
 pub fn new_accumulator(provider_str: &str) -> Result<ResourceHandle, LlmOpError> {
     let provider = provider_str
         .parse::<LlmProvider>()
@@ -398,5 +399,11 @@ mod tests {
         let state = entries.get(&handle.key()).unwrap();
         assert_eq!(state.input_tokens, Some(25));
         assert_eq!(state.output_tokens, Some(10));
+    }
+
+    #[test]
+    fn test_unsupported_provider_rejected() {
+        let err = new_accumulator("google-ai").unwrap_err();
+        assert!(matches!(err, LlmOpError::NotImplemented { .. }));
     }
 }
