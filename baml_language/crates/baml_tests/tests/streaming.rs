@@ -19,23 +19,25 @@ use wiremock::{
 // ============================================================================
 
 /// Build an OpenAI-style SSE body with a configurable finish reason.
-fn openai_sse_body_with_finish_reason(chunks: &[&str], finish_reason: &str) -> String {
-    let mut body = String::new();
-    for chunk in chunks {
-        body.push_str(&format!(
-            "event: message\ndata: {{\"choices\":[{{\"delta\":{{\"content\":\"{chunk}\"}}}}]}}\n\n"
-        ));
-    }
-    body.push_str(&format!(
+fn openai_sse_chunks_with_finish_reason(chunks: &[&str], finish_reason: &str) -> Vec<String> {
+    let mut body_chunks: Vec<String> = chunks
+        .iter()
+        .map(|chunk| {
+            format!(
+                "event: message\ndata: {{\"choices\":[{{\"delta\":{{\"content\":\"{chunk}\"}}}}]}}\n\n"
+            )
+        })
+        .collect();
+    body_chunks.push(format!(
         "event: message\ndata: {{\"choices\":[{{\"delta\":{{}},\"finish_reason\":\"{finish_reason}\"}}]}}\n\n"
     ));
-    body.push_str("event: message\ndata: [DONE]\n\n");
-    body
+    body_chunks.push("event: message\ndata: [DONE]\n\n".to_string());
+    body_chunks
 }
 
-/// Start a mock server that serves an SSE endpoint at /v1/chat/completions.
-async fn mock_openai_streaming(chunks: &[&str]) -> (MockServer, String) {
-    mock_openai_streaming_with_finish_reason(chunks, "stop").await
+/// Build an OpenAI-style SSE body with a configurable finish reason.
+fn openai_sse_body_with_finish_reason(chunks: &[&str], finish_reason: &str) -> String {
+    openai_sse_chunks_with_finish_reason(chunks, finish_reason).concat()
 }
 
 /// Start a mock server that serves an OpenAI-style SSE response with a custom finish reason.
@@ -79,7 +81,7 @@ async fn mock_sse_server(events: &[(&str, &str)]) -> (MockServer, String) {
 }
 
 /// Read a full HTTP request, including the request body if Content-Length is set.
-async fn read_http_request(socket: &mut tokio::net::TcpStream) {
+async fn read_http_request(socket: &mut tokio::net::TcpStream) -> String {
     let mut request = Vec::new();
     let mut buf = [0_u8; 1024];
     let mut headers_end = None;
@@ -88,7 +90,7 @@ async fn read_http_request(socket: &mut tokio::net::TcpStream) {
     loop {
         let read = socket.read(&mut buf).await.unwrap();
         if read == 0 {
-            return;
+            return String::from_utf8_lossy(&request).into_owned();
         }
         request.extend_from_slice(&buf[..read]);
 
@@ -117,9 +119,45 @@ async fn read_http_request(socket: &mut tokio::net::TcpStream) {
         if let Some(end) = headers_end
             && request.len() >= end + content_length
         {
-            return;
+            return String::from_utf8_lossy(&request).into_owned();
         }
     }
+}
+
+/// Start a TCP SSE server that records the incoming request and sends delayed writes.
+async fn observed_sse_server(
+    writes: Vec<(u64, String)>,
+) -> (
+    tokio::task::JoinHandle<()>,
+    String,
+    oneshot::Receiver<String>,
+) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let (request_tx, request_rx) = oneshot::channel();
+
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let request = read_http_request(&mut socket).await;
+        let _ = request_tx.send(request);
+        socket
+            .write_all(
+                b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncache-control: no-cache\r\n\r\n",
+            )
+            .await
+            .unwrap();
+        socket.flush().await.unwrap();
+
+        for (delay_ms, chunk) in writes {
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+            socket.write_all(chunk.as_bytes()).await.unwrap();
+            socket.flush().await.unwrap();
+        }
+
+        socket.shutdown().await.unwrap();
+    });
+
+    (server, format!("http://{addr}"), request_rx)
 }
 
 /// Start a TCP SSE server that sends chunks with delays between writes.
@@ -129,7 +167,7 @@ async fn delayed_sse_server(writes: Vec<(u64, String)>) -> (tokio::task::JoinHan
 
     let server = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        read_http_request(&mut socket).await;
+        let _ = read_http_request(&mut socket).await;
         socket
             .write_all(
                 b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncache-control: no-cache\r\n\r\n",
@@ -150,6 +188,27 @@ async fn delayed_sse_server(writes: Vec<(u64, String)>) -> (tokio::task::JoinHan
     (server, format!("http://{addr}"))
 }
 
+/// Start an OpenAI-style SSE server that records the request and streams chunks incrementally.
+async fn delayed_openai_streaming_server(
+    chunks: &[&str],
+    finish_reason: &str,
+    inter_chunk_delay_ms: u64,
+) -> (
+    tokio::task::JoinHandle<()>,
+    String,
+    oneshot::Receiver<String>,
+) {
+    let writes = openai_sse_chunks_with_finish_reason(chunks, finish_reason)
+        .into_iter()
+        .enumerate()
+        .map(|(idx, chunk)| {
+            let delay_ms = if idx == 0 { 0 } else { inter_chunk_delay_ms };
+            (delay_ms, chunk)
+        })
+        .collect();
+    observed_sse_server(writes).await
+}
+
 /// Start a TCP SSE server and report when the client disconnects after close().
 async fn close_observing_sse_server() -> (tokio::task::JoinHandle<()>, String, oneshot::Receiver<()>)
 {
@@ -159,7 +218,7 @@ async fn close_observing_sse_server() -> (tokio::task::JoinHandle<()>, String, o
 
     let server = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        read_http_request(&mut socket).await;
+        let _ = read_http_request(&mut socket).await;
         socket
             .write_all(
                 b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncache-control: no-cache\r\n\r\n",
@@ -270,7 +329,7 @@ async fn sse_next_returns_null_when_done() {
     let output = engine::run_test(
         &format!(
             r#"
-            function main() -> bool {{
+            function main() -> string {{
                 let request = baml.http.Request {{
                     method: "GET",
                     url: "{uri}/sse",
@@ -281,7 +340,9 @@ async fn sse_next_returns_null_when_done() {
                 let first = sse.next();
                 let second = sse.next();
                 sse.close();
-                second == null
+                if (first == null) {{ return "first-null"; }}
+                if (second != null) {{ return "second-non-null"; }}
+                first
             }}
         "#
         ),
@@ -291,7 +352,14 @@ async fn sse_next_returns_null_when_done() {
     )
     .await;
 
-    assert_eq!(output.result, Ok(BexExternalValue::Bool(true)));
+    let result = output.result.expect("should succeed");
+    let BexExternalValue::String(events) = result else {
+        panic!("expected string, got {result:?}");
+    };
+    assert!(
+        events.contains("\"data\":\"only-one\""),
+        "first batch should contain the only event: {events}"
+    );
 }
 
 #[tokio::test]
@@ -370,13 +438,17 @@ async fn sse_fetch_error_on_bad_status() {
 
 #[tokio::test]
 async fn sse_loop_collects_all_events() {
-    let (_server, uri) =
-        mock_sse_server(&[("message", "a"), ("message", "b"), ("message", "c")]).await;
+    let (server, uri) = delayed_sse_server(vec![
+        (0, "event: message\ndata: a\n\n".to_string()),
+        (50, "event: message\ndata: b\n\n".to_string()),
+        (50, "event: message\ndata: c\n\n".to_string()),
+    ])
+    .await;
 
     let output = engine::run_test(
         &format!(
             r#"
-            function main() -> int {{
+            function main() -> string {{
                 let request = baml.http.Request {{
                     method: "GET",
                     url: "{uri}/sse",
@@ -384,14 +456,14 @@ async fn sse_loop_collects_all_events() {
                     body: "",
                 }};
                 let sse = baml.http.fetch_sse(request);
-                let count = 0;
+                let collected = "";
                 while (true) {{
                     let events = sse.next();
                     if (events == null) {{ break; }}
-                    count += 1;
+                    collected = collected + events;
                 }}
                 sse.close();
-                count
+                collected
             }}
         "#
         ),
@@ -401,9 +473,24 @@ async fn sse_loop_collects_all_events() {
     )
     .await;
 
-    // All events arrive in a single batch (wiremock sends full body at once),
-    // so count should be 1 (one call to next() returns all events).
-    assert_eq!(output.result, Ok(BexExternalValue::Int(1)));
+    let result = output.result.expect("should succeed");
+    let BexExternalValue::String(collected) = result else {
+        panic!("expected string, got {result:?}");
+    };
+    assert!(
+        collected.contains("\"data\":\"a\""),
+        "missing first event: {collected}"
+    );
+    assert!(
+        collected.contains("\"data\":\"b\""),
+        "missing second event: {collected}"
+    );
+    assert!(
+        collected.contains("\"data\":\"c\""),
+        "missing third event: {collected}"
+    );
+
+    server.await.unwrap();
 }
 
 // ============================================================================
@@ -412,7 +499,8 @@ async fn sse_loop_collects_all_events() {
 
 #[tokio::test]
 async fn stream_llm_function_openai_returns_final_value() {
-    let (_server, uri) = mock_openai_streaming(&["Hello", ", ", "world", "!"]).await;
+    let (server, uri, request_rx) =
+        delayed_openai_streaming_server(&["Hello", ", ", "world", "!"], "stop", 25).await;
 
     let output = engine::run_test(
         &streaming_llm_source(&uri),
@@ -426,11 +514,22 @@ async fn stream_llm_function_openai_returns_final_value() {
         output.result,
         Ok(BexExternalValue::String("Hello, world!".to_string()))
     );
+
+    let request = request_rx
+        .await
+        .expect("server should capture the outbound request");
+    assert!(
+        request.contains("\"stream\":true") || request.contains("\"stream\": true"),
+        "streaming request body should include stream=true: {request}"
+    );
+
+    server.await.unwrap();
 }
 
 #[tokio::test]
 async fn stream_llm_function_emits_partials() {
-    let (_server, uri) = mock_openai_streaming(&["Hello", ", ", "world", "!"]).await;
+    let (server, uri, _request_rx) =
+        delayed_openai_streaming_server(&["Hello", ", ", "world", "!"], "stop", 50).await;
 
     let output = engine::run_test_streaming(
         &streaming_llm_source(&uri),
@@ -446,19 +545,34 @@ async fn stream_llm_function_emits_partials() {
     );
 
     assert!(
-        !output.partials.is_empty(),
-        "Expected at least one partial, got none"
+        output.partials.len() >= 2,
+        "Expected multiple incremental partials, got {:?}",
+        output.partials
+    );
+    assert!(
+        output.partials.iter().any(|partial| partial == "Hello"),
+        "Expected an early partial before EOF, got {:?}",
+        output.partials
+    );
+    assert_eq!(
+        output.partials.last().map(String::as_str),
+        Some("Hello, world!"),
+        "Last partial should match the final value"
     );
 
     assert!(
-        !output.ticks.is_empty(),
-        "Expected at least one tick, got none"
+        output.ticks.len() >= 2,
+        "Expected multiple incremental tick batches, got {:?}",
+        output.ticks
     );
+
+    server.await.unwrap();
 }
 
 #[tokio::test]
 async fn stream_llm_function_partials_grow_monotonically() {
-    let (_server, uri) = mock_openai_streaming(&["Hello", ", ", "world", "!"]).await;
+    let (server, uri, _request_rx) =
+        delayed_openai_streaming_server(&["Hello", ", ", "world", "!"], "stop", 50).await;
 
     let output = engine::run_test_streaming(
         &streaming_llm_source(&uri),
@@ -469,6 +583,16 @@ async fn stream_llm_function_partials_grow_monotonically() {
     .await;
 
     assert!(output.result.is_ok());
+    assert!(
+        output.partials.len() >= 2,
+        "Expected more than one partial, got {:?}",
+        output.partials
+    );
+    assert_ne!(
+        output.partials.first(),
+        output.partials.last(),
+        "Expected at least one intermediate partial before the final value"
+    );
 
     // Each partial should be longer than or equal to the previous one.
     for window in output.partials.windows(2) {
@@ -484,6 +608,8 @@ async fn stream_llm_function_partials_grow_monotonically() {
     if let Some(last) = output.partials.last() {
         assert_eq!(last, "Hello, world!", "Last partial should be full content");
     }
+
+    server.await.unwrap();
 }
 
 #[tokio::test]
