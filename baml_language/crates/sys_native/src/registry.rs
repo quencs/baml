@@ -117,7 +117,7 @@ impl ResourceRegistry {
 
         self.entries
             .write()
-            .unwrap()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, RegistryEntry::File(resource));
 
         ResourceHandle::new(
@@ -138,7 +138,7 @@ impl ResourceRegistry {
 
         self.entries
             .write()
-            .unwrap()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, RegistryEntry::Socket(resource));
 
         ResourceHandle::new(
@@ -151,7 +151,10 @@ impl ResourceRegistry {
 
     /// Get a file resource by handle key.
     pub fn get_file(&self, key: usize) -> Option<Arc<TokioMutex<File>>> {
-        let entries = self.entries.read().unwrap();
+        let entries = self
+            .entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         match entries.get(&key) {
             Some(RegistryEntry::File(f)) => Some(f.file.clone()),
             _ => None,
@@ -160,7 +163,10 @@ impl ResourceRegistry {
 
     /// Get a socket resource by handle key.
     pub fn get_socket(&self, key: usize) -> Option<Arc<TokioMutex<TcpStream>>> {
-        let entries = self.entries.read().unwrap();
+        let entries = self
+            .entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         match entries.get(&key) {
             Some(RegistryEntry::Socket(s)) => Some(s.stream.clone()),
             _ => None,
@@ -181,7 +187,7 @@ impl ResourceRegistry {
 
         self.entries
             .write()
-            .unwrap()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, RegistryEntry::Response(resource));
 
         ResourceHandle::new(
@@ -209,7 +215,7 @@ impl ResourceRegistry {
 
         self.entries
             .write()
-            .unwrap()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, RegistryEntry::Response(resource));
 
         ResourceHandle::new(
@@ -223,7 +229,10 @@ impl ResourceRegistry {
     #[cfg(feature = "bundle-http")]
     /// Get the HTTP response mutex for body consumption.
     pub fn get_http_response_body(&self, key: usize) -> Option<Arc<TokioMutex<ResponseBody>>> {
-        let entries = self.entries.read().unwrap();
+        let entries = self
+            .entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         match entries.get(&key) {
             Some(RegistryEntry::Response(r)) => Some(r.body.clone()),
             _ => None,
@@ -247,7 +256,7 @@ impl ResourceRegistry {
 
         self.entries
             .write()
-            .unwrap()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, RegistryEntry::SseStream(resource));
 
         ResourceHandle::new(
@@ -261,7 +270,10 @@ impl ResourceRegistry {
     #[cfg(feature = "bundle-http")]
     /// Get the SSE stream buffer and notify handle.
     pub fn get_sse_stream(&self, key: usize) -> Option<(Arc<TokioMutex<SseBuffer>>, Arc<Notify>)> {
-        let entries = self.entries.read().unwrap();
+        let entries = self
+            .entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         match entries.get(&key) {
             Some(RegistryEntry::SseStream(s)) => Some((s.buffer.clone(), s.notify.clone())),
             _ => None,
@@ -283,7 +295,7 @@ impl ResourceRegistry {
 
         self.entries
             .write()
-            .unwrap()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(key, RegistryEntry::StreamAccumulator(resource));
 
         ResourceHandle::new(

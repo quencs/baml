@@ -908,7 +908,10 @@ impl<T> SysOpLlm for T {
         content: String,
         type_def: baml_type::Ty,
     ) -> SysOpOutput<String> {
-        SysOpOutput::ok(sys_llm::execute_partial_parse(&content, &type_def))
+        match sys_llm::execute_partial_parse(&content, &type_def) {
+            Ok(val) => SysOpOutput::ok(val),
+            Err(e) => SysOpOutput::err(e.into()),
+        }
     }
 }
 

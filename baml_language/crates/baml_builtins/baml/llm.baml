@@ -338,10 +338,6 @@ function stream_primitive(
         let content = accumulator.content();
         let parsed = primitive.partial_parse(content, return_type);
         baml.stream.emit_partial(parsed);
-
-        if (accumulator.is_done()) {
-            break;
-        }
     }
 
     sse.close();

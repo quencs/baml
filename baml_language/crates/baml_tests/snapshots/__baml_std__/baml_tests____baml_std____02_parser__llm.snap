@@ -2237,25 +2237,6 @@ SOURCE_FILE
                 WORD "parsed"
                 R_PAREN ")"
             SEMICOLON ";"
-            IF_EXPR
-              KW_IF "if"
-              PAREN_EXPR
-                L_PAREN "("
-                CALL_EXPR
-                  PATH_EXPR "accumulator.is_done"
-                    WORD "accumulator"
-                    DOT "."
-                    WORD "is_done"
-                  CALL_ARGS "()"
-                    L_PAREN "("
-                    R_PAREN ")"
-                R_PAREN ")"
-              BLOCK_EXPR
-                L_BRACE "{"
-                BREAK_STMT "break;"
-                  KW_BREAK "break"
-                  SEMICOLON ";"
-                R_BRACE "}"
             R_BRACE "}"
         CALL_EXPR
           PATH_EXPR "sse.close"

@@ -118,14 +118,19 @@ pub fn execute_build_request_stream_from_owned(
 /// Parse partial content for streaming (string-only for now).
 ///
 /// For string return types, simply returns the accumulated content.
-/// For structured types, panics until SAP integration is implemented.
-pub fn execute_partial_parse(content: &str, return_type: &baml_type::Ty) -> String {
+/// For structured types, returns an error until SAP integration is implemented.
+pub fn execute_partial_parse(
+    content: &str,
+    return_type: &baml_type::Ty,
+) -> Result<String, LlmOpError> {
     match return_type {
-        baml_type::Ty::String { .. } => content.to_string(),
-        _ => panic!(
-            "partial_parse not yet implemented for non-string return type: {return_type:?}. \
-             SAP (Schema Aligned Parser) integration is required for structured streaming."
-        ),
+        baml_type::Ty::String { .. } => Ok(content.to_string()),
+        _ => Err(LlmOpError::NotImplemented {
+            message: format!(
+                "partial_parse not yet implemented for non-string return type: {return_type:?}. \
+                 SAP (Schema Aligned Parser) integration is required for structured streaming."
+            ),
+        }),
     }
 }
 

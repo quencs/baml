@@ -1049,10 +1049,7 @@ function baml.llm.stream_primitive(primitive: baml.llm.PrimitiveClient, context:
     dispatch_future baml.stream.emit_partial
     await
     pop 1
-    load_var accumulator
-    dispatch_future baml.llm.StreamAccumulator.is_done
-    await
-    pop_jump_if_false L0
+    jump L0
 
   L2:
     load_var sse

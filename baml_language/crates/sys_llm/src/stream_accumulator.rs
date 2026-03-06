@@ -21,6 +21,8 @@ pub(crate) struct AccumulatorState {
     content: String,
     model: Option<String>,
     finish_reason: Option<String>,
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
     is_done: bool,
 }
 
@@ -44,7 +46,10 @@ impl AccumulatorRegistry {
 
 impl ResourceRegistryRef for AccumulatorRegistry {
     fn remove(&self, key: usize) {
-        self.entries.write().unwrap().remove(&key);
+        self.entries
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&key);
     }
 }
 
@@ -85,10 +90,16 @@ pub fn new_accumulator(provider_str: &str) -> Result<ResourceHandle, LlmOpError>
         content: String::new(),
         model: None,
         finish_reason: None,
+        input_tokens: None,
+        output_tokens: None,
         is_done: false,
     };
 
-    ACCUM_REGISTRY.entries.write().unwrap().insert(key, state);
+    ACCUM_REGISTRY
+        .entries
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(key, state);
 
     Ok(ResourceHandle::new(
         key,
@@ -103,7 +114,10 @@ pub fn add_events(handle: &ResourceHandle, events_json: &str) -> Result<(), LlmO
     let events: Vec<serde_json::Value> = serde_json::from_str(events_json)
         .map_err(|e| LlmOpError::Other(format!("Failed to parse events JSON: {e}")))?;
 
-    let mut entries = ACCUM_REGISTRY.entries.write().unwrap();
+    let mut entries = ACCUM_REGISTRY
+        .entries
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let state = entries
         .get_mut(&handle.key())
         .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
@@ -157,18 +171,40 @@ fn extract_delta(state: &mut AccumulatorState, data: &serde_json::Value) {
                     }
                 }
             }
+            // OpenAI includes usage in the final chunk when stream_options.include_usage is set.
+            if let Some(usage) = data.get("usage") {
+                if let Some(pt) = usage
+                    .get("prompt_tokens")
+                    .and_then(serde_json::Value::as_u64)
+                {
+                    state.input_tokens = Some(pt);
+                }
+                if let Some(ct) = usage
+                    .get("completion_tokens")
+                    .and_then(serde_json::Value::as_u64)
+                {
+                    state.output_tokens = Some(ct);
+                }
+            }
         }
         // Anthropic format: content_block_delta -> delta.text
         LlmProvider::Anthropic => {
             if let Some(event_type) = data.get("type").and_then(|t| t.as_str()) {
                 match event_type {
                     "message_start" => {
-                        if let Some(model) = data
-                            .get("message")
-                            .and_then(|m| m.get("model"))
-                            .and_then(|m| m.as_str())
-                        {
-                            state.model = Some(model.to_string());
+                        if let Some(msg) = data.get("message") {
+                            if let Some(model) = msg.get("model").and_then(|m| m.as_str()) {
+                                state.model = Some(model.to_string());
+                            }
+                            // Anthropic includes input_tokens in message_start.message.usage.
+                            if let Some(usage) = msg.get("usage") {
+                                if let Some(it) = usage
+                                    .get("input_tokens")
+                                    .and_then(serde_json::Value::as_u64)
+                                {
+                                    state.input_tokens = Some(it);
+                                }
+                            }
                         }
                     }
                     "content_block_delta" => {
@@ -188,6 +224,15 @@ fn extract_delta(state: &mut AccumulatorState, data: &serde_json::Value) {
                         {
                             state.finish_reason = Some(reason.to_string());
                         }
+                        // Anthropic includes output_tokens in message_delta.usage.
+                        if let Some(usage) = data.get("usage") {
+                            if let Some(ot) = usage
+                                .get("output_tokens")
+                                .and_then(serde_json::Value::as_u64)
+                            {
+                                state.output_tokens = Some(ot);
+                            }
+                        }
                     }
                     "message_stop" => {
                         state.is_done = true;
@@ -203,7 +248,10 @@ fn extract_delta(state: &mut AccumulatorState, data: &serde_json::Value) {
 
 /// Get the accumulated content.
 pub fn get_content(handle: &ResourceHandle) -> Result<String, LlmOpError> {
-    let entries = ACCUM_REGISTRY.entries.read().unwrap();
+    let entries = ACCUM_REGISTRY
+        .entries
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let state = entries
         .get(&handle.key())
         .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
@@ -212,7 +260,10 @@ pub fn get_content(handle: &ResourceHandle) -> Result<String, LlmOpError> {
 
 /// Check if the stream is done.
 pub fn is_done(handle: &ResourceHandle) -> Result<bool, LlmOpError> {
-    let entries = ACCUM_REGISTRY.entries.read().unwrap();
+    let entries = ACCUM_REGISTRY
+        .entries
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let state = entries
         .get(&handle.key())
         .ok_or_else(|| LlmOpError::Other("Accumulator handle is invalid".into()))?;
@@ -263,7 +314,7 @@ mod tests {
         let events = serde_json::json!([
             {
                 "event": "message_start",
-                "data": "{\"type\":\"message_start\",\"message\":{\"model\":\"claude-3\"}}",
+                "data": "{\"type\":\"message_start\",\"message\":{\"model\":\"claude-3\",\"usage\":{\"input_tokens\":25}}}",
                 "id": null
             },
             {
@@ -277,6 +328,11 @@ mod tests {
                 "id": null
             },
             {
+                "event": "message_delta",
+                "data": "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":10}}",
+                "id": null
+            },
+            {
                 "event": "message_stop",
                 "data": "{\"type\":\"message_stop\"}",
                 "id": null
@@ -285,5 +341,14 @@ mod tests {
         add_events(&handle, &events.to_string()).unwrap();
         assert_eq!(get_content(&handle).unwrap(), "Hi there");
         assert!(is_done(&handle).unwrap());
+
+        // Verify token usage was extracted.
+        let entries = ACCUM_REGISTRY
+            .entries
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let state = entries.get(&handle.key()).unwrap();
+        assert_eq!(state.input_tokens, Some(25));
+        assert_eq!(state.output_tokens, Some(10));
     }
 }

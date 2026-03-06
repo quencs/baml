@@ -146,10 +146,45 @@ pub(crate) async fn send_sse_async(
     }));
     let notify = Arc::new(Notify::new());
 
-    // Spawn background task to consume the byte stream and parse SSE events
+    // Spawn background task to consume the byte stream and parse SSE events.
+    //
+    // A drop guard ensures that if the task is aborted (e.g. via cancellation),
+    // `done` is set to true and the notify is fired, so `sse_stream_next` callers
+    // never hang waiting on a dead task.
     let buf_clone = buffer.clone();
     let notify_clone = notify.clone();
     tokio::spawn(async move {
+        /// Guard that signals SSE stream completion when the task is dropped.
+        ///
+        /// If the task is aborted (e.g. via cancellation) before setting
+        /// `completed = true`, the guard sets `done = true` on the buffer and
+        /// fires the notify, preventing consumers from hanging indefinitely.
+        struct SseDropGuard {
+            buffer: Arc<TokioMutex<SseBuffer>>,
+            notify: Arc<Notify>,
+            completed: bool,
+        }
+
+        impl Drop for SseDropGuard {
+            fn drop(&mut self) {
+                if !self.completed {
+                    if let Ok(mut buf) = self.buffer.try_lock() {
+                        if !buf.done {
+                            buf.error = Some("SSE stream task was cancelled".into());
+                            buf.done = true;
+                        }
+                    }
+                    self.notify.notify_one();
+                }
+            }
+        }
+
+        let mut guard = SseDropGuard {
+            buffer: buf_clone.clone(),
+            notify: notify_clone.clone(),
+            completed: false,
+        };
+
         let mut parser = SseParser::new();
         let mut byte_stream = response.bytes_stream();
 
@@ -168,6 +203,7 @@ pub(crate) async fn send_sse_async(
                     buf.error = Some(format!("SSE stream error: {}", format_error_chain(&e)));
                     buf.done = true;
                     notify_clone.notify_one();
+                    guard.completed = true;
                     return;
                 }
             }
@@ -177,6 +213,7 @@ pub(crate) async fn send_sse_async(
         let mut buf = buf_clone.lock().await;
         buf.done = true;
         notify_clone.notify_one();
+        guard.completed = true;
     });
 
     let handle = REGISTRY.register_sse_stream(buffer, notify, url.clone());
@@ -213,7 +250,9 @@ pub(crate) async fn sse_stream_next(
                         })
                     })
                     .collect();
-                return Ok(Some(serde_json::to_string(&events).unwrap()));
+                return Ok(Some(serde_json::to_string(&events).map_err(|e| {
+                    OpErrorKind::Other(format!("Failed to serialize SSE events: {e}"))
+                })?));
             }
             if let Some(err) = buf.error.take() {
                 return Err(OpErrorKind::Other(err));
