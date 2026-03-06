@@ -56,6 +56,8 @@ impl HandleTableValue {
                 ResourceType::File => BamlHandleType::ResourceFile,
                 ResourceType::Socket => BamlHandleType::ResourceSocket,
                 ResourceType::Response => BamlHandleType::ResourceHttpResponse,
+                ResourceType::SseStream => BamlHandleType::HandleUnknown,
+                ResourceType::StreamAccumulator => BamlHandleType::HandleUnknown,
             },
             Self::FunctionRef { .. } => BamlHandleType::FunctionRef,
             Self::Adt(adt) => match adt {

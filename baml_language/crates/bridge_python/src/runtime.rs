@@ -17,6 +17,55 @@ use crate::{
     types::collector::Collector,
 };
 
+/// Per-call context for `BamlRuntime.call_function`.
+///
+/// Bundles tracing, collectors, cancellation, and streaming callbacks
+/// into a single object. Constructed on the Python side:
+///
+/// ```python
+/// ctx = CallContext(
+///     host_span_manager=mgr,
+///     collectors=[c],
+///     abort_controller=ac,
+///     stream_callback=lambda s: print(s),
+///     tick_callback=lambda s: print(s),
+/// )
+/// runtime.call_function("fn", args, ctx)
+/// ```
+#[pyclass]
+pub struct CallContext {
+    #[pyo3(get, set)]
+    host_span_manager: Option<PyObject>,
+    #[pyo3(get, set)]
+    abort_controller: Option<PyObject>,
+    #[pyo3(get, set)]
+    stream_callback: Option<PyObject>,
+    #[pyo3(get, set)]
+    tick_callback: Option<PyObject>,
+    collectors: Option<PyObject>,
+}
+
+#[pymethods]
+impl CallContext {
+    #[new]
+    #[pyo3(signature = (host_span_manager=None, collectors=None, abort_controller=None, stream_callback=None, tick_callback=None))]
+    fn new(
+        host_span_manager: Option<PyObject>,
+        collectors: Option<PyObject>,
+        abort_controller: Option<PyObject>,
+        stream_callback: Option<PyObject>,
+        tick_callback: Option<PyObject>,
+    ) -> Self {
+        Self {
+            host_span_manager,
+            collectors,
+            abort_controller,
+            stream_callback,
+            tick_callback,
+        }
+    }
+}
+
 /// The main BAML runtime, wrapping a `dyn Bex` instance.
 #[pyclass]
 pub struct BamlRuntime {
@@ -46,43 +95,22 @@ impl BamlRuntime {
     /// # Arguments
     /// * `function_name` - Name of the BAML function to call
     /// * `args_proto` - Protobuf-encoded HostFunctionArguments bytes
-    /// * `ctx` - Host span manager; if active spans exist, nests under host trace
-    /// * `collectors` - Optional list of Collector objects to track this call
-    /// * `abort_controller` - Optional AbortController to cancel the call
-    #[pyo3(signature = (function_name, args_proto, ctx=None, collectors=None, abort_controller=None))]
+    /// * `call_ctx` - Optional call context with tracing, collectors, and streaming callbacks
+    #[pyo3(signature = (function_name, args_proto, call_ctx=None))]
     fn call_function<'py>(
         &self,
         py: Python<'py>,
         function_name: String,
         args_proto: Vec<u8>,
-        ctx: Option<&crate::types::HostSpanManager>,
-        collectors: Option<Vec<pyo3::PyRef<'py, Collector>>>,
-        abort_controller: Option<&AbortController>,
+        call_ctx: Option<&CallContext>,
     ) -> PyResult<PyObject> {
         let bex = self.bex.clone();
         let kwargs = decode_args(&args_proto, &function_name)?;
-        let host_ctx = ctx.and_then(|c| c.host_span_context());
-        let cancel = abort_controller
-            .map(AbortController::token)
-            .unwrap_or_default();
-
-        let collector_arcs: Vec<Arc<bex_events::Collector>> = collectors
-            .as_ref()
-            .map(|colls| colls.iter().map(|c| c.inner_arc()).collect())
-            .unwrap_or_default();
-
-        let call_id = bex_project::CallId::next();
-        let mut call_ctx = bex_project::FunctionCallContextBuilder::new(call_id)
-            .with_collectors(collector_arcs)
-            .with_cancel_token(cancel);
-
-        if let Some(host_ctx) = host_ctx {
-            call_ctx = call_ctx.with_host_ctx(host_ctx);
-        }
+        let ctx = build_call_context(py, call_ctx)?;
 
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let result = bex
-                .call_function(&function_name, kwargs, call_ctx.build())
+                .call_function(&function_name, kwargs, ctx.build())
                 .await
                 .map_err(runtime_error_to_py)?;
 
@@ -103,46 +131,23 @@ impl BamlRuntime {
     /// # Arguments
     /// * `function_name` - Name of the BAML function to call
     /// * `args_proto` - Protobuf-encoded HostFunctionArguments bytes
-    /// * `ctx` - Host span manager; if active spans exist, nests under host trace
-    /// * `collectors` - Optional list of Collector objects to track this call
-    /// * `abort_controller` - Optional AbortController to cancel the call
-    #[pyo3(signature = (function_name, args_proto, ctx=None, collectors=None, abort_controller=None))]
+    /// * `call_ctx` - Optional call context with tracing, collectors, and streaming callbacks
+    #[pyo3(signature = (function_name, args_proto, call_ctx=None))]
     fn call_function_sync(
         &self,
         py: Python<'_>,
         function_name: String,
         args_proto: Vec<u8>,
-        ctx: Option<&crate::types::HostSpanManager>,
-        collectors: Option<Vec<pyo3::PyRef<'_, Collector>>>,
-        abort_controller: Option<&AbortController>,
+        call_ctx: Option<&CallContext>,
     ) -> PyResult<Vec<u8>> {
         let bex = self.bex.clone();
         let kwargs = decode_args(&args_proto, &function_name)?;
-        let host_ctx = ctx.and_then(|c| c.host_span_context());
-        let cancel = abort_controller
-            .map(AbortController::token)
-            .unwrap_or_default();
-
-        let collector_arcs: Vec<Arc<bex_events::Collector>> = collectors
-            .as_ref()
-            .map(|colls| colls.iter().map(|c| c.inner_arc()).collect())
-            .unwrap_or_default();
-
-        let call_id = bex_project::CallId::next();
-        let mut call_ctx = bex_project::FunctionCallContextBuilder::new(call_id)
-            .with_collectors(collector_arcs)
-            .with_cancel_token(cancel);
-
-        if let Some(host_ctx) = host_ctx {
-            call_ctx = call_ctx.with_host_ctx(host_ctx);
-        }
+        let ctx = build_call_context(py, call_ctx)?;
 
         let rt = bridge_cffi::engine::get_tokio_runtime().map_err(bridge_error_to_py)?;
 
         let result = py
-            .allow_threads(|| {
-                rt.block_on(bex.call_function(&function_name, kwargs, call_ctx.build()))
-            })
+            .allow_threads(|| rt.block_on(bex.call_function(&function_name, kwargs, ctx.build())))
             .map_err(runtime_error_to_py)?;
 
         let handle_options = bridge_ctypes::HandleTableOptions::for_in_process();
@@ -152,6 +157,66 @@ impl BamlRuntime {
 
         Ok(baml_value.encode_to_vec())
     }
+}
+
+/// Build a `FunctionCallContextBuilder` from the Python-side `CallContext`.
+fn build_call_context(
+    py: Python<'_>,
+    call_ctx: Option<&CallContext>,
+) -> PyResult<bex_project::FunctionCallContextBuilder> {
+    let call_id = bex_project::CallId::next();
+    let mut builder = bex_project::FunctionCallContextBuilder::new(call_id);
+
+    let Some(ctx) = call_ctx else {
+        return Ok(builder);
+    };
+
+    // Extract host span context
+    if let Some(ref hsm_obj) = ctx.host_span_manager {
+        let hsm: pyo3::PyRef<'_, crate::types::HostSpanManager> = hsm_obj.extract(py)?;
+        if let Some(host_ctx) = hsm.host_span_context() {
+            builder = builder.with_host_ctx(host_ctx);
+        }
+    }
+
+    // Extract collectors
+    if let Some(ref colls_obj) = ctx.collectors {
+        let colls: Vec<pyo3::PyRef<'_, Collector>> = colls_obj.extract(py)?;
+        let collector_arcs: Vec<Arc<bex_events::Collector>> =
+            colls.iter().map(|c| c.inner_arc()).collect();
+        builder = builder.with_collectors(collector_arcs);
+    }
+
+    // Extract cancellation token
+    if let Some(ref ac_obj) = ctx.abort_controller {
+        let ac: pyo3::PyRef<'_, AbortController> = ac_obj.extract(py)?;
+        builder = builder.with_cancel_token(ac.token());
+    }
+
+    // Wire streaming callbacks
+    if let Some(ref cb) = ctx.stream_callback {
+        let cb = cb.clone_ref(py);
+        builder = builder.with_stream_callback(Arc::new(move |value: String| {
+            Python::with_gil(|py| {
+                if let Err(e) = cb.call1(py, (&value,)) {
+                    log::error!("Error calling stream_callback: {e:?}");
+                }
+            });
+        }));
+    }
+
+    if let Some(ref cb) = ctx.tick_callback {
+        let cb = cb.clone_ref(py);
+        builder = builder.with_tick_callback(Arc::new(move |events: String| {
+            Python::with_gil(|py| {
+                if let Err(e) = cb.call1(py, (&events,)) {
+                    log::error!("Error calling tick_callback: {e:?}");
+                }
+            });
+        }));
+    }
+
+    Ok(builder)
 }
 
 /// Decode protobuf-encoded function arguments into `BexArgs`.

@@ -344,6 +344,29 @@ macro_rules! with_builtins {
                     #[sys_op]
                     #[throws(Io, Timeout)]
                     fn send(request: Request) -> Response;
+
+                    /// An SSE (Server-Sent Events) stream.
+                    #[builtin]
+                    struct SseStream {
+                        private _handle: ResourceHandle,
+                        url: String,
+
+                        /// Get the next batch of SSE events, or null if stream is done.
+                        #[sys_op]
+                        #[throws(Io, Timeout)]
+                        fn next(self: SseStream) -> Option<String>;
+
+                        /// Close the SSE stream.
+                        #[sys_op]
+                        #[throws(Io)]
+                        fn close(self: SseStream);
+                    }
+
+                    /// Open an SSE connection by sending an HTTP request.
+                    /// Returns an SseStream that can be iterated.
+                    #[sys_op]
+                    #[throws(Io, Timeout)]
+                    fn fetch_sse(request: Request) -> SseStream;
                 }
 
                 // =====================================================================
@@ -418,6 +441,21 @@ macro_rules! with_builtins {
                         #[sys_op]
                         #[throws(LlmClient)]
                         fn parse(self: PrimitiveClient, http_response_body: String, type_def: Type) -> Any;
+
+                        /// Build an HTTP request with streaming enabled.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn build_request_stream(self: PrimitiveClient, prompt: PromptAst) -> Request;
+
+                        /// Create a new stream accumulator for this primitive client.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn new_stream_accumulator(self: PrimitiveClient) -> StreamAccumulator;
+
+                        /// Parse partial content (string-only for now).
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn partial_parse(self: PrimitiveClient, content: String, type_def: Type) -> String;
                     }
 
                     /// Get the Jinja template for an LLM function.
@@ -472,6 +510,46 @@ macro_rules! with_builtins {
                     #[throws(InvalidArgument)]
                     #[uses(engine_ctx)]
                     fn get_return_type(function_name: String) -> Type;
+
+                    /// A stream accumulator that extracts content from SSE events.
+                    #[builtin]
+                    struct StreamAccumulator {
+                        private _handle: ResourceHandle,
+
+                        /// Add a batch of SSE event data (JSON strings) to the accumulator.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn add_events(self: StreamAccumulator, events: String);
+
+                        /// Get the accumulated content so far.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn content(self: StreamAccumulator) -> String;
+
+                        /// Check if the stream is done.
+                        #[sys_op]
+                        #[throws(LlmClient)]
+                        fn is_done(self: StreamAccumulator) -> bool;
+                    }
+
+                }
+
+                // =====================================================================
+                // Streaming operations
+                // =====================================================================
+                mod stream {
+                    /// Emit a parsed partial value to the stream callback.
+                    /// Pass empty string to indicate no value.
+                    #[sys_op]
+                    #[throws(Io)]
+                    #[uses(engine_ctx)]
+                    fn emit_partial(value: String);
+
+                    /// Emit raw SSE events to the tick callback.
+                    #[sys_op]
+                    #[throws(Io)]
+                    #[uses(engine_ctx)]
+                    fn emit_tick(events: String);
                 }
             }
 

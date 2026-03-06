@@ -14,12 +14,14 @@
 
 mod ops;
 pub mod registry;
+#[cfg(feature = "bundle-http")]
+pub(crate) mod sse_parser;
 
 // Re-export types from sys_types for convenience
 use bex_heap::builtin_types;
 pub use sys_types::{
     CallId, CompletionHandle, OpError, SysOp, SysOpContext, SysOpEnv, SysOpFn, SysOpFs, SysOpHttp,
-    SysOpLlm, SysOpNet, SysOpResult, SysOpSys, SysOps,
+    SysOpLlm, SysOpNet, SysOpResult, SysOpStream, SysOpSys, SysOps,
 };
 use sys_types::{OpErrorKind, SysOpOutput};
 
@@ -289,6 +291,71 @@ impl SysOpHttp for NativeSysOps {
         request: builtin_types::owned::HttpRequest,
     ) -> SysOpOutput<builtin_types::owned::HttpResponse> {
         SysOpOutput::async_op(async move { ops::http::send_async(request).await })
+    }
+
+    #[cfg(feature = "bundle-http")]
+    fn baml_http_fetch_sse(
+        &self,
+        _call_id: CallId,
+        request: builtin_types::owned::HttpRequest,
+    ) -> SysOpOutput<builtin_types::owned::HttpSseStream> {
+        SysOpOutput::async_op(async move { ops::http::send_sse_async(request).await })
+    }
+
+    #[cfg(feature = "bundle-http")]
+    fn baml_http_sse_stream_next(
+        &self,
+        _call_id: CallId,
+        sse_stream: builtin_types::owned::HttpSseStream,
+    ) -> SysOpOutput<Option<String>> {
+        SysOpOutput::async_op(async move { ops::http::sse_stream_next(&sse_stream._handle).await })
+    }
+
+    #[cfg(feature = "bundle-http")]
+    fn baml_http_sse_stream_close(
+        &self,
+        _call_id: CallId,
+        sse_stream: builtin_types::owned::HttpSseStream,
+    ) -> SysOpOutput<()> {
+        drop(sse_stream);
+        SysOpOutput::ok(())
+    }
+}
+
+// ============================================================================
+// Streaming
+// ============================================================================
+
+impl SysOpStream for NativeSysOps {
+    fn baml_stream_emit_partial(
+        &self,
+        _call_id: CallId,
+        value: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<()> {
+        // Deduplicate: only emit if value changed
+        let mut last = ctx.last_emitted_partial.lock().unwrap();
+        if last.as_deref() == Some(value.as_str()) {
+            return SysOpOutput::ok(());
+        }
+        *last = Some(value.clone());
+
+        if let Some(ref cb) = ctx.stream_callback {
+            cb(value);
+        }
+        SysOpOutput::ok(())
+    }
+
+    fn baml_stream_emit_tick(
+        &self,
+        _call_id: CallId,
+        events: String,
+        ctx: &SysOpContext,
+    ) -> SysOpOutput<()> {
+        if let Some(ref cb) = ctx.tick_callback {
+            cb(events);
+        }
+        SysOpOutput::ok(())
     }
 }
 

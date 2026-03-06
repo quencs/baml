@@ -384,6 +384,17 @@ pub struct SysOpContext {
     /// Defaults to a never-cancelled token for the shared engine context.
     /// In `execute_sys_op`, a per-call clone is created with the real token.
     pub cancel: CancellationToken,
+
+    /// Callback for emitting parsed partial values during streaming.
+    /// Called by `baml.stream.emit_partial`. The string is the partial content value.
+    pub stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+
+    /// Callback for emitting raw SSE events during streaming.
+    /// Called by `baml.stream.emit_tick`. The string is a JSON array of events.
+    pub tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+
+    /// Last emitted partial value for deduplication.
+    pub last_emitted_partial: Arc<std::sync::Mutex<Option<String>>>,
 }
 
 /// Pre-extracted metadata for building a Client tree at runtime.
@@ -425,6 +436,9 @@ impl SysOpContext {
             client_metadata: Arc::new(std::collections::HashMap::new()),
             round_robin_counters: Arc::new(std::collections::HashMap::new()),
             cancel: CancellationToken::new(),
+            stream_callback: None,
+            tick_callback: None,
+            last_emitted_partial: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
@@ -437,6 +451,19 @@ impl SysOpContext {
             cancel,
             ..self.clone()
         }
+    }
+
+    /// Set streaming callbacks on this context.
+    #[must_use]
+    pub fn with_streaming(
+        mut self,
+        stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+        tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    ) -> Self {
+        self.stream_callback = stream_callback;
+        self.tick_callback = tick_callback;
+        self.last_emitted_partial = Arc::new(std::sync::Mutex::new(None));
+        self
     }
 }
 
@@ -572,6 +599,7 @@ impl SysOpFs for DefaultOps {}
 impl SysOpSys for DefaultOps {}
 impl SysOpNet for DefaultOps {}
 impl SysOpHttp for DefaultOps {}
+impl SysOpStream for DefaultOps {}
 impl SysOpEnv for DefaultOps {}
 
 impl SysOpsBuilder {
@@ -812,6 +840,75 @@ impl<T> SysOpLlm for T {
         let val = counter.load(std::sync::atomic::Ordering::SeqCst);
         #[allow(clippy::cast_possible_wrap)]
         SysOpOutput::ok(val as i64)
+    }
+
+    fn baml_llm_primitive_client_new_stream_accumulator(
+        &self,
+        _call_id: CallId,
+        client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
+    ) -> SysOpOutput<bex_heap::builtin_types::owned::LlmStreamAccumulator> {
+        match sys_llm::stream_accumulator::new_accumulator(&client.provider) {
+            Ok(handle) => SysOpOutput::ok(bex_heap::builtin_types::owned::LlmStreamAccumulator {
+                _handle: handle,
+            }),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_stream_accumulator_add_events(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+        events: String,
+    ) -> SysOpOutput<()> {
+        match sys_llm::stream_accumulator::add_events(&stream_accumulator._handle, &events) {
+            Ok(()) => SysOpOutput::ok(()),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_stream_accumulator_content(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+    ) -> SysOpOutput<String> {
+        match sys_llm::stream_accumulator::get_content(&stream_accumulator._handle) {
+            Ok(content) => SysOpOutput::ok(content),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_stream_accumulator_is_done(
+        &self,
+        _call_id: CallId,
+        stream_accumulator: bex_heap::builtin_types::owned::LlmStreamAccumulator,
+    ) -> SysOpOutput<bool> {
+        match sys_llm::stream_accumulator::is_done(&stream_accumulator._handle) {
+            Ok(done) => SysOpOutput::ok(done),
+            Err(e) => SysOpOutput::err(OpErrorKind::from(e)),
+        }
+    }
+
+    fn baml_llm_primitive_client_build_request_stream(
+        &self,
+        _call_id: CallId,
+        client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
+        prompt: bex_vm_types::PromptAst,
+    ) -> SysOpOutput<bex_heap::builtin_types::owned::HttpRequest> {
+        SysOpOutput::Ready(
+            sys_llm::execute_build_request_stream_from_owned(&client, prompt)
+                .map_err(OpErrorKind::from),
+        )
+    }
+
+    fn baml_llm_primitive_client_partial_parse(
+        &self,
+        _call_id: CallId,
+        _client: bex_heap::builtin_types::owned::LlmPrimitiveClient,
+        content: String,
+        type_def: baml_type::Ty,
+    ) -> SysOpOutput<String> {
+        SysOpOutput::ok(sys_llm::execute_partial_parse(&content, &type_def))
     }
 }
 

@@ -11,10 +11,10 @@ function User.promote(self: User, bonus: int) -> Report {
 
   10   6    load_var 1          (self)
        7    load_var 2          (bonus)
-       8    call 62             (score)
+       8    call 77             (score)
        9    store_var 3         (base)
 
-  12   10   alloc_instance 12   (Report)
+  12   10   alloc_instance 14   (Report)
        11   copy 0              
 
   11   12   load_var 3          (base)
@@ -269,7 +269,7 @@ function score(input: User | ErrorInfo, threshold: int) -> Report {
        123   load_var 9              (total)
        124   store_array_element     
 
-  88   125   alloc_instance 12       (Report)
+  88   125   alloc_instance 14       (Report)
        126   copy 0                  
 
   84   127   load_var 12             (scores)

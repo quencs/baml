@@ -546,6 +546,9 @@ impl BexEngine {
             client_metadata: Arc::new(client_metadata),
             round_robin_counters: Arc::new(round_robin_counters),
             cancel: CancellationToken::new(),
+            stream_callback: None,
+            tick_callback: None,
+            last_emitted_partial: Arc::new(std::sync::Mutex::new(None)),
         };
 
         Ok(Self {
@@ -776,6 +779,8 @@ impl BexEngine {
             host_ctx,
             collectors,
             cancel,
+            stream_callback,
+            tick_callback,
         }: FunctionCallContext,
     ) -> Result<BexExternalValue, EngineError> {
         // Fail fast if already cancelled — guarantees pre-cancelled tokens
@@ -897,6 +902,8 @@ impl BexEngine {
                 call_id,
                 &mut span_state,
                 &cancel,
+                stream_callback.as_ref(),
+                tick_callback.as_ref(),
             )
             .await;
 
@@ -1065,6 +1072,7 @@ impl BexEngine {
     ///
     /// The `my_epoch` parameter is used to check if GC has been requested
     /// (epoch advanced). VMs from old epochs will park at yield points.
+    #[allow(clippy::too_many_arguments)]
     async fn run_event_loop_with_epoch(
         &self,
         return_type: Ty,
@@ -1073,6 +1081,8 @@ impl BexEngine {
         call_id: CallId,
         span_state: &mut Option<SpanState>,
         cancel: &CancellationToken,
+        stream_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
+        tick_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
     ) -> Result<BexExternalValue, EngineError> {
         let (pending_futures, mut processed_futures) = mpsc::unbounded_channel::<FutureResult>();
         // Abort handles for spawned async tasks.
@@ -1164,8 +1174,14 @@ impl BexEngine {
                         .collect();
 
                     Self::cancellation_safepoint(cancel, &abort_handles)?;
-                    let sys_op_result =
-                        self.execute_sys_op(pending.operation, &args, call_id, cancel);
+                    let sys_op_result = self.execute_sys_op(
+                        pending.operation,
+                        &args,
+                        call_id,
+                        cancel,
+                        stream_callback,
+                        tick_callback,
+                    );
                     Self::cancellation_safepoint(cancel, &abort_handles)?;
 
                     match sys_op_result {
@@ -1412,10 +1428,15 @@ impl BexEngine {
         args: &[BexExternalValue],
         call_id: CallId,
         cancel: &CancellationToken,
+        stream_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
+        tick_callback: Option<&Arc<dyn Fn(String) + Send + Sync>>,
     ) -> SysOpResult {
         let args = args.iter().map(std::convert::Into::into).collect();
         let fn_ptr = self.sys_ops.get(op);
-        let ctx = self.sys_op_ctx.with_cancel(cancel.clone());
+        let ctx = self
+            .sys_op_ctx
+            .with_cancel(cancel.clone())
+            .with_streaming(stream_callback.cloned(), tick_callback.cloned());
         let result = fn_ptr(&self.heap, args, &ctx, call_id);
 
         match result {

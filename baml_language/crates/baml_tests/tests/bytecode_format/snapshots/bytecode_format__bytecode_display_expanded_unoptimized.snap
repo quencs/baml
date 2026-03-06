@@ -11,7 +11,7 @@ function User.promote(self: User, bonus: int) -> Report {
 
   10   6    load_var 1          (self)
        7    load_var 2          (bonus)
-       8    call 62             (score)
+       8    call 77             (score)
        9    store_var 3         (base)
 
   11   10   load_var 3          (base)
@@ -20,7 +20,7 @@ function User.promote(self: User, bonus: int) -> Report {
        13   bin_op +            
        14   store_var 4         (new_score)
 
-  12   15   alloc_instance 12   (Report)
+  12   15   alloc_instance 14   (Report)
        16   copy 0              
 
   13   17   load_var 4          (new_score)
@@ -303,7 +303,7 @@ function score(input: User | ErrorInfo, threshold: int) -> Report {
        149   alloc_map 2             
        150   store_var 21            (breakdown)
 
-  88   151   alloc_instance 12       (Report)
+  88   151   alloc_instance 14       (Report)
        152   copy 0                  
 
   89   153   load_var 20             (top)

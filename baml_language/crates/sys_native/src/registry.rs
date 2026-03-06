@@ -9,7 +9,11 @@ use std::{
 };
 
 use bex_resource_types::{ResourceHandle, ResourceRegistryRef, ResourceType};
-use tokio::{fs::File, net::TcpStream, sync::Mutex as TokioMutex};
+use tokio::{
+    fs::File,
+    net::TcpStream,
+    sync::{Mutex as TokioMutex, Notify},
+};
 
 /// A file resource with async-safe access.
 pub struct FileResource {
@@ -38,11 +42,51 @@ pub struct ResponseResource {
     pub body: Arc<TokioMutex<ResponseBody>>,
 }
 
+/// A single Server-Sent Event.
+#[derive(Debug, Clone)]
+pub struct SseEvent {
+    /// Event type (e.g., "message", "error").
+    pub event: String,
+    /// Event data payload.
+    pub data: String,
+    /// Optional event ID.
+    pub id: Option<String>,
+}
+
+/// Buffer for SSE events accumulated by a background task.
+pub struct SseBuffer {
+    pub events: Vec<SseEvent>,
+    pub done: bool,
+    pub error: Option<String>,
+}
+
+/// An SSE stream resource with buffered events.
+#[cfg(feature = "bundle-http")]
+pub struct SseStreamResource {
+    pub buffer: Arc<TokioMutex<SseBuffer>>,
+    pub notify: Arc<Notify>,
+    pub url: String,
+}
+
+/// Provider-aware stream accumulator that extracts content from SSE events.
+pub struct StreamAccumulatorResource {
+    pub provider: String,
+    pub content: String,
+    pub model: Option<String>,
+    pub finish_reason: Option<String>,
+    pub prompt_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub is_done: bool,
+}
+
 /// Registry entry for a resource.
 pub enum RegistryEntry {
     File(FileResource),
     Socket(SocketResource),
     Response(ResponseResource),
+    #[cfg(feature = "bundle-http")]
+    SseStream(SseStreamResource),
+    StreamAccumulator(StreamAccumulatorResource),
 }
 
 /// Global resource registry.
@@ -182,6 +226,86 @@ impl ResourceRegistry {
         let entries = self.entries.read().unwrap();
         match entries.get(&key) {
             Some(RegistryEntry::Response(r)) => Some(r.body.clone()),
+            _ => None,
+        }
+    }
+
+    #[cfg(feature = "bundle-http")]
+    /// Register an SSE stream and return an opaque handle.
+    pub fn register_sse_stream(
+        self: &Arc<Self>,
+        buffer: Arc<TokioMutex<SseBuffer>>,
+        notify: Arc<Notify>,
+        url: String,
+    ) -> ResourceHandle {
+        let key = self.next_key.fetch_add(1, Ordering::SeqCst);
+        let resource = SseStreamResource {
+            buffer,
+            notify,
+            url: url.clone(),
+        };
+
+        self.entries
+            .write()
+            .unwrap()
+            .insert(key, RegistryEntry::SseStream(resource));
+
+        ResourceHandle::new(
+            key,
+            ResourceType::SseStream,
+            url,
+            Arc::clone(self) as Arc<dyn ResourceRegistryRef>,
+        )
+    }
+
+    #[cfg(feature = "bundle-http")]
+    /// Get the SSE stream buffer and notify handle.
+    pub fn get_sse_stream(&self, key: usize) -> Option<(Arc<TokioMutex<SseBuffer>>, Arc<Notify>)> {
+        let entries = self.entries.read().unwrap();
+        match entries.get(&key) {
+            Some(RegistryEntry::SseStream(s)) => Some((s.buffer.clone(), s.notify.clone())),
+            _ => None,
+        }
+    }
+
+    /// Register a stream accumulator and return an opaque handle.
+    pub fn register_stream_accumulator(self: &Arc<Self>, provider: &str) -> ResourceHandle {
+        let key = self.next_key.fetch_add(1, Ordering::SeqCst);
+        let resource = StreamAccumulatorResource {
+            provider: provider.to_string(),
+            content: String::new(),
+            model: None,
+            finish_reason: None,
+            prompt_tokens: None,
+            output_tokens: None,
+            is_done: false,
+        };
+
+        self.entries
+            .write()
+            .unwrap()
+            .insert(key, RegistryEntry::StreamAccumulator(resource));
+
+        ResourceHandle::new(
+            key,
+            ResourceType::StreamAccumulator,
+            format!("accumulator:{provider}"),
+            Arc::clone(self) as Arc<dyn ResourceRegistryRef>,
+        )
+    }
+
+    /// Get mutable access to a stream accumulator by key.
+    ///
+    /// Runs the callback with a mutable reference to the accumulator resource
+    /// while holding the write lock. Returns None if the key doesn't point
+    /// to a `StreamAccumulator`.
+    pub fn with_stream_accumulator<F, R>(&self, key: usize, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut StreamAccumulatorResource) -> R,
+    {
+        let mut entries = self.entries.write().unwrap();
+        match entries.get_mut(&key) {
+            Some(RegistryEntry::StreamAccumulator(a)) => Some(f(a)),
             _ => None,
         }
     }

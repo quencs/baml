@@ -274,6 +274,8 @@ impl BexExternalValue {
                 bex_resource_types::ResourceType::File => "file",
                 bex_resource_types::ResourceType::Socket => "socket",
                 bex_resource_types::ResourceType::Response => "http-response",
+                bex_resource_types::ResourceType::SseStream => "sse-stream",
+                bex_resource_types::ResourceType::StreamAccumulator => "stream-accumulator",
             },
             BexExternalValue::Adt(adt) => adt.type_name(),
             BexExternalValue::FunctionRef { .. } => "function",

@@ -13,6 +13,7 @@ pub(crate) mod parse_response;
 mod provider;
 mod render_prompt;
 mod specialize_prompt;
+pub mod stream_accumulator;
 pub(crate) mod types;
 
 use std::str::FromStr;
@@ -90,6 +91,42 @@ pub fn execute_build_request_from_owned(
     prompt: bex_vm_types::PromptAst,
 ) -> Result<builtin_types::owned::HttpRequest, LlmOpError> {
     build_request::build_request(client, prompt).map_err(|e| LlmOpError::Other(e.to_string()))
+}
+
+/// Build an HTTP request with streaming enabled.
+///
+/// Same as `execute_build_request_from_owned` but adds `"stream": true` to the body.
+pub fn execute_build_request_stream_from_owned(
+    client: &builtin_types::owned::LlmPrimitiveClient,
+    prompt: bex_vm_types::PromptAst,
+) -> Result<builtin_types::owned::HttpRequest, LlmOpError> {
+    let mut request = build_request::build_request(client, prompt)
+        .map_err(|e| LlmOpError::Other(e.to_string()))?;
+
+    // Parse body JSON, add "stream": true, re-serialize
+    let mut body: serde_json::Value = serde_json::from_str(&request.body)
+        .map_err(|e| LlmOpError::Other(format!("Failed to parse request body: {e}")))?;
+    if let Some(obj) = body.as_object_mut() {
+        obj.insert("stream".to_string(), serde_json::Value::Bool(true));
+    }
+    request.body = serde_json::to_string(&body)
+        .map_err(|e| LlmOpError::Other(format!("Failed to serialize request body: {e}")))?;
+
+    Ok(request)
+}
+
+/// Parse partial content for streaming (string-only for now).
+///
+/// For string return types, simply returns the accumulated content.
+/// For structured types, panics until SAP integration is implemented.
+pub fn execute_partial_parse(content: &str, return_type: &baml_type::Ty) -> String {
+    match return_type {
+        baml_type::Ty::String { .. } => content.to_string(),
+        _ => panic!(
+            "partial_parse not yet implemented for non-string return type: {return_type:?}. \
+             SAP (Schema Aligned Parser) integration is required for structured streaming."
+        ),
+    }
 }
 
 /// Parse an LLM response and extract the return value given already-extracted owned types.

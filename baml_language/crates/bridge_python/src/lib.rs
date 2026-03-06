@@ -32,6 +32,7 @@ fn baml_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<abort_controller::AbortController>()?;
     m.add_class::<handle::BamlHandle>()?;
     m.add_class::<runtime::BamlRuntime>()?;
+    m.add_class::<runtime::CallContext>()?;
     m.add_class::<types::FunctionResult>()?;
     m.add_class::<types::HostSpanManager>()?;
     m.add_class::<types::collector::Collector>()?;

@@ -11,6 +11,10 @@ pub struct FunctionCallContext {
     pub host_ctx: Option<HostSpanContext>,
     pub collectors: Vec<Arc<bex_events::Collector>>,
     pub cancel: CancellationToken,
+    /// Callback for streaming partial values.
+    pub stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    /// Callback for raw SSE tick events.
+    pub tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
 }
 
 /// Builder for `FunctionCallContext`.
@@ -19,6 +23,8 @@ pub struct FunctionCallContextBuilder {
     host_ctx: Option<bex_events::HostSpanContext>,
     collectors: Option<Vec<Arc<bex_events::Collector>>>,
     cancel: Option<CancellationToken>,
+    stream_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    tick_callback: Option<Arc<dyn Fn(String) + Send + Sync>>,
 }
 
 impl FunctionCallContextBuilder {
@@ -28,6 +34,8 @@ impl FunctionCallContextBuilder {
             host_ctx: None,
             collectors: None,
             cancel: None,
+            stream_callback: None,
+            tick_callback: None,
         }
     }
 
@@ -38,6 +46,8 @@ impl FunctionCallContextBuilder {
             host_ctx: self.host_ctx,
             collectors: self.collectors.unwrap_or_default(),
             cancel: self.cancel.unwrap_or_default(),
+            stream_callback: self.stream_callback,
+            tick_callback: self.tick_callback,
         }
     }
 
@@ -56,6 +66,18 @@ impl FunctionCallContextBuilder {
     #[must_use]
     pub fn with_cancel_token(mut self, cancel: CancellationToken) -> Self {
         self.cancel = Some(cancel);
+        self
+    }
+
+    #[must_use]
+    pub fn with_stream_callback(mut self, cb: Arc<dyn Fn(String) + Send + Sync>) -> Self {
+        self.stream_callback = Some(cb);
+        self
+    }
+
+    #[must_use]
+    pub fn with_tick_callback(mut self, cb: Arc<dyn Fn(String) + Send + Sync>) -> Self {
+        self.tick_callback = Some(cb);
         self
     }
 }
