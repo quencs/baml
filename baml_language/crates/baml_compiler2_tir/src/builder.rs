@@ -573,7 +573,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                             &mut diags,
                         );
                         for diag in diags {
-                            self.context.report_simple(diag, *init);
+                            self.context.report_at_type_annot(diag, *ann_idx);
                         }
                         let ty = self.check_expr(*init, body, &ann_ty);
                         if matches!(ty, Ty::Void) {

@@ -10,7 +10,7 @@
 use std::{cell::RefCell, fmt};
 
 use baml_base::Name;
-use baml_compiler2_ast::{AstSourceMap, ExprId, StmtId};
+use baml_compiler2_ast::{AstSourceMap, ExprId, StmtId, TypeAnnotId};
 use baml_compiler2_hir::{
     contributions::Definition,
     loc::{ClassLoc, FunctionLoc},
@@ -219,6 +219,7 @@ pub enum RelatedLocation<'db> {
 pub enum DiagnosticLocation {
     Expr(ExprId),
     Stmt(StmtId),
+    TypeAnnot(TypeAnnotId),
     Span(TextRange),
 }
 
@@ -248,6 +249,11 @@ impl<'db> TirDiagnostic<'db> {
             }
             DiagnosticLocation::Stmt(id) => {
                 source_map.map(|sm| sm.stmt_span(*id)).unwrap_or_default()
+            }
+            DiagnosticLocation::TypeAnnot(id) => {
+                source_map
+                    .map(|sm| sm.type_annotation_span(*id))
+                    .unwrap_or_default()
             }
             DiagnosticLocation::Span(range) => *range,
         };
@@ -347,6 +353,18 @@ impl<'db> InferContext<'db> {
     /// Convenience: report an error with no related locations.
     pub fn report_simple(&self, error: TirTypeError, at: ExprId) {
         self.report(error, at, Vec::new());
+    }
+
+    /// Report a type error at a type annotation location.
+    pub fn report_at_type_annot(&self, error: TirTypeError, at: TypeAnnotId) {
+        self.diagnostics
+            .borrow_mut()
+            .diagnostics
+            .push(TirDiagnostic {
+                error,
+                primary: DiagnosticLocation::TypeAnnot(at),
+                related: Vec::new(),
+            });
     }
 
     /// Report a type error at a raw source span (for type annotations).
