@@ -1887,8 +1887,10 @@ SOURCE_FILE
       WORD "unknown"
     THROWS_CLAUSE
       KW_THROWS "throws"
-      TYPE_EXPR "string"
+      TYPE_EXPR "string | InvalidArgument"
         WORD "string"
+        PIPE "|"
+        WORD "InvalidArgument"
     EXPR_FUNCTION_BODY
       BLOCK_EXPR
         L_BRACE "{"
@@ -3057,8 +3059,10 @@ SOURCE_FILE
       WORD "unknown"
     THROWS_CLAUSE
       KW_THROWS "throws"
-      TYPE_EXPR "string"
+      TYPE_EXPR "string | InvalidArgument"
         WORD "string"
+        PIPE "|"
+        WORD "InvalidArgument"
     EXPR_FUNCTION_BODY
       BLOCK_EXPR
         L_BRACE "{"

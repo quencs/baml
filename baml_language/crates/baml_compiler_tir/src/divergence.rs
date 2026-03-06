@@ -8,6 +8,8 @@ use std::{collections::HashSet, hash::Hash};
 use baml_base::Name;
 use baml_compiler_hir::{Expr, ExprBody, ExprId, Stmt, StmtId};
 
+use crate::resolve::{ResolutionMap, ResolvedValue};
+
 /// Build a canonical function/callee name from a path expression.
 ///
 /// `foo` -> `foo`, `baml.llm.render_prompt` -> `baml.llm.render_prompt`.
@@ -27,6 +29,36 @@ pub(crate) fn call_target_from_callee_expr(
         .collect::<Vec<_>>()
         .join(".");
     Some(Name::new(joined))
+}
+
+fn call_target_from_resolution(resolution: &ResolvedValue) -> Option<Name> {
+    match resolution {
+        ResolvedValue::Function(qn) | ResolvedValue::BuiltinFunction(qn) => Some(qn.display_name()),
+        ResolvedValue::TypeMethod {
+            receiver_type,
+            method_name,
+        } => Some(Name::new(format!(
+            "{}.{}",
+            receiver_type.as_str(),
+            method_name.as_str()
+        ))),
+        _ => None,
+    }
+}
+
+/// Recover a canonical call target name, preferring type-directed callee resolution.
+///
+/// This covers method calls like `primitive.partial_parse(...)`, whose callee
+/// isn't a raw path expression but is resolved during type inference.
+pub(crate) fn call_target_from_callee_expr_with_resolution(
+    callee_expr_id: ExprId,
+    body: &ExprBody,
+    resolutions: &ResolutionMap,
+) -> Option<Name> {
+    resolutions
+        .get(&callee_expr_id)
+        .and_then(call_target_from_resolution)
+        .or_else(|| call_target_from_callee_expr(callee_expr_id, body))
 }
 
 /// Return true when any statement in the slice definitely diverges.

@@ -2315,9 +2315,11 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                         builtins::lookup_method(&ty, field.as_str())
                     {
                         // Method reference on a builtin type
-                        ResolvedValue::BuiltinFunction(baml_base::QualifiedName::from_builtin_path(
-                            def.path,
-                        ))
+                        let resolution = ResolvedValue::BuiltinFunction(
+                            baml_base::QualifiedName::from_builtin_path(def.path),
+                        );
+                        ctx.set_expr_resolution(expr_id, resolution.clone());
+                        resolution
                     } else if let Ty::Class(class_fqn, _) | Ty::TypeAlias(class_fqn, _) = &ty {
                         // Check if this is a method (function type) or a data field
                         if matches!(field_ty, Ty::Function { .. }) {
@@ -2665,7 +2667,11 @@ fn infer_expr(ctx: &mut TypeContext<'_>, expr_id: ExprId, body: &ExprBody) -> Ty
                     // Return the function's return type, refined to `never` when the
                     // callee is known to always diverge.
                     if let Some(target_name) =
-                        divergence::call_target_from_callee_expr(*callee, body)
+                        divergence::call_target_from_callee_expr_with_resolution(
+                            *callee,
+                            body,
+                            &ctx.expr_resolutions,
+                        )
                     {
                         if is_function_always_diverging(ctx, &target_name) {
                             Ty::Never { attr: d() }
@@ -3914,14 +3920,7 @@ fn collect_throw_facts_from_expr(
                 collect_throw_facts_from_expr(ctx, *arg, body, out);
             }
 
-            if let Some(function_name) = divergence::call_target_from_callee_expr(*callee, body) {
-                let throws = function_throw_sets(ctx.db(), ctx.db().project());
-                if let Some(transitive) = throws.transitive(ctx.db()).get(&function_name) {
-                    out.extend(transitive.iter().cloned());
-                } else if is_function_always_diverging(ctx, &function_name) {
-                    out.insert("unknown".to_string());
-                }
-            }
+            collect_call_throw_facts(ctx, *callee, body, out);
         }
         Expr::If {
             condition,
@@ -4032,14 +4031,7 @@ fn collect_effective_throws_from_expr(
             for arg in args {
                 collect_effective_throws_from_expr(ctx, *arg, body, out);
             }
-            if let Some(function_name) = divergence::call_target_from_callee_expr(*callee, body) {
-                let throws = function_throw_sets(ctx.db(), ctx.db().project());
-                if let Some(transitive) = throws.transitive(ctx.db()).get(&function_name) {
-                    out.extend(transitive.iter().cloned());
-                } else if is_function_always_diverging(ctx, &function_name) {
-                    out.insert("unknown".to_string());
-                }
-            }
+            collect_call_throw_facts(ctx, *callee, body, out);
         }
         Expr::Catch { base, .. } => {
             // Use the residual from type inference (catch-aware)
@@ -4176,6 +4168,38 @@ fn collect_effective_throws_from_stmt(
             collect_throw_facts_from_value(ctx, *value, body, out);
         }
         Stmt::Break | Stmt::Continue | Stmt::Missing | Stmt::HeaderComment { .. } => {}
+    }
+}
+
+fn collect_call_throw_facts(
+    ctx: &TypeContext<'_>,
+    callee_expr_id: ExprId,
+    body: &ExprBody,
+    out: &mut BTreeSet<String>,
+) {
+    if let Some(ResolvedValue::BuiltinFunction(qn)) = ctx.expr_resolutions.get(&callee_expr_id) {
+        if let Some(builtin) = baml_builtins::find_builtin_by_path(&qn.to_runtime_string()) {
+            out.extend(
+                builtin
+                    .throws
+                    .iter()
+                    .map(|throw_name| (*throw_name).to_string()),
+            );
+            return;
+        }
+    }
+
+    if let Some(function_name) = divergence::call_target_from_callee_expr_with_resolution(
+        callee_expr_id,
+        body,
+        &ctx.expr_resolutions,
+    ) {
+        let throws = function_throw_sets(ctx.db(), ctx.db().project());
+        if let Some(transitive) = throws.transitive(ctx.db()).get(&function_name) {
+            out.extend(transitive.iter().cloned());
+        } else if is_function_always_diverging(ctx, &function_name) {
+            out.insert("unknown".to_string());
+        }
     }
 }
 
