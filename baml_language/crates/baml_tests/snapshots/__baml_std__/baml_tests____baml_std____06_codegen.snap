@@ -222,19 +222,17 @@ function baml.llm.build_plan(llm_client: baml.llm.Client) -> baml.llm.Orchestrat
 function baml.llm.build_plan_with_state(llm_client: baml.llm.Client, planner_state: baml.llm.PlannerState) -> baml.llm.OrchestrationStep[] {
     load_var llm_client
     load_field .retry
-    store_var _3
-    load_var _3
+    store_var retry
+    load_var retry
     load_const null
     cmp_op ==
     pop_jump_if_false L0
     jump L10
 
   L0:
-    load_var _3
-    store_var r
     alloc_array 0
     store_var result
-    load_var r
+    load_var retry
     load_field .initial_delay_ms
     load_const 0
     bin_op +
@@ -244,7 +242,7 @@ function baml.llm.build_plan_with_state(llm_client: baml.llm.Client, planner_sta
 
   L1:
     load_var attempt
-    load_var r
+    load_var retry
     load_field .max_retries
     cmp_op <=
     pop_jump_if_false L2
@@ -252,7 +250,7 @@ function baml.llm.build_plan_with_state(llm_client: baml.llm.Client, planner_sta
 
   L2:
     load_var result
-    jump L11
+    return
 
   L3:
     load_const 0
@@ -265,12 +263,12 @@ function baml.llm.build_plan_with_state(llm_client: baml.llm.Client, planner_sta
     call baml.math.trunc
     store_var delay
     load_var current_delay
-    load_var r
+    load_var retry
     load_field .multiplier
     bin_op *
     store_var next
     load_var next
-    load_var r
+    load_var retry
     load_field .max_delay_ms
     load_const 0
     bin_op +
@@ -284,7 +282,7 @@ function baml.llm.build_plan_with_state(llm_client: baml.llm.Client, planner_sta
     jump L6
 
   L5:
-    load_var r
+    load_var retry
     load_field .max_delay_ms
     load_const 0
     bin_op +
@@ -341,8 +339,6 @@ function baml.llm.build_plan_with_state(llm_client: baml.llm.Client, planner_sta
     load_var llm_client
     load_var planner_state
     call baml.llm.build_attempt_with_state
-
-  L11:
     return
 }
 
@@ -400,17 +396,15 @@ function baml.llm.call_llm_function(function_name: string, args: map<string, unk
 function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.ExecutionContext, inherited_delay_ms: int) -> baml.llm.ExecutionResult {
     load_var llm_client
     load_field .retry
-    store_var _4
-    load_var _4
+    store_var retry
+    load_var retry
     load_const null
     cmp_op ==
     pop_jump_if_false L0
     jump L10
 
   L0:
-    load_var _4
-    store_var r
-    load_var r
+    load_var retry
     load_field .initial_delay_ms
     load_const 0
     bin_op +
@@ -420,7 +414,7 @@ function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.
 
   L1:
     load_var attempt
-    load_var r
+    load_var retry
     load_field .max_retries
     cmp_op <=
     pop_jump_if_false L2
@@ -434,7 +428,7 @@ function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.
     copy 0
     load_const null
     store_field .value
-    jump L11
+    return
 
   L3:
     load_var inherited_delay_ms
@@ -447,12 +441,12 @@ function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.
     call baml.math.trunc
     store_var attempt_delay
     load_var current_delay
-    load_var r
+    load_var retry
     load_field .multiplier
     bin_op *
     store_var next
     load_var next
-    load_var r
+    load_var retry
     load_field .max_delay_ms
     load_const 0
     bin_op +
@@ -466,7 +460,7 @@ function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.
     jump L6
 
   L5:
-    load_var r
+    load_var retry
     load_field .max_delay_ms
     load_const 0
     bin_op +
@@ -474,7 +468,7 @@ function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.
 
   L6:
     load_var attempt
-    load_var r
+    load_var retry
     load_field .max_retries
     cmp_op ==
     pop_jump_if_false L7
@@ -508,8 +502,6 @@ function baml.llm.execute_client(llm_client: baml.llm.Client, context: baml.llm.
     load_var context
     load_var inherited_delay_ms
     call baml.llm.execute_client_once
-
-  L11:
     return
 }
 
@@ -814,17 +806,15 @@ function baml.llm.execute_client_once_stream(llm_client: baml.llm.Client, contex
 function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: baml.llm.ExecutionContext, inherited_delay_ms: int) -> baml.llm.ExecutionResult {
     load_var llm_client
     load_field .retry
-    store_var _4
-    load_var _4
+    store_var retry
+    load_var retry
     load_const null
     cmp_op ==
     pop_jump_if_false L0
     jump L10
 
   L0:
-    load_var _4
-    store_var r
-    load_var r
+    load_var retry
     load_field .initial_delay_ms
     load_const 0
     bin_op +
@@ -834,7 +824,7 @@ function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: ba
 
   L1:
     load_var attempt
-    load_var r
+    load_var retry
     load_field .max_retries
     cmp_op <=
     pop_jump_if_false L2
@@ -848,7 +838,7 @@ function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: ba
     copy 0
     load_const null
     store_field .value
-    jump L11
+    return
 
   L3:
     load_var inherited_delay_ms
@@ -861,12 +851,12 @@ function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: ba
     call baml.math.trunc
     store_var attempt_delay
     load_var current_delay
-    load_var r
+    load_var retry
     load_field .multiplier
     bin_op *
     store_var next
     load_var next
-    load_var r
+    load_var retry
     load_field .max_delay_ms
     load_const 0
     bin_op +
@@ -880,7 +870,7 @@ function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: ba
     jump L6
 
   L5:
-    load_var r
+    load_var retry
     load_field .max_delay_ms
     load_const 0
     bin_op +
@@ -888,7 +878,7 @@ function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: ba
 
   L6:
     load_var attempt
-    load_var r
+    load_var retry
     load_field .max_retries
     cmp_op ==
     pop_jump_if_false L7
@@ -922,8 +912,6 @@ function baml.llm.execute_client_stream(llm_client: baml.llm.Client, context: ba
     load_var context
     load_var inherited_delay_ms
     call baml.llm.execute_client_once_stream
-
-  L11:
     return
 }
 

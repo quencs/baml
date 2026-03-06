@@ -44,41 +44,40 @@ function build_attempt_with_state(llm_client: baml.llm.Client, planner_state: ba
 }
 
 function build_plan_with_state(llm_client: baml.llm.Client, planner_state: baml.llm.PlannerState) -> baml.llm.OrchestrationStep[] {
-    match (llm_client.retry) {
-        null => baml.llm.build_attempt_with_state(llm_client, planner_state),
-        r: baml.llm.RetryPolicy => {
-            let result: baml.llm.OrchestrationStep[] = [];
-            let current_delay = r.initial_delay_ms + 0.0;
-            {
-                let attempt = 0;
-                while (attempt <= r.max_retries) {
-                    let delay = 0;
-                    if (attempt > 0) {
-                        delay = baml.math.trunc(current_delay);
-                        let next = current_delay * r.multiplier;
-                        if (next > r.max_delay_ms + 0.0) {
-                            current_delay = r.max_delay_ms + 0.0;
-                        } else {
-                            current_delay = next;
-                        }
-                    };
-                    let inner = baml.llm.build_attempt_with_state(llm_client, planner_state);
-                    {
-                        let _iter = inner;
-                        let _len = _iter.length();
-                        let _i = 0;
-                        while (_i < _len) {
-                            let step = _iter[_i];
-                            _i += 1;
-                            result.push(baml.llm.OrchestrationStep { primitive_client: step.primitive_client, delay_ms: delay });
-                        }
-                    };
-                    attempt += 1;
+    let retry = llm_client.retry;
+    if (retry == null) {
+        return baml.llm.build_attempt_with_state(llm_client, planner_state);
+    };
+    let result: baml.llm.OrchestrationStep[] = [];
+    let current_delay = retry.initial_delay_ms + 0.0;
+    {
+        let attempt = 0;
+        while (attempt <= retry.max_retries) {
+            let delay = 0;
+            if (attempt > 0) {
+                delay = baml.math.trunc(current_delay);
+                let next = current_delay * retry.multiplier;
+                if (next > retry.max_delay_ms + 0.0) {
+                    current_delay = retry.max_delay_ms + 0.0;
+                } else {
+                    current_delay = next;
                 }
             };
-            result
-        },
-    }
+            let inner = baml.llm.build_attempt_with_state(llm_client, planner_state);
+            {
+                let _iter = inner;
+                let _len = _iter.length();
+                let _i = 0;
+                while (_i < _len) {
+                    let step = _iter[_i];
+                    _i += 1;
+                    result.push(baml.llm.OrchestrationStep { primitive_client: step.primitive_client, delay_ms: delay });
+                }
+            };
+            attempt += 1;
+        }
+    };
+    result
 }
 
 function render_prompt(function_name: string, args: map<string, unknown>) -> baml.llm.PromptAst {
@@ -100,36 +99,35 @@ function build_attempt(llm_client: baml.llm.Client) -> baml.llm.OrchestrationSte
 }
 
 function execute_client(llm_client: baml.llm.Client, context: baml.llm.ExecutionContext, inherited_delay_ms: int) -> baml.llm.ExecutionResult {
-    match (llm_client.retry) {
-        null => baml.llm.execute_client_once(llm_client, context, inherited_delay_ms),
-        r: baml.llm.RetryPolicy => {
-            let current_delay = r.initial_delay_ms + 0.0;
-            {
-                let attempt = 0;
-                while (attempt <= r.max_retries) {
-                    let attempt_delay = inherited_delay_ms;
-                    if (attempt > 0) {
-                        attempt_delay = baml.math.trunc(current_delay);
-                        let next = current_delay * r.multiplier;
-                        if (next > r.max_delay_ms + 0.0) {
-                            current_delay = r.max_delay_ms + 0.0;
-                        } else {
-                            current_delay = next;
-                        }
-                    };
-                    if (attempt == r.max_retries) {
-                        attempt_delay = inherited_delay_ms;
-                    };
-                    let result = baml.llm.execute_client_once(llm_client, context, attempt_delay);
-                    if (result.ok) {
-                        return result;
-                    };
-                    attempt += 1;
+    let retry = llm_client.retry;
+    if (retry == null) {
+        return baml.llm.execute_client_once(llm_client, context, inherited_delay_ms);
+    };
+    let current_delay = retry.initial_delay_ms + 0.0;
+    {
+        let attempt = 0;
+        while (attempt <= retry.max_retries) {
+            let attempt_delay = inherited_delay_ms;
+            if (attempt > 0) {
+                attempt_delay = baml.math.trunc(current_delay);
+                let next = current_delay * retry.multiplier;
+                if (next > retry.max_delay_ms + 0.0) {
+                    current_delay = retry.max_delay_ms + 0.0;
+                } else {
+                    current_delay = next;
                 }
             };
-            baml.llm.ExecutionResult { ok: false, value: null }
-        },
-    }
+            if (attempt == retry.max_retries) {
+                attempt_delay = inherited_delay_ms;
+            };
+            let result = baml.llm.execute_client_once(llm_client, context, attempt_delay);
+            if (result.ok) {
+                return result;
+            };
+            attempt += 1;
+        }
+    };
+    baml.llm.ExecutionResult { ok: false, value: null }
 }
 
 function stream_primitive(primitive: baml.llm.PrimitiveClient, context: baml.llm.ExecutionContext) -> baml.llm.ExecutionResult {
@@ -258,36 +256,35 @@ function execute_client_once_stream(llm_client: baml.llm.Client, context: baml.l
 }
 
 function execute_client_stream(llm_client: baml.llm.Client, context: baml.llm.ExecutionContext, inherited_delay_ms: int) -> baml.llm.ExecutionResult {
-    match (llm_client.retry) {
-        null => baml.llm.execute_client_once_stream(llm_client, context, inherited_delay_ms),
-        r: baml.llm.RetryPolicy => {
-            let current_delay = r.initial_delay_ms + 0.0;
-            {
-                let attempt = 0;
-                while (attempt <= r.max_retries) {
-                    let attempt_delay = inherited_delay_ms;
-                    if (attempt > 0) {
-                        attempt_delay = baml.math.trunc(current_delay);
-                        let next = current_delay * r.multiplier;
-                        if (next > r.max_delay_ms + 0.0) {
-                            current_delay = r.max_delay_ms + 0.0;
-                        } else {
-                            current_delay = next;
-                        }
-                    };
-                    if (attempt == r.max_retries) {
-                        attempt_delay = inherited_delay_ms;
-                    };
-                    let result = baml.llm.execute_client_once_stream(llm_client, context, attempt_delay);
-                    if (result.ok) {
-                        return result;
-                    };
-                    attempt += 1;
+    let retry = llm_client.retry;
+    if (retry == null) {
+        return baml.llm.execute_client_once_stream(llm_client, context, inherited_delay_ms);
+    };
+    let current_delay = retry.initial_delay_ms + 0.0;
+    {
+        let attempt = 0;
+        while (attempt <= retry.max_retries) {
+            let attempt_delay = inherited_delay_ms;
+            if (attempt > 0) {
+                attempt_delay = baml.math.trunc(current_delay);
+                let next = current_delay * retry.multiplier;
+                if (next > retry.max_delay_ms + 0.0) {
+                    current_delay = retry.max_delay_ms + 0.0;
+                } else {
+                    current_delay = next;
                 }
             };
-            baml.llm.ExecutionResult { ok: false, value: null }
-        },
-    }
+            if (attempt == retry.max_retries) {
+                attempt_delay = inherited_delay_ms;
+            };
+            let result = baml.llm.execute_client_once_stream(llm_client, context, attempt_delay);
+            if (result.ok) {
+                return result;
+            };
+            attempt += 1;
+        }
+    };
+    baml.llm.ExecutionResult { ok: false, value: null }
 }
 
 function call_llm_function(function_name: string, args: map<string, unknown>) -> unknown {

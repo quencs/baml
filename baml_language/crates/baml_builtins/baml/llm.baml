@@ -120,36 +120,36 @@ function build_plan_with_state(
     llm_client: baml.llm.Client,
     planner_state: baml.llm.PlannerState,
 ) -> baml.llm.OrchestrationStep[] {
-    match (llm_client.retry) {
-        null => baml.llm.build_attempt_with_state(llm_client, planner_state),
-        r: baml.llm.RetryPolicy => {
-            let result: baml.llm.OrchestrationStep[] = [];
-            let current_delay = r.initial_delay_ms + 0.0;
+    let retry = llm_client.retry;
+    if (retry == null) {
+        return baml.llm.build_attempt_with_state(llm_client, planner_state);
+    }
 
-            for (let attempt = 0; attempt <= r.max_retries; attempt += 1) {
-                let delay = 0;
-                if (attempt > 0) {
-                    delay = baml.math.trunc(current_delay);
-                    let next = current_delay * r.multiplier;
-                    if (next > r.max_delay_ms + 0.0) {
-                        current_delay = r.max_delay_ms + 0.0;
-                    } else {
-                        current_delay = next;
-                    }
-                }
+    let result: baml.llm.OrchestrationStep[] = [];
+    let current_delay = retry.initial_delay_ms + 0.0;
 
-                let inner = baml.llm.build_attempt_with_state(llm_client, planner_state);
-                for (let step in inner) {
-                    result.push(baml.llm.OrchestrationStep {
-                        primitive_client: step.primitive_client,
-                        delay_ms: delay,
-                    });
-                }
+    for (let attempt = 0; attempt <= retry.max_retries; attempt += 1) {
+        let delay = 0;
+        if (attempt > 0) {
+            delay = baml.math.trunc(current_delay);
+            let next = current_delay * retry.multiplier;
+            if (next > retry.max_delay_ms + 0.0) {
+                current_delay = retry.max_delay_ms + 0.0;
+            } else {
+                current_delay = next;
             }
+        }
 
-            result
+        let inner = baml.llm.build_attempt_with_state(llm_client, planner_state);
+        for (let step in inner) {
+            result.push(baml.llm.OrchestrationStep {
+                primitive_client: step.primitive_client,
+                delay_ms: delay,
+            });
         }
     }
+
+    result
 }
 
 /// Execute a client with retry semantics, evaluating strategies lazily.
@@ -161,46 +161,46 @@ function execute_client(
     context: baml.llm.ExecutionContext,
     inherited_delay_ms: int,
 ) -> baml.llm.ExecutionResult {
-    match (llm_client.retry) {
-        null => baml.llm.execute_client_once(
+    let retry = llm_client.retry;
+    if (retry == null) {
+        return baml.llm.execute_client_once(
             llm_client,
             context,
             inherited_delay_ms,
-        ),
-        r: baml.llm.RetryPolicy => {
-            let current_delay = r.initial_delay_ms + 0.0;
+        );
+    }
 
-            for (let attempt = 0; attempt <= r.max_retries; attempt += 1) {
-                let attempt_delay = inherited_delay_ms;
-                if (attempt > 0) {
-                    attempt_delay = baml.math.trunc(current_delay);
-                    let next = current_delay * r.multiplier;
-                    if (next > r.max_delay_ms + 0.0) {
-                        current_delay = r.max_delay_ms + 0.0;
-                    } else {
-                        current_delay = next;
-                    }
-                }
-                // Legacy behavior: the last local retry attempt carries no local
-                // delay (fallback to inherited delay from outer wrappers, if any).
-                if (attempt == r.max_retries) {
-                    attempt_delay = inherited_delay_ms;
-                }
+    let current_delay = retry.initial_delay_ms + 0.0;
 
-                let result = baml.llm.execute_client_once(
-                    llm_client,
-                    context,
-                    attempt_delay,
-                );
-
-                if (result.ok) {
-                    return result;
-                }
+    for (let attempt = 0; attempt <= retry.max_retries; attempt += 1) {
+        let attempt_delay = inherited_delay_ms;
+        if (attempt > 0) {
+            attempt_delay = baml.math.trunc(current_delay);
+            let next = current_delay * retry.multiplier;
+            if (next > retry.max_delay_ms + 0.0) {
+                current_delay = retry.max_delay_ms + 0.0;
+            } else {
+                current_delay = next;
             }
+        }
+        // Legacy behavior: the last local retry attempt carries no local
+        // delay (fallback to inherited delay from outer wrappers, if any).
+        if (attempt == retry.max_retries) {
+            attempt_delay = inherited_delay_ms;
+        }
 
-            baml.llm.ExecutionResult { ok: false, value: null }
+        let result = baml.llm.execute_client_once(
+            llm_client,
+            context,
+            attempt_delay,
+        );
+
+        if (result.ok) {
+            return result;
         }
     }
+
+    baml.llm.ExecutionResult { ok: false, value: null }
 }
 
 /// Execute a single attempt for a client (no retry expansion here).
@@ -317,7 +317,7 @@ function call_llm_function(function_name: string, args: map<string, unknown>) ->
 ///
 /// Opens an SSE connection, accumulates provider-specific events, and emits
 /// partial values + raw ticks via the engine's streaming callbacks.
-/// Returns the final parsed result as an ExecutionResult.
+/// Returns the final parsed result as an `ExecutionResult`.
 function stream_primitive(
     primitive: baml.llm.PrimitiveClient,
     context: baml.llm.ExecutionContext,
@@ -355,44 +355,44 @@ function execute_client_stream(
     context: baml.llm.ExecutionContext,
     inherited_delay_ms: int,
 ) -> baml.llm.ExecutionResult {
-    match (llm_client.retry) {
-        null => baml.llm.execute_client_once_stream(
+    let retry = llm_client.retry;
+    if (retry == null) {
+        return baml.llm.execute_client_once_stream(
             llm_client,
             context,
             inherited_delay_ms,
-        ),
-        r: baml.llm.RetryPolicy => {
-            let current_delay = r.initial_delay_ms + 0.0;
+        );
+    }
 
-            for (let attempt = 0; attempt <= r.max_retries; attempt += 1) {
-                let attempt_delay = inherited_delay_ms;
-                if (attempt > 0) {
-                    attempt_delay = baml.math.trunc(current_delay);
-                    let next = current_delay * r.multiplier;
-                    if (next > r.max_delay_ms + 0.0) {
-                        current_delay = r.max_delay_ms + 0.0;
-                    } else {
-                        current_delay = next;
-                    }
-                }
-                if (attempt == r.max_retries) {
-                    attempt_delay = inherited_delay_ms;
-                }
+    let current_delay = retry.initial_delay_ms + 0.0;
 
-                let result = baml.llm.execute_client_once_stream(
-                    llm_client,
-                    context,
-                    attempt_delay,
-                );
-
-                if (result.ok) {
-                    return result;
-                }
+    for (let attempt = 0; attempt <= retry.max_retries; attempt += 1) {
+        let attempt_delay = inherited_delay_ms;
+        if (attempt > 0) {
+            attempt_delay = baml.math.trunc(current_delay);
+            let next = current_delay * retry.multiplier;
+            if (next > retry.max_delay_ms + 0.0) {
+                current_delay = retry.max_delay_ms + 0.0;
+            } else {
+                current_delay = next;
             }
+        }
+        if (attempt == retry.max_retries) {
+            attempt_delay = inherited_delay_ms;
+        }
 
-            baml.llm.ExecutionResult { ok: false, value: null }
+        let result = baml.llm.execute_client_once_stream(
+            llm_client,
+            context,
+            attempt_delay,
+        );
+
+        if (result.ok) {
+            return result;
         }
     }
+
+    baml.llm.ExecutionResult { ok: false, value: null }
 }
 
 /// Execute a single streaming attempt for a client (no retry expansion here).
