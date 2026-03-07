@@ -214,6 +214,9 @@ pub struct AstSourceMap {
     pub pattern_spans: Arena<TextRange>,
     pub match_arm_spans: Arena<TextRange>,
     pub type_annotation_spans: Arena<TextRange>,
+    /// Parallel to `type_annotation_spans` — full `SpannedTypeExpr` tree for
+    /// per-node diagnostics (e.g. underline only the bad union member).
+    pub type_annotation_spanned_exprs: Vec<SpannedTypeExpr>,
     pub catch_arm_spans: Arena<TextRange>,
 }
 
@@ -225,6 +228,7 @@ impl AstSourceMap {
             pattern_spans: Arena::new(),
             match_arm_spans: Arena::new(),
             type_annotation_spans: Arena::new(),
+            type_annotation_spanned_exprs: Vec::new(),
             catch_arm_spans: Arena::new(),
         }
     }
@@ -270,6 +274,12 @@ impl AstSourceMap {
             .nth(raw as usize)
             .map(|(_, &span)| span)
             .unwrap_or_default()
+    }
+
+    /// Look up the full `SpannedTypeExpr` for a type annotation (for per-node diagnostics).
+    pub fn type_annotation_spanned(&self, id: TypeAnnotId) -> Option<&SpannedTypeExpr> {
+        let raw: u32 = id.into_raw().into_u32();
+        self.type_annotation_spanned_exprs.get(raw as usize)
     }
 
     /// Look up the source span of a catch arm by its `CatchArmId`.
@@ -398,7 +408,7 @@ pub enum Stmt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern {
     Binding(Name),
-    TypedBinding { name: Name, ty: TypeExpr },
+    TypedBinding { name: Name, ty: SpannedTypeExpr },
     Literal(Literal),
     Null,
     EnumVariant { enum_name: Name, variant: Name },

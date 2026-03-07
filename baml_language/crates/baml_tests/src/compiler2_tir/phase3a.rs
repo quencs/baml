@@ -108,6 +108,47 @@ fn unknown_type_in_throws() {
     ");
 }
 
+// ── 3A-2b. UnknownType on let-binding annotation ──────────────────────────
+// Quick test: see how let x: BadType = ... is diagnosed (span precision).
+
+#[test]
+fn unknown_type_in_let_binding() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "function f() -> int { let x: Nonexistent = 1; return x; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    function user.f() -> int {
+      { : never
+        let x = 1 : 1
+        return x : 1
+      }
+      !! 29..40: unresolved type: `Nonexistent`
+    }
+    ");
+}
+
+#[test]
+fn unknown_type_in_let_binding_union() {
+    // Bug check: without SpannedTypeExpr in body we get one span per type annotation (whole "int | sring").
+    // With per-node spans we'd get the diagnostic only on "sring". Snapshot shows actual span.
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "function f() -> int { let x: int | sring = 1; return x; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    function user.f() -> int {
+      { : never
+        let x = 1 : 1
+        return x : 1
+      }
+      !! 35..40: unresolved type: `sring`
+    }
+    ");
+}
+
 // ── 3A-3. UnresolvedName diagnostic ──────────────────────────────────────
 
 #[test]

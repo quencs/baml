@@ -16,7 +16,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use baml_base::Name;
-use baml_compiler2_ast::{Expr, ExprBody, ExprId, PatId, Stmt, StmtId, TypeExpr};
+use baml_compiler2_ast::{AstSourceMap, Expr, ExprBody, ExprId, PatId, Stmt, StmtId, TypeExpr};
 use baml_compiler2_hir::{
     contributions::Definition,
     package::{PackageId, PackageItems},
@@ -81,6 +81,8 @@ pub struct TypeInferenceBuilder<'db> {
     declared_return_ty: Option<Ty>,
     /// Source span of the return type annotation (for precise diagnostics).
     return_type_span: Option<TextRange>,
+    /// Body source map (when in function scope) for per-node type annotation diagnostics.
+    body_source_map: Option<AstSourceMap>,
     /// Local variable bindings: name → inferred type (flow-sensitive, updated
     /// by narrowing and assignments).
     locals: FxHashMap<Name, Ty>,
@@ -118,6 +120,7 @@ impl<'db> TypeInferenceBuilder<'db> {
             scope,
             declared_return_ty: None,
             return_type_span: None,
+            body_source_map: None,
             locals: FxHashMap::default(),
             declared_types: FxHashMap::default(),
             aliases,
@@ -145,6 +148,11 @@ impl<'db> TypeInferenceBuilder<'db> {
     /// Set the source span of the return type annotation.
     pub fn set_return_type_span(&mut self, span: TextRange) {
         self.return_type_span = Some(span);
+    }
+
+    /// Set the body source map (for precise type-annotation diagnostics in let etc.).
+    pub fn set_body_source_map(&mut self, source_map: Option<AstSourceMap>) {
+        self.body_source_map = source_map;
     }
 
     /// Report a type error at a raw source span (for type annotations).
@@ -573,14 +581,40 @@ impl<'db> TypeInferenceBuilder<'db> {
                 let mut ann_ty_for_decl: Option<Ty> = None;
                 let init_ty = if let Some(init) = initializer {
                     if let Some(ann_idx) = type_annotation {
-                        let mut diags = Vec::new();
-                        let ann_ty = crate::lower_type_expr::lower_type_expr(
-                            self.context.db(),
-                            &body.type_annotations[*ann_idx],
-                            self.package_items,
-                            &mut diags,
-                        );
-                        for diag in diags {
+                        let (ann_ty, fallback_diags) = if let Some(ref sm) = self.body_source_map {
+                            if let Some(spanned) = sm.type_annotation_spanned(*ann_idx) {
+                                let mut spanned_diags = Vec::new();
+                                let ty = crate::lower_type_expr::lower_spanned_type_expr(
+                                    self.context.db(),
+                                    spanned,
+                                    self.package_items,
+                                    &mut spanned_diags,
+                                );
+                                for (diag, span) in spanned_diags {
+                                    self.context.report_at_span(diag, span);
+                                }
+                                (ty, Vec::new())
+                            } else {
+                                let mut diags = Vec::new();
+                                let ty = crate::lower_type_expr::lower_type_expr(
+                                    self.context.db(),
+                                    &body.type_annotations[*ann_idx],
+                                    self.package_items,
+                                    &mut diags,
+                                );
+                                (ty, diags)
+                            }
+                        } else {
+                            let mut diags = Vec::new();
+                            let ty = crate::lower_type_expr::lower_type_expr(
+                                self.context.db(),
+                                &body.type_annotations[*ann_idx],
+                                self.package_items,
+                                &mut diags,
+                            );
+                            (ty, diags)
+                        };
+                        for diag in fallback_diags {
                             self.context.report_at_type_annot(diag, *ann_idx);
                         }
                         let ty = self.check_expr(*init, body, &ann_ty);
@@ -930,7 +964,9 @@ impl<'db> TypeInferenceBuilder<'db> {
             let binding_name = match &body.patterns[clause.binding] {
                 baml_compiler2_ast::Pattern::Binding(name) => Some(name.clone()),
                 baml_compiler2_ast::Pattern::TypedBinding { name, ty } => {
-                    if let Some(banned) = crate::throw_inference::is_banned_catch_binding_type(ty) {
+                    if let Some(banned) =
+                        crate::throw_inference::is_banned_catch_binding_type(&ty.to_type_expr())
+                    {
                         self.context.report_simple(
                             TirTypeError::InvalidCatchBindingType {
                                 type_name: banned.to_string(),
@@ -1211,7 +1247,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                 }
             }
             baml_compiler2_ast::Pattern::TypedBinding { ty, .. } => {
-                self.lower_pattern_type_expr(ty, at_expr)
+                self.lower_pattern_type_expr(&ty.to_type_expr(), at_expr)
             }
             baml_compiler2_ast::Pattern::Literal(lit) => {
                 Ty::Literal(lit.clone(), crate::ty::Freshness::Regular)
@@ -1369,7 +1405,7 @@ impl<'db> TypeInferenceBuilder<'db> {
                 }
             }
             baml_compiler2_ast::Pattern::TypedBinding { ty, .. } => {
-                let lowered = self.lower_pattern_type_expr(ty, at_expr);
+                let lowered = self.lower_pattern_type_expr(&ty.to_type_expr(), at_expr);
                 if self.ty_matches_throw_fact(&lowered, throw_fact) {
                     PatternMatchStrength::DefiniteMatch
                 } else if throw_fact == "unknown" {

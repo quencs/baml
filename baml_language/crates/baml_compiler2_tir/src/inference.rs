@@ -157,6 +157,9 @@ pub fn infer_scope_types<'db>(
                         let sig_sm = baml_compiler2_hir::signature::function_signature_source_map(
                             db, func_loc,
                         );
+                        builder.set_body_source_map(
+                            baml_compiler2_hir::body::function_body_source_map(db, func_loc),
+                        );
 
                         // Get declared return type — use spanned version for precise diagnostics
                         let return_ty = if let Some(ret_spanned) = &sig_sm.return_type_expr {

@@ -639,7 +639,7 @@ fn pat_desc(pat_id: baml_compiler2_ast::PatId, body: &baml_compiler2_ast::ExprBo
     match pat {
         Pattern::Binding(n) => n.to_string(),
         Pattern::TypedBinding { name, ty } => {
-            format!("{name}: {}", hir2_type_expr_to_string(ty))
+            format!("{name}: {}", hir2_spanned_type_expr_to_string(ty))
         }
         Pattern::Literal(lit) => lit.to_string(),
         Pattern::Null => "null".into(),
@@ -1906,7 +1906,7 @@ impl CompilerRunner {
             match pat {
                 Pattern::Binding(n) => n.to_string(),
                 Pattern::TypedBinding { name, ty } => {
-                    format!("{name}: {}", hir2_type_expr_to_string(ty))
+                    format!("{name}: {}", hir2_spanned_type_expr_to_string(ty))
                 }
                 Pattern::Literal(lit) => lit.to_string(),
                 Pattern::Null => "null".into(),
@@ -2298,7 +2298,7 @@ impl CompilerRunner {
                             let pat_name = match &body.patterns[*pattern] {
                                 Pattern::Binding(n) => n.to_string(),
                                 Pattern::TypedBinding { name, ty } => {
-                                    format!("{name}: {}", hir2_type_expr_to_string(ty))
+                                    format!("{name}: {}", hir2_spanned_type_expr_to_string(ty))
                                 }
                                 other => format!("{other:?}"),
                             };
