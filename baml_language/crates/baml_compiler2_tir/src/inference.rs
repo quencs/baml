@@ -248,7 +248,7 @@ pub fn infer_scope_types<'db>(
                         // Validate declared `throws` against effective escaping throws.
                         builder.check_throws_contract(
                             expr_body,
-                            sig.throws.as_ref(),
+                            sig_sm.throws_type_expr.as_ref(),
                             sig_sm.throws_type_span,
                             func_data.span,
                         );

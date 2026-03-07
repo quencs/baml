@@ -183,6 +183,27 @@ pub fn check_file(db: &dyn Db, file: SourceFile) -> Vec<Diagnostic> {
                 }
             }
         }
+
+        // Check throws type — use lower_spanned_type_expr for per-node spans.
+        if let Some(throws_spanned) = &func_data.throws {
+            type_errors_spanned.clear();
+            baml_compiler2_tir::lower_type_expr::lower_spanned_type_expr(
+                db,
+                throws_spanned,
+                &pkg_items,
+                &mut type_errors_spanned,
+            );
+            for (error, span) in type_errors_spanned.drain(..) {
+                diagnostics.push(
+                    Diagnostic::error(tir_type_error_to_diagnostic_id(&error), error.to_string())
+                        .with_primary_span(Span {
+                            file_id,
+                            range: span,
+                        })
+                        .with_phase(DiagnosticPhase::Type),
+                );
+            }
+        }
     }
 
     // Deduplicate: multiple steps can produce the same diagnostic (e.g. scope

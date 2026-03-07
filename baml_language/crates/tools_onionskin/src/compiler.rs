@@ -73,6 +73,11 @@ fn hir2_type_expr_to_string(ty: &baml_compiler2_ast::TypeExpr) -> String {
     }
 }
 
+/// Format compiler2 `SpannedTypeExpr` for display (strips spans).
+fn hir2_spanned_type_expr_to_string(ty: &baml_compiler2_ast::SpannedTypeExpr) -> String {
+    hir2_type_expr_to_string(&ty.to_type_expr())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum CompilerPhase {
     Lexer,
@@ -1569,7 +1574,7 @@ impl CompilerRunner {
                                         format!(
                                             "{}: {}",
                                             p.name.as_str(),
-                                            hir2_type_expr_to_string(&te.to_type_expr())
+                                            hir2_spanned_type_expr_to_string(te)
                                         )
                                     })
                                     .unwrap_or_else(|| p.name.as_str().to_string())
@@ -1578,7 +1583,7 @@ impl CompilerRunner {
                         let ret_str = f
                             .return_type
                             .as_ref()
-                            .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
+                            .map(hir2_spanned_type_expr_to_string)
                             .unwrap_or_else(|| "?".to_string());
                         let body_kind = match &f.body {
                             Some(FunctionBodyDef::Expr(_, _)) => "expr",
@@ -1597,7 +1602,7 @@ impl CompilerRunner {
                                 detail.push(format!(
                                     "  param {}: {}",
                                     p.name,
-                                    hir2_type_expr_to_string(&te.to_type_expr())
+                                    hir2_spanned_type_expr_to_string(te)
                                 ));
                             }
                         }
@@ -1698,7 +1703,7 @@ impl CompilerRunner {
                             let ty_str = field
                                 .type_expr
                                 .as_ref()
-                                .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
+                                .map(hir2_spanned_type_expr_to_string)
                                 .unwrap_or_else(|| "?".to_string());
                             detail.push(format!("    {}: {}", field.name, ty_str));
                         }
@@ -1755,7 +1760,7 @@ impl CompilerRunner {
                     let ty_str = ta
                         .type_expr
                         .as_ref()
-                        .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
+                        .map(hir2_spanned_type_expr_to_string)
                         .unwrap_or_else(|| "?".to_string());
                     let mut detail = vec![format!("type {}", ta.name), format!("  = {}", ty_str)];
                     let errors = item_errors(ta.name.as_str());
@@ -2849,7 +2854,7 @@ impl CompilerRunner {
                         let raw = ta
                             .type_expr
                             .as_ref()
-                            .map(|te| hir2_type_expr_to_string(&te.to_type_expr()))
+                            .map(hir2_spanned_type_expr_to_string)
                             .unwrap_or_else(|| "?".to_string());
                         detail.push(plain(format!("  = {raw} (unresolved)")));
                         format!("= {raw}")

@@ -1006,25 +1006,25 @@ impl<'db> TypeInferenceBuilder<'db> {
     pub fn check_throws_contract(
         &mut self,
         body: &ExprBody,
-        declared_throws: Option<&TypeExpr>,
+        declared_throws: Option<&baml_compiler2_ast::SpannedTypeExpr>,
         throws_span: Option<TextRange>,
         fallback_span: TextRange,
     ) {
-        let Some(declared_expr) = declared_throws else {
+        let Some(declared_spanned) = declared_throws else {
             return;
         };
 
         let mut diags = Vec::new();
-        let declared_ty = crate::lower_type_expr::lower_type_expr(
+        let declared_ty = crate::lower_type_expr::lower_spanned_type_expr(
             self.context.db(),
-            declared_expr,
+            declared_spanned,
             self.package_items,
             &mut diags,
         );
-        let span = throws_span.unwrap_or(fallback_span);
-        for diag in diags {
+        for (diag, span) in diags {
             self.context.report_at_span(diag, span);
         }
+        let span = throws_span.unwrap_or(fallback_span);
 
         let declared = crate::throw_inference::throw_facts_from_ty(&declared_ty);
         let effective = self.collect_effective_throws(body);
@@ -2135,21 +2135,19 @@ impl<'db> TypeInferenceBuilder<'db> {
                 let item_tree = baml_compiler2_hir::file_item_tree(self.context.db(), file);
                 let class_data = &item_tree[class_loc.id(self.context.db())];
                 for field in &class_data.fields {
+                    // Don't report diagnostics here — check_file() already reports
+                    // class-field type errors once via resolve_class_fields.
                     let field_ty = field
                         .type_expr
                         .as_ref()
                         .map(|te| {
-                            let mut spanned_diags = Vec::new();
-                            let ty = crate::lower_type_expr::lower_spanned_type_expr(
+                            let mut diags = Vec::new();
+                            crate::lower_type_expr::lower_spanned_type_expr(
                                 self.context.db(),
                                 te,
                                 self.package_items,
-                                &mut spanned_diags,
-                            );
-                            for (diag, span) in spanned_diags {
-                                self.context.report_at_span(diag, span);
-                            }
-                            ty
+                                &mut diags,
+                            )
                         })
                         .unwrap_or(Ty::Unknown);
                     result.insert(field.name.clone(), field_ty);

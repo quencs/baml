@@ -72,6 +72,42 @@ fn unknown_type_in_return() {
     ");
 }
 
+#[test]
+fn unknown_type_in_union_return() {
+    // Precise diagnostic: only the bad union member is underlined, not the whole type.
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "function f() -> int | sring | bool { return 0; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    function user.f() -> int | unknown | bool {
+      { : never
+        return 0 : 0
+      }
+      !! 22..27: unresolved type: `sring`
+    }
+    ");
+}
+
+#[test]
+fn unknown_type_in_throws() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "function f() -> int throws MissingType { return 0; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    function user.f() -> int throws unknown {
+      { : never
+        return 0 : 0
+      }
+      !! 27..38: unresolved type: `MissingType`
+      ?? 27..38: extraneous throws declaration: unknown
+    }
+    ");
+}
+
 // ── 3A-3. UnresolvedName diagnostic ──────────────────────────────────────
 
 #[test]

@@ -7,6 +7,7 @@
 use baml_base::Name;
 use baml_compiler_syntax::{FunctionTypeParam, ast::TypeExpr as CstTypeExpr};
 use rowan::ast::AstNode;
+use text_size::{TextRange, TextSize};
 
 use crate::ast::{SpannedFunctionTypeParam, SpannedTypeExpr, SpannedTypeExprKind};
 
@@ -39,9 +40,11 @@ fn lower_without_optional(type_expr: &CstTypeExpr) -> SpannedTypeExpr {
 
     if type_expr.is_array() {
         let element = lower_array_element(type_expr);
+        let wrapper_span =
+            TextRange::new(element.span.end(), element.span.end() + TextSize::from(1));
         return SpannedTypeExpr {
             kind: SpannedTypeExprKind::List(Box::new(element)),
-            span,
+            span: wrapper_span,
         };
     }
 
@@ -55,13 +58,20 @@ fn lower_array_element(type_expr: &CstTypeExpr) -> SpannedTypeExpr {
 
     let depth = type_expr.array_depth();
     let base = lower_base_type(type_expr);
+    let full_span = type_expr.trimmed_text_range();
 
     let mut result = base;
-    for _ in 0..depth.saturating_sub(1) {
-        let s = result.span;
+    let n_wrappers = depth.saturating_sub(1);
+    for i in 0..n_wrappers {
+        let is_outermost = i == n_wrappers - 1;
+        let span = if is_outermost {
+            full_span
+        } else {
+            TextRange::new(result.span.end(), result.span.end() + TextSize::from(1))
+        };
         result = SpannedTypeExpr {
             kind: SpannedTypeExprKind::List(Box::new(result)),
-            span: s,
+            span,
         };
     }
     result
@@ -273,29 +283,26 @@ fn lower_union_member(parts: &baml_compiler_syntax::ast::UnionMemberParts) -> Sp
 fn apply_modifiers_from_parts(
     base: SpannedTypeExpr,
     parts: &baml_compiler_syntax::ast::UnionMemberParts,
-    outer_span: text_size::TextRange,
+    _outer_span: TextRange,
 ) -> SpannedTypeExpr {
     let mut result = base;
     for modifier in parts.postfix_modifiers() {
-        match modifier {
-            baml_compiler_syntax::ast::TypePostFixModifier::Optional => {
-                result = SpannedTypeExpr {
-                    kind: SpannedTypeExprKind::Optional(Box::new(result)),
-                    span: outer_span,
-                };
-            }
-            baml_compiler_syntax::ast::TypePostFixModifier::Array => {
-                result = SpannedTypeExpr {
-                    kind: SpannedTypeExprKind::List(Box::new(result)),
-                    span: outer_span,
-                };
-            }
-        }
+        let span = TextRange::new(result.span.end(), result.span.end() + TextSize::from(1));
+        result = match modifier {
+            baml_compiler_syntax::ast::TypePostFixModifier::Optional => SpannedTypeExpr {
+                kind: SpannedTypeExprKind::Optional(Box::new(result)),
+                span,
+            },
+            baml_compiler_syntax::ast::TypePostFixModifier::Array => SpannedTypeExpr {
+                kind: SpannedTypeExprKind::List(Box::new(result)),
+                span,
+            },
+        };
     }
     result
 }
 
-fn lower_from_type_name(name: &str, span: text_size::TextRange) -> SpannedTypeExpr {
+fn lower_from_type_name(name: &str, span: TextRange) -> SpannedTypeExpr {
     let kind = match name {
         "int" => SpannedTypeExprKind::Int,
         "float" => SpannedTypeExprKind::Float,
