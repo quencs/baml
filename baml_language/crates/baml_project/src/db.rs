@@ -79,6 +79,9 @@ impl baml_workspace::Db for ProjectDatabase {
 }
 
 #[salsa::db]
+impl baml_compiler2_ppir::Db for ProjectDatabase {}
+
+#[salsa::db]
 impl baml_compiler2_hir::Db for ProjectDatabase {
     fn compiler2_extra_files(&self) -> Option<baml_workspace::Compiler2ExtraFiles> {
         self.compiler2_extra_files

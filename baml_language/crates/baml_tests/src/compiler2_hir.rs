@@ -246,15 +246,15 @@ mod tests {
         // First wins (a.baml < b.baml alphabetically)
         assert!(ns.types.contains_key(&Name::new("Foo")));
 
-        // Exactly one conflict for "Foo"
+        // Two conflicts: "Foo" and "stream_Foo" (both defined in a.baml and b.baml)
         assert_eq!(
             ns.conflicts().len(),
-            1,
-            "Expected 1 conflict, got: {:?}",
+            2,
+            "Expected 2 conflicts (Foo + stream_Foo), got: {:?}",
             ns.conflicts()
         );
-        assert_eq!(ns.conflicts()[0].name, Name::new("Foo"));
-        assert_eq!(ns.conflicts()[0].entries.len(), 2);
+        let foo_conflict = ns.conflicts().iter().find(|c| c.name == Name::new("Foo")).expect("Foo conflict");
+        assert_eq!(foo_conflict.entries.len(), 2);
     }
 
     /// Three files all defining the same function name.
@@ -333,8 +333,10 @@ mod tests {
         let pkg_id = PackageId::new(&db, Name::new("user"));
         let items = package_items(&db, pkg_id);
 
-        assert_eq!(items.conflicts().len(), 1);
-        assert_eq!(items.conflicts()[0].name, Name::new("Dup"));
+        // 2 conflicts: "Dup" and "stream_Dup" (both defined in a.baml and b.baml)
+        assert_eq!(items.conflicts().len(), 2);
+        let dup_conflict = items.conflicts().iter().find(|c| c.name == Name::new("Dup")).expect("Dup conflict");
+        assert_eq!(dup_conflict.name, Name::new("Dup"));
 
         // Resolution still works (first wins)
         let resolved = items.lookup_type(&[Name::new("Dup")]);
@@ -352,7 +354,8 @@ mod tests {
         let ns_id = NamespaceId::new(&db, Name::new("user"), vec![]);
         let ns = baml_compiler2_hir::namespace::namespace_items(&db, ns_id);
 
-        assert_eq!(ns.conflicts().len(), 1);
+        // 2 conflicts: "Widget" and "stream_Widget"
+        assert_eq!(ns.conflicts().len(), 2);
         // The winner should be from a.baml
         let winner = ns.types.get(&Name::new("Widget")).unwrap();
         assert!(winner.file(&db) == file_a, "a.baml should win over z.baml");
@@ -420,9 +423,10 @@ mod tests {
         let index = file_semantic_index(&db, file);
         let diags = index.diagnostics();
 
+        // Filter for duplicate "name" field within "Foo" (not "stream_Foo")
         let dups: Vec<_> = diags
             .iter()
-            .filter(|d| matches!(d, Hir2Diagnostic::DuplicateDefinition { name, .. } if name == &Name::new("name")))
+            .filter(|d| matches!(d, Hir2Diagnostic::DuplicateDefinition { name, scope, .. } if name == &Name::new("name") && scope.as_ref().is_some_and(|s| s == &Name::new("Foo"))))
             .collect();
         assert_eq!(dups.len(), 1);
 

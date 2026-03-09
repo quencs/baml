@@ -49,7 +49,7 @@ use crate::{
 /// type parameters or `$rust_type` fields). Implementors that have such files
 /// should override this to return the appropriate `Compiler2ExtraFiles` handle.
 #[salsa::db]
-pub trait Db: baml_workspace::Db {
+pub trait Db: baml_compiler2_ppir::Db {
     /// Returns the compiler2-only extra files, or `None` if not configured.
     ///
     /// The default implementation returns `None`, meaning no extra files.
@@ -88,7 +88,12 @@ pub fn compiler2_all_files(db: &dyn Db) -> Vec<baml_base::SourceFile> {
 pub fn file_semantic_index(db: &dyn Db, file: SourceFile) -> FileSemanticIndex<'_> {
     let tree = baml_compiler_parser::syntax_tree(db, file);
     let file_range = tree.text_range();
-    let (items, _ast_diagnostics) = baml_compiler2_ast::lower_file(&tree);
+    let (mut items, _ast_diagnostics) = baml_compiler2_ast::lower_file(&tree);
+
+    // Merge synthetic stream_* items from PPIR expansion
+    let expansion = baml_compiler2_ppir::ppir_expansion_items(db, file);
+    items.extend(expansion.items(db).iter().cloned());
+
     SemanticIndexBuilder::new(db, file).build(&items, file_range)
 }
 

@@ -277,7 +277,7 @@ pub fn ppir_desugared_items(db: &dyn Db, file: SourceFile) -> PpirDesugaredItems
                 let ty =
                     alias_def
                         .ty()
-                        .map(|te| PpirTy::from_ast(&te))
+                        .map(|te| PpirTy::from_ast(&te, std::iter::empty()))
                         .unwrap_or(PpirTy::Unknown {
                             attrs: PpirTypeAttrs::default(),
                         });
