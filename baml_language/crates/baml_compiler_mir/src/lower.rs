@@ -217,6 +217,27 @@ impl<'a, 'ctx> LoweringContext<'a, 'ctx> {
         )
     }
 
+    /// Resolve a type name through type aliases to find the underlying class name.
+    /// If the name is a type alias to a class, returns the class name.
+    /// Otherwise returns the original name unchanged.
+    fn resolve_class_name_through_aliases(&self, name: &str) -> String {
+        let mut current = Name::new(name);
+        let mut seen = std::collections::HashSet::new();
+        loop {
+            if !seen.insert(current.clone()) {
+                break; // cycle — return as-is
+            }
+            match self.type_aliases.get(&current) {
+                Some(baml_compiler_tir::Ty::Class(qn, _)) => return qn.name.to_string(),
+                Some(baml_compiler_tir::Ty::TypeAlias(qn, _)) => {
+                    current = qn.name.clone();
+                }
+                _ => break,
+            }
+        }
+        name.to_string()
+    }
+
     // ========================================================================
     // Visualization Helpers
     // ========================================================================
@@ -798,7 +819,7 @@ impl<'a, 'ctx> LoweringContext<'a, 'ctx> {
                         .collect();
 
                     let kind = if let Some(name) = type_name {
-                        AggregateKind::Class(name.to_string())
+                        AggregateKind::Class(self.resolve_class_name_through_aliases(name.as_str()))
                     } else {
                         AggregateKind::Class("Anonymous".to_string())
                     };
@@ -825,7 +846,7 @@ impl<'a, 'ctx> LoweringContext<'a, 'ctx> {
 
                     let class_name = type_name
                         .as_ref()
-                        .map(std::string::ToString::to_string)
+                        .map(|n| self.resolve_class_name_through_aliases(n.as_str()))
                         .unwrap_or_else(|| "Anonymous".to_string());
 
                     // Get class fields and invert to get field_index -> field_name
@@ -2438,7 +2459,8 @@ impl<'a, 'ctx> LoweringContext<'a, 'ctx> {
 
     /// Get field index for a type and field name.
     fn field_index_for_type_and_name(&self, ty: &Ty, field: &Name) -> usize {
-        let class_name = Self::class_name_from_ty(ty);
+        let class_name =
+            Self::class_name_from_ty(ty).map(|name| self.resolve_class_name_through_aliases(&name));
 
         if let Some(ref class_name) = class_name {
             if let Some(fields) = self.class_fields.get(class_name) {

@@ -13,7 +13,7 @@
 //! NOT recurse into it — lambda bodies are separate scopes with their own
 //! `infer_scope_types` Salsa query.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use baml_base::Name;
 use baml_compiler2_ast::{Expr, ExprBody, ExprId, PatId, Stmt, StmtId, TypeExpr};
@@ -333,13 +333,26 @@ impl<'db> TypeInferenceBuilder<'db> {
                 type_name
                     .as_ref()
                     .and_then(|n| {
-                        self.package_items.lookup_type(&[n.clone()]).map(|def| {
-                            Ty::Class(crate::lower_type_expr::qualify_def(
-                                self.context.db(),
-                                def,
-                                n,
-                            ))
-                        })
+                        self.package_items
+                            .lookup_type(&[n.clone()])
+                            .map(|def| match def {
+                                Definition::Class(_) => Ty::Class(
+                                    crate::lower_type_expr::qualify_def(self.context.db(), def, n),
+                                ),
+                                Definition::TypeAlias(_) => {
+                                    let alias_ty =
+                                        Ty::TypeAlias(crate::lower_type_expr::qualify_def(
+                                            self.context.db(),
+                                            def,
+                                            n,
+                                        ));
+                                    match self.resolve_alias(&alias_ty) {
+                                        Ty::Class(qn) => Ty::Class(qn.clone()),
+                                        _ => Ty::Unknown,
+                                    }
+                                }
+                                _ => Ty::Unknown,
+                            })
                     })
                     .unwrap_or(Ty::Unknown)
             }
@@ -465,15 +478,15 @@ impl<'db> TypeInferenceBuilder<'db> {
                     self.infer_expr(expr_id, body)
                 }
             }
-            // Object: if expected is Class(name), check fields
+            // Object: if expected is Class(name) or alias to a class, check fields
             Expr::Object { fields, .. } => {
-                if let Ty::Class(_) = expected {
+                let resolved = self.resolve_alias(expected).clone();
+                if let Ty::Class(_) = &resolved {
                     for (_field_name, field_expr) in fields {
                         self.infer_expr(*field_expr, body);
                     }
-                    let ty = expected.clone();
-                    self.record_expr_type(expr_id, ty.clone());
-                    ty
+                    self.record_expr_type(expr_id, resolved.clone());
+                    resolved
                 } else {
                     self.infer_expr(expr_id, body)
                 }
@@ -1073,6 +1086,14 @@ impl<'db> TypeInferenceBuilder<'db> {
                 }
                 Some(out)
             }
+            Ty::TypeAlias(_) => {
+                let resolved = self.resolve_alias(ty);
+                if std::ptr::eq(resolved, ty) {
+                    None
+                } else {
+                    self.required_match_cases(resolved)
+                }
+            }
             Ty::Never => Some(BTreeSet::new()),
             _ => None,
         }
@@ -1424,8 +1445,16 @@ impl<'db> TypeInferenceBuilder<'db> {
             Ty::Union(parts) => parts
                 .iter()
                 .any(|part| self.ty_matches_throw_fact(part, throw_fact)),
-            Ty::Class(qn) | Ty::Enum(qn) | Ty::TypeAlias(qn) => {
+            Ty::Class(qn) | Ty::Enum(qn) => {
                 throw_fact == qn.name.as_str() || throw_fact == qn.to_string()
+            }
+            Ty::TypeAlias(_) => {
+                let resolved = self.resolve_alias(ty);
+                if std::ptr::eq(resolved, ty) {
+                    false
+                } else {
+                    self.ty_matches_throw_fact(resolved, throw_fact)
+                }
             }
             Ty::EnumVariant(qn, variant) => {
                 throw_fact == format!("{}.{}", qn.name, variant) || throw_fact == qn.name.as_str()
@@ -2047,6 +2076,21 @@ impl<'db> TypeInferenceBuilder<'db> {
                     Ty::Unknown
                 }
             }
+            Ty::TypeAlias(_) => {
+                let resolved = self.resolve_alias(base_ty).clone();
+                if resolved == *base_ty {
+                    self.context.report_simple(
+                        TirTypeError::UnresolvedMember {
+                            base_type: base_ty.clone(),
+                            member: member.clone(),
+                        },
+                        at,
+                    );
+                    Ty::Unknown
+                } else {
+                    self.resolve_member(&resolved, member, at)
+                }
+            }
             Ty::Unknown => {
                 // Base type unknown — can't resolve member, but don't emit error
                 // (the base type error was already reported upstream)
@@ -2104,11 +2148,46 @@ impl<'db> TypeInferenceBuilder<'db> {
                 // Drill through Optional to resolve the member on the inner type
                 self.try_resolve_member_on_ty(inner, member)
             }
+            Ty::TypeAlias(_) => {
+                let resolved = self.resolve_alias(ty);
+                if std::ptr::eq(resolved, ty) {
+                    None
+                } else {
+                    self.try_resolve_member_on_ty(resolved, member)
+                }
+            }
             Ty::Unknown => {
                 // Unknown propagates — treat as if the field exists with Unknown type
                 Some(Ty::Unknown)
             }
             _ => None,
+        }
+    }
+
+    /// Resolve a type through aliases to its underlying non-alias type.
+    /// Follows alias chains (A -> B -> C -> Class).
+    /// Returns the input type unchanged if it's not an alias or the alias is unknown.
+    /// Handles recursive aliases by returning the alias type for self-referential chains.
+    fn resolve_alias<'a>(&'a self, ty: &'a Ty) -> &'a Ty {
+        self.resolve_alias_impl(ty, &mut HashSet::new())
+    }
+
+    fn resolve_alias_impl<'a>(
+        &'a self,
+        ty: &'a Ty,
+        seen: &mut HashSet<crate::ty::QualifiedTypeName>,
+    ) -> &'a Ty {
+        match ty {
+            Ty::TypeAlias(qn) => {
+                if !seen.insert(qn.clone()) {
+                    return ty; // cycle — return as-is
+                }
+                match self.aliases.get(qn) {
+                    Some(target) => self.resolve_alias_impl(target, seen),
+                    None => ty,
+                }
+            }
+            _ => ty,
         }
     }
 

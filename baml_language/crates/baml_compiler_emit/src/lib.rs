@@ -471,10 +471,6 @@ pub fn compile_files(
                     }
                     baml_compiler_hir::FunctionBody::Expr(_, _) => {
                         // Run type inference
-                        // Note: type_aliases is not passed here, so exhaustiveness
-                        // checking for type aliases won't work. This is acceptable
-                        // since codegen is for runtime execution, and type errors
-                        // should be caught in the TIR phase.
                         let inference = baml_compiler_tir::infer_function(
                             db,
                             &signature,
@@ -482,7 +478,7 @@ pub fn compile_files(
                             &body,
                             Some(typing_context.clone()),
                             Some(class_field_types.clone()),
-                            None, // type_aliases - not needed for codegen
+                            Some(type_aliases.clone()),
                             Some(enum_variant_names.clone()), // enum_variants - needed for enum variant detection
                             *func_loc,
                         );

@@ -103,10 +103,6 @@ async fn match_typed_pattern_second_arm() {
         jump L1
 
       L0:
-        load_var result
-        load_const Failure
-        cmp_op instanceof
-        pop_jump_if_false L2
         load_const "failure: "
         load_var result
         load_field .reason
@@ -172,10 +168,6 @@ async fn match_typed_pattern_with_field_access() {
         jump L1
 
       L0:
-        load_var shape
-        load_const Circle
-        cmp_op instanceof
-        pop_jump_if_false L2
         load_var shape
         load_field .radius
         jump L2

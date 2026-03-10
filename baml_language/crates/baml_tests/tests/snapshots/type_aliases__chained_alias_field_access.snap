@@ -1,0 +1,20 @@
+---
+source: crates/baml_tests/tests/type_aliases.rs
+expression: output.bytecode
+---
+function main() -> int {
+    alloc_instance Point
+    copy 0
+    load_const 10
+    store_field .x
+    copy 0
+    load_const 20
+    store_field .y
+    store_var p
+    load_var p
+    load_field .x
+    load_var p
+    load_field .y
+    bin_op +
+    return
+}

@@ -4215,317 +4215,363 @@ function MatchExprs(x: int, s: MatchStatus, r: MatchSuccess | MatchFailure, b: b
     load_const MatchSuccess
     cmp_op instanceof
     pop_jump_if_false L23
-    jump L24
+    jump L23
 
   L23:
     load_var r
-    load_const MatchFailure
-    cmp_op instanceof
-    pop_jump_if_false L24
+    jump_table [L24, L24, L24, L24, L24, L24], default L24
 
   L24:
     load_var r
-    pop 1
-    load_const false
+    type_tag
+    load_const 0
+    cmp_op ==
     pop_jump_if_false L25
+    load_var r
+    load_const 0
+    cmp_op >
+    pop_jump_if_false L25
+    jump L26
 
   L25:
     load_var r
-    jump_table [L26, L26, L26, L26, L26, L26], default L26
+    type_tag
+    load_const 0
+    cmp_op ==
+    pop_jump_if_false L26
+    load_var r
+    load_const 0
+    cmp_op <
+    pop_jump_if_false L26
 
   L26:
     load_var r
     type_tag
     load_const 0
     cmp_op ==
-    pop_jump_if_false L27
+    pop_jump_if_false L42
     load_var r
+    store_var n
+    load_var n
     load_const 0
     cmp_op >
     pop_jump_if_false L27
     jump L28
 
   L27:
-    load_var r
-    type_tag
-    load_const 0
-    cmp_op ==
-    pop_jump_if_false L28
-    load_var r
-    load_const 0
-    cmp_op <
-    pop_jump_if_false L28
+    load_const false
+    jump L29
 
   L28:
-    load_var r
-    type_tag
-    load_const 0
-    cmp_op ==
-    pop_jump_if_false L44
-    load_var r
-    store_var n
-    load_var n
-    load_const 0
-    cmp_op >
-    pop_jump_if_false L29
-    jump L30
-
-  L29:
-    load_const false
-    jump L31
-
-  L30:
     load_var n
     load_const 100
     cmp_op <
 
-  L31:
-    pop_jump_if_false L32
-    jump L33
+  L29:
+    pop_jump_if_false L30
+    jump L31
 
-  L32:
+  L30:
     load_const false
-    jump L34
+    jump L32
 
-  L33:
+  L31:
     load_var n
     load_const 42
     cmp_op !=
 
-  L34:
-    pop_jump_if_false L35
-    jump L36
+  L32:
+    pop_jump_if_false L33
+    jump L34
 
-  L35:
+  L33:
     load_const false
-    jump L37
+    jump L35
 
-  L36:
+  L34:
     load_var n
     load_const 13
     cmp_op !=
 
-  L37:
-    pop_jump_if_false L38
-    jump L39
+  L35:
+    pop_jump_if_false L36
+    jump L37
 
-  L38:
+  L36:
     load_const false
-    jump L40
+    jump L38
 
-  L39:
+  L37:
     load_var n
     load_const 7
     cmp_op !=
 
-  L40:
-    pop_jump_if_false L41
-    jump L42
+  L38:
+    pop_jump_if_false L39
+    jump L40
 
-  L41:
+  L39:
     load_const false
-    jump L43
+    jump L41
 
-  L42:
+  L40:
     load_var n
     load_const 99
     cmp_op !=
 
-  L43:
-    pop_jump_if_false L44
+  L41:
+    pop_jump_if_false L42
 
-  L44:
+  L42:
     load_var r
     copy 0
     load_const 0
     cmp_op ==
-    pop_jump_if_false L45
+    pop_jump_if_false L43
     pop 1
 
-  L45:
+  L43:
     copy 0
     load_const 1
     cmp_op ==
-    pop_jump_if_false L46
+    pop_jump_if_false L44
     pop 1
 
-  L46:
+  L44:
     pop 1
     load_var r
-    jump_table [L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47, L47], default L47
+    jump_table [L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45, L45], default L45
 
-  L47:
+  L45:
     load_var r
     discriminant
     copy 0
     load_const MatchStatus.Active
     cmp_op ==
+    pop_jump_if_false L46
+    pop 1
+
+  L46:
+    copy 0
+    load_const MatchStatus.Inactive
+    cmp_op ==
+    pop_jump_if_false L47
+    pop 1
+
+  L47:
+    pop 1
+    load_var r
+    copy 0
+    load_const 0
+    cmp_op ==
     pop_jump_if_false L48
     pop 1
 
   L48:
-    copy 0
-    load_const MatchStatus.Inactive
-    cmp_op ==
-    pop_jump_if_false L49
     pop 1
+    jump L51
+    load_var b
+    pop_jump_if_false L49
+    jump L50
 
   L49:
-    pop 1
-    load_var r
-    copy 0
-    load_const 0
-    cmp_op ==
-    pop_jump_if_false L50
-    pop 1
-
-  L50:
-    pop 1
-    jump L53
-    load_var b
-    pop_jump_if_false L51
-    jump L52
-
-  L51:
     load_const "this is the false branch also very long"
     store_var result
-    jump L53
+    jump L51
 
-  L52:
+  L50:
     load_const "this is the true branch with a very long string"
     store_var result
 
-  L53:
+  L51:
     load_var r
     type_tag
     load_const 0
     cmp_op ==
-    pop_jump_if_false L66
+    pop_jump_if_false L64
     load_var r
     store_var n
     load_var n
     load_const 0
     cmp_op >
-    pop_jump_if_false L54
-    jump L55
+    pop_jump_if_false L52
+    jump L53
+
+  L52:
+    load_const false
+    jump L54
+
+  L53:
+    load_var n
+    load_const 100
+    cmp_op <
 
   L54:
-    load_const false
+    pop_jump_if_false L55
     jump L56
 
   L55:
-    load_var n
-    load_const 100
-    cmp_op <
+    load_const false
+    jump L57
 
   L56:
-    pop_jump_if_false L57
-    jump L58
-
-  L57:
-    load_const false
-    jump L59
-
-  L58:
     load_var n
     load_const 42
     cmp_op !=
 
-  L59:
-    pop_jump_if_false L60
-    jump L61
+  L57:
+    pop_jump_if_false L58
+    jump L59
 
-  L60:
+  L58:
     load_const false
-    jump L62
+    jump L60
 
-  L61:
+  L59:
     load_var n
     load_const 13
     cmp_op !=
 
-  L62:
-    pop_jump_if_false L63
-    jump L64
+  L60:
+    pop_jump_if_false L61
+    jump L62
 
-  L63:
+  L61:
     load_const false
-    jump L65
+    jump L63
 
-  L64:
+  L62:
     load_var n
     load_const 7
     cmp_op !=
 
-  L65:
-    pop_jump_if_false L66
+  L63:
+    pop_jump_if_false L64
 
-  L66:
+  L64:
     load_var r
     type_tag
     load_const 0
     cmp_op ==
-    pop_jump_if_false L79
+    pop_jump_if_false L77
     load_var r
     store_var n
     load_var n
     load_const 0
     cmp_op >
-    pop_jump_if_false L67
-    jump L68
+    pop_jump_if_false L65
+    jump L66
 
-  L67:
+  L65:
     load_const false
-    jump L69
+    jump L67
 
-  L68:
+  L66:
     load_var n
     load_const 100
     cmp_op <
 
-  L69:
-    pop_jump_if_false L70
-    jump L71
+  L67:
+    pop_jump_if_false L68
+    jump L69
 
-  L70:
+  L68:
     load_const false
-    jump L72
+    jump L70
 
-  L71:
+  L69:
     load_var n
     load_const 42
     cmp_op !=
 
-  L72:
-    pop_jump_if_false L73
-    jump L74
+  L70:
+    pop_jump_if_false L71
+    jump L72
 
-  L73:
+  L71:
     load_const false
-    jump L75
+    jump L73
 
-  L74:
+  L72:
     load_var n
     load_const 13
     cmp_op !=
 
-  L75:
-    pop_jump_if_false L76
-    jump L77
+  L73:
+    pop_jump_if_false L74
+    jump L75
 
-  L76:
+  L74:
     load_const false
-    jump L78
+    jump L76
 
-  L77:
+  L75:
     load_var n
     load_const 7
     cmp_op !=
 
+  L76:
+    pop_jump_if_false L77
+
+  L77:
+    load_var r
+    load_const 1
+    bin_op +
+    copy 0
+    load_const 0
+    cmp_op ==
+    pop_jump_if_false L78
+    pop 1
+
   L78:
+    pop 1
+    load_var r
+    load_var r
+    bin_op *
+    load_var b
+    load_var b
+    bin_op *
+    bin_op +
+    load_var r
+    load_var b
+    bin_op *
+    bin_op +
+    load_var r
+    bin_op +
+    load_var b
+    bin_op +
+    load_var r
+    load_var r
+    bin_op *
+    load_var r
+    bin_op *
+    bin_op +
+    load_var b
+    load_var b
+    bin_op *
+    load_var b
+    bin_op *
+    bin_op +
+    load_var r
+    load_var b
+    bin_op *
+    load_var r
+    bin_op *
+    bin_op +
+    load_var b
+    load_var r
+    bin_op *
+    load_var b
+    bin_op *
+    bin_op +
+    copy 0
+    load_const 0
+    cmp_op ==
     pop_jump_if_false L79
+    pop 1
 
   L79:
+    pop 1
     load_var r
     load_const 1
     bin_op +
@@ -4538,44 +4584,6 @@ function MatchExprs(x: int, s: MatchStatus, r: MatchSuccess | MatchFailure, b: b
   L80:
     pop 1
     load_var r
-    load_var r
-    bin_op *
-    load_var b
-    load_var b
-    bin_op *
-    bin_op +
-    load_var r
-    load_var b
-    bin_op *
-    bin_op +
-    load_var r
-    bin_op +
-    load_var b
-    bin_op +
-    load_var r
-    load_var r
-    bin_op *
-    load_var r
-    bin_op *
-    bin_op +
-    load_var b
-    load_var b
-    bin_op *
-    load_var b
-    bin_op *
-    bin_op +
-    load_var r
-    load_var b
-    bin_op *
-    load_var r
-    bin_op *
-    bin_op +
-    load_var b
-    load_var r
-    bin_op *
-    load_var b
-    bin_op *
-    bin_op +
     copy 0
     load_const 0
     cmp_op ==
@@ -4585,8 +4593,6 @@ function MatchExprs(x: int, s: MatchStatus, r: MatchSuccess | MatchFailure, b: b
   L81:
     pop 1
     load_var r
-    load_const 1
-    bin_op +
     copy 0
     load_const 0
     cmp_op ==
@@ -4595,151 +4601,129 @@ function MatchExprs(x: int, s: MatchStatus, r: MatchSuccess | MatchFailure, b: b
 
   L82:
     pop 1
-    load_var r
-    copy 0
-    load_const 0
+    jump L83
+    load_var b
+    load_const true
     cmp_op ==
     pop_jump_if_false L83
-    pop 1
+    jump L83
 
   L83:
-    pop 1
     load_var r
     copy 0
     load_const 0
     cmp_op ==
     pop_jump_if_false L84
     pop 1
+    jump L89
 
   L84:
-    pop 1
-    jump L85
-    load_var b
-    load_const true
-    cmp_op ==
-    pop_jump_if_false L85
-    jump L85
-
-  L85:
-    load_var r
-    copy 0
-    load_const 0
-    cmp_op ==
-    pop_jump_if_false L86
-    pop 1
-    jump L91
-
-  L86:
     copy 0
     load_const 1
     cmp_op ==
-    pop_jump_if_false L87
+    pop_jump_if_false L85
     pop 1
 
-  L87:
+  L85:
     pop 1
-    jump L96
+    jump L94
     load_var r
     load_const MatchSuccess
     cmp_op instanceof
+    pop_jump_if_false L86
+    jump L87
+
+  L86:
+    jump L94
+
+  L87:
+    load_var b
+    load_const true
+    cmp_op ==
     pop_jump_if_false L88
-    jump L89
+    jump L94
 
   L88:
-    load_var r
-    load_const MatchFailure
-    cmp_op instanceof
-    pop_jump_if_false L96
-    jump L96
+    jump L94
 
   L89:
     load_var b
     load_const true
     cmp_op ==
     pop_jump_if_false L90
-    jump L96
+    jump L91
 
   L90:
-    jump L96
+    jump L94
 
   L91:
-    load_var b
-    load_const true
-    cmp_op ==
-    pop_jump_if_false L92
-    jump L93
-
-  L92:
-    jump L96
-
-  L93:
     load_var r
     discriminant
     copy 0
     load_const MatchStatus.Active
     cmp_op ==
-    pop_jump_if_false L94
+    pop_jump_if_false L92
+    pop 1
+
+  L92:
+    copy 0
+    load_const MatchStatus.Inactive
+    cmp_op ==
+    pop_jump_if_false L93
+    pop 1
+
+  L93:
     pop 1
 
   L94:
+    load_var r
     copy 0
-    load_const MatchStatus.Inactive
+    load_const 0
     cmp_op ==
     pop_jump_if_false L95
     pop 1
 
   L95:
     pop 1
+    jump L98
+    load_var b
+    pop_jump_if_false L98
+    load_var r
+    discriminant
+    copy 0
+    load_const MatchStatus.Active
+    cmp_op ==
+    pop_jump_if_false L96
+    pop 1
 
   L96:
-    load_var r
     copy 0
-    load_const 0
+    load_const MatchStatus.Inactive
     cmp_op ==
     pop_jump_if_false L97
     pop 1
 
   L97:
     pop 1
-    jump L100
-    load_var b
-    pop_jump_if_false L100
-    load_var r
-    discriminant
-    copy 0
-    load_const MatchStatus.Active
-    cmp_op ==
-    pop_jump_if_false L98
-    pop 1
 
   L98:
-    copy 0
-    load_const MatchStatus.Inactive
-    cmp_op ==
-    pop_jump_if_false L99
-    pop 1
-
-  L99:
-    pop 1
-
-  L100:
     load_var r
     copy 0
     load_const 0
     cmp_op ==
-    pop_jump_if_false L101
+    pop_jump_if_false L99
     pop 1
-    jump L102
+    jump L100
 
-  L101:
+  L99:
     pop 1
     load_const "other"
-    jump L103
+    jump L101
 
-  L102:
+  L100:
     load_const "zero"
 
-  L103:
+  L101:
     return
 }
 

@@ -159,6 +159,128 @@ fn resolve_type_alias_query() {
     insta::assert_snapshot!(render_tir(&db, file), @"type user.MyStr = string");
 }
 
+// ── Type alias struct literal regression tests ─────────────────────────────
+
+#[test]
+fn class_struct_literal() {
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "class Foo { x int }\nfunction f() -> Foo { return Foo { x: 1 }; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.Foo {
+      x: int
+    }
+    function user.f() -> user.Foo {
+      { : never
+        return Foo { x: 1 } : user.Foo
+      }
+    }
+    ");
+}
+
+#[test]
+fn type_alias_struct_literal() {
+    // Regression test: type alias used in struct literal should resolve
+    // the alias and type-check fields against the underlying class.
+    //
+    // BUG: Currently `Bar { x: 1 }` is typed as `user.Bar` by creating a
+    // fake Ty::Class with the alias name. This "works" superficially but
+    // field access will fail (see type_alias_struct_literal_field_access).
+    // After fix: the struct literal should resolve through the alias to
+    // produce Ty::Class(user.Foo).
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "class Foo { x int }\ntype Bar = Foo\nfunction f() -> Bar { return Bar { x: 1 }; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.Foo {
+      x: int
+    }
+    type user.Bar = user.Foo
+    function user.f() -> user.Bar {
+      { : never
+        return Bar { x: 1 } : user.Foo
+      }
+    }
+    ");
+}
+
+#[test]
+fn type_alias_struct_literal_field_access() {
+    // Field access through a type-alias-constructed struct literal.
+    //
+    // BUG: `v.x` fails with "unresolved member: user.Bar.x" because the
+    // struct literal was typed as a fake class "Bar" which has no fields.
+    // After fix: `v.x` should resolve to `int`.
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "class Foo { x int }\ntype Bar = Foo\nfunction f() -> int { let v = Bar { x: 1 }; return v.x; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.Foo {
+      x: int
+    }
+    type user.Bar = user.Foo
+    function user.f() -> int {
+      { : never
+        let v = Bar { x: 1 } : user.Foo
+        return v.x : int
+      }
+    }
+    ");
+}
+
+#[test]
+fn type_alias_check_expr_path() {
+    // When the expected type is a TypeAlias (from return type annotation),
+    // check_expr should resolve through the alias for field checking.
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "class Foo { x int }\ntype Bar = Foo\nfunction f() -> Bar { return Foo { x: 1 }; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.Foo {
+      x: int
+    }
+    type user.Bar = user.Foo
+    function user.f() -> user.Bar {
+      { : never
+        return Foo { x: 1 } : user.Foo
+      }
+    }
+    ");
+}
+
+#[test]
+fn type_alias_member_access_on_param() {
+    // Field access on a parameter typed with an alias.
+    //
+    // BUG: `v.x` fails with "unresolved member: user.Bar.x" because
+    // resolve_member has no TypeAlias arm.
+    // After fix: `v.x` should resolve to `int`.
+    let mut db = make_db();
+    let file = db.add_file(
+        "test.baml",
+        "class Foo { x int }\ntype Bar = Foo\nfunction f(v: Bar) -> int { return v.x; }",
+    );
+    insta::assert_snapshot!(render_tir(&db, file), @r"
+    class user.Foo {
+      x: int
+    }
+    type user.Bar = user.Foo
+    function user.f(v: user.Bar) -> int {
+      { : never
+        return v.x : int
+      }
+    }
+    ");
+}
+
 #[test]
 fn two_functions_independent() {
     let mut db = make_db();

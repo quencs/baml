@@ -4633,10 +4633,41 @@ fn infer_field_access(
     // First, try class field lookup for named types
     let found_field = match base {
         Ty::TypeAlias(fqn, _) => {
-            let key = fqn.display_name();
-            ctx.lookup(field)
-                .or(ctx.lookup_class_field(&key, field))
-                .cloned()
+            // Resolve the alias to its underlying type and look up the field there.
+            let mut current_name = fqn.name.clone();
+            let mut seen = std::collections::HashSet::new();
+            let mut result: Option<Ty> = None;
+            while seen.insert(current_name.clone()) {
+                match ctx.lookup_type_alias(&current_name) {
+                    Some(Ty::Class(class_fqn, _)) => {
+                        let key = class_fqn.display_name();
+                        let method_qn = QualifiedName {
+                            namespace: class_fqn.namespace.clone(),
+                            name: QualifiedName::local_method_from_str(
+                                class_fqn.name.as_str(),
+                                field.as_str(),
+                            ),
+                        };
+                        let method_lookup_name = method_qn.display_name();
+                        if let Some(method_ty) = ctx.lookup(&method_lookup_name).cloned() {
+                            if let Some(expr_id) = expr_id {
+                                ctx.set_expr_resolution(
+                                    expr_id,
+                                    ResolvedValue::Function(method_qn),
+                                );
+                            }
+                            return method_ty;
+                        }
+                        result = ctx.lookup_class_field(&key, field).cloned();
+                        break;
+                    }
+                    Some(Ty::TypeAlias(next_fqn, _)) => {
+                        current_name = next_fqn.name.clone();
+                    }
+                    _ => break,
+                }
+            }
+            result
         }
         Ty::Class(fqn, _) => {
             // First try to find a method using a class-qualified name in the same

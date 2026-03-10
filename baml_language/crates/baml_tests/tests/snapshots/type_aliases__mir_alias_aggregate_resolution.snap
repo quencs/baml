@@ -1,0 +1,26 @@
+---
+source: crates/baml_tests/tests/type_aliases.rs
+expression: output.bytecode
+---
+function main() -> int {
+    alloc_instance Coord
+    copy 0
+    load_const 1
+    store_field .x
+    copy 0
+    load_const 2
+    store_field .y
+    copy 0
+    load_const 3
+    store_field .z
+    store_var c
+    load_var c
+    load_field .x
+    load_var c
+    load_field .y
+    bin_op +
+    load_var c
+    load_field .z
+    bin_op +
+    return
+}

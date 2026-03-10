@@ -66,20 +66,9 @@ function DeeplyNestedLiterals(x: 200 | 201 | 204) -> string {
     pop 1
 
   L1:
-    copy 0
-    load_const 204
-    cmp_op ==
-    pop_jump_if_false L2
     pop 1
-
-  L2:
-    pop 1
-    jump L3
     load_const "all success codes"
     return
-
-  L3:
-    unreachable
 }
 
 function DuplicateBoolLiteral(b: bool) -> string {
@@ -188,10 +177,6 @@ function DuplicateStringLiteral(role: "user" | "assistant" | "system") -> string
     jump L3
 
   L2:
-    load_var role
-    load_const "system"
-    cmp_op ==
-    pop_jump_if_false L6
     load_const "system"
     jump L6
 
@@ -296,29 +281,18 @@ function ExhaustiveAliasOfLiterals(code: 200 | 201) -> string {
     cmp_op ==
     pop_jump_if_false L0
     pop 1
-    jump L2
+    jump L1
 
   L0:
-    copy 0
-    load_const 201
-    cmp_op ==
-    pop_jump_if_false L1
     pop 1
+    load_const "created"
+    jump L2
 
   L1:
-    pop 1
-    jump L4
-    load_const "created"
-    jump L3
-
-  L2:
     load_const "ok"
 
-  L3:
+  L2:
     return
-
-  L4:
-    unreachable
 }
 
 function ExhaustiveBool(b: bool) -> string {
@@ -347,10 +321,6 @@ function ExhaustiveClassPlusLiteral(x: Success | 200) -> string {
     jump L1
 
   L0:
-    load_var x
-    load_const 200
-    cmp_op ==
-    pop_jump_if_false L2
     load_const "http ok"
     jump L2
 
@@ -370,10 +340,6 @@ function ExhaustiveCustomBool(b: true | false) -> string {
     jump L1
 
   L0:
-    load_var b
-    load_const false
-    cmp_op ==
-    pop_jump_if_false L2
     load_const "no"
     jump L2
 
@@ -399,10 +365,6 @@ function ExhaustiveDoubleMaybe(dm: Success | Failure??) -> string {
     jump L2
 
   L1:
-    load_var dm
-    load_const null
-    cmp_op ==
-    pop_jump_if_false L4
     load_const "nothing"
     jump L4
 
@@ -481,12 +443,6 @@ function ExhaustiveEnumWithTypedPattern(s: Status) -> string {
 }
 
 function ExhaustiveFalseType(f: false) -> string {
-    load_var f
-    load_const false
-    cmp_op ==
-    pop_jump_if_false L0
-
-  L0:
     load_const "always false"
     return
 }
@@ -498,7 +454,7 @@ function ExhaustiveIntLiterals(code: 200 | 201 | 204) -> string {
     cmp_op ==
     pop_jump_if_false L0
     pop 1
-    jump L4
+    jump L3
 
   L0:
     copy 0
@@ -506,33 +462,22 @@ function ExhaustiveIntLiterals(code: 200 | 201 | 204) -> string {
     cmp_op ==
     pop_jump_if_false L1
     pop 1
-    jump L3
+    jump L2
 
   L1:
-    copy 0
-    load_const 204
-    cmp_op ==
-    pop_jump_if_false L2
     pop 1
+    load_const "No Content"
+    jump L4
 
   L2:
-    pop 1
-    jump L6
-    load_const "No Content"
-    jump L5
+    load_const "Created"
+    jump L4
 
   L3:
-    load_const "Created"
-    jump L5
-
-  L4:
     load_const "OK"
 
-  L5:
+  L4:
     return
-
-  L6:
-    unreachable
 }
 
 function ExhaustiveLiteralWithBaseType(x: int) -> string {
@@ -568,10 +513,6 @@ function ExhaustiveMixedLiterals(x: 200 | "success" | true) -> string {
     jump L2
 
   L1:
-    load_var x
-    load_const true
-    cmp_op ==
-    pop_jump_if_false L4
     load_const "boolean true"
     jump L4
 
@@ -675,10 +616,6 @@ function ExhaustiveOptionalSingleton(code: 200?) -> string {
     jump L1
 
   L0:
-    load_var code
-    load_const null
-    cmp_op ==
-    pop_jump_if_false L2
     load_const "no code"
     jump L2
 
@@ -691,20 +628,9 @@ function ExhaustiveOptionalSingleton(code: 200?) -> string {
 
 function ExhaustiveSingletonInt(code: 200) -> string {
     load_var code
-    copy 0
-    load_const 200
-    cmp_op ==
-    pop_jump_if_false L0
     pop 1
-
-  L0:
-    pop 1
-    jump L1
     load_const "OK"
     return
-
-  L1:
-    unreachable
 }
 
 function ExhaustiveStringLiterals(role: "user" | "assistant" | "system") -> string {
@@ -722,10 +648,6 @@ function ExhaustiveStringLiterals(role: "user" | "assistant" | "system") -> stri
     jump L2
 
   L1:
-    load_var role
-    load_const "system"
-    cmp_op ==
-    pop_jump_if_false L4
     load_const "System"
     jump L4
 
@@ -741,12 +663,6 @@ function ExhaustiveStringLiterals(role: "user" | "assistant" | "system") -> stri
 }
 
 function ExhaustiveTrueType(t: true) -> string {
-    load_var t
-    load_const true
-    cmp_op ==
-    pop_jump_if_false L0
-
-  L0:
     load_const "always true"
     return
 }
@@ -759,10 +675,6 @@ function ExhaustiveTypeAlias(r: Success | Failure) -> string {
     jump L1
 
   L0:
-    load_var r
-    load_const Failure
-    cmp_op instanceof
-    pop_jump_if_false L2
     load_var r
     load_field .reason
     jump L2
@@ -944,7 +856,7 @@ function IntLiteralUnionPattern(code: 200 | 201 | 204) -> string {
     cmp_op ==
     pop_jump_if_false L0
     pop 1
-    jump L3
+    jump L2
 
   L0:
     copy 0
@@ -952,29 +864,18 @@ function IntLiteralUnionPattern(code: 200 | 201 | 204) -> string {
     cmp_op ==
     pop_jump_if_false L1
     pop 1
-    jump L3
+    jump L2
 
   L1:
-    copy 0
-    load_const 204
-    cmp_op ==
-    pop_jump_if_false L2
     pop 1
+    load_const "no content"
+    jump L3
 
   L2:
-    pop 1
-    jump L5
-    load_const "no content"
-    jump L4
-
-  L3:
     load_const "success with body"
 
-  L4:
+  L3:
     return
-
-  L5:
-    unreachable
 }
 
 function JumpTableClassTypeTag(pet: Cat | Dog | Bird | Fish) -> string {
@@ -1557,10 +1458,6 @@ function NestedTypeAlias(mr: Success | Failure?) -> string {
     jump L2
 
   L1:
-    load_var mr
-    load_const null
-    cmp_op ==
-    pop_jump_if_false L4
     load_const "nothing"
     jump L4
 
@@ -1585,10 +1482,6 @@ function NestedTypeBindings(r: Success | Failure) -> int {
     jump L1
 
   L0:
-    load_var r
-    load_const Failure
-    cmp_op instanceof
-    pop_jump_if_false L2
     load_const 1
     jump L2
 
@@ -2014,10 +1907,6 @@ function OverlappingTypedPatterns(r: Success | Failure) -> string {
     jump L1
 
   L0:
-    load_var r
-    pop 1
-    load_const false
-    pop_jump_if_false L2
     load_const "covers failure only (success already handled)"
     jump L2
 
@@ -2036,10 +1925,6 @@ function OverlappingWithBindings(r: Success | Failure) -> string {
     jump L1
 
   L0:
-    load_var r
-    pop 1
-    load_const false
-    pop_jump_if_false L2
     load_const "remaining"
     jump L2
 
@@ -2088,10 +1973,6 @@ function PartialUnionPlusCatchAll(r: Success | Failure | Pending) -> string {
     jump L1
 
   L0:
-    load_var r
-    load_const Pending
-    cmp_op instanceof
-    pop_jump_if_false L2
     load_const "pending"
     jump L2
 
@@ -2136,10 +2017,6 @@ function StringLiteralUnionPattern(role: "user" | "assistant" | "system") -> str
     jump L2
 
   L1:
-    load_var role
-    load_const "system"
-    cmp_op ==
-    pop_jump_if_false L3
     load_const "system"
     jump L3
 
@@ -2229,12 +2106,6 @@ function ThreeLevelNestedMatch(x: int, y: int, z: int) -> string {
 }
 
 function UnionPatternCoversAll(r: Success | Failure) -> string {
-    load_var r
-    pop 1
-    load_const false
-    pop_jump_if_false L0
-
-  L0:
     load_const "covered"
     return
 }
