@@ -1,0 +1,772 @@
+variables:
+  identifier: "[a-zA-Z_][a-zA-Z0-9_]*"
+
+fileTypes:
+  - baml
+name: baml
+scopeName: source.baml
+patterns:
+  - include: "#comment"
+  - include: "#item"
+
+repository:
+  comment:
+    patterns:
+      - name: comment.line.baml
+        match: //.*$
+      - name: comment.block.baml
+        begin: /\*
+        end: \*/
+
+  # A top-level item in a BAML file.
+  item:
+    patterns:
+      - include: "#enum"
+      - include: "#class"
+      - include: "#function"
+      - include: "#template-string"
+      - include: "#type-alias"
+      - include: "#client"
+      - include: "#test"
+      - include: "#generator"
+      - include: "#retry-policy"
+
+  # A client declaration, which may optionally include a generic parameter.
+  client:
+    begin: \b(client)\b(<({{identifier}})>)?
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+      "3":
+        name: entity.name.type.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#config-block"
+
+  # A test declaration.
+  test:
+    begin: \b(test)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#config-block"
+
+  # A generator declaration.
+  generator:
+    begin: \b(generator)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#config-block"
+
+  # A retry policy declaration.
+  retry-policy:
+    begin: \b(retry_policy)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#config-block"
+
+  # A generic dictionary config block used in clients, tests, generators, retry policies, etc.
+  config-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#type-builder"
+      - include: "#config-block-entry"
+
+  type-builder:
+    begin: \b(type_builder)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - include: "#type-builder-block"
+
+  # The contents of a type builder block's braces.
+  type-builder-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - match: \b(dynamic)\b
+        captures:
+          "1":
+            name: keyword.declaration.baml
+      - include: "#item"
+
+  # An entry for a config block, i.e. a key-value pair where the key is an identifier and the value is an expression.
+  config-block-entry:
+    begin: ({{identifier}})
+    beginCaptures:
+      "1":
+        name: variable.other.property.baml
+    end: (?=\})|$
+    patterns:
+      - include: "#comment"
+      - include: "#config-block"
+      - include: "#expression"
+
+  # A type alias declaration.
+  type-alias:
+    begin: \b(type)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?=;)|$
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#type-expression"
+
+  # An enum declaration.
+  enum:
+    begin: \b(enum)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#enum-block"
+
+  # The contents of an enum declaration's braces.
+  enum-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#attribute"
+      - include: "#enum-variant"
+
+  # An individual enum variant in an enum block.
+  enum-variant:
+    begin: "({{identifier}})"
+    beginCaptures:
+      "1":
+        name: variable.other.baml
+    end: (?=@)|$
+    patterns:
+      - include: "#comment"
+      - include: "#attribute"
+
+  # A class declaration.
+  class:
+    begin: \b(class)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.type.baml
+      - include: "#class-block"
+
+  # The contents of a class declaration's braces.
+  class-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#attribute"
+      - include: "#class-member"
+
+  # A member of a class, which can be either a function or a field.
+  class-member:
+    patterns:
+      - include: "#function"
+      - include: "#class-field"
+
+  # An individual class field inside a class block, an identifier followed by type expression.
+  class-field:
+    begin: "({{identifier}})"
+    beginCaptures:
+      "1":
+        name: variable.other.property.baml
+    end: (?=@)|$
+    patterns:
+      - include: "#comment"
+      - include: "#type-expression"
+      - include: "#attribute"
+
+  # Either a block or member attribute, used for annotating enum bodies and variants, as well as class bodies and members.
+  attribute:
+    begin: (@@?{{identifier}})
+    beginCaptures:
+      "1":
+        name: entity.other.attribute-name.baml
+    end: (?<=\))|(?![(\s])
+    patterns:
+      - include: "#attribute-arguments"
+
+  # Optional expression arguments for an attribute.
+  attribute-arguments:
+    begin: \(
+    end: \)
+    patterns:
+      - include: "#expression"
+      - match: ","
+
+  # A function declaration, which may be either an LLM or imperative function.
+  function:
+    begin: \b(function)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=\})
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.function.baml
+      - include: "#parameter-list"
+      - include: "#return-type"
+      - include: "#function-block"
+
+  # The contents of a function declaration's braces, which can either be an LLM function body or an imperative function body.
+  function-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      # Include these two first to allow for matching possible LLM functions, a bit of a hack but this is similar to how the actual parser figures it out.
+      - include: "#llm-function-client"
+      - include: "#llm-function-prompt"
+      - include: "#statement"
+
+  # An individual client field assignment in an LLM function body
+  llm-function-client:
+    begin: \b(client)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: $
+    patterns:
+      - include: "#comment"
+      - include: "#expression"
+
+  # An individual prompt field assignment in an LLM function body
+  llm-function-prompt:
+    begin: \b(prompt)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: (?<=#)
+    patterns:
+      - include: "#comment"
+      - include: "#template-string-body"
+
+  # A template string declaration.
+  template-string:
+    begin: \b(template_string)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    patterns:
+      - include: "#comment"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: entity.name.function.baml
+      - include: "#parameter-list"
+      - include: "#template-string-body"
+    end: (?<=#)
+
+  # The body of a template string which may include interpolations using Jinja syntax.
+  template-string-body:
+    begin: (#+)"
+    beginCaptures:
+      "0":
+        name: string.quoted.raw.baml
+    end: \1
+    endCaptures:
+      "0":
+        name: string.quoted.raw.baml
+    contentName: string.quoted.raw.baml
+    patterns:
+      - include: "#jinja-escapes"
+
+  # Patterns for matching Jinja expressions and comments inside template strings, which need to be parsed with Jinja-specific rules.
+  jinja-escapes:
+    patterns:
+      - include: source.baml-jinja#comments
+      - begin: "{{-?"
+        captures:
+          "0":
+            name: storage.type.jinja.delimiter
+        end: "-?}}"
+        name: variable.meta.scope.jinja
+        patterns:
+          - include: source.baml-jinja#expression
+      - begin: "{%-?"
+        captures:
+          "0":
+            name: storage.type.jinja.delimiter
+        end: "-?%}"
+        name: meta.scope.jinja.tag
+        patterns:
+          - include: source.baml-jinja#expression
+
+  # A return type annotation for a function.
+  return-type:
+    begin: ->\s*
+    end: (?=\{)
+    patterns:
+      - include: "#comment"
+      - include: "#type-expression"
+
+  # An individual parameter in a parameter list
+  parameter:
+    begin: "(self)|({{identifier}})"
+    beginCaptures:
+      "1":
+        name: variable.language.self.baml
+      "2":
+        name: variable.parameter.baml
+    end: (?=[,)])
+    patterns:
+      - include: "#comment"
+      - include: "#type-expression"
+
+  # A list of parameters for a function.
+  parameter-list:
+    begin: \(
+    end: \)
+    patterns:
+      - include: "#comment"
+      - include: "#parameter"
+      - match: ","
+
+  # An all-encompassing type expression that includes all possible forms.
+  type-expression:
+    patterns:
+      - include: "#type-generic"
+      - include: "#type-parenthesized"
+      - include: "#literal"
+      - include: "#type-namespaced"
+
+  # A parenthesized type expression, used for grouping in complex type expressions like unions.
+  type-parenthesized:
+    begin: \(
+    end: \)
+    patterns:
+      - include: "#type-expression"
+
+  # A generic type expression, which is an optionally dotted type name followed by angle brackets containing type arguments, e.g. `Foo<Bar, Baz>`, or `baml.llm.Foo<Bar>`.
+  type-generic:
+    begin: (?:{{identifier}}\.)*({{identifier}})\s*<
+    beginCaptures:
+      "1":
+        name: entity.name.type.baml
+    end: ">"
+    patterns:
+      - include: "#type-expression"
+      - match: ","
+
+  # An optionally dotted type name made up of identifiers, e.g. `Foo`, or `baml.llm.Foo`.
+  type-namespaced:
+    match: (?:{{identifier}}\.)*({{identifier}})
+    captures:
+      "1":
+        name: entity.name.type.baml
+
+  # An imperative function block
+  imperative-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#statement"
+
+  # A return statement, which can optionally include an expression to return.
+  return-statement:
+    begin: \b(return)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: ;|(?=\})
+    patterns:
+      - include: "#expression"
+
+  # A throw statement, which must include an expression to throw.
+  throw-expression:
+    begin: \b(throw)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: ;|(?=\})
+    patterns:
+      - include: "#expression"
+
+  # An all-encompassing statement pattern, that includes all possible forms.
+  statement:
+    patterns:
+      - include: "#let-statement"
+      - include: "#return-statement"
+      - include: "#continue-statement"
+      - include: "#break-statement"
+      - include: "#for-loop"
+      - include: "#while-loop"
+      - include: "#expression"
+
+  # A continue statement.
+  continue-statement:
+    begin: \b(continue)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: ;|(?=\})
+
+  # A break statement.
+  break-statement:
+    begin: \b(break)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: ;|(?=\})
+
+  # A while loop, which includes a condition in parentheses and a body in braces.
+  while-loop:
+    begin: \b(while)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})
+    patterns:
+      - include: "#imperative-block"
+      - include: "#expression"
+
+  # A for loop, which can either be a C-style for loop with an initializer, condition, and increment, or an enhanced for-in loop.
+  for-loop:
+    begin: \b(for)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})
+    patterns:
+      - include: "#for-in-clause"
+      - include: "#imperative-block"
+      - include: "#statement" # Match any statement to allow for C-style for loops
+
+  # An enhanced for-in loop clause with an optional `let` preceding the loop variable
+  for-in-clause:
+    begin: (let\s+)?({{identifier}})\s+(in)\s+
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+      "2":
+        name: variable.other.baml
+      "3":
+        name: keyword.control.baml
+    end: \)
+    patterns:
+      - include: "#expression"
+
+  # A let statement, which includes a variable declaration and an optional type annotation, followed by an expression for the variable's value.
+  let-statement:
+    begin: \b(let)\b
+    beginCaptures:
+      "1":
+        name: keyword.declaration.baml
+    end: ;
+    patterns:
+      - match: ({{identifier}})\s*(?=[:=]) # Only match before equals to avoid consuming something in the bound expression
+        captures:
+          "1":
+            name: variable.other.baml
+      - include: "#let-type-annotation"
+      - include: "#expression"
+
+  # The optional type annotation for a let statement.
+  let-type-annotation:
+    begin: ":"
+    end: (?==)
+    patterns:
+      - include: "#type-expression"
+
+  # An all-encompassing expression pattern that includes all possible forms.
+  expression:
+    patterns:
+      - include: "#literal"
+      - include: "#throw-expression"
+      - include: "#if-expression"
+      - include: "#match-expression"
+      - include: "#catch-expression"
+      - include: "#catch-all-expression"
+      - include: "#object-constructor-expression"
+      - include: "#map-expression"
+      - include: "#array-expression"
+      - include: "#function-call-expression"
+      - include: "#variable-expression"
+      - include: "#property-access-expression"
+
+  # A map literal expression, which is a series of key-value pairs enclosed in braces, e.g. `{key1: value1, key2: value2}`.
+  map-expression:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#map-entry"
+      - match: ","
+
+  # An individual key-value pair in a map literal.
+  map-entry:
+    end: (?=[,}])
+    patterns:
+      - include: "#map-entry-key"
+      - include: "#map-entry-value"
+
+  # The key of an individual map entry, which can be either a string literal or an identifier, followed by a colon.
+  map-entry-key:
+    end: (?=:)
+    patterns:
+      - include: "#string-literal"
+      - include: "#raw-string-literal"
+      - match: ({{identifier}})
+        captures:
+          "1":
+            name: variable.other.property.baml
+
+  # A value in an individual map entry.
+  map-entry-value:
+    begin: ":"
+    end: (?=[,}])
+    patterns:
+      - include: "#expression"
+
+  # A match expression, which includes a scrutinee in parentheses and a block of match cases in braces.
+  match-expression:
+    begin: \b(match)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})
+    patterns:
+      - include: "#match-scrutinee"
+      - include: "#match-block"
+
+  # A catch expression, which includes a scrutinee in parentheses and a block of match cases in braces, similar to a match expression but used for catching errors.
+  catch-expression:
+    begin: \b(catch)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})
+    patterns:
+      - include: "#match-scrutinee"
+      - include: "#match-block"
+
+  # A catch-all expression, which includes a scrutinee in parentheses and a block of match cases in braces, similar to a match expression but used for catching errors.
+  catch-all-expression:
+    begin: \b(catch_all)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})
+    patterns:
+      - include: "#match-scrutinee"
+      - include: "#match-block"
+
+  # The scrutinee of a match or catch expression, which is an expression enclosed in parentheses.
+  match-scrutinee:
+    begin: \(
+    end: \)
+    patterns:
+      - include: "#expression"
+
+  # The contents of a match or catch block's parentheses.
+  match-block:
+    begin: \{
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#match-case-typed"
+      - include: "#literal"
+      - include: "#variable-expression"
+      - include: "#match-case-arrow"
+
+  # A typed match case in a match block, e.g. `identifier: TypeExpr => body`.
+  match-case-typed:
+    begin: "({{identifier}})\\s*:"
+    beginCaptures:
+      "1":
+        name: variable.other.baml
+    end: (?==>)
+    patterns:
+      - include: "#type-expression"
+
+  # An untyped match case in a match block, where a bound identifier followed by an arrow precedes either an imperative block or an expression.
+  match-case-arrow:
+    begin: =>
+    end: "(?<=\\}),?|,|(?=\\})"
+    patterns:
+      - include: "#imperative-block"
+      - include: "#expression"
+
+  # A property access expression, which is a series of identifiers separated by dots, e.g. `foo.bar.baz`, where all but the first identifier are highlighted as properties and the first identifier is highlighted as a variable.
+  property-access-expression:
+    match: (?:{{identifier}}\.?)*\.({{identifier}})
+    captures:
+      "1":
+        name: variable.other.property.baml
+
+  # A variable expression, which can be either the keyword `self` or an identifier.
+  variable-expression:
+    match: (self)|({{identifier}})
+    captures:
+      "1":
+        name: variable.language.baml
+      "2":
+        name: variable.other.baml
+
+  # A function call expression, which is an optionally dotted identifier followed by parentheses containing arguments, e.g. `foo(arg1, arg2)`, or `baml.util.foo(arg)`.
+  function-call-expression:
+    begin: \.?({{identifier}})\s*(?:<(?:{{identifier}}\.)*({{identifier}})>)?\s*\(
+    beginCaptures:
+      "1":
+        name: entity.name.function.baml
+      "2":
+        name: entity.name.type.baml
+    end: \)
+    patterns:
+      - include: "#comment"
+      - include: "#expression"
+      - match: ","
+
+  # An array expression, which is a list of expressions enclosed in square brackets, e.g. `[expr1, expr2, expr3]`.
+  array-expression:
+    begin: \[
+    end: \]
+    patterns:
+      - include: "#comment"
+      - include: "#expression"
+      - match: ","
+
+  # An object constructor expression, which is an optionally dotted type identifier followed by braces containing property-value pairs, e.g. `Foo { prop1: value1, prop2: value2 }`, or `baml.util.Foo { prop: value }`.
+  object-constructor-expression:
+    begin: (?:{{identifier}}\.)*({{identifier}})\s*\{
+    beginCaptures:
+      "1":
+        name: entity.name.type.baml
+    end: \}
+    patterns:
+      - include: "#comment"
+      - include: "#object-constructor-property"
+
+  # A single property-value pair in an object constructor expression, which is an identifier followed by a colon and an expression for the property's value.
+  object-constructor-property:
+    begin: "({{identifier}})\\s*:"
+    beginCaptures:
+      "1":
+        name: variable.other.property.baml
+    end: (?=[,}])
+    patterns:
+      - include: "#expression"
+
+  # An integer or floating point literal.
+  number-literal:
+    match: \b\d+(\.\d+)?\b
+    name: constant.numeric.baml
+
+  # A double-quoted string literal, which can include escape sequences with backslashes.
+  string-literal:
+    begin: '"'
+    end: '"'
+    name: string.quoted.double.baml
+
+  # A boolean literal, which can be either `true` or `false`.
+  bool-literal:
+    match: \b(true|false)\b
+    name: constant.language.boolean.baml
+
+  # The `null` literal.
+  null-literal:
+    match: \bnull\b
+    name: constant.language.null.baml
+
+  # An all-encompassing pattern for literals, which includes all forms.
+  literal:
+    patterns:
+      - include: "#number-literal"
+      - include: "#string-literal"
+      - include: "#raw-string-literal"
+      - include: "#bool-literal"
+      - include: "#null-literal"
+
+  # An if expression with its condition, including optional else clauses.
+  if-expression:
+    begin: \b(if)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})(?!\s*else\b)
+    patterns:
+      - include: "#if-condition"
+      - include: "#else-clause"
+      - include: "#imperative-block"
+
+  # The condition of an individual if expression.
+  if-condition:
+    begin: \(
+    end: \)
+    patterns:
+      - include: "#expression"
+
+  # The else clause in an if expression.
+  else-clause:
+    begin: \b(else)\b
+    beginCaptures:
+      "1":
+        name: keyword.control.baml
+    end: (?<=\})
+    patterns:
+      # Check for an if expression first, in case they're doing else if.
+      - include: "#if-expression"
+      - include: "#imperative-block"
+
+  # A raw string literal starting with a number of `#` characters, followed by a double quote, and ending with the same number of `#` characters and a double quote.
+  raw-string-literal:
+    begin: (#+)"
+    end: "\"\\1"
+    name: string.quoted.raw.baml
+

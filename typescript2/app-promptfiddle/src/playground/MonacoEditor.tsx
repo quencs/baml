@@ -225,7 +225,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
         import('@codingame/monaco-vscode-secret-storage-service-override'),
         import('@codingame/monaco-vscode-storage-service-override'),
         import('vscode'),
-        import('./baml.tmLanguage.json'),
+        import('../../syntaxes/baml.tmLanguage.json'),
       ]);
 
       if (disposed || !containerRef.current) return;
@@ -491,7 +491,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
 
           async renderInput(input: any): Promise<{ dispose: () => void }> {
             const el = this._el;
-            if (!el) return { dispose() {} };
+            if (!el) return { dispose() { } };
 
             el.innerHTML = '';
             this._img = null;
@@ -500,7 +500,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
             if (!uri?.path) {
               el.textContent = 'No image to display';
               Object.assign(el.style, { color: '#ccc', padding: '2em' });
-              return { dispose() {} };
+              return { dispose() { } };
             }
 
             const filename = String(uri.path).startsWith(WORKSPACE_PREFIX)
@@ -520,7 +520,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
                 console.error('[ImagePreview] readFile failed:', err);
                 el.textContent = `Failed to load image: ${err}`;
                 Object.assign(el.style, { color: '#ccc', padding: '2em' });
-                return { dispose() {} };
+                return { dispose() { } };
               }
             }
 
@@ -628,7 +628,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
       if (disposed) return;
 
       // Focus Explorer so file tree shows
-      vscode.commands.executeCommand('workbench.view.explorer').then(() => {}, () => {});
+      vscode.commands.executeCommand('workbench.view.explorer').then(() => { }, () => { });
 
       // Workbench ready — editor is visible, hide skeleton
       setReady(true);
@@ -776,17 +776,17 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
         );
         workerRef.current = worker;
 
-      // Listen for the 'ready' message IMMEDIATELY — before any awaits —
-      // so we don't miss it if WASM loads fast (e.g. from cache).
-      const workerReadyPromise = new Promise<void>((resolve) => {
-        const onMsg = (event: MessageEvent) => {
-          if (event.data?.type === 'ready') {
-            worker!.removeEventListener('message', onMsg);
-            resolve();
-          }
-        };
-        worker!.addEventListener('message', onMsg);
-      });
+        // Listen for the 'ready' message IMMEDIATELY — before any awaits —
+        // so we don't miss it if WASM loads fast (e.g. from cache).
+        const workerReadyPromise = new Promise<void>((resolve) => {
+          const onMsg = (event: MessageEvent) => {
+            if (event.data?.type === 'ready') {
+              worker!.removeEventListener('message', onMsg);
+              resolve();
+            }
+          };
+          worker!.addEventListener('message', onMsg);
+        });
 
         // Listen for VFS mutations from the WASM runtime (worker → main).
         const onVfsChange = (event: MessageEvent) => {
@@ -812,7 +812,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
             const { path: relPath } = data as { path: string };
             delete lf[relPath];
             const absPath = `/workspace/${relPath}`;
-            fsp.delete(vs.Uri.file(absPath), { recursive: false, useTrash: false, atomic: false }).catch(() => {});
+            fsp.delete(vs.Uri.file(absPath), { recursive: false, useTrash: false, atomic: false }).catch(() => { });
             if (isMediaPath(relPath)) remBlob(relPath);
             onFilesChangeRef.current({ ...lf });
           } else if (data?.type === 'buildTime') {
@@ -928,7 +928,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
         worker = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isDev = process.env.NODE_ENV === "development";
@@ -963,8 +963,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({ files, onFilesChange, heig
             const delta = Math.floor(Date.now() / 1000) - wasmBuildTime;
             const rel = delta < 60 ? `${delta}s ago`
               : delta < 3600 ? `${Math.floor(delta / 60)}m ago`
-              : delta < 86400 ? `${Math.floor(delta / 3600)}h ago`
-              : `${Math.floor(delta / 86400)}d ago`;
+                : delta < 86400 ? `${Math.floor(delta / 3600)}h ago`
+                  : `${Math.floor(delta / 86400)}d ago`;
             return (
               <span className="truncate max-w-[250px]">
                 Built: {abs} ({rel})

@@ -100,3 +100,11 @@ repos:
         files: ^baml_language/
         priority: 4
         stages: [manual]
+
+      - id: textmate-grammar
+        name: textmate grammar (yaml → json)
+        entry: bash -c 'cd typescript2 && pnpm exec tsx textmate-grammar/build-grammar.ts && git diff --exit-code app-vscode-ext/syntaxes/baml.tmLanguage.json app-vscode-ext/syntaxes/jinja.tmLanguage.json app-promptfiddle/syntaxes/baml.tmLanguage.json app-promptfiddle/syntaxes/jinja.tmLanguage.json'
+        language: system
+        pass_filenames: false
+        files: ^typescript2/textmate-grammar/(baml\.tmLanguage\.yaml|jinja\.tmLanguage\.json)$
+        priority: 1
