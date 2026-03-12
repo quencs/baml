@@ -83,6 +83,9 @@ baml_workspace = { path = "crates/baml_workspace" }
 
 #  External dependencies
 anyhow = { version = "1" }
+aws-config = "1"
+aws-credential-types = { version = "1.2", features = [ "hardcoded-credentials" ] }
+aws-sigv4 = { version = "1.3.8", features = [ "sign-http" ] }
 arboard = "3.4"
 ariadne = { version = "0.6" }
 async-trait = "0.1"

@@ -3,6 +3,7 @@
 //! Converts a `LlmPrimitiveClient` + `PromptAst` into a `baml.http.Request` instance.
 
 mod anthropic;
+mod aws_bedrock;
 mod openai;
 
 use std::str::FromStr;
@@ -148,9 +149,11 @@ pub(crate) fn build_request(
         LlmProvider::Anthropic => {
             anthropic::AnthropicBuilder.build_request(client, prompt, stream)?
         }
+        LlmProvider::AwsBedrock => {
+            aws_bedrock::AwsBedrockBuilder.build_request(client, prompt, stream)?
+        }
         LlmProvider::GoogleAi
         | LlmProvider::VertexAi
-        | LlmProvider::AwsBedrock
         | LlmProvider::BamlFallback
         | LlmProvider::BamlRoundRobin => {
             return Err(BuildRequestError::UnsupportedLlmProvider(
